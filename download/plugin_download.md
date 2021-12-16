@@ -18,5 +18,5 @@
 
 用于显示日期和时间的插件。
 
-下载链接：[32位下载](./x86/PluginDemo.dll) [64位下载](./x64/PluginDemo.dll)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/x86/PluginDemo.dll?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/x64/PluginDemo.dll?raw=true)
 
