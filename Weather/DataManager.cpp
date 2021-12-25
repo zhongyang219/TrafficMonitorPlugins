@@ -2,6 +2,7 @@
 #include "DataManager.h"
 #include "Common.h"
 #include <vector>
+#include <sstream>
 
 CDataManager CDataManager::m_instance;
 
@@ -38,6 +39,7 @@ void CDataManager::LoadConfig()
     std::wstring config_path = m_module_path + L".ini";
     m_setting_data.m_city_index = GetPrivateProfileInt(L"config", L"city", 101, config_path.c_str());
     m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, config_path.c_str()));
+    m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, config_path.c_str()) != 0);
 }
 
 void CDataManager::SaveConfig() const
@@ -45,6 +47,7 @@ void CDataManager::SaveConfig() const
     std::wstring config_path = m_module_path + L".ini";
     WritePrivateProfileInt(L"config", L"city", m_setting_data.m_city_index, config_path.c_str());
     WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, config_path.c_str());
+    WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, config_path.c_str());
 }
 
 const CString& CDataManager::StringRes(UINT id)
@@ -111,4 +114,11 @@ CDataManager::WeatherInfo& CDataManager::GetWeather()
 const std::wstring& CDataManager::GetModulePath() const
 {
     return m_module_path;
+}
+
+std::wstring CDataManager::WeatherInfo::ToString() const
+{
+    std::wstringstream wss;
+    wss << m_type << ' ' << m_low << '~' << m_high;
+    return wss.str();
 }

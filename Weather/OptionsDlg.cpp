@@ -31,6 +31,7 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_SELECT_CITY_BUTTON, &COptionsDlg::OnBnClickedSelectCityButton)
     ON_CBN_SELCHANGE(IDC_WEATHER_TYPE_COMBO, &COptionsDlg::OnCbnSelchangeWeatherTypeCombo)
+    ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
 END_MESSAGE_MAP()
 
 
@@ -48,6 +49,8 @@ BOOL COptionsDlg::OnInitDialog()
     m_weather_type_combo.AddString(g_data.StringRes(IDS_TODAY_WEATHER));
     m_weather_type_combo.AddString(g_data.StringRes(IDS_TOMMORROW_WEATHER));
     m_weather_type_combo.SetCurSel(m_data.m_weather_selected);
+
+    CheckDlgButton(IDC_SHOW_TOOLTIPS_CHECK, m_data.m_show_weather_in_tooltips);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -72,6 +75,11 @@ void COptionsDlg::OnBnClickedSelectCityButton()
 
 void COptionsDlg::OnCbnSelchangeWeatherTypeCombo()
 {
-    // TODO: 在此添加控件通知处理程序代码
     m_data.m_weather_selected = static_cast<WeahterSelected>(m_weather_type_combo.GetCurSel());
+}
+
+
+void COptionsDlg::OnBnClickedShowTooltipsCheck()
+{
+    m_data.m_show_weather_in_tooltips = (IsDlgButtonChecked(IDC_SHOW_TOOLTIPS_CHECK) != 0);
 }

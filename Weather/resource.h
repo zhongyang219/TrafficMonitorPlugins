@@ -17,12 +17,12 @@
 #define IDS_TODAY_WEATHER               108
 #define IDS_TOMMORROW_WEATHER           109
 #define IDD_SELECT_CITY_DIALOG          110
-#define IDI_ICON1                       115
 #define IDI_WEATHER                     115
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
 #define IDC_SELECT_CITY_BUTTON          1006
 #define IDC_WEATHER_TYPE_COMBO          1007
+#define IDC_SHOW_TOOLTIPS_CHECK         1008
 
 // Next default values for new objects
 // 
@@ -30,7 +30,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1008
+#define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

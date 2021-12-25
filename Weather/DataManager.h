@@ -14,8 +14,9 @@ enum WeahterSelected
 
 struct SettingData
 {
-    int m_city_index{};
-    WeahterSelected m_weather_selected{};
+    int m_city_index{};                     //选择的城市在列表中的序号
+    WeahterSelected m_weather_selected{};   //要显示的天气
+    bool m_show_weather_in_tooltips{};      //是否在鼠标提示中显示
 };
 
 class CDataManager
@@ -41,6 +42,7 @@ public:
         std::wstring m_type = L"--";
         std::wstring m_high = L"-℃";
         std::wstring m_low = L"-℃";
+        std::wstring ToString() const;
     };
     WeatherInfo& GetWeather();
 

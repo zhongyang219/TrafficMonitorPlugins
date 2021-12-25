@@ -52,7 +52,7 @@ END
 
 IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 194, 135
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "选项设置"
+CAPTION "天气设置"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "确定",IDOK,80,114,50,14
@@ -62,6 +62,7 @@ BEGIN
     PUSHBUTTON      "选择城市(&S)...",IDC_SELECT_CITY_BUTTON,104,6,52,14
     LTEXT           "天气显示:",IDC_STATIC,7,28,34,8
     COMBOBOX        IDC_WEATHER_TYPE_COMBO,44,27,111,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "在鼠标提示中显示天气",IDC_SHOW_TOOLTIPS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,104,10
 END
 
 IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 194, 135
@@ -116,6 +117,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0
 END
 
@@ -152,8 +154,8 @@ BEGIN
     IDS_CITY_CODE           "城市代码"
     IDS_CLEAR_SEARCH_RESULT "清除搜索结果"
     IDS_INPUT_KEY_WORD      "在此键入搜索"
-    IDS_TODAY_WEATHER       "今天的天气"
-    IDS_TOMMORROW_WEATHER   "明天的天气"
+    IDS_TODAY_WEATHER       "今天"
+    IDS_TOMMORROW_WEATHER   "明天"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -169,6 +171,92 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 194, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Weather settings"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,80,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,137,114,50,14
+    LTEXT           "City:",IDC_STATIC,7,9,25,8
+    EDITTEXT        IDC_CITY_EDIT,34,7,66,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Select city...",IDC_SELECT_CITY_BUTTON,104,6,52,14
+    LTEXT           "Weather display:",IDC_STATIC,7,28,58,8
+    COMBOBOX        IDC_WEATHER_TYPE_COMBO,65,27,91,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Show weather in tool tip",IDC_SHOW_TOOLTIPS_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,151,10
+END
+
+IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 194, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select city"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,83,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,137,114,50,14
+    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,180,103
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 187
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_SELECT_CITY_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 187
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+IDD_SELECT_CITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -181,8 +269,8 @@ BEGIN
     IDS_CITY_CODE           "City code"
     IDS_CLEAR_SEARCH_RESULT "Clear search result"
     IDS_INPUT_KEY_WORD      "Type here to search"
-    IDS_TODAY_WEATHER       "The weather today"
-    IDS_TOMMORROW_WEATHER   "The weather tomorrow"
+    IDS_TODAY_WEATHER       "Today"
+    IDS_TOMMORROW_WEATHER   "Tomorrow"
 END
 
 #endif    // 英语(美国) resources

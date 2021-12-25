@@ -5,6 +5,7 @@
 #include "DataManager.h"
 #include "yyjson/yyjson.h"
 #include "OptionsDlg.h"
+#include <sstream>
 
 CWeather CWeather::m_instance;
 
@@ -62,6 +63,14 @@ void CWeather::ParseJsonData(std::string json_data)
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
 
+        const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
+        const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
+        std::wstringstream wss;
+        wss << g_data.StringRes(IDS_WEATHER).GetString() << std::endl
+            << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString() << std::endl
+            << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString();
+        m_tooltop_info = wss.str();
+
         yyjson_doc_free(doc);
     }
 }
@@ -76,6 +85,14 @@ IPluginItem* CWeather::GetItem(int index)
         break;
     }
     return nullptr;
+}
+
+const wchar_t* CWeather::GetTooltipInfo()
+{
+    if (g_data.m_setting_data.m_show_weather_in_tooltips)
+        return m_tooltop_info.c_str();
+    else
+        return L"";
 }
 
 void CWeather::DataRequired()

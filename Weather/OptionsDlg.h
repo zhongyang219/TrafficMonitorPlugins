@@ -29,4 +29,5 @@ public:
     virtual BOOL OnInitDialog();
     afx_msg void OnBnClickedSelectCityButton();
     afx_msg void OnCbnSelchangeWeatherTypeCombo();
+    afx_msg void OnBnClickedShowTooltipsCheck();
 };
