@@ -113,7 +113,7 @@ ITMPlugin::OptionReturn CWeather::ShowOptionsDialog(void* hParent)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CWnd* pParent = CWnd::FromHandle((HWND)hParent);
-    g_data.DPIFromWindow(pParent);
+    //g_data.DPIFromWindow(pParent);
     COptionsDlg dlg(pParent);
     dlg.m_data = g_data.m_setting_data;
     if (dlg.DoModal() == IDOK)

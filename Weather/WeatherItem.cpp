@@ -55,6 +55,9 @@ void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     //绘制天气文本
     CRect rc_text{ rect };
     rc_text.left = rect.left + icon_size + g_data.DPI(4);
-    pDC->SetTextColor(g_data.m_value_text_color);
+    COLORREF text_color{ g_data.m_value_text_color };
+    if (dark_mode && text_color == 0)
+        text_color = RGB(255, 255, 255);
+    pDC->SetTextColor(text_color);
     pDC->DrawText(g_data.GetWeather().ToStringTemperature().c_str(), rc_text, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 }

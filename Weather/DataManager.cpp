@@ -49,6 +49,10 @@ CDataManager::CDataManager()
     m_weather_icon_id[L"浮尘"] = IDI_DUST2;
     m_weather_icon_id[L"雾"] = IDI_FOG;
     m_weather_icon_id[L"霾"] = IDI_SMOG;
+    //初始化DPI
+    HDC hDC = ::GetDC(HWND_DESKTOP);
+    m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
+    ::ReleaseDC(HWND_DESKTOP, hDC);
 }
 
 CDataManager::~CDataManager()

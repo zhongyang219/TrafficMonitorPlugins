@@ -53,8 +53,8 @@ public:
 
     SettingData m_setting_data;
 
-    COLORREF m_value_text_color;
-    COLORREF m_label_text_color;
+    COLORREF m_value_text_color{};
+    COLORREF m_label_text_color{};
 
 public:
     const std::wstring& GetModulePath() const;
