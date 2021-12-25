@@ -17,6 +17,7 @@ public:
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     void SendWetherInfoQequest();
+    virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
 
 private:
     static UINT ThreadCallback(LPVOID dwUser);

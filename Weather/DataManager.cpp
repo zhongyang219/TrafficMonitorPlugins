@@ -15,6 +15,40 @@ CDataManager::CDataManager()
     m_module_path = path;
     //从配置文件读取配置
     LoadConfig();
+    //初始天气图标ID
+    m_weather_icon_id[L"小雨"] = IDI_LIGHT_RAIN;
+    m_weather_icon_id[L"小到中雨"] = IDI_LIGHT_RAIN;
+    m_weather_icon_id[L"中雨"] = IDI_MODERATE_RAIN;
+    m_weather_icon_id[L"中到大雨"] = IDI_MODERATE_RAIN;
+    m_weather_icon_id[L"大雨"] = IDI_HEAVY_RAIN;
+    m_weather_icon_id[L"大到暴雨"] = IDI_HEAVY_RAIN;
+    m_weather_icon_id[L"暴雨"] = IDI_RAINSTORM;
+    m_weather_icon_id[L"暴雨到大暴雨"] = IDI_RAINSTORM;
+    m_weather_icon_id[L"大暴雨"] = IDI_HEAVY_STORM;
+    m_weather_icon_id[L"大暴雨到特大暴雨"] = IDI_HEAVY_STORM;
+    m_weather_icon_id[L"特大暴雨"] = IDI_HEAVY_STORM;
+    m_weather_icon_id[L"冻雨"] = IDI_HAIL;
+    m_weather_icon_id[L"阵雨"] = IDI_SHOWER;
+    m_weather_icon_id[L"雷阵雨"] = IDI_THUNDERSHOWER;
+    m_weather_icon_id[L"雨夹雪"] = IDI_RAIN_AND_SNOW;
+    m_weather_icon_id[L"雷阵雨伴有冰雹"] = IDI_THUNDERSTORM;
+    m_weather_icon_id[L"小雪"] = IDI_LIGHT_SNOW;
+    m_weather_icon_id[L"小到中雪"] = IDI_LIGHT_SNOW;
+    m_weather_icon_id[L"中雪"] = IDI_MODERATE_SNOW;
+    m_weather_icon_id[L"中到大雪"] = IDI_MODERATE_SNOW;
+    m_weather_icon_id[L"大雪"] = IDI_HEAVY_SNOW;
+    m_weather_icon_id[L"大到暴雪"] = IDI_HEAVY_SNOW;
+    m_weather_icon_id[L"暴雪"] = IDI_SNOWSTORM;
+    m_weather_icon_id[L"阵雪"] = IDI_LIGHT_SNOW;
+    m_weather_icon_id[L"晴"] = IDI_SUNNY;
+    m_weather_icon_id[L"多云"] = IDI_CLOUDY2;
+    m_weather_icon_id[L"阴"] = IDI_CLOUDY;
+    m_weather_icon_id[L"强沙尘暴"] = IDI_SANDSTORM;
+    m_weather_icon_id[L"扬沙"] = IDI_DUST;
+    m_weather_icon_id[L"沙尘暴"] = IDI_SANDSTORM;
+    m_weather_icon_id[L"浮尘"] = IDI_DUST2;
+    m_weather_icon_id[L"雾"] = IDI_FOG;
+    m_weather_icon_id[L"霾"] = IDI_SMOG;
 }
 
 CDataManager::~CDataManager()
@@ -40,6 +74,7 @@ void CDataManager::LoadConfig()
     m_setting_data.m_city_index = GetPrivateProfileInt(L"config", L"city", 101, config_path.c_str());
     m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, config_path.c_str()));
     m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, config_path.c_str()) != 0);
+    m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, config_path.c_str()) != 0);
 }
 
 void CDataManager::SaveConfig() const
@@ -48,6 +83,7 @@ void CDataManager::SaveConfig() const
     WritePrivateProfileInt(L"config", L"city", m_setting_data.m_city_index, config_path.c_str());
     WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, config_path.c_str());
     WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, config_path.c_str());
+    WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, config_path.c_str());
 }
 
 const CString& CDataManager::StringRes(UINT id)
@@ -106,6 +142,21 @@ void CDataManager::ResetText()
     m_weather_info[m_setting_data.m_weather_selected] = WeatherInfo();
 }
 
+HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
+{
+    UINT id{};
+    auto iter = m_weather_icon_id.find(weather_type);
+    if (iter != m_weather_icon_id.end())
+    {
+        id = iter->second;
+    }
+    else
+    {
+        id = IDI_UNKOWN_WEATHER;
+    }
+    return GetIcon(id);
+}
+
 CDataManager::WeatherInfo& CDataManager::GetWeather()
 {
     return m_weather_info[m_setting_data.m_weather_selected];
@@ -120,5 +171,12 @@ std::wstring CDataManager::WeatherInfo::ToString() const
 {
     std::wstringstream wss;
     wss << m_type << ' ' << m_low << '~' << m_high;
+    return wss.str();
+}
+
+std::wstring CDataManager::WeatherInfo::ToStringTemperature() const
+{
+    std::wstringstream wss;
+    wss << m_low << '~' << m_high;
     return wss.str();
 }

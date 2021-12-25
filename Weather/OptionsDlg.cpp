@@ -32,6 +32,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_SELECT_CITY_BUTTON, &COptionsDlg::OnBnClickedSelectCityButton)
     ON_CBN_SELCHANGE(IDC_WEATHER_TYPE_COMBO, &COptionsDlg::OnCbnSelchangeWeatherTypeCombo)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
+    ON_BN_CLICKED(IDC_USE_WEATHER_ICON_CHECK, &COptionsDlg::OnBnClickedUseWeatherIconCheck)
 END_MESSAGE_MAP()
 
 
@@ -51,6 +52,7 @@ BOOL COptionsDlg::OnInitDialog()
     m_weather_type_combo.SetCurSel(m_data.m_weather_selected);
 
     CheckDlgButton(IDC_SHOW_TOOLTIPS_CHECK, m_data.m_show_weather_in_tooltips);
+    CheckDlgButton(IDC_USE_WEATHER_ICON_CHECK, m_data.m_use_weather_icon);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -82,4 +84,10 @@ void COptionsDlg::OnCbnSelchangeWeatherTypeCombo()
 void COptionsDlg::OnBnClickedShowTooltipsCheck()
 {
     m_data.m_show_weather_in_tooltips = (IsDlgButtonChecked(IDC_SHOW_TOOLTIPS_CHECK) != 0);
+}
+
+
+void COptionsDlg::OnBnClickedUseWeatherIconCheck()
+{
+    m_data.m_use_weather_icon = (IsDlgButtonChecked(IDC_USE_WEATHER_ICON_CHECK) != 0);
 }

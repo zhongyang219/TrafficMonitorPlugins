@@ -30,4 +30,5 @@ public:
     afx_msg void OnBnClickedSelectCityButton();
     afx_msg void OnCbnSelchangeWeatherTypeCombo();
     afx_msg void OnBnClickedShowTooltipsCheck();
+    afx_msg void OnBnClickedUseWeatherIconCheck();
 };

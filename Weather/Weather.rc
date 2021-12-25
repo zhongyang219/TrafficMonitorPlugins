@@ -63,6 +63,7 @@ BEGIN
     LTEXT           "天气显示:",IDC_STATIC,7,28,34,8
     COMBOBOX        IDC_WEATHER_TYPE_COMBO,44,27,111,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "在鼠标提示中显示天气",IDC_SHOW_TOOLTIPS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,104,10
+    CONTROL         "使用天气图标",IDC_USE_WEATHER_ICON_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,54,113,10
 END
 
 IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 194, 135
@@ -118,6 +119,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0
 END
 
@@ -138,6 +140,56 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_WEATHER             ICON                    "res\\weather.ico"
+
+IDI_SNOWSTORM           ICON                    "res\\暴雪.ico"
+
+IDI_RAINSTORM           ICON                    "res\\暴雨.ico"
+
+IDI_HAIL                ICON                    "res\\冰雹.ico"
+
+IDI_HEAVY_STORM         ICON                    "res\\大暴雨.ico"
+
+IDI_HEAVY_SNOW          ICON                    "res\\大雪.ico"
+
+IDI_HEAVY_RAIN          ICON                    "res\\大雨.ico"
+
+IDI_CLOUDY2             ICON                    "res\\多云.ico"
+
+IDI_DUST2               ICON                    "res\\浮尘.ico"
+
+IDI_THUNDERSTORM        ICON                    "res\\雷雨.ico"
+
+IDI_THUNDERSHOWER       ICON                    "res\\雷阵雨.ico"
+
+IDI_SUNNY               ICON                    "res\\晴.ico"
+
+IDI_SANDSTORM           ICON                    "res\\沙尘暴.ico"
+
+IDI_FROST               ICON                    "res\\霜.ico"
+
+IDI_TYPHOON             ICON                    "res\\台风.ico"
+
+IDI_UNKOWN_WEATHER      ICON                    "res\\未知.ico"
+
+IDI_FOG                 ICON                    "res\\雾.ico"
+
+IDI_SMOG                ICON                    "res\\雾霾.ico"
+
+IDI_LIGHT_SNOW          ICON                    "res\\小雪.ico"
+
+IDI_LIGHT_RAIN          ICON                    "res\\小雨.ico"
+
+IDI_DUST                ICON                    "res\\杨尘.ico"
+
+IDI_CLOUDY              ICON                    "res\\阴.ico"
+
+IDI_RAIN_AND_SNOW       ICON                    "res\\雨夹雪.ico"
+
+IDI_SHOWER              ICON                    "res\\阵雨.ico"
+
+IDI_MODERATE_SNOW       ICON                    "res\\中雪.ico"
+
+IDI_MODERATE_RAIN       ICON                    "res\\中雨.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
