@@ -12,11 +12,21 @@
 
 ## 插件下载
 
-**示例插件**
+### 示例插件
 
 ![image-20211216220605288](images/image-20211216220605288.png)
 
 用于显示日期和时间的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/x86/PluginDemo.dll?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/x64/PluginDemo.dll?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x64.zip?raw=true)
+
+### 天气插件
+
+![image-20211225234420165](images/image-20211225234420165.png)
+
+<img src="images/image-20211225234519524.png" alt="image-20211225234519524" style="zoom:80%;" />
+
+用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
+
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.00_x64.zip?raw=true)
 
