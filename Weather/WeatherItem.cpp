@@ -26,9 +26,7 @@ const wchar_t* CWeatherItem::GetItemValueText() const
 
 const wchar_t* CWeatherItem::GetItemValueSampleText() const
 {
-    static std::wstring str_value;
-    str_value = g_data.GetWeather().ToString();
-    return str_value.c_str();
+    return L"小雨 10℃~20℃";
 }
 
 bool CWeatherItem::IsCustomDraw() const
