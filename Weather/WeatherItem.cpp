@@ -20,13 +20,15 @@ const wchar_t* CWeatherItem::GetItemLableText() const
 const wchar_t* CWeatherItem::GetItemValueText() const
 {
     static std::wstring str_value;
-    str_value = g_data.GetWeather().m_type + L" " + g_data.GetWeather().m_low + L"~" + g_data.GetWeather().m_high;
+    str_value = g_data.GetWeather().ToString();
     return str_value.c_str();
 }
 
 const wchar_t* CWeatherItem::GetItemValueSampleText() const
 {
-    return L"晴 10℃~20℃";
+    static std::wstring str_value;
+    str_value = g_data.GetWeather().ToString();
+    return str_value.c_str();
 }
 
 bool CWeatherItem::IsCustomDraw() const
