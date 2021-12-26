@@ -26,7 +26,7 @@ const wchar_t* CWeatherItem::GetItemValueText() const
 
 const wchar_t* CWeatherItem::GetItemValueSampleText() const
 {
-    return L"小雨 10℃~20℃";
+    return L"小雨 -10℃~20℃";
 }
 
 bool CWeatherItem::IsCustomDraw() const
@@ -36,7 +36,7 @@ bool CWeatherItem::IsCustomDraw() const
 
 int CWeatherItem::GetItemWidth() const
 {
-    return 80;
+    return 88;
 }
 
 void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
