@@ -66,14 +66,15 @@ BEGIN
     CONTROL         "使用天气图标",IDC_USE_WEATHER_ICON_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,54,113,10
 END
 
-IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 194, 135
+IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 161, 135
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "选择城市"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,83,114,50,14
-    PUSHBUTTON      "取消",IDCANCEL,137,114,50,14
-    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,180,103
+    DEFPUSHBUTTON   "确定",IDOK,49,114,50,14
+    PUSHBUTTON      "取消",IDCANCEL,104,114,50,14
+    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,22,147,88
+    EDITTEXT        IDC_SEARCH_EDIT,7,7,147,12,ES_AUTOHSCROLL
 END
 
 
@@ -96,7 +97,7 @@ BEGIN
     IDD_SELECT_CITY_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 187
+        RIGHTMARGIN, 154
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
@@ -128,7 +129,8 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 100, 100
+    0, 0, 100, 100,
+    0, 0, 0, 0
 END
 
 
@@ -198,8 +200,8 @@ IDI_MODERATE_RAIN       ICON                    "res\\中雨.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -216,12 +218,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "By ZhongYang"
             VALUE "FileDescription", "Weather Plugin for TrafficMonitor"
-            VALUE "FileVersion", "1.0.0.1"
+            VALUE "FileVersion", "1.0.1.0"
             VALUE "InternalName", "Weather.dll"
             VALUE "LegalCopyright", "Copyright (C) 2021 By ZhongYang"
             VALUE "OriginalFilename", "Weather.dll"
             VALUE "ProductName", "Weather Plugin for TrafficMonitor"
-            VALUE "ProductVersion", "1.0.0.1"
+            VALUE "ProductVersion", "1.0.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -247,6 +249,8 @@ BEGIN
     IDS_INPUT_KEY_WORD      "在此键入搜索"
     IDS_TODAY_WEATHER       "今天"
     IDS_TOMMORROW_WEATHER   "明天"
+    IDS_UPDATE_TIME         "更新时间"
+    IDS_THE_DAY_AFTER_TOMMORROW_WEATHER "后天"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -281,14 +285,15 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,151,10
 END
 
-IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 194, 135
+IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 170, 135
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select city"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,83,114,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,137,114,50,14
-    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,180,103
+    DEFPUSHBUTTON   "OK",IDOK,57,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,113,114,50,14
+    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,22,156,88
+    EDITTEXT        IDC_SEARCH_EDIT,7,7,156,12,ES_AUTOHSCROLL
 END
 
 
@@ -311,7 +316,7 @@ BEGIN
     IDD_SELECT_CITY_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 187
+        RIGHTMARGIN, 163
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
@@ -342,7 +347,8 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 100, 100
+    0, 0, 100, 100,
+    0, 0, 0, 0
 END
 
 
@@ -362,6 +368,8 @@ BEGIN
     IDS_INPUT_KEY_WORD      "Type here to search"
     IDS_TODAY_WEATHER       "Today"
     IDS_TOMMORROW_WEATHER   "Tomorrow"
+    IDS_UPDATE_TIME         "Update time"
+    IDS_THE_DAY_AFTER_TOMMORROW_WEATHER "The day after tomorrow"
 END
 
 #endif    // 英语(美国) resources

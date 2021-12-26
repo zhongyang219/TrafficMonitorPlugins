@@ -55,20 +55,34 @@ void CWeather::ParseJsonData(std::string json_data)
     yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
     if (doc != nullptr)
     {
+        //获取Json根节点
         yyjson_val* root = yyjson_doc_get_root(doc);
+
+        //获取城市
+        yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
+        yyjson_val* city = yyjson_obj_get(city_info, "city");
+        std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
+
+        //获取3天的天气
         yyjson_val* data = yyjson_obj_get(root, "data");
         yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
         yyjson_val* forecast_today = yyjson_arr_get_first(forecast_arr);
         yyjson_val* forecast_tommorrow = yyjson_arr_get(forecast_arr, 1);
+        yyjson_val* forecast_day2 = yyjson_arr_get(forecast_arr, 2);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
+        ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
 
+        //生成鼠标提示字符串
         const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
         const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
+        const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
         std::wstringstream wss;
-        wss << g_data.StringRes(IDS_WEATHER).GetString() << std::endl
-            << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString() << std::endl
-            << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString();
+        wss << str_city
+            << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
+            << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
+            << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
+            ;
         m_tooltop_info = wss.str();
 
         yyjson_doc_free(doc);
@@ -132,22 +146,22 @@ ITMPlugin::OptionReturn CWeather::ShowOptionsDialog(void* hParent)
 
 const wchar_t* CWeather::GetInfo(PluginInfoIndex index)
 {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
     static CString str;
     switch (index)
     {
     case TMI_NAME:
-        str.LoadString(IDS_PLUGIN_NAME);
-        return str.GetString();
+        return g_data.StringRes(IDS_PLUGIN_NAME).GetString();
     case TMI_DESCRIPTION:
-        str.LoadString(IDS_PLUGIN_DESCRIPTION);
-        return str.GetString();
+        return g_data.StringRes(IDS_PLUGIN_DESCRIPTION).GetString();
     case TMI_AUTHOR:
         return L"zhongyang219";
     case TMI_COPYRIGHT:
         return L"Copyright (C) by Zhong Yang 2021";
+    case ITMPlugin::TMI_URL:
+        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
+        break;
     case TMI_VERSION:
-        return L"1.0";
+        return L"1.01";
     default:
         break;
     }
@@ -167,10 +181,10 @@ void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     switch (index)
     {
     case ITMPlugin::EI_LABEL_TEXT_COLOR:
-        g_data.m_label_text_color = _wtof(data);
+        g_data.m_label_text_color = _wtoi(data);
         break;
     case ITMPlugin::EI_VALUE_TEXT_COLOR:
-        g_data.m_value_text_color = _wtof(data);
+        g_data.m_value_text_color = _wtoi(data);
         break;
     default:
         break;

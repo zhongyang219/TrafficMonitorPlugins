@@ -17,6 +17,8 @@
 #define IDS_TODAY_WEATHER               108
 #define IDS_TOMMORROW_WEATHER           109
 #define IDD_SELECT_CITY_DIALOG          110
+#define IDS_UPDATE_TIME                 110
+#define IDS_THE_DAY_AFTER_TOMMORROW_WEATHER 111
 #define IDI_WEATHER                     115
 #define IDI_SNOWSTORM                   116
 #define IDI_RAINSTORM                   117
@@ -26,7 +28,6 @@
 #define IDI_HEAVY_RAIN                  121
 #define IDI_CLOUDY2                     122
 #define IDI_DUST2                       123
-#define IDI_ICON9                       124
 #define IDI_THUNDERSTORM                124
 #define IDI_THUNDERSHOWER               125
 #define IDI_SUNNY                       126
@@ -50,6 +51,7 @@
 #define IDC_WEATHER_TYPE_COMBO          1007
 #define IDC_SHOW_TOOLTIPS_CHECK         1008
 #define IDC_USE_WEATHER_ICON_CHECK      1009
+#define IDC_SEARCH_EDIT                 1010
 
 // Next default values for new objects
 // 
@@ -57,7 +59,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        141
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1010
+#define _APS_NEXT_CONTROL_VALUE         1011
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

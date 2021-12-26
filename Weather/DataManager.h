@@ -9,7 +9,8 @@
 enum WeahterSelected
 {
     WEATHER_TODAY,
-    WEATHER_TOMMORROW
+    WEATHER_TOMMORROW,
+    WEATHER_DAY2
 };
 
 struct SettingData
