@@ -8,7 +8,7 @@
 
 ## 插件使用说明
 
-请根据你使用的TrafficMonitor插件下载对应版本的插件，下载后将dll放到TrafficMonitor.exe所在目录的plugins目录下（如果没有请创建），然后重新启动TrafficMonitor，插件将会被自动加载。
+请根据你使用的TrafficMonitor版本下载对应版本的插件（32位或64位），下载后将dll放到TrafficMonitor.exe所在目录的plugins目录下（如果没有请创建），然后重新启动TrafficMonitor，插件将会被自动加载。
 
 ## 插件下载
 
@@ -29,4 +29,14 @@
 用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
 
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x64.zip?raw=true)
+
+### 电池电量插件
+
+![battery](images/battery.png)
+
+<img src="images/image-20211226220834772.png" alt="image-20211226220834772" style="zoom:80%;" />
+
+用于显示电脑电池的电量的插件。
+
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x64.zip?raw=true)
 

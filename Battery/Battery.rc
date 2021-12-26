@@ -1,0 +1,282 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 164, 79
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "电池设置"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,52,58,50,14
+    PUSHBUTTON      "取消",IDCANCEL,107,58,50,14
+    LTEXT           "电量显示样式:",IDC_STATIC,7,8,49,8
+    COMBOBOX        IDC_COMBO1,58,7,99,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "在鼠标提示中显示电池信息",IDC_SHOW_TOOLTIPS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,23,104,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 157
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 72
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_SELECT_CITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "By ZhongYang"
+            VALUE "FileDescription", "Battery Plugin for TrafficMonitor"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "Battery.dll"
+            VALUE "LegalCopyright", "Copyright (C) 2021 By ZhongYang"
+            VALUE "OriginalFilename", "Battery.dll"
+            VALUE "ProductName", "Battery Plugin for TrafficMonitor"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_BATTERY_DARK        ICON                    "res\\battery_dark.ico"
+
+IDI_BATTERY_LIGHT       ICON                    "res\\battery_light.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "电池电量插件"
+    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的电池电量插件。"
+    IDS_BATTERY             "电池电量"
+    IDS_BATTYER_TYPE_NUMBER "仅数字"
+    IDS_BATTYER_TYPE_ICON   "仅图标"
+    IDS_BATTYER_TYPE_NUMBER_IN_ICON "数字显示在图标内"
+    IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "数字显示在图标旁边"
+    IDS_CHARGING            "充电中"
+    IDS_BATTERY_LIFE_TIME   "电池可用"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BATTERY_FULL_LIFE_TIME "充满时可用"
+    IDS_HOUR                "小时"
+    IDS_MINUTE              "分钟"
+    IDS_SECOND              "秒"
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(美国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 202, 81
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Battery settings"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,87,60,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,145,60,50,14
+    LTEXT           "Battery display style:",IDC_STATIC,8,8,76,8
+    COMBOBOX        IDC_COMBO1,83,7,112,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Show battery information in tool tip",IDC_SHOW_TOOLTIPS_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,23,161,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 195
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 74
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Battery plug-in"
+    IDS_PLUGIN_DESCRIPTION  "Battery plug-in for TrafficMonitor."
+    IDS_BATTERY             "Battery"
+    IDS_BATTYER_TYPE_NUMBER "Number only"
+    IDS_BATTYER_TYPE_ICON   "Icon only"
+    IDS_BATTYER_TYPE_NUMBER_IN_ICON "Number in the icon"
+    IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "Number beside the icon"
+    IDS_CHARGING            "Charging"
+    IDS_BATTERY_LIFE_TIME   "Battery life time"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BATTERY_FULL_LIFE_TIME "Battery life time at full charge"
+    IDS_HOUR                "hour"
+    IDS_MINUTE              "minute"
+    IDS_SECOND              "second"
+END
+
+#endif    // 英语(美国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

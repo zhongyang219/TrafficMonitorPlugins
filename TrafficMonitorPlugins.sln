@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31624.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Weather", "Weather\Weather.vcxproj", "{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Battery", "Battery\Battery.vcxproj", "{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}.Release|x64.Build.0 = Release|x64
 		{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}.Release|x86.ActiveCfg = Release|Win32
 		{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}.Release|x86.Build.0 = Release|Win32
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Debug|x64.ActiveCfg = Debug|x64
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Debug|x64.Build.0 = Debug|x64
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Debug|x86.ActiveCfg = Debug|Win32
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Debug|x86.Build.0 = Debug|Win32
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Release|x64.ActiveCfg = Release|x64
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Release|x64.Build.0 = Release|x64
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Release|x86.ActiveCfg = Release|Win32
+		{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
