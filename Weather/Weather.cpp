@@ -174,23 +174,6 @@ void CWeather::SendWetherInfoQequest()
         AfxBeginThread(ThreadCallback, nullptr);
 }
 
-void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
-{
-    if (data == nullptr)
-        return;
-    switch (index)
-    {
-    case ITMPlugin::EI_LABEL_TEXT_COLOR:
-        g_data.m_label_text_color = _wtoi(data);
-        break;
-    case ITMPlugin::EI_VALUE_TEXT_COLOR:
-        g_data.m_value_text_color = _wtoi(data);
-        break;
-    default:
-        break;
-    }
-}
-
 ITMPlugin* TMPluginGetInstance()
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
