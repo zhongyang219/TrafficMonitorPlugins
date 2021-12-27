@@ -117,16 +117,12 @@ std::wstring CDataManager::GetBatteryString() const
 
 COLORREF CDataManager::GetBatteryColor() const
 {
-    switch (m_sysPowerStatus.BatteryFlag)
-    {
-    case 2:
-        return BATTERY_COLOR_LOW;
-    case 4:
+    if (m_sysPowerStatus.BatteryLifePercent < 20)
         return BATTERY_COLOR_CRITICAL;
-    default:
-        break;
-    }
-    return BATTERY_COLOR_HIGH;
+    else if (m_sysPowerStatus.BatteryLifePercent < 60)
+        return BATTERY_COLOR_LOW;
+    else
+        return BATTERY_COLOR_HIGH;
 }
 
 const std::wstring& CDataManager::GetModulePath() const

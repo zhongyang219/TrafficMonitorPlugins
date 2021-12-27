@@ -37,10 +37,11 @@ std::wstring CCommon::TimeFormat(int seconds)
 {
     int hour = seconds / 3600;
     int minute = seconds % 3600 / 60;
-    int second = seconds % 60;
+    //int second = seconds % 60;
     std::wstringstream wss;
     wss << hour << L' ' << g_data.StringRes(IDS_HOUR).GetString()
         << L' ' << minute << L' ' << g_data.StringRes(IDS_MINUTE).GetString()
-        << L' ' << second << L' ' << g_data.StringRes(IDS_SECOND).GetString();
+        //<< L' ' << second << L' ' << g_data.StringRes(IDS_SECOND).GetString()
+        ;
     return wss.str();
 }
