@@ -37,7 +37,7 @@ bool CBatteryItem::IsCustomDraw() const
 
 int CBatteryItem::GetItemWidth() const
 {
-    return 60;
+    return 56;
 }
 
 void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
