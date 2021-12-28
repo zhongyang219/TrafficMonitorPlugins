@@ -39,7 +39,7 @@ CDataManager::CDataManager()
     m_weather_icon_id[L"大雪"] = IDI_HEAVY_SNOW;
     m_weather_icon_id[L"大到暴雪"] = IDI_HEAVY_SNOW;
     m_weather_icon_id[L"暴雪"] = IDI_SNOWSTORM;
-    m_weather_icon_id[L"阵雪"] = IDI_LIGHT_SNOW;
+    m_weather_icon_id[L"阵雪"] = IDI_SNOW_SHOWER;
     m_weather_icon_id[L"晴"] = IDI_SUNNY;
     m_weather_icon_id[L"多云"] = IDI_CLOUDY2;
     m_weather_icon_id[L"阴"] = IDI_CLOUDY;
@@ -79,6 +79,7 @@ void CDataManager::LoadConfig()
     m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, config_path.c_str()));
     m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, config_path.c_str()) != 0);
     m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, config_path.c_str()) != 0);
+    m_setting_data.m_display_width = GetPrivateProfileInt(L"config", L"display_width", 92, config_path.c_str());
 }
 
 void CDataManager::SaveConfig() const

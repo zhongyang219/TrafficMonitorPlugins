@@ -19,6 +19,7 @@ struct SettingData
     WeahterSelected m_weather_selected{};   //要显示的天气
     bool m_show_weather_in_tooltips{};      //是否在鼠标提示中显示
     bool m_use_weather_icon{};
+    int m_display_width{};
 };
 
 class CDataManager

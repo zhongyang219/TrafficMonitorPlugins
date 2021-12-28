@@ -222,6 +222,7 @@
     <Image Include="res\浮尘.ico" />
     <Image Include="res\阴.ico" />
     <Image Include="res\阵雨.ico" />
+    <Image Include="res\阵雪.ico" />
     <Image Include="res\雨夹雪.ico" />
     <Image Include="res\雷阵雨.ico" />
     <Image Include="res\雷雨.ico" />

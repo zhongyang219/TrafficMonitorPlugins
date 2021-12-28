@@ -31,4 +31,5 @@ public:
     afx_msg void OnCbnSelchangeWeatherTypeCombo();
     afx_msg void OnBnClickedShowTooltipsCheck();
     afx_msg void OnBnClickedUseWeatherIconCheck();
+    afx_msg void OnEnChangeDisplayWidthEdit();
 };
