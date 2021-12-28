@@ -89,6 +89,7 @@ void CDataManager::SaveConfig() const
     WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, config_path.c_str());
     WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, config_path.c_str());
     WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, config_path.c_str());
+    WritePrivateProfileInt(L"config", L"display_width", m_setting_data.m_display_width, config_path.c_str());
 }
 
 const CString& CDataManager::StringRes(UINT id)
