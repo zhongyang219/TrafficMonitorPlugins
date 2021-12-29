@@ -23,12 +23,27 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CFlagLocker flag_locker(m_instance.m_is_thread_runing);
 
-    std::wstring url{ L"http://t.weather.itboy.net/api/weather/city/" };
-    url += g_data.CurCity().code;
-    std::string weather_data;
-    if (CCommon::GetURL(url, weather_data))
+    time_t cur_time = time(nullptr);
+    if (cur_time - m_instance.m_last_request_time > 3)  //确保请求天气信息的时间距离上次请求时超过3秒
     {
-        m_instance.ParseJsonData(weather_data);
+        m_instance.m_last_request_time = cur_time;
+
+        //禁用选项设置中的“更新”按钮
+        if (m_instance.m_option_dlg != nullptr)
+            m_instance.m_option_dlg->EnableUpdateBtn(false);
+
+        //获取天气信息
+        std::wstring url{ L"http://t.weather.itboy.net/api/weather/city/" };
+        url += g_data.CurCity().code;
+        std::string weather_data;
+        if (CCommon::GetURL(url, weather_data))
+        {
+            m_instance.ParseJsonData(weather_data);
+        }
+
+        //启用选项设置中的“更新”按钮
+        if (m_instance.m_option_dlg != nullptr)
+            m_instance.m_option_dlg->EnableUpdateBtn(true);
     }
     return 0;
 }
@@ -130,7 +145,10 @@ ITMPlugin::OptionReturn CWeather::ShowOptionsDialog(void* hParent)
     //g_data.DPIFromWindow(pParent);
     COptionsDlg dlg(pParent);
     dlg.m_data = g_data.m_setting_data;
-    if (dlg.DoModal() == IDOK)
+    m_option_dlg = &dlg;
+    auto rtn = dlg.DoModal();
+    m_option_dlg = nullptr;
+    if (rtn == IDOK)
     {
         bool city_changed{ g_data.m_setting_data.m_city_index != dlg.m_data.m_city_index };
         g_data.m_setting_data = dlg.m_data;

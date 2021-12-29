@@ -21,6 +21,11 @@ COptionsDlg::~COptionsDlg()
 {
 }
 
+void COptionsDlg::EnableUpdateBtn(bool enable)
+{
+    ::EnableWindow(GetDlgItem(IDC_UPDATE_WEATHER_BUTTON)->GetSafeHwnd(), enable);
+}
+
 void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
@@ -34,6 +39,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
     ON_BN_CLICKED(IDC_USE_WEATHER_ICON_CHECK, &COptionsDlg::OnBnClickedUseWeatherIconCheck)
     ON_EN_CHANGE(IDC_DISPLAY_WIDTH_EDIT, &COptionsDlg::OnEnChangeDisplayWidthEdit)
+    ON_BN_CLICKED(IDC_UPDATE_WEATHER_BUTTON, &COptionsDlg::OnBnClickedUpdateWeatherButton)
 END_MESSAGE_MAP()
 
 
@@ -104,4 +110,11 @@ void COptionsDlg::OnEnChangeDisplayWidthEdit()
 
     // TODO:  在此添加控件通知处理程序代码
     m_data.m_display_width = GetDlgItemInt(IDC_DISPLAY_WIDTH_EDIT);
+}
+
+
+void COptionsDlg::OnBnClickedUpdateWeatherButton()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    CWeather::Instance().SendWetherInfoQequest();
 }

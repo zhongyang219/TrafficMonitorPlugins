@@ -45,7 +45,6 @@
 #define IDI_SHOWER                      138
 #define IDI_MODERATE_SNOW               139
 #define IDI_MODERATE_RAIN               140
-#define IDI_ICON1                       141
 #define IDI_SNOW_SHOWER                 141
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
@@ -55,6 +54,7 @@
 #define IDC_USE_WEATHER_ICON_CHECK      1009
 #define IDC_SEARCH_EDIT                 1010
 #define IDC_DISPLAY_WIDTH_EDIT          1011
+#define IDC_UPDATE_WEATHER_BUTTON       1012
 
 // Next default values for new objects
 // 
@@ -62,7 +62,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        142
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1012
+#define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

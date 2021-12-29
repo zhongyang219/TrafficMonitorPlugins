@@ -2,6 +2,7 @@
 #include "PluginInterface.h"
 #include "WeatherItem.h"
 #include <string>
+#include "OptionsDlg.h"
 
 class CWeather : public ITMPlugin
 {
@@ -27,6 +28,8 @@ private:
     CWeatherItem m_item;
     bool m_is_thread_runing{};
     std::wstring m_tooltop_info;
+    COptionsDlg* m_option_dlg{};      //保存选项设置对话框的句柄
+    unsigned __int64 m_last_request_time{}; //上次请求天气的时间
 };
 
 #ifdef __cplusplus

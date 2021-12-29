@@ -10,6 +10,7 @@ class COptionsDlg : public CDialog
 public:
     COptionsDlg(CWnd* pParent = nullptr);   // 标准构造函数
     virtual ~COptionsDlg();
+    void EnableUpdateBtn(bool enable);
 
     SettingData m_data;
 
@@ -32,4 +33,5 @@ public:
     afx_msg void OnBnClickedShowTooltipsCheck();
     afx_msg void OnBnClickedUseWeatherIconCheck();
     afx_msg void OnEnChangeDisplayWidthEdit();
+    afx_msg void OnBnClickedUpdateWeatherButton();
 };
