@@ -208,12 +208,14 @@
     <Image Include="res\冰雹.ico" />
     <Image Include="res\台风.ico" />
     <Image Include="res\多云.ico" />
+    <Image Include="res\多云_夜晚.ico" />
     <Image Include="res\大暴雨.ico" />
     <Image Include="res\大雨.ico" />
     <Image Include="res\大雪.ico" />
     <Image Include="res\小雨.ico" />
     <Image Include="res\小雪.ico" />
     <Image Include="res\晴.ico" />
+    <Image Include="res\晴_夜晚.ico" />
     <Image Include="res\暴雨.ico" />
     <Image Include="res\暴雪.ico" />
     <Image Include="res\未知.ico" />

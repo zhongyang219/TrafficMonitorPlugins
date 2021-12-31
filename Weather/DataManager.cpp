@@ -160,6 +160,16 @@ HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
     {
         id = IDI_UNKOWN_WEATHER;
     }
+    //获取当前时间
+    SYSTEMTIME cur_time{};
+    GetLocalTime(&cur_time);
+    if (cur_time.wHour >= 18 || cur_time.wHour < 6)        //如果是晚上
+    {
+        if (id == IDI_SUNNY)
+            id = IDI_SUNNY_NIGHT;
+        if (id == IDI_CLOUDY2)
+            id = IDI_CLOUDY_NIGHT;
+    }
     return GetIcon(id);
 }
 

@@ -46,6 +46,9 @@
 #define IDI_MODERATE_SNOW               139
 #define IDI_MODERATE_RAIN               140
 #define IDI_SNOW_SHOWER                 141
+#define IDI_SUNNY_NIGHT                 142
+#define IDI_ICON2                       143
+#define IDI_CLOUDY_NIGHT                143
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
 #define IDC_SELECT_CITY_BUTTON          1006
@@ -60,7 +63,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
+#define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           101

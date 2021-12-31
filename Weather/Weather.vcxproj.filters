@@ -186,5 +186,11 @@
     <Image Include="res\阵雪.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\晴_夜晚.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\多云_夜晚.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
