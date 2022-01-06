@@ -59,7 +59,7 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         Gdiplus::RectF rc_indicater;
         rc_indicater.X = icon_point.x + g_data.DPIF(1);
         rc_indicater.Y = icon_point.y + g_data.DPIF(6);
-        float indicater_width = g_data.DPIF(12) * g_data.m_sysPowerStatus.BatteryLifePercent / 100;
+        float indicater_width = g_data.DPIF(11.7) * g_data.m_sysPowerStatus.BatteryLifePercent / 100;
         rc_indicater.Width = indicater_width;
         rc_indicater.Height = g_data.DPIF(3.7);
         CDrawCommon drawer;
