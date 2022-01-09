@@ -46,7 +46,7 @@ void CBattery::DataRequired()
     //生成鼠标提示信息
     std::wstringstream wss;
     wss << g_data.StringRes(IDS_BATTERY).GetString() << L": " << g_data.GetBatteryString();
-    if (g_data.m_sysPowerStatus.BatteryFlag == 8)
+    if (g_data.m_sysPowerStatus.ACLineStatus == 1)
         wss << L" " << g_data.StringRes(IDS_CHARGING).GetString();
     if (g_data.m_sysPowerStatus.BatteryLifeTime != -1)
         wss << std::endl << g_data.StringRes(IDS_BATTERY_LIFE_TIME).GetString() << L": " << CCommon::TimeFormat(g_data.m_sysPowerStatus.BatteryLifeTime);

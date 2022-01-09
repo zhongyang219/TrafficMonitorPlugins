@@ -37,7 +37,7 @@ bool CBatteryItem::IsCustomDraw() const
 
 int CBatteryItem::GetItemWidth() const
 {
-    return 56;
+    return g_data.RDPI(m_item_width) + 2;
 }
 
 void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
@@ -71,6 +71,8 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     {
         CRect rc_text{ rect };
         rc_text.left = rect.left + icon_size + g_data.DPI(4);
-        pDC->DrawText(g_data.GetBatteryString().c_str(), rc_text, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        std::wstring battery_str{ g_data.GetBatteryString() };
+        pDC->DrawText(battery_str.c_str(), rc_text, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        m_item_width = (rc_text.left - rect.left) + pDC->GetTextExtent(battery_str.c_str()).cx;     //计算绘图所需的宽度
     }
 }

@@ -167,7 +167,7 @@ BEGIN
     IDS_BATTYER_TYPE_ICON   "仅图标"
     IDS_BATTYER_TYPE_NUMBER_IN_ICON "数字显示在图标内"
     IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "数字显示在图标旁边"
-    IDS_CHARGING            "充电中"
+    IDS_CHARGING            "电源已接通"
     IDS_BATTERY_LIFE_TIME   "电池可用"
 END
 
@@ -253,7 +253,7 @@ BEGIN
     IDS_BATTYER_TYPE_ICON   "Icon only"
     IDS_BATTYER_TYPE_NUMBER_IN_ICON "Number in the icon"
     IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "Number beside the icon"
-    IDS_CHARGING            "Charging"
+    IDS_CHARGING            "AC power in online"
     IDS_BATTERY_LIFE_TIME   "Battery life time"
 END
 

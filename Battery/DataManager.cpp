@@ -90,6 +90,11 @@ float CDataManager::DPIF(float pixel)
     return m_dpi * pixel / 96;
 }
 
+int CDataManager::RDPI(int pixel)
+{
+    return pixel * 96 / m_dpi;
+}
+
 HICON CDataManager::GetIcon(UINT id)
 {
     auto iter = m_icons.find(id);
