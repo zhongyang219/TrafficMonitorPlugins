@@ -198,13 +198,23 @@ CDataManager::WeatherInfo& CDataManager::GetWeather()
 std::wstring CDataManager::WeatherInfo::ToString() const
 {
     std::wstringstream wss;
-    wss << m_type << ' ' << m_low << '~' << m_high;
+    if (m_low.empty())
+        wss << m_type << ' ' << m_high;
+    else if (m_high.empty())
+        wss << m_type << ' ' << m_low;
+    else
+        wss << m_type << ' ' << m_low << '~' << m_high;
     return wss.str();
 }
 
 std::wstring CDataManager::WeatherInfo::ToStringTemperature() const
 {
     std::wstringstream wss;
-    wss << m_low << '~' << m_high;
+    if (m_low.empty())
+        wss << m_high;
+    else if (m_high.empty())
+        wss << m_low;
+    else
+        wss << m_low << '~' << m_high;
     return wss.str();
 }

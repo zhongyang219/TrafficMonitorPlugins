@@ -19,6 +19,7 @@
 #define IDD_SELECT_CITY_DIALOG          110
 #define IDS_UPDATE_TIME                 110
 #define IDS_THE_DAY_AFTER_TOMMORROW_WEATHER 111
+#define IDS_CURRENT_WEATHER             112
 #define IDI_WEATHER                     115
 #define IDI_SNOWSTORM                   116
 #define IDI_RAINSTORM                   117
@@ -47,7 +48,6 @@
 #define IDI_MODERATE_RAIN               140
 #define IDI_SNOW_SHOWER                 141
 #define IDI_SUNNY_NIGHT                 142
-#define IDI_ICON2                       143
 #define IDI_CLOUDY_NIGHT                143
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005

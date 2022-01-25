@@ -53,6 +53,7 @@ BOOL COptionsDlg::OnInitDialog()
     SetIcon(g_data.GetIcon(IDI_WEATHER), FALSE);
     SetDlgItemText(IDC_CITY_EDIT, g_data.CurCity().name.c_str());
 
+    m_weather_type_combo.AddString(g_data.StringRes(IDS_CURRENT_WEATHER));
     m_weather_type_combo.AddString(g_data.StringRes(IDS_TODAY_WEATHER));
     m_weather_type_combo.AddString(g_data.StringRes(IDS_TOMMORROW_WEATHER));
     m_weather_type_combo.SetCurSel(m_data.m_weather_selected);

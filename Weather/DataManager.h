@@ -8,6 +8,7 @@
 
 enum WeahterSelected
 {
+    WEATHER_CURRENT,
     WEATHER_TODAY,
     WEATHER_TOMMORROW,
     WEATHER_DAY2
@@ -43,6 +44,7 @@ public:
     void ResetText();
     HICON GetWeatherIcon(const std::wstring weather_type);
 
+    //一个天气信息
     struct WeatherInfo
     {
         std::wstring m_type = L"--";

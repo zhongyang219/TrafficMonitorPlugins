@@ -103,8 +103,12 @@ void CWeather::ParseJsonData(std::string json_data)
         yyjson_val* city = yyjson_obj_get(city_info, "city");
         std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
 
-        //获取3天的天气
+        //获取当前天气
         yyjson_val* data = yyjson_obj_get(root, "data");
+        g_data.m_weather_info[WEATHER_CURRENT].m_high = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(data, "wendu")), true) + L"℃";
+        g_data.m_weather_info[WEATHER_CURRENT].m_low.clear();
+
+        //获取3天的天气
         yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
         yyjson_val* forecast_today = yyjson_arr_get_first(forecast_arr);
         yyjson_val* forecast_tommorrow = yyjson_arr_get(forecast_arr, 1);
@@ -112,6 +116,7 @@ void CWeather::ParseJsonData(std::string json_data)
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
+        g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
 
         //生成鼠标提示字符串
         const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
