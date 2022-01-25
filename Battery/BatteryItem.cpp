@@ -27,7 +27,7 @@ const wchar_t* CBatteryItem::GetItemValueText() const
 
 const wchar_t* CBatteryItem::GetItemValueSampleText() const
 {
-    return L"100 %";
+    return L"100%";
 }
 
 bool CBatteryItem::IsCustomDraw() const
@@ -35,9 +35,15 @@ bool CBatteryItem::IsCustomDraw() const
     return g_data.m_setting_data.battery_type != BatteryType::NUMBER;
 }
 
-int CBatteryItem::GetItemWidth() const
+//int CBatteryItem::GetItemWidth() const
+//{
+//    return g_data.RDPI(m_item_width) + 2;
+//}
+
+int CBatteryItem::GetItemWidthEx(void * hDC) const
 {
-    return g_data.RDPI(m_item_width) + 2;
+    CDC* pDC = CDC::FromHandle((HDC)hDC);
+    return g_data.DPI(20) + pDC->GetTextExtent(_T("100%")).cx;
 }
 
 void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
@@ -73,6 +79,5 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         rc_text.left = rect.left + icon_size + g_data.DPI(4);
         std::wstring battery_str{ g_data.GetBatteryString() };
         pDC->DrawText(battery_str.c_str(), rc_text, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-        m_item_width = (rc_text.left - rect.left) + pDC->GetTextExtent(battery_str.c_str()).cx;     //计算绘图所需的宽度
     }
 }

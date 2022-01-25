@@ -32,9 +32,17 @@ bool CWeatherItem::IsCustomDraw() const
     return true;
 }
 
-int CWeatherItem::GetItemWidth() const
+int CWeatherItem::GetItemWidthEx(void * hDC) const
 {
-    return g_data.m_setting_data.m_display_width;
+    CDC* pDC = CDC::FromHandle((HDC)hDC);
+    if (g_data.m_setting_data.m_use_weather_icon)
+    {
+        return g_data.DPI(20) + pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx;
+    }
+    else
+    {
+        return pDC->GetTextExtent(g_data.GetWeather().ToString().c_str()).cx;
+    }
 }
 
 void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)

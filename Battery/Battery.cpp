@@ -93,6 +93,20 @@ const wchar_t* CBattery::GetInfo(PluginInfoIndex index)
     return L"";
 }
 
+void CBattery::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
+{
+    switch (index)
+    {
+    case ITMPlugin::EI_CONFIG_DIR:
+        //从配置文件读取配置
+        g_data.LoadConfig(std::wstring(data));
+
+        break;
+    default:
+        break;
+    }
+}
+
 ITMPlugin* TMPluginGetInstance()
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());

@@ -8,13 +8,6 @@ CDataManager CDataManager::m_instance;
 
 CDataManager::CDataManager()
 {
-    //获取模块的路径
-    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(hModule, path, MAX_PATH);
-    m_module_path = path;
-    //从配置文件读取配置
-    LoadConfig();
     //初始天气图标ID
     m_weather_icon_id[L"小雨"] = IDI_LIGHT_RAIN;
     m_weather_icon_id[L"小到中雨"] = IDI_LIGHT_RAIN;
@@ -72,24 +65,38 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
     WritePrivateProfileString(app_name, key_name, buff, file_path);
 }
 
-void CDataManager::LoadConfig()
+void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
-    std::wstring config_path = m_module_path + L".ini";
-    m_setting_data.m_city_index = GetPrivateProfileInt(L"config", L"city", 101, config_path.c_str());
-    m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, config_path.c_str()));
-    m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, config_path.c_str()) != 0);
-    m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, config_path.c_str()) != 0);
-    m_setting_data.m_display_width = GetPrivateProfileInt(L"config", L"display_width", 92, config_path.c_str());
+    m_config_dir = config_dir;
+    //获取模块的路径
+    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(hModule, path, MAX_PATH);
+    std::wstring module_path = path;
+    m_config_path = module_path;
+    if (!config_dir.empty())
+    {
+        size_t index = module_path.find_last_of(L"\\/");
+        //模块的文件名
+        std::wstring module_file_name = module_path.substr(index + 1);
+        m_config_path = config_dir + module_file_name;
+    }
+    m_config_path += L".ini";
+    m_setting_data.m_city_index = GetPrivateProfileInt(L"config", L"city", 101, m_config_path.c_str());
+    m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, m_config_path.c_str()));
+    m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, m_config_path.c_str()) != 0);
+    m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, m_config_path.c_str()) != 0);
 }
 
 void CDataManager::SaveConfig() const
 {
-    std::wstring config_path = m_module_path + L".ini";
-    WritePrivateProfileInt(L"config", L"city", m_setting_data.m_city_index, config_path.c_str());
-    WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, config_path.c_str());
-    WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, config_path.c_str());
-    WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, config_path.c_str());
-    WritePrivateProfileInt(L"config", L"display_width", m_setting_data.m_display_width, config_path.c_str());
+    if (!m_config_path.empty())
+    {
+        WritePrivateProfileInt(L"config", L"city", m_setting_data.m_city_index, m_config_path.c_str());
+        WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, m_config_path.c_str());
+        WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, m_config_path.c_str());
+        WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, m_config_path.c_str());
+    }
 }
 
 const CString& CDataManager::StringRes(UINT id)
@@ -117,6 +124,16 @@ void CDataManager::DPIFromWindow(CWnd* pWnd)
 int CDataManager::DPI(int pixel)
 {
     return m_dpi * pixel / 96;
+}
+
+float CDataManager::DPIF(float pixel)
+{
+    return m_dpi * pixel / 96;
+}
+
+int CDataManager::RDPI(int pixel)
+{
+    return pixel * 96 / m_dpi;
 }
 
 HICON CDataManager::GetIcon(UINT id)
@@ -176,11 +193,6 @@ HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
 CDataManager::WeatherInfo& CDataManager::GetWeather()
 {
     return m_weather_info[m_setting_data.m_weather_selected];
-}
-
-const std::wstring& CDataManager::GetModulePath() const
-{
-    return m_module_path;
 }
 
 std::wstring CDataManager::WeatherInfo::ToString() const

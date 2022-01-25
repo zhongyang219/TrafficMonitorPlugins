@@ -11,9 +11,6 @@ public:
     virtual const wchar_t* GetItemValueText() const override;
     virtual const wchar_t* GetItemValueSampleText() const override;
     virtual bool IsCustomDraw() const override;
-    virtual int GetItemWidth() const override;
+    virtual int GetItemWidthEx(void* hDC) const override;
     virtual void DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode) override;
-
-private:
-    int m_item_width{ g_data.DPI(52) };
 };

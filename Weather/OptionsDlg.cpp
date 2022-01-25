@@ -38,7 +38,6 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_CBN_SELCHANGE(IDC_WEATHER_TYPE_COMBO, &COptionsDlg::OnCbnSelchangeWeatherTypeCombo)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
     ON_BN_CLICKED(IDC_USE_WEATHER_ICON_CHECK, &COptionsDlg::OnBnClickedUseWeatherIconCheck)
-    ON_EN_CHANGE(IDC_DISPLAY_WIDTH_EDIT, &COptionsDlg::OnEnChangeDisplayWidthEdit)
     ON_BN_CLICKED(IDC_UPDATE_WEATHER_BUTTON, &COptionsDlg::OnBnClickedUpdateWeatherButton)
 END_MESSAGE_MAP()
 
@@ -60,7 +59,6 @@ BOOL COptionsDlg::OnInitDialog()
 
     CheckDlgButton(IDC_SHOW_TOOLTIPS_CHECK, m_data.m_show_weather_in_tooltips);
     CheckDlgButton(IDC_USE_WEATHER_ICON_CHECK, m_data.m_use_weather_icon);
-    SetDlgItemInt(IDC_DISPLAY_WIDTH_EDIT, m_data.m_display_width);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -98,18 +96,6 @@ void COptionsDlg::OnBnClickedShowTooltipsCheck()
 void COptionsDlg::OnBnClickedUseWeatherIconCheck()
 {
     m_data.m_use_weather_icon = (IsDlgButtonChecked(IDC_USE_WEATHER_ICON_CHECK) != 0);
-}
-
-
-void COptionsDlg::OnEnChangeDisplayWidthEdit()
-{
-    // TODO:  如果该控件是 RICHEDIT 控件，它将不
-    // 发送此通知，除非重写 CDialog::OnInitDialog()
-    // 函数并调用 CRichEditCtrl().SetEventMask()，
-    // 同时将 ENM_CHANGE 标志“或”运算到掩码中。
-
-    // TODO:  在此添加控件通知处理程序代码
-    m_data.m_display_width = GetDlgItemInt(IDC_DISPLAY_WIDTH_EDIT);
 }
 
 

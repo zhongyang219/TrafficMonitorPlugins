@@ -19,7 +19,7 @@ struct SettingData
     WeahterSelected m_weather_selected{};   //要显示的天气
     bool m_show_weather_in_tooltips{};      //是否在鼠标提示中显示
     bool m_use_weather_icon{};
-    int m_display_width{};
+    //int m_display_width{};
 };
 
 class CDataManager
@@ -31,11 +31,13 @@ private:
 public:
     static CDataManager& Instance();
 
-    void LoadConfig();
+    void LoadConfig(const std::wstring& config_dir);
     void SaveConfig() const;
     const CString& StringRes(UINT id);      //根据资源id获取一个字符串资源
     void DPIFromWindow(CWnd* pWnd);
     int DPI(int pixel);
+    float DPIF(float pixel);
+    int RDPI(int pixel);
     HICON GetIcon(UINT id);
     CityCodeItem CurCity() const;
     void ResetText();
@@ -54,13 +56,11 @@ public:
     std::map<WeahterSelected, WeatherInfo> m_weather_info;
 
     SettingData m_setting_data;
-
-public:
-    const std::wstring& GetModulePath() const;
+    std::wstring m_config_dir;
 
 private:
     static CDataManager m_instance;
-    std::wstring m_module_path;
+    std::wstring m_config_path;
     std::map<UINT, CString> m_string_table;
     std::map<UINT, HICON> m_icons;
     std::map<std::wstring, UINT> m_weather_icon_id;     //保存所有天气图标的ID

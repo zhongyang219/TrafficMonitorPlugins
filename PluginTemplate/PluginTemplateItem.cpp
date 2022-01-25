@@ -34,9 +34,11 @@ bool CPluginTemplateItem::IsCustomDraw() const
     return true;
 }
 
-int CPluginTemplateItem::GetItemWidth() const
+int CPluginTemplateItem::GetItemWidthEx(void * hDC) const
 {
-	//TODO: 如果插件需要自绘，则在此修改显示区域的宽度
+    //绘图句柄
+    CDC* pDC = CDC::FromHandle((HDC)hDC);
+    //TODO: 如果插件需要自绘，则在此修改显示区域的宽度
     return 60;
 }
 

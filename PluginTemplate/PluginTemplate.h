@@ -16,6 +16,7 @@ public:
     virtual void DataRequired() override;
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
+    virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
 
 private:
 

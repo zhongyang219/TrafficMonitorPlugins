@@ -18,6 +18,27 @@ CWeather& CWeather::Instance()
     return m_instance;
 }
 
+template<class T>
+static void StringNormalize(T& str)
+{
+    if (str.empty()) return;
+
+    int size = str.size();  //字符串的长度
+    if (size < 0) return;
+    int index1 = 0;     //字符串中第1个不是空格或控制字符的位置
+    int index2 = size - 1;  //字符串中最后一个不是空格或控制字符的位置
+    while (index1 < size && str[index1] >= 0 && str[index1] <= 32)
+        index1++;
+    while (index2 >= 0 && str[index2] >= 0 && str[index2] <= 32)
+        index2--;
+    if (index1 > index2)    //如果index1 > index2，说明字符串全是空格或控制字符
+        str.clear();
+    else if (index1 == 0 && index2 == size - 1) //如果index1和index2的值分别为0和size - 1，说明字符串前后没有空格或控制字符，直接返回
+        return;
+    else
+        str = str.substr(index1, index2 - index1 + 1);
+}
+
 UINT CWeather::ThreadCallback(LPVOID dwUser)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -57,12 +78,16 @@ void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forec
     //去掉前面的“高温”和“低温”
     weather_info.m_high = weather_info.m_high.substr(2);
     weather_info.m_low = weather_info.m_low.substr(2);
+    //去年低温后面的摄氏度符号
+    weather_info.m_low.pop_back();
+    StringNormalize(weather_info.m_high);
+    StringNormalize(weather_info.m_low);
 }
 
 void CWeather::ParseJsonData(std::string json_data)
 {
     //int a = 0;
-    std::ofstream stream{ g_data.GetModulePath() + L".log" };
+    std::ofstream stream{ g_data.m_config_dir + L"Weather.dll.log" };
     stream << json_data;
 
     g_data.ResetText();
@@ -184,6 +209,19 @@ const wchar_t* CWeather::GetInfo(PluginInfoIndex index)
         break;
     }
     return L"";
+}
+
+void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
+{
+    switch (index)
+    {
+    case ITMPlugin::EI_CONFIG_DIR:
+        //从配置文件读取配置
+        g_data.LoadConfig(std::wstring(data));
+        break;
+    default:
+        break;
+    }
 }
 
 void CWeather::SendWetherInfoQequest()
