@@ -49,6 +49,7 @@
 #define IDI_SNOW_SHOWER                 141
 #define IDI_SUNNY_NIGHT                 142
 #define IDI_CLOUDY_NIGHT                143
+#define IDR_MENU1                       144
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
 #define IDC_SELECT_CITY_BUTTON          1006
@@ -58,13 +59,16 @@
 #define IDC_SEARCH_EDIT                 1010
 #define IDC_DISPLAY_WIDTH_EDIT          1011
 #define IDC_UPDATE_WEATHER_BUTTON       1012
+#define ID_OPTIONS                      40001
+#define ID_1_40002                      40002
+#define ID_UPDATE_WEATHER               40003
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        144
-#define _APS_NEXT_COMMAND_VALUE         40001
+#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_COMMAND_VALUE         40004
 #define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

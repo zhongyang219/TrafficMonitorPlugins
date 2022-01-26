@@ -50,8 +50,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         m_instance.m_last_request_time = cur_time;
 
         //禁用选项设置中的“更新”按钮
-        if (m_instance.m_option_dlg != nullptr)
-            m_instance.m_option_dlg->EnableUpdateBtn(false);
+        m_instance.DisableUpdateWeatherCommand();
 
         //获取天气信息
         std::wstring url{ L"http://t.weather.itboy.net/api/weather/city/" };
@@ -63,8 +62,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         }
 
         //启用选项设置中的“更新”按钮
-        if (m_instance.m_option_dlg != nullptr)
-            m_instance.m_option_dlg->EnableUpdateBtn(true);
+        m_instance.EnableUpdateWeatherCommand();
     }
     return 0;
 }
@@ -131,6 +129,15 @@ void CWeather::ParseJsonData(std::string json_data)
         m_tooltop_info = wss.str();
 
         yyjson_doc_free(doc);
+    }
+}
+
+void CWeather::LoadContextMenu()
+{
+    if (m_menu.m_hMenu == NULL)
+    {
+        AFX_MANAGE_STATE(AfxGetStaticModuleState());
+        m_menu.LoadMenu(IDR_MENU1);
     }
 }
 
@@ -233,6 +240,58 @@ void CWeather::SendWetherInfoQequest()
 {
     if (!m_is_thread_runing)    //确保线程已退出
         AfxBeginThread(ThreadCallback, nullptr);
+}
+
+void CWeather::ShowContextMenu(CWnd* pWnd)
+{
+    LoadContextMenu();
+    CMenu* context_menu = m_menu.GetSubMenu(0);
+    if (context_menu != nullptr)
+    {
+        CPoint point1;
+        GetCursorPos(&point1);
+        DWORD id = context_menu->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, point1.x, point1.y, pWnd);
+        //点击了“选项”
+        if (id == ID_OPTIONS)
+        {
+            AFX_MANAGE_STATE(AfxGetStaticModuleState());
+            COptionsDlg dlg;
+            dlg.m_data = g_data.m_setting_data;
+            m_option_dlg = &dlg;
+            auto rtn = dlg.DoModal();
+            m_option_dlg = nullptr;
+            if (rtn == IDOK)
+            {
+                bool city_changed{ g_data.m_setting_data.m_city_index != dlg.m_data.m_city_index };
+                g_data.m_setting_data = dlg.m_data;
+                if (city_changed)
+                {
+                    CWeather::Instance().SendWetherInfoQequest();   //城市改变后，重新发送天气请求
+                }
+            }
+        }
+        //点击了“更新天气”
+        else if (id == ID_UPDATE_WEATHER)
+        {
+            SendWetherInfoQequest();
+        }
+    }
+}
+
+void CWeather::DisableUpdateWeatherCommand()
+{
+    if (m_option_dlg != nullptr)
+        m_option_dlg->EnableUpdateBtn(false);
+    if (m_menu.m_hMenu != NULL)
+        m_menu.EnableMenuItem(ID_UPDATE_WEATHER, MF_BYCOMMAND | MF_GRAYED);
+}
+
+void CWeather::EnableUpdateWeatherCommand()
+{
+    if (m_instance.m_option_dlg != nullptr)
+        m_instance.m_option_dlg->EnableUpdateBtn(true);
+    if (m_menu.m_hMenu != NULL)
+        m_menu.EnableMenuItem(ID_UPDATE_WEATHER, MF_BYCOMMAND | MF_ENABLED);
 }
 
 ITMPlugin* TMPluginGetInstance()

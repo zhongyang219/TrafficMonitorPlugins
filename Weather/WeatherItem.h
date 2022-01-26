@@ -12,4 +12,6 @@ public:
     virtual bool IsCustomDraw() const override;
     virtual int GetItemWidthEx(void* hDC) const override;
     virtual void DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode) override;
+    virtual int OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag) override;
+
 };

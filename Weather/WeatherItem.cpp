@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "WeatherItem.h"
 #include "DataManager.h"
+#include "Weather.h"
 
 const wchar_t* CWeatherItem::GetItemName() const
 {
@@ -32,7 +33,7 @@ bool CWeatherItem::IsCustomDraw() const
     return true;
 }
 
-int CWeatherItem::GetItemWidthEx(void * hDC) const
+int CWeatherItem::GetItemWidthEx(void* hDC) const
 {
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     if (g_data.m_setting_data.m_use_weather_icon)
@@ -69,4 +70,15 @@ void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     {
         pDC->DrawText(g_data.GetWeather().ToString().c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
+}
+
+int CWeatherItem::OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag)
+{
+    CWnd* pWnd = CWnd::FromHandle((HWND)hWnd);
+    if (type == IPluginItem::MT_RCLICKED)
+    {
+        CWeather::Instance().ShowContextMenu(pWnd);
+        return 1;
+    }
+    return 0;
 }
