@@ -47,9 +47,10 @@ public:
     //一个天气信息
     struct WeatherInfo
     {
-        std::wstring m_type = L"--";
-        std::wstring m_high = L"-℃";
-        std::wstring m_low = L"-℃";
+        std::wstring m_type = L"--";         //天气类型
+        std::wstring m_high = L"-℃";        //最高温度
+        std::wstring m_low = L"-℃";         //最低温度
+        bool is_cur_weather{};                 //是否为当前温度，如果为true，则m_low无效
         std::wstring ToString() const;
         std::wstring ToStringTemperature() const;
     };

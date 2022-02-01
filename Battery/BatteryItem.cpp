@@ -27,7 +27,10 @@ const wchar_t* CBatteryItem::GetItemValueText() const
 
 const wchar_t* CBatteryItem::GetItemValueSampleText() const
 {
-    return L"100%";
+    if (g_data.m_setting_data.show_percent)
+        return L"100%";
+    else
+        return L"100";
 }
 
 bool CBatteryItem::IsCustomDraw() const
@@ -43,7 +46,23 @@ bool CBatteryItem::IsCustomDraw() const
 int CBatteryItem::GetItemWidthEx(void * hDC) const
 {
     CDC* pDC = CDC::FromHandle((HDC)hDC);
-    return g_data.DPI(20) + pDC->GetTextExtent(_T("100%")).cx;
+
+    CString sample_str;
+    if (g_data.m_setting_data.show_percent)
+        sample_str = _T("100%");
+    else
+        sample_str = _T("100");
+
+    switch (g_data.m_setting_data.battery_type)
+    {
+    case BatteryType::NUMBER:
+        return pDC->GetTextExtent(sample_str).cx;
+    case BatteryType::ICON:
+        return g_data.DPI(20);
+    case BatteryType::NUMBER_BESIDE_ICON:
+        return g_data.DPI(20) + pDC->GetTextExtent(sample_str).cx;
+    }
+    return g_data.DPI(20) + pDC->GetTextExtent(sample_str).cx;
 }
 
 void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)

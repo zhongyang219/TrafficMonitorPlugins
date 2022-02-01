@@ -21,6 +21,7 @@ struct SettingData
 {
     BatteryType battery_type{};
     bool show_battery_in_tooltip{};
+    bool show_percent{};
 };
 
 class CDataManager

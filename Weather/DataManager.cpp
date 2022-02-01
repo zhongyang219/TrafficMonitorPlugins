@@ -46,6 +46,8 @@ CDataManager::CDataManager()
     HDC hDC = ::GetDC(HWND_DESKTOP);
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
     ::ReleaseDC(HWND_DESKTOP, hDC);
+
+    g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
 }
 
 CDataManager::~CDataManager()
@@ -198,7 +200,7 @@ CDataManager::WeatherInfo& CDataManager::GetWeather()
 std::wstring CDataManager::WeatherInfo::ToString() const
 {
     std::wstringstream wss;
-    if (m_low.empty())
+    if (m_low.empty() || is_cur_weather)
         wss << m_type << ' ' << m_high;
     else if (m_high.empty())
         wss << m_type << ' ' << m_low;
@@ -210,7 +212,7 @@ std::wstring CDataManager::WeatherInfo::ToString() const
 std::wstring CDataManager::WeatherInfo::ToStringTemperature() const
 {
     std::wstringstream wss;
-    if (m_low.empty())
+    if (m_low.empty() || is_cur_weather)
         wss << m_high;
     else if (m_high.empty())
         wss << m_low;

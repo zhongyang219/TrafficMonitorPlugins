@@ -29,4 +29,5 @@ public:
     virtual BOOL OnInitDialog();
     afx_msg void OnCbnSelchangeCombo1();
     afx_msg void OnBnClickedShowTooltipsCheck();
+    afx_msg void OnBnClickedShowPercentCheck();
 };

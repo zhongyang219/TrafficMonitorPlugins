@@ -104,7 +104,7 @@ void CWeather::ParseJsonData(std::string json_data)
         //获取当前天气
         yyjson_val* data = yyjson_obj_get(root, "data");
         g_data.m_weather_info[WEATHER_CURRENT].m_high = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(data, "wendu")), true) + L"℃";
-        g_data.m_weather_info[WEATHER_CURRENT].m_low.clear();
+        g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
 
         //获取3天的天气
         yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
@@ -117,11 +117,12 @@ void CWeather::ParseJsonData(std::string json_data)
         g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
 
         //生成鼠标提示字符串
+        const CDataManager::WeatherInfo& weather_current{ g_data.m_weather_info[WEATHER_CURRENT] };
         const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
         const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
         const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
         std::wstringstream wss;
-        wss << str_city
+        wss << str_city << L' ' << weather_current.ToString()
             << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
             << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
             << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
