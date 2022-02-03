@@ -131,9 +131,12 @@ std::wstring CDataManager::GetBatteryString() const
     else
     {
         std::wstring str = std::to_wstring(m_sysPowerStatus.BatteryLifePercent);
-        if (m_sysPowerStatus.BatteryLifePercent < 100)
-            str.push_back(L' ');
-        str.push_back(L'%');
+        if (m_setting_data.show_percent)
+        {
+            if (m_sysPowerStatus.BatteryLifePercent < 100)
+                str.push_back(L' ');
+            str.push_back(L'%');
+        }
         return str;
     }
 }
