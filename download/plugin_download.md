@@ -56,6 +56,6 @@
 
 - **配置时sh表示“上证”，sz表示深证，依次类推**
 
-下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.00_x86.rar?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.00_x64.rar?raw=true)
+下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.01_x86.zip?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.01_x64.zip?raw=true)
 
 ---
