@@ -85,7 +85,7 @@ UINT GP::ThreadCallback(LPVOID dwUser)
             GetLocalTime(&now_time);
             //CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
             //CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
-            if (now_time.wHour < 9 || (now_time.wHour >= 15 && now_time.wMinute > 30)) {
+            if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30)) {
                 CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
                 g_data.ResetText();
                 return 0;
@@ -240,7 +240,7 @@ const wchar_t* GP::GetInfo(PluginInfoIndex index)
     case ITMPlugin::TMI_URL:
         return L"https://github.com/CListery";
     case TMI_VERSION:
-        return L"1.01";
+        return L"1.02";
     default:
         break;
     }
