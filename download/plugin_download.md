@@ -20,6 +20,8 @@
 
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x64.zip?raw=true)
 
+---
+
 ### 天气插件
 
 ![image-20211225234420165](images/image-20211225234420165.png)
@@ -29,6 +31,8 @@
 用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
 
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x64.zip?raw=true)
+
+---
 
 ### 电池电量插件
 
@@ -40,3 +44,18 @@
 
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x64.zip?raw=true)
 
+---
+
+### GP插件
+
+![gp](images/D4BC1B57-87F5-46B4-AA05-20F2C62906ED.png)
+
+<img src="images/95823F7A-0207-4ECF-B266-672DE5D73A60.png" alt="95823F7A-0207-4ECF-B266-672DE5D73A60" style="zoom:80%;" />
+
+显示指定GP的实时交易信息 `新浪接口`
+
+- **配置时sh表示“上证”，sz表示深证，依次类推**
+
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x64.zip?raw=true)
+
+---
