@@ -3,7 +3,7 @@
 #include "Common.h"
 #include <fstream>
 #include "DataManager.h"
-#include "yyjson/yyjson.h"
+#include "utilities/yyjson/yyjson.h"
 #include "OptionsDlg.h"
 #include <sstream>
 

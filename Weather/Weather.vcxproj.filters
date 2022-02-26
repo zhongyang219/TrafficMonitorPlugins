@@ -22,9 +22,6 @@
     <Filter Include="DataManager">
       <UniqueIdentifier>{3e0d6e21-34df-4eaa-a06c-8362935b6899}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Json">
-      <UniqueIdentifier>{c243c4b7-7ca5-4592-8cee-2db671708208}</UniqueIdentifier>
-    </Filter>
     <Filter Include="对话框">
       <UniqueIdentifier>{6c31e635-2c3b-4a9d-b8da-3497016dae84}</UniqueIdentifier>
     </Filter>
@@ -51,9 +48,6 @@
     <ClInclude Include="Common.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="yyjson\yyjson.h">
-      <Filter>Json</Filter>
-    </ClInclude>
     <ClInclude Include="CityCode.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -79,9 +73,6 @@
     </ClCompile>
     <ClCompile Include="Common.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="yyjson\yyjson.c">
-      <Filter>Json</Filter>
     </ClCompile>
     <ClCompile Include="OptionsDlg.cpp">
       <Filter>对话框</Filter>

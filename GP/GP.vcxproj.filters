@@ -25,9 +25,6 @@
     <Filter Include="GPItem">
       <UniqueIdentifier>{dea0bd8c-eff4-48bb-913e-262140be1154}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Json">
-      <UniqueIdentifier>{13a7f02e-4347-4d0f-b906-849ab6b77b64}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -47,9 +44,6 @@
     </ClInclude>
     <ClInclude Include="Common.h">
       <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="yyjson\yyjson.h">
-      <Filter>Json</Filter>
     </ClInclude>
     <ClInclude Include="OptionsDlg.h">
       <Filter>对话框</Filter>
@@ -73,9 +67,6 @@
     </ClCompile>
     <ClCompile Include="Common.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="yyjson\yyjson.c">
-      <Filter>Json</Filter>
     </ClCompile>
     <ClCompile Include="OptionsDlg.cpp">
       <Filter>对话框</Filter>

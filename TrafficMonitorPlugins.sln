@@ -4,10 +4,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.31624.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Weather", "Weather\Weather.vcxproj", "{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Battery", "Battery\Battery.vcxproj", "{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginTemplate", "PluginTemplate\PluginTemplate.vcxproj", "{1C2173CA-593F-45D3-9725-B3FEC66F2D46}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GP", "GP\GP.vcxproj", "{3C3BA2AD-1053-4283-8805-5D392E3E7D38}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utilities", "utilities\utilities.vcxproj", "{FC324049-5EF6-4561-ABC6-D2FDD68A8768}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +51,22 @@ Global
 		{1C2173CA-593F-45D3-9725-B3FEC66F2D46}.Release|x64.Build.0 = Release|x64
 		{1C2173CA-593F-45D3-9725-B3FEC66F2D46}.Release|x86.ActiveCfg = Release|Win32
 		{1C2173CA-593F-45D3-9725-B3FEC66F2D46}.Release|x86.Build.0 = Release|Win32
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Debug|x64.ActiveCfg = Debug|x64
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Debug|x64.Build.0 = Debug|x64
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Debug|x86.ActiveCfg = Debug|Win32
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Debug|x86.Build.0 = Debug|Win32
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Release|x64.ActiveCfg = Release|x64
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Release|x64.Build.0 = Release|x64
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Release|x86.ActiveCfg = Release|Win32
+		{3C3BA2AD-1053-4283-8805-5D392E3E7D38}.Release|x86.Build.0 = Release|Win32
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Debug|x64.ActiveCfg = Debug|x64
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Debug|x64.Build.0 = Debug|x64
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Debug|x86.ActiveCfg = Debug|Win32
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Debug|x86.Build.0 = Debug|Win32
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Release|x64.ActiveCfg = Release|x64
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Release|x64.Build.0 = Release|x64
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Release|x86.ActiveCfg = Release|Win32
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
