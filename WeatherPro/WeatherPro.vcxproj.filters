@@ -13,13 +13,43 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="WeatherPro">
+      <UniqueIdentifier>{87bc08a8-9083-4db0-9127-ddc755e31b37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WeatherProItem">
+      <UniqueIdentifier>{2d62af54-c29b-411e-b2f5-983872a0c3e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DLG">
+      <UniqueIdentifier>{f497cfe4-5137-4d71-9cf3-c530ab831eb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{cee30953-b5aa-4e82-8470-aa88ca2df320}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WeatherPro.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WeatherPro.cpp">
+      <Filter>WeatherPro</Filter>
+    </ClCompile>
+    <ClCompile Include="WeatherProItem.cpp">
+      <Filter>WeatherProItem</Filter>
+    </ClCompile>
+    <ClCompile Include="DataQuerier.cpp">
+      <Filter>Data</Filter>
+    </ClCompile>
+    <ClCompile Include="Common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SelectCityDlg.cpp">
+      <Filter>DLG</Filter>
+    </ClCompile>
+    <ClCompile Include="OptionsDlg.cpp">
+      <Filter>DLG</Filter>
+    </ClCompile>
+    <ClCompile Include="DataManager.cpp">
+      <Filter>Data</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -40,11 +70,29 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="WeatherPro.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WeatherPro.h">
+      <Filter>WeatherPro</Filter>
+    </ClInclude>
+    <ClInclude Include="WeatherProItem.h">
+      <Filter>WeatherProItem</Filter>
+    </ClInclude>
+    <ClInclude Include="DataQuerier.h">
+      <Filter>Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SelectCityDlg.h">
+      <Filter>DLG</Filter>
+    </ClInclude>
+    <ClInclude Include="OptionsDlg.h">
+      <Filter>DLG</Filter>
+    </ClInclude>
+    <ClInclude Include="DataManager.h">
+      <Filter>Data</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

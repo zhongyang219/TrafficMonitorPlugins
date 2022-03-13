@@ -1,27 +1,33 @@
-﻿// WeatherPro.h: WeatherPro DLL 的主标头文件
-//
+﻿#pragma once
 
-#pragma once
+#include <include/PluginInterface.h>
+#include <string>
 
-#ifndef __AFXWIN_H__
-	#error "在包含此文件之前包含 'pch.h' 以生成 PCH"
-#endif
-
-#include "resource.h"		// 主符号
-
-
-// CWeatherProApp
-// 有关此类实现的信息，请参阅 WeatherPro.cpp
-//
-
-class CWeatherProApp : public CWinApp
+class CWeatherPro : public ITMPlugin
 {
-public:
-	CWeatherProApp();
+private:
+    CWeatherPro();
 
-// 重写
 public:
-	virtual BOOL InitInstance();
+    static CWeatherPro& Instance();
 
-	DECLARE_MESSAGE_MAP()
+    IPluginItem* GetItem(int index) override;
+    void DataRequired() override;
+    const wchar_t* GetInfo(PluginInfoIndex index) override;
+    const wchar_t* GetTooltipInfo() override;
+    OptionReturn ShowOptionsDialog(void* hParent) override;
+    void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
+
+
+private:
+    static CWeatherPro m_instance;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    __declspec(dllexport) ITMPlugin* TMPluginGetInstance();
+
+#ifdef __cplusplus
+}
+#endif
