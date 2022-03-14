@@ -8,6 +8,7 @@
 #define IDS_EDIT_BANNER                 1001
 #define IDD_SELECT_CITY_DLG             1002
 #define IDC_ALTERNATIVES_LIST           1002
+#define IDS_CITY_NO                     1002
 #define IDC_EDIT_CURRENT_CITY           1003
 #define IDD_OPTIONS_DLG                 1004
 #define IDC_BTN_SELECT_CITY             1004

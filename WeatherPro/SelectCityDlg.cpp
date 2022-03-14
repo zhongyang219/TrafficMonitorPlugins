@@ -62,11 +62,10 @@ BOOL CSelectCityDlg::OnInitDialog()
 	CRect rect;
     m_alternativesList.GetClientRect(rect);
 	m_alternativesList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_LABELTIP);
-    int width0, width1;
-    width0 = rect.Width() / 4;
-    width1 = rect.Width() - width0 - CDataManager::Instance().DPI(20) - 1;
+    int width0 = rect.Width() / 5;
 	m_alternativesList.InsertColumn(0, CDataManager::Instance().StringRes(IDS_CITY), LVCFMT_LEFT, width0);
-	m_alternativesList.InsertColumn(1, CDataManager::Instance().StringRes(IDS_CITY_AO), LVCFMT_LEFT, width1);
+	m_alternativesList.InsertColumn(1, CDataManager::Instance().StringRes(IDS_CITY_AO), LVCFMT_LEFT, width0 * 2);
+	m_alternativesList.InsertColumn(2, CDataManager::Instance().StringRes(IDS_CITY_NO), LVCFMT_LEFT, width0 * 2);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -82,8 +81,6 @@ void CSelectCityDlg::OnOK()
 		if (idx >= 0 && idx < m_cityInfoList.size())
 			m_selectedCityInfo = m_cityInfoList[idx];
 	}
-
-	ResetStates();
 
 	CDialogEx::OnOK();
 }
@@ -113,6 +110,7 @@ void CSelectCityDlg::OnBnClickedSearchBtn()
 	{
 		m_alternativesList.InsertItem(idx, info.CityName);
 		m_alternativesList.SetItemText(idx, 1, info.CityAdministrativeOwnership);
+		m_alternativesList.SetItemText(idx, 2, info.CityNO);
 
 		++idx;
 	}
