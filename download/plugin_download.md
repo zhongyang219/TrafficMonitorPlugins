@@ -56,6 +56,19 @@
 
 - **配置时sh表示“上证”，sz表示深证，依次类推**
 
+作者：[CListery](https://github.com/CListery)
+
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x64.zip?raw=true)
 
 ---
+
+### 电池功耗检测插件
+
+![](https://user-images.githubusercontent.com/75287037/155976271-b3e58b7a-d3ec-442d-8107-c0c69a2d7610.png)
+
+用于显示电池的功耗。同时可以在鼠标提示中显示剩余电量、电池电压信息。
+
+作者：[AzulEterno](https://github.com/AzulEterno)
+
+下载链接：[32位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x86/PowerMonPlugin.dll) [64位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x64/PowerMonPlugin.dll)
+
