@@ -175,7 +175,6 @@ namespace query
         std::wstring content;
         bool succeed = _CallInternet(q_url, qHeaders, content);
 
-        CityInfoList cityInfoList;
         if (succeed && !content.empty())
         {
             // parse string
@@ -185,7 +184,7 @@ namespace query
             {
                 auto cityInfo = _ExtractCityInfo(info);
                 if (!cityInfo.CityNO.empty())
-                    cityInfoList.push_back(cityInfo);
+                    city_list.push_back(cityInfo);
             }
         }
 
