@@ -33,10 +33,22 @@ struct SWeatherAlert
     std::wstring DetailedMessage;
     std::wstring PublishTime;
 
-    std::wstring ToString(bool Brief) const;
+    std::wstring ToString(bool brief) const;
 };
 
 using WeatherAlertList = std::vector<SWeatherAlert>;
+
+struct SWeatherInfo
+{
+    std::wstring TemperatureDay;
+    std::wstring TemperatureNight;
+    std::wstring WeatherDay;
+    std::wstring WeatherNight;
+    std::wstring WeatherCodeDay;
+    std::wstring WeatherCodeNight;
+
+    std::wstring ToString(bool brief) const;
+};
 
 namespace query
 {
@@ -44,4 +56,5 @@ namespace query
 
     bool QueryRealTimeWeather(const std::wstring &city_code, SRealTimeWeather &weather);
     bool QueryWeatherAlerts(const std::wstring &city_code, WeatherAlertList &alerts);
+    bool QueryForecastWeather(const std::wstring &city_code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm);
 }

@@ -11,19 +11,23 @@
 namespace query
 {
     using wslist = std::vector<std::wstring>;
+    using wsListList = std::vector<wslist>;
 
-    wslist _RegexExtractAll(const std::wstring &text, const std::wregex& pattern)
+    wsListList _RegexExtractAll(const std::wstring &text, const std::wregex& pattern)
     {
         std::wsmatch matches;
-        wslist results;
+        wsListList results;
 
         auto itr1 = text.cbegin();
         auto itr2 = text.cend();
 
         while (std::regex_search(itr1, itr2, matches, pattern))
         {
-            if (!matches.empty())
-                results.push_back(matches[1].str());
+            wslist sub_matches;
+            for (const auto &sm : matches)
+                sub_matches.push_back(sm.str());
+
+            results.push_back(sub_matches);
 
             itr1 = matches[0].second;
         }
@@ -49,14 +53,17 @@ namespace query
 
     wslist _ExtractCityInfoList(const std::wstring &s)
     {
-        static std::wregex pattern{ L"\\{\"ref\":\"(.+?)\"\\}" };
+        static const std::wregex pattern{ L"\\{\"ref\":\"(.+?)\"\\}" };
 
         wslist results;
         try
         {
-            results = _RegexExtractAll(s, pattern);
+            auto match_results = _RegexExtractAll(s, pattern);
+            for (const auto &m : match_results)
+                if (m.size() > 1)
+                    results.push_back(m[1]);
         }
-        catch (const std::exception &e)
+        catch (const std::exception &)
         {
             results.clear();
         }
@@ -66,7 +73,7 @@ namespace query
 
     bool _IsSpot(const std::wstring &sNO)
     {
-        static std::wregex pattern{ L"\\D+" };
+        static const std::wregex pattern{ L"\\D+" };
         static std::wsmatch matches;
 
         bool result = true;
@@ -74,7 +81,7 @@ namespace query
         {
             result = std::regex_search(sNO, matches, pattern);
         }
-        catch (const std::exception &e)
+        catch (const std::exception &)
         {
             result = true;
         }
@@ -296,6 +303,92 @@ namespace query
                 succeed = false;
 
             yyjson_doc_free(jdoc);
+        }
+
+        return succeed;
+    }
+
+    bool QueryForecastWeather(const std::wstring &city_code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm)
+    {
+        weather_td = SWeatherInfo();
+        weather_tm = SWeatherInfo();
+
+        CString q_url;
+        q_url.Format(L"http://www.weather.com.cn/weathern/%s.shtml", city_code.c_str());
+
+        CString qHeaders;
+        qHeaders.Format(L"Host: www.weather.com.cn\r\nReferer: http://www.weather.com.cn/weather1dn/%s.shtml", city_code.c_str());
+
+        std::wstring content;
+        auto succeed = _CallInternet(q_url, qHeaders, content);
+
+        if (succeed && !content.empty())
+        {
+            // 解析温度数据
+            static const std::wregex pattern_temp_day{ L"var eventDay.*?(?=;)" };
+            static const std::wregex pattern_temp_night{ L"var eventNight.*?(?=;)" };
+            static const std::wregex pattern_temp_values{ LR"(\"(-?\d+)\")" };
+
+            {
+                auto match_results = _RegexExtractAll(content, pattern_temp_day);
+                if (!match_results.empty())
+                {
+                    const auto &temp_day_str = match_results[0][0];
+                    auto temp_values = _RegexExtractAll(temp_day_str, pattern_temp_values);
+                    if (temp_values.size() >= 3)
+                    {
+                        weather_td.TemperatureDay = temp_values[1][1];
+                        weather_tm.TemperatureDay = temp_values[2][1];
+                    }
+                    else
+                        succeed = false;
+                }
+                else
+                    succeed = false;
+            }
+
+            if (succeed)
+            {
+                auto match_results = _RegexExtractAll(content, pattern_temp_night);
+                if (!match_results.empty())
+                {
+                    const auto &temp_night_str = match_results[0][0];
+                    auto temp_values = _RegexExtractAll(temp_night_str, pattern_temp_values);
+                    if (temp_values.size() >= 3)
+                    {
+                        weather_td.TemperatureNight = temp_values[1][1];
+                        weather_tm.TemperatureNight = temp_values[2][1];
+                    }
+                    else
+                        succeed = false;
+                }
+                else
+                    succeed = false;
+            }
+
+            // 解析天气
+            static const std::wregex pattern_weather{ LR"(<i class=\"item-icon ([dn]\d+) icons_bg" title=\"(.+?)\">)" };
+
+            if (succeed)
+            {
+                auto match_results = _RegexExtractAll(content, pattern_weather);
+                if (match_results.size() >= 4)
+                {
+                    weather_td.WeatherCodeDay = match_results[0][1];
+                    weather_td.WeatherDay = match_results[0][2];
+
+                    weather_td.WeatherCodeNight = match_results[1][1];
+                    weather_td.WeatherNight = match_results[1][2];
+
+                    weather_tm.WeatherCodeDay = match_results[2][1];
+                    weather_tm.WeatherDay = match_results[2][2];
+
+                    weather_tm.WeatherCodeNight = match_results[3][1];
+                    weather_tm.WeatherNight = match_results[3][2];
+                }
+                else
+                    succeed = false;
+            }
         }
 
         return succeed;
