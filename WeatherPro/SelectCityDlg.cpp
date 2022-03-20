@@ -81,6 +81,11 @@ void CSelectCityDlg::OnOK()
 		if (idx >= 0 && idx < m_cityInfoList.size())
 			m_selectedCityInfo = m_cityInfoList[idx];
 	}
+	else
+	{
+		if (m_cityInfoList.size() == 1)
+			m_selectedCityInfo = m_cityInfoList[0];
+	}
 
 	CDialogEx::OnOK();
 }
@@ -101,17 +106,21 @@ void CSelectCityDlg::OnBnClickedSearchBtn()
 
 	ResetStates();
 
-	m_cityInfoList = query::QueryCityInfo(m_cityNameQuery);
-	
-	if (m_cityInfoList.size() == 0) return;
-
-	int idx = 0;
-	for (const auto &info : m_cityInfoList)
+	if (query::QueryCityInfo(std::wstring(m_cityNameQuery), m_cityInfoList))
 	{
-		m_alternativesList.InsertItem(idx, info.CityName);
-		m_alternativesList.SetItemText(idx, 1, info.CityAdministrativeOwnership);
-		m_alternativesList.SetItemText(idx, 2, info.CityNO);
+        if (m_cityInfoList.size() == 0) return;
 
-		++idx;
+        int idx = 0;
+        for (const auto &info : m_cityInfoList)
+        {
+            m_alternativesList.InsertItem(idx, info.CityName.c_str());
+            m_alternativesList.SetItemText(idx, 1, info.CityAdministrativeOwnership.c_str());
+            m_alternativesList.SetItemText(idx, 2, info.CityNO.c_str());
+
+            ++idx;
+        }
 	}
+	else
+		MessageBox(CDataManager::Instance().StringRes(IDS_QUERY_ERR),
+				   CDataManager::Instance().StringRes(IDS_WEATHER_PRO));
 }
