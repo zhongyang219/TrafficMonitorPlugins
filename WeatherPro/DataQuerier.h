@@ -23,6 +23,7 @@ struct SRealTimeWeather
     std::wstring WindStrength;
 
     std::wstring ToString(bool brief) const;
+    std::wstring GetTemperature() const;
 };
 
 struct SWeatherAlert
@@ -47,7 +48,8 @@ struct SWeatherInfo
     std::wstring WeatherCodeDay;
     std::wstring WeatherCodeNight;
 
-    std::wstring ToString(bool brief) const;
+    std::wstring GetTemperature() const;
+    std::wstring ToString() const;
 };
 
 namespace query
