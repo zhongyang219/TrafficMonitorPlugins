@@ -4,12 +4,17 @@
 #include "pch.h"
 #include "framework.h"
 #include "WeatherPro.h"
+#include "DataManager.h"
 
 #include "OptionsDlg.h"
 
+#include <cstdlib>
+
 CWeatherPro CWeatherPro::m_instance;
 
-CWeatherPro::CWeatherPro()
+CWeatherPro::CWeatherPro() :
+    m_last_update_timestamp{ 0 },
+    m_next_update_time_span{ 1200 }
 {}
 
 CWeatherPro& CWeatherPro::Instance()
@@ -19,14 +24,21 @@ CWeatherPro& CWeatherPro::Instance()
 
 IPluginItem* CWeatherPro::GetItem(int index)
 {
-    // todo
+    switch (index)
+    {
+    case 0:
+        return &m_item;
+
+    default:
+        break;
+    }
 
     return nullptr;
 }
 
 void CWeatherPro::DataRequired()
 {
-    // todo
+    UpdateWeatherInfo();
 }
 
 const wchar_t* CWeatherPro::GetInfo(PluginInfoIndex index)
@@ -43,7 +55,7 @@ const wchar_t* CWeatherPro::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"Copyright (C) by Haojia 2022";
     case ITMPlugin::TMI_URL:
-        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
+        return L"https://github.com/Haojia521/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
         return L"0.1";
@@ -55,8 +67,10 @@ const wchar_t* CWeatherPro::GetInfo(PluginInfoIndex index)
 
 const wchar_t* CWeatherPro::GetTooltipInfo()
 {
-    // todo
-    return L"";
+    if (CDataManager::Instance().GetConfig().m_show_weather_in_tooltips)
+        return m_tooltips_info.c_str();
+    else
+        return L"";
 }
 
 ITMPlugin::OptionReturn CWeatherPro::ShowOptionsDialog(void* hParent)
@@ -72,7 +86,47 @@ ITMPlugin::OptionReturn CWeatherPro::ShowOptionsDialog(void* hParent)
 
 void CWeatherPro::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
 {
-    // todo
+    switch (index)
+    {
+    case ITMPlugin::EI_CONFIG_DIR:
+        CDataManager::InstanceRef().LoadConfigs(data);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void CWeatherPro::UpdateTooltip(const std::wstring &info)
+{
+    m_tooltips_info = info;
+}
+
+void CWeatherPro::UpdateWeatherInfo(bool force /* = false */)
+{
+    static auto cb = [this](const std::wstring &info) {
+        this->m_tooltips_info = info;
+    };
+
+    auto t = std::time(nullptr);
+
+    if (force)
+    {
+        m_last_update_timestamp = t;
+        CDataManager::InstanceRef().UpdateWeather(cb);
+    }
+    else
+    {
+        if (t > m_last_update_timestamp + m_next_update_time_span)
+        {
+            m_last_update_timestamp = t;
+
+            std::srand(static_cast<unsigned int>(t));
+            m_next_update_time_span = static_cast<std::time_t>(std::rand() % 600 + 900);
+
+            CDataManager::InstanceRef().UpdateWeather(cb);
+        }
+    }
 }
 
 ITMPlugin* TMPluginGetInstance()

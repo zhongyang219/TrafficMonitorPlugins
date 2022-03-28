@@ -5,6 +5,9 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
+#include <mutex>
+
+std::mutex g_weather_update_nutex;
 
 SConfiguration::SConfiguration() :
     m_wit(EWeatherInfoType::WEATHER_REALTIME),
@@ -25,7 +28,9 @@ CDataManager::CDataManager()
 }
 
 CDataManager::~CDataManager()
-{}
+{
+    SaveConfigs();
+}
 
 const CDataManager& CDataManager::Instance()
 {
@@ -73,8 +78,10 @@ const SCityInfo& CDataManager::GetCurrentCityInfo() const
     return m_currentCityInfo;
 }
 
-void CDataManager::_updateWeather()
+void CDataManager::_updateWeather(WeatherInfoUpdatedCallback callback)
 {
+    std::lock_guard<std::mutex> guard(g_weather_update_nutex);
+
     bool flag{ false };
     int query_times{ 0 };
 
@@ -86,7 +93,7 @@ void CDataManager::_updateWeather()
         flag = query::QueryRealTimeWeather(GetCurrentCityInfo().CityNO, m_rt_weather);
 
         ++query_times;
-    } while (!flag && query_times <=3);
+    } while (!flag && query_times < 3);
 
     flag = false;
     query_times = 0;
@@ -99,7 +106,7 @@ void CDataManager::_updateWeather()
         flag = query::QueryWeatherAlerts(GetCurrentCityInfo().CityNO, m_weather_alerts);
 
         ++query_times;
-    } while (!flag && query_times <= 3);
+    } while (!flag && query_times < 3);
 
     flag = false;
     query_times = 0;
@@ -112,12 +119,17 @@ void CDataManager::_updateWeather()
         flag = query::QueryForecastWeather(GetCurrentCityInfo().CityNO, m_weather_today, m_weather_tommrow);
 
         ++query_times;
-    } while (!flag && query_times <= 3);
+    } while (!flag && query_times < 3);
+
+    if (callback != nullptr)
+    {
+        callback(GetTooptipInfo());
+    }
 }
 
-void CDataManager::UpdateWeather()
+void CDataManager::UpdateWeather(WeatherInfoUpdatedCallback callback /* = nullptr */)
 {
-    std::thread t(&CDataManager::_updateWeather, this);
+    std::thread t(&CDataManager::_updateWeather, this, nullptr/*, callback*/);
     t.detach();
 }
 
@@ -164,7 +176,7 @@ std::wstring CDataManager::GetWeatherAlertsInfo(bool brief) const
         std::wstringstream wss;
 
         for (const auto &alert : m_weather_alerts)
-            wss << alert.ToString(brief) << std::endl;
+            wss << L"[!] " << alert.ToString(brief) << std::endl;
 
         return wss.str();
     }
@@ -174,8 +186,20 @@ std::wstring CDataManager::GetWeatherInfo() const
 {
     std::wstringstream wss;
 
-    wss << m_weather_today.ToString() << std::endl
-        << m_weather_tommrow.ToString();
+    wss << L"今天: " << m_weather_today.ToString() << std::endl
+        << L"明天: " << m_weather_tommrow.ToString();
+
+    return wss.str();
+}
+
+std::wstring CDataManager::GetTooptipInfo() const
+{
+    std::wstringstream wss;
+
+    wss << m_currentCityInfo.CityName << L" " << GetRealTimeWeatherInfo(m_config.m_show_brief_rt_weather_info) << std::endl;
+    if (m_config.m_show_weather_alerts)
+        wss << GetWeatherAlertsInfo(m_config.m_show_brief_weather_alert_info);
+    wss << GetWeatherInfo();
 
     return wss.str();
 }
@@ -203,6 +227,15 @@ void CDataManager::LoadConfigs(const std::wstring &cfg_dir)
         return val;
     };
 
+    auto cfg_str_val_getter = [this](const wchar_t *key, const wchar_t *default_val) {
+        wchar_t buffer[32]{ 0 };
+        GetPrivateProfileString(L"config", key, default_val, buffer, 32, m_config_file_path.c_str());
+        return std::wstring{ buffer };
+    };
+
+    m_currentCityInfo.CityNO = cfg_str_val_getter(L"city_no", L"101010100");
+    m_currentCityInfo.CityName = cfg_str_val_getter(L"city_name", L"北京");
+
     m_config.m_wit = static_cast<EWeatherInfoType>(cfg_int_val_getter(L"wit", 0));
     m_config.m_show_weather_icon = (cfg_int_val_getter(L"show_weather_icon", 1) != 0);
     m_config.m_show_weather_in_tooltips = (cfg_int_val_getter(L"show_weather_in_tooltips", 1) != 0);
@@ -219,6 +252,13 @@ void CDataManager::SaveConfigs() const
         swprintf_s(buffer, L"%d", value);
         WritePrivateProfileString(L"config", key, buffer, m_config_file_path.c_str());
     };
+
+    auto cfg_str_val_writter = [this](const wchar_t *key, const wchar_t *value) {
+        WritePrivateProfileString(L"config", key, value, m_config_file_path.c_str());
+    };
+
+    cfg_str_val_writter(L"city_no", m_currentCityInfo.CityNO.c_str());
+    cfg_str_val_writter(L"city_name", m_currentCityInfo.CityName.c_str());
 
     cfg_int_val_writter(L"wit", static_cast<int>(m_config.m_wit));
     cfg_int_val_writter(L"show_weather_icon", m_config.m_show_weather_icon ? 1 : 0);

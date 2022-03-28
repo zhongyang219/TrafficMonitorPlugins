@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include <map>
+#include <functional>
+
 #include "DataQuerier.h"
 
 enum class EWeatherInfoType
@@ -21,6 +23,8 @@ struct SConfiguration
     bool m_show_brief_weather_alert_info;
 };
 
+using WeatherInfoUpdatedCallback = std::function<void(const std::wstring & info)>;
+
 class CDataManager
 {
 private:
@@ -39,12 +43,14 @@ public:
     void SetCurrentCityInfo(SCityInfo info);
     const SCityInfo& GetCurrentCityInfo() const;
 
-    void UpdateWeather();
+    void UpdateWeather(WeatherInfoUpdatedCallback callback = nullptr);
 
     std::wstring GetWeatherTemperature() const;
     std::wstring GetRealTimeWeatherInfo(bool brief) const;
     std::wstring GetWeatherAlertsInfo(bool brief) const;
     std::wstring GetWeatherInfo() const;
+
+    std::wstring GetTooptipInfo() const;
 
     SConfiguration& GetConfig();
     const SConfiguration& GetConfig() const;
@@ -53,7 +59,7 @@ public:
     void SaveConfigs() const;
     
 private:
-    void _updateWeather();
+    void _updateWeather(WeatherInfoUpdatedCallback callback = nullptr);
 
     static CDataManager m_instance;
     int m_dpi;

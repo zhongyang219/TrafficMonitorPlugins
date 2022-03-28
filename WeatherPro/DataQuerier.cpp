@@ -137,7 +137,7 @@ namespace query
                 multi_byte_content_buffer = new char[offset + 1]{ 0 };
 
                 httpFile->Seek(0, CFile::begin);
-                httpFile->Read(multi_byte_content_buffer, offset + 1);
+                httpFile->Read(multi_byte_content_buffer, static_cast<UINT>(offset + 1));
 
                 content = CCommon::StrToUnicode(multi_byte_content_buffer, true);
                 succeed = true;
@@ -264,10 +264,19 @@ namespace query
         std::wstring content;
         auto succeed = _CallInternet(q_url, qHeaders, content);
 
+        auto data_idx = content.find(L"var alarmDZ");
+        if (data_idx == std::wstring::npos)
+            succeed = false;
+        else
+        {
+            content = content.substr(data_idx);
+            if (content.find(L'{') == std::wstring::npos)
+                succeed = false;
+        }
+
         if (succeed && !content.empty())
         {
-            auto data = content.substr(content.find(L"var alarmDZ"));
-            data = data.substr(data.find(L'{'));
+            auto data = content.substr(content.find(L'{'));
 
             auto data_utf8 = CCommon::UnicodeToStr(data.c_str(), true);
 
@@ -403,7 +412,6 @@ std::wstring SRealTimeWeather::ToString(bool brief) const
     wss << Weather << " " << Temperature << L"℃ (" << UpdateTime << L')';
     if (!brief)
     {
-        wss << std::endl;
         wss << L"PM2.5: " << AqiPM25 << "  " << WindDirection << WindStrength;
     }
 

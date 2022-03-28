@@ -22,5 +22,15 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CString m_currentCityName;
+
+	BOOL m_showWeatherIcon;
+	BOOL m_showWeatherInTooltip;
+	BOOL m_showWeatherAlerts;
+	BOOL m_showBriefWeatherAlertInfo;
+	BOOL m_showBriefRTWeather;
+
 	afx_msg void OnBnClickedBtnSelectCity();
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
+	CComboBox m_ctrlInfoType;
 };

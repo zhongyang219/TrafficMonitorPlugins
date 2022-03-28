@@ -20,6 +20,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utilities", "utilities\utilities.vcxproj", "{FC324049-5EF6-4561-ABC6-D2FDD68A8768}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WeatherPro", "WeatherPro\WeatherPro.vcxproj", "{8E43B521-9437-4B44-B823-840F4BF911A9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
