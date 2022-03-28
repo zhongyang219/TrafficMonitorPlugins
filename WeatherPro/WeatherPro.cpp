@@ -14,7 +14,7 @@ CWeatherPro CWeatherPro::m_instance;
 
 CWeatherPro::CWeatherPro() :
     m_last_update_timestamp{ 0 },
-    m_next_update_time_span{ 1200 }
+    m_next_update_time_span{ 300 }
 {}
 
 CWeatherPro& CWeatherPro::Instance()
@@ -81,7 +81,7 @@ ITMPlugin::OptionReturn CWeatherPro::ShowOptionsDialog(void* hParent)
     COptionsDlg dlg(parent);
     dlg.DoModal();
 
-    return ITMPlugin::OR_OPTION_UNCHANGED;
+    return ITMPlugin::OR_OPTION_CHANGED;
 }
 
 void CWeatherPro::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)

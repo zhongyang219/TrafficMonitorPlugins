@@ -129,7 +129,7 @@ void CDataManager::_updateWeather(WeatherInfoUpdatedCallback callback)
 
 void CDataManager::UpdateWeather(WeatherInfoUpdatedCallback callback /* = nullptr */)
 {
-    std::thread t(&CDataManager::_updateWeather, this, nullptr/*, callback*/);
+    std::thread t(&CDataManager::_updateWeather, this, callback);
     t.detach();
 }
 

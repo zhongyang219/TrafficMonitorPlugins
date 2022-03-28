@@ -412,7 +412,7 @@ std::wstring SRealTimeWeather::ToString(bool brief) const
     wss << Weather << " " << Temperature << L"℃ (" << UpdateTime << L')';
     if (!brief)
     {
-        wss << L"PM2.5: " << AqiPM25 << "  " << WindDirection << WindStrength;
+        wss << L" PM2.5: " << AqiPM25 << "  " << WindDirection << WindStrength;
     }
 
     return wss.str();
