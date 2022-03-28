@@ -58,7 +58,7 @@ const wchar_t* CWeatherPro::GetInfo(PluginInfoIndex index)
         return L"https://github.com/Haojia521/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        return L"0.1";
+        return L"0.2";
     default:
         break;
     }
@@ -122,7 +122,7 @@ void CWeatherPro::UpdateWeatherInfo(bool force /* = false */)
             m_last_update_timestamp = t;
 
             std::srand(static_cast<unsigned int>(t));
-            m_next_update_time_span = static_cast<std::time_t>(std::rand() % 600 + 900);
+            m_next_update_time_span = static_cast<std::time_t>(std::rand() % 300 + 300);
 
             CDataManager::InstanceRef().UpdateWeather(cb);
         }
