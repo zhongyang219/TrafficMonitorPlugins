@@ -87,6 +87,13 @@ void CSelectCityDlg::OnOK()
 			m_selectedCityInfo = m_cityInfoList[0];
 	}
 
+	if (m_selectedCityInfo.CityNO.size() > 9)
+	{
+		MessageBox(L"当前暂不支持乡镇与街道的天气查询，将在后续版本开放，敬请关注！");
+
+		return;
+	}
+
 	CDialogEx::OnOK();
 }
 
