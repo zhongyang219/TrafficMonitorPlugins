@@ -237,6 +237,11 @@ namespace query
                     rt_weather.AqiPM25 = get_value("aqi_pm25");
                     rt_weather.WindDirection = get_value("WD");
                     rt_weather.WindStrength = get_value("WS");
+
+                    // correct weather code to 'night' if time during 20:00 to 06:00
+                    auto h = std::stoi(rt_weather.UpdateTime.substr(0, 2));
+                    if (h >= 20 || h < 6)
+                        rt_weather.WeatherCode[0] = L'n';
                 }
                 else
                     succeed = false;

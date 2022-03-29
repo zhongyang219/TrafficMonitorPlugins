@@ -366,17 +366,6 @@ HICON CDataManager::GetIcon(const std::wstring& w_code)
 
     auto icon_id = _getIconIdBlue(w_code);
 
-    SYSTEMTIME cur_time{};
-    GetLocalTime(&cur_time);
-    if (cur_time.wHour >= 18 || cur_time.wHour < 6)
-    {
-        if (icon_id == IDI_ICON_B_D00 ||
-            icon_id == IDI_ICON_B_D01 ||
-            icon_id == IDI_ICON_B_D03 ||
-            icon_id == IDI_ICON_B_D13)
-            icon_id += 4;  // convert icons of day to corresponding ones of night
-    }
-
     if (m_icons.find(icon_id) == m_icons.end())
     {
         m_icons[icon_id] = _getIcon(icon_id);
