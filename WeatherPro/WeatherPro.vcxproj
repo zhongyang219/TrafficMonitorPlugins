@@ -229,6 +229,41 @@
   <ItemGroup>
     <ResourceCompile Include="WeatherPro.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\weather_icons_blue\02.ico" />
+    <Image Include="res\weather_icons_blue\04.ico" />
+    <Image Include="res\weather_icons_blue\05.ico" />
+    <Image Include="res\weather_icons_blue\06.ico" />
+    <Image Include="res\weather_icons_blue\07.ico" />
+    <Image Include="res\weather_icons_blue\08.ico" />
+    <Image Include="res\weather_icons_blue\09.ico" />
+    <Image Include="res\weather_icons_blue\10.ico" />
+    <Image Include="res\weather_icons_blue\11.ico" />
+    <Image Include="res\weather_icons_blue\12.ico" />
+    <Image Include="res\weather_icons_blue\14.ico" />
+    <Image Include="res\weather_icons_blue\15.ico" />
+    <Image Include="res\weather_icons_blue\16.ico" />
+    <Image Include="res\weather_icons_blue\17.ico" />
+    <Image Include="res\weather_icons_blue\18.ico" />
+    <Image Include="res\weather_icons_blue\19.ico" />
+    <Image Include="res\weather_icons_blue\20.ico" />
+    <Image Include="res\weather_icons_blue\29.ico" />
+    <Image Include="res\weather_icons_blue\30.ico" />
+    <Image Include="res\weather_icons_blue\31.ico" />
+    <Image Include="res\weather_icons_blue\53.ico" />
+    <Image Include="res\weather_icons_blue\54.ico" />
+    <Image Include="res\weather_icons_blue\55.ico" />
+    <Image Include="res\weather_icons_blue\56.ico" />
+    <Image Include="res\weather_icons_blue\99.ico" />
+    <Image Include="res\weather_icons_blue\d00.ico" />
+    <Image Include="res\weather_icons_blue\d01.ico" />
+    <Image Include="res\weather_icons_blue\d03.ico" />
+    <Image Include="res\weather_icons_blue\d13.ico" />
+    <Image Include="res\weather_icons_blue\n00.ico" />
+    <Image Include="res\weather_icons_blue\n01.ico" />
+    <Image Include="res\weather_icons_blue\n03.ico" />
+    <Image Include="res\weather_icons_blue\n13.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

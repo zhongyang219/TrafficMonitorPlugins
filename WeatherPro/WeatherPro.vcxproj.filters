@@ -100,4 +100,105 @@
       <Filter>资源文件</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\weather_icons_blue\02.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\04.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\05.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\06.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\07.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\08.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\09.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\10.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\11.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\12.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\14.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\15.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\16.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\17.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\18.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\19.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\20.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\29.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\30.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\31.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\53.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\54.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\55.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\56.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\99.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\d00.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\d01.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\d03.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\d13.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\n00.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\n01.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\n03.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\weather_icons_blue\n13.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
