@@ -49,7 +49,12 @@ void CWeatherProItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_
 
     if (CDataManager::Instance().GetConfig().m_show_weather_icon)
     {
-        // todo: draw icon
+        auto icon_size = CDataManager::Instance().DPI(16);
+        auto hIcon = CDataManager::InstanceRef().GetIcon();
+        CPoint icon_pos{ rect.TopLeft() };
+        icon_pos.x += CDataManager::Instance().DPI(2);
+        icon_pos.y += (rect.Height() - icon_size) / 2;
+        DrawIconEx(pDC->GetSafeHdc(), icon_pos.x, icon_pos.y, hIcon, icon_size, icon_size, 0, NULL, DI_NORMAL);
 
         rect.left += CDataManager::Instance().DPI(20);
     }

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <set>
 
 std::mutex g_weather_update_nutex;
 
@@ -266,4 +267,120 @@ void CDataManager::SaveConfigs() const
     cfg_int_val_writter(L"show_brief_rt_weather_info", m_config.m_show_brief_rt_weather_info ? 1 : 0);
     cfg_int_val_writter(L"show_weather_alerts", m_config.m_show_weather_alerts ? 1 : 0);
     cfg_int_val_writter(L"show_brief_weather_alert_info", m_config.m_show_brief_weather_alert_info ? 1 : 0);
+}
+
+HICON CDataManager::_getIcon(UINT id)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);
+
+    return hIcon;
+}
+
+UINT CDataManager::_getIconIdBlue(const std::wstring& code) const
+{
+    static const std::map<std::wstring, UINT> dmap{
+        {L"d00", IDI_ICON_B_D00},
+        {L"d01", IDI_ICON_B_D01},
+        {L"d03", IDI_ICON_B_D03},
+        {L"d13", IDI_ICON_B_D13},
+        {L"n00", IDI_ICON_B_N00},
+        {L"n01", IDI_ICON_B_N01},
+        {L"n03", IDI_ICON_B_N03},
+        {L"n13", IDI_ICON_B_N13},
+        {L"02", IDI_ICON_B_A02},
+        {L"04", IDI_ICON_B_A04},
+        {L"05", IDI_ICON_B_A05},
+        {L"06", IDI_ICON_B_A06},
+        {L"07", IDI_ICON_B_A07},
+        {L"08", IDI_ICON_B_A08},
+        {L"09", IDI_ICON_B_A09},
+        {L"10", IDI_ICON_B_A10},
+        {L"11", IDI_ICON_B_A11},
+        {L"12", IDI_ICON_B_A12},
+        {L"14", IDI_ICON_B_A14},
+        {L"15", IDI_ICON_B_A15},
+        {L"16", IDI_ICON_B_A16},
+        {L"17", IDI_ICON_B_A17},
+        {L"18", IDI_ICON_B_A18},
+        {L"19", IDI_ICON_B_A19},
+        {L"20", IDI_ICON_B_A20},
+        {L"29", IDI_ICON_B_A29},
+        {L"30", IDI_ICON_B_A30},
+        {L"31", IDI_ICON_B_A31},
+        {L"53", IDI_ICON_B_A53},
+        {L"54", IDI_ICON_B_A54},
+        {L"55", IDI_ICON_B_A55},
+        {L"56", IDI_ICON_B_A56},
+        {L"99", IDI_ICON_B_A99},
+        {L"21", IDI_ICON_B_A08},
+        {L"22", IDI_ICON_B_A09},
+        {L"23", IDI_ICON_B_A10},
+        {L"24", IDI_ICON_B_A11},
+        {L"25", IDI_ICON_B_A12},
+        {L"26", IDI_ICON_B_A15},
+        {L"27", IDI_ICON_B_A16},
+        {L"28", IDI_ICON_B_A17},
+        {L"32", IDI_ICON_B_A18},
+        {L"49", IDI_ICON_B_A18},
+        {L"57", IDI_ICON_B_A18},
+        {L"58", IDI_ICON_B_A18},
+        {L"97", IDI_ICON_B_A08},
+        {L"98", IDI_ICON_B_A15},
+        {L"301", IDI_ICON_B_A08},
+        {L"302", IDI_ICON_B_A15},
+    };
+
+    auto itr = dmap.find(code);
+    if (itr != dmap.end())
+        return itr->second;
+    else if (code.size() > 1)
+    {
+        auto itr2 = dmap.find(code.substr(1));
+        if (itr2 != dmap.end())
+            return itr2->second;
+    }
+
+    return IDI_ICON_B_A99;
+}
+
+HICON CDataManager::GetIcon()
+{
+    switch (m_config.m_wit)
+    {
+    default:
+    case EWeatherInfoType::WEATHER_REALTIME:
+        return GetIcon(m_rt_weather.WeatherCode);
+
+    case EWeatherInfoType::WEATHER_TODAY:
+        return GetIcon(m_weather_today.WeatherCodeDay);
+
+    case EWeatherInfoType::WEATHER_TOMMROW:
+        return GetIcon(m_weather_tommrow.WeatherCodeDay);
+    }
+}
+
+HICON CDataManager::GetIcon(const std::wstring& w_code)
+{
+    if (w_code.empty()) return nullptr;
+
+    auto icon_id = _getIconIdBlue(w_code);
+
+    SYSTEMTIME cur_time{};
+    GetLocalTime(&cur_time);
+    if (cur_time.wHour >= 18 || cur_time.wHour < 6)
+    {
+        if (icon_id == IDI_ICON_B_D00 ||
+            icon_id == IDI_ICON_B_D01 ||
+            icon_id == IDI_ICON_B_D03 ||
+            icon_id == IDI_ICON_B_D13)
+            icon_id += 4;  // convert icons of day to corresponding ones of night
+    }
+
+    if (m_icons.find(icon_id) == m_icons.end())
+    {
+        m_icons[icon_id] = _getIcon(icon_id);
+    }
+
+    return m_icons[icon_id];
 }

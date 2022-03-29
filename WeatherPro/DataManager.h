@@ -57,9 +57,14 @@ public:
 
     void LoadConfigs(const std::wstring &cfg_dir);
     void SaveConfigs() const;
+
+    HICON GetIcon();
+    HICON GetIcon(const std::wstring& w_code);
     
 private:
     void _updateWeather(WeatherInfoUpdatedCallback callback = nullptr);
+    HICON _getIcon(UINT id);
+    UINT _getIconIdBlue(const std::wstring &code) const;
 
     static CDataManager m_instance;
     int m_dpi;
@@ -74,4 +79,6 @@ private:
     WeatherAlertList m_weather_alerts;
     SWeatherInfo m_weather_today;
     SWeatherInfo m_weather_tommrow;
+
+    std::map<UINT, HICON> m_icons;
 };
