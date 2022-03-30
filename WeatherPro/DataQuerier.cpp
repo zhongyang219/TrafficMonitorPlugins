@@ -6,6 +6,7 @@
 #include <ctime>
 #include <regex>
 #include <sstream>
+#include <map>
 
 #include <utilities/yyjson/yyjson.h>
 
@@ -199,7 +200,7 @@ namespace query
         return succeed;
     }
 
-    bool QueryRealTimeWeather(const std::wstring &city_code, SRealTimeWeather &rt_weather)
+    bool _queryRealTimeWeatherCity(const std::wstring& city_code, SRealTimeWeather& rt_weather)
     {
         rt_weather = SRealTimeWeather();
 
@@ -213,6 +214,9 @@ namespace query
         std::wstring content;
         auto succeed = _CallInternet(q_url, qHeaders, content);
 
+        if (content.find(L'{') == std::wstring::npos)
+            succeed = false;
+
         if (succeed && !content.empty())
         {
             auto data = content.substr(content.find(L'{'));
@@ -220,13 +224,13 @@ namespace query
             {
                 auto data_utf8 = CCommon::UnicodeToStr(data.c_str(), true);
 
-                yyjson_doc *doc = yyjson_read(data_utf8.c_str(), data_utf8.size(), 0);
+                yyjson_doc* doc = yyjson_read(data_utf8.c_str(), data_utf8.size(), 0);
                 if (doc != nullptr)
                 {
-                    auto *root = yyjson_doc_get_root(doc);
+                    auto* root = yyjson_doc_get_root(doc);
 
-                    auto get_value = [root](const std::string &key) {
-                        auto *obj = yyjson_obj_get(root, key.c_str());
+                    auto get_value = [root](const char *key) {
+                        auto* obj = yyjson_obj_get(root, key);
                         return CCommon::StrToUnicode(yyjson_get_str(obj), true);
                     };
 
@@ -255,14 +259,157 @@ namespace query
         return succeed;
     }
 
-    bool QueryWeatherAlerts(const std::wstring &city_code, WeatherAlertList &alerts)
+    std::wstring _convertWeatherNameToCode(const std::wstring& w_name)
+    {
+        static const std::map<std::wstring, std::wstring> d_map{
+            {L"晴", L"d00"},
+            {L"多云", L"d01"},
+            {L"阴", L"d02"},
+            {L"阵雨", L"d03"},
+            {L"雷阵雨", L"d04"},
+            {L"雷阵雨伴有冰雹", L"d05"},
+            {L"雨夹雪", L"d06"},
+            {L"小雨", L"d07"},
+            {L"中雨", L"d08"},
+            {L"大雨", L"d09"},
+            {L"暴雨", L"d10"},
+            {L"大暴雨", L"d11"},
+            {L"特大暴雨", L"d12"},
+            {L"阵雪", L"d13"},
+            {L"小雪", L"d14"},
+            {L"中雪", L"d15"},
+            {L"大雪", L"d16"},
+            {L"暴雪", L"d17"},
+            {L"雾", L"d18"},
+            {L"冻雨", L"d19"},
+            {L"沙尘暴", L"d20"},
+            {L"小到中雨", L"d21"},
+            {L"中到大雨", L"d22"},
+            {L"大到暴雨", L"d23"},
+            {L"暴雨到大暴雨", L"d24"},
+            {L"大暴雨到特大暴雨", L"d25"},
+            {L"小到中雪", L"d26"},
+            {L"中到大雪", L"d27"},
+            {L"大到暴雪", L"d28"},
+            {L"浮尘", L"d29"},
+            {L"扬沙", L"d30"},
+            {L"强沙尘暴", L"d31"},
+            {L"霾", L"d53"},
+            {L"无", L"d99"},
+            {L"浓雾", L"d32"},
+            {L"强浓雾", L"d49"},
+            {L"中度霾", L"d54"},
+            {L"重度霾", L"d55"},
+            {L"严重霾", L"d56"},
+            {L"大雾", L"d57"},
+            {L"特强浓雾", L"d58"},
+            {L"雨", L"d97"},
+            {L"雪", L"d98"},
+        };
+
+        auto itr = d_map.find(w_name);
+        if (itr != d_map.end())
+            return itr->second;
+        else
+            return L"d99";
+    }
+
+    bool _queryRealTimeWeatherTownOrStreet(const std::wstring& code, SRealTimeWeather& rt_weather)
+    {
+        rt_weather = SRealTimeWeather();
+
+        CString q_url;
+        q_url.Format(L"http://forecast.weather.com.cn/town/weather1dn/%s.shtml", code.c_str());
+
+        CString qHeaders = L"Host: forecast.weather.com.cn\r\nReferer: http://www.weather.com.cn/";
+
+        std::wstring content;
+        auto succeed = _CallInternet(q_url, qHeaders, content);
+
+        if (succeed && !content.empty())
+        {
+            static const std::wregex pattern{ L"var forecast_default.*?(?=;)" };
+
+            auto data_list = _RegexExtractAll(content, pattern);
+            if (!data_list.empty())
+            {
+                const auto &data_str = data_list[0][0];
+                if (data_str.find(L'{') != std::wstring::npos)
+                {
+                    auto data = data_str.substr(data_str.find(L'{'));
+
+                    auto data_utf8 = CCommon::UnicodeToStr(data.c_str(), true);
+
+                    yyjson_doc* doc = yyjson_read(data_utf8.c_str(), data_utf8.size(), 0);
+                    if (doc != nullptr)
+                    {
+                        auto* root = yyjson_doc_get_root(doc);
+
+                        auto get_str_value = [root](const char *key) {
+                            auto* obj = yyjson_obj_get(root, key);
+                            return CCommon::StrToUnicode(yyjson_get_str(obj), true);
+                        };
+
+                        auto get_int_value = [root](const char *key) {
+                            auto* obj = yyjson_obj_get(root, key);
+                            return yyjson_get_int(obj);
+                        };
+
+                        rt_weather.Temperature = std::to_wstring(get_int_value("temp"));
+                        rt_weather.UpdateTime = get_str_value("time");
+                        rt_weather.Weather = get_str_value("weather");
+
+                        rt_weather.WeatherCode = _convertWeatherNameToCode(rt_weather.Weather);
+                        // correct weather code to 'night' if time during 20:00 to 06:00
+                        auto h = std::stoi(rt_weather.UpdateTime.substr(0, 2));
+                        if (h >= 20 || h < 6)
+                            rt_weather.WeatherCode[0] = L'n';
+
+                        rt_weather.AqiPM25 = L"--";
+
+                        auto wind_ds = get_str_value("wind");
+                        auto idx = wind_ds.find(L' ');
+                        if (idx != std::wstring::npos)
+                        {
+                            rt_weather.WindDirection = wind_ds.substr(0, idx + 1);
+                            rt_weather.WindStrength = wind_ds.substr(idx + 1);
+                        }
+                        else
+                            rt_weather.WindDirection = wind_ds;
+                    }
+                    else
+                        succeed = false;
+                }
+                else
+                    succeed = false;
+            }
+            else
+                succeed = false;
+        }
+
+        return succeed;
+    }
+
+    bool QueryRealTimeWeather(const std::wstring &code, SRealTimeWeather &rt_weather)
+    {
+        if (code.size() == 9)
+            return _queryRealTimeWeatherCity(code, rt_weather);
+        else
+            return _queryRealTimeWeatherTownOrStreet(code, rt_weather);
+    }
+
+    bool QueryWeatherAlerts(const std::wstring &code, WeatherAlertList &alerts)
     {
         alerts.clear();
+
+        std::wstring target_code{ code };
+        if (code.size() > 9)
+            target_code = code.substr(0, 9);
 
         auto timeStamp = std::time(0);
 
         CString q_url;
-        q_url.Format(L"http://d1.weather.com.cn/dingzhi/%s.html?_=%I64d", city_code.c_str(), timeStamp);
+        q_url.Format(L"http://d1.weather.com.cn/dingzhi/%s.html?_=%I64d", target_code.c_str(), timeStamp);
 
         CString qHeaders = L"Host: d1.weather.com.cn\r\nReferer: http://www.weather.com.cn/";
 
@@ -323,16 +470,24 @@ namespace query
         return succeed;
     }
 
-    bool QueryForecastWeather(const std::wstring &city_code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm)
+    bool QueryForecastWeather(const std::wstring &code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm)
     {
         weather_td = SWeatherInfo();
         weather_tm = SWeatherInfo();
 
         CString q_url;
-        q_url.Format(L"http://www.weather.com.cn/weathern/%s.shtml", city_code.c_str());
-
         CString qHeaders;
-        qHeaders.Format(L"Host: www.weather.com.cn\r\nReferer: http://www.weather.com.cn/weather1dn/%s.shtml", city_code.c_str());
+
+        if (code.size() == 9)
+        {
+            q_url.Format(L"http://www.weather.com.cn/weathern/%s.shtml", code.c_str());
+            qHeaders.Format(L"Host: www.weather.com.cn\r\nReferer: http://www.weather.com.cn/weather1dn/%s.shtml", code.c_str());
+        }
+        else
+        {
+            q_url.Format(L"http://forecast.weather.com.cn/town/weathern/%s.shtml", code.c_str());
+            qHeaders.Format(L"Host: forecast.weather.com.cn\r\nReferer: http://forecast.weather.com.cn/town/weather1dn/%s.shtml", code.c_str());
+        }
 
         std::wstring content;
         auto succeed = _CallInternet(q_url, qHeaders, content);
@@ -342,7 +497,7 @@ namespace query
             // 解析温度数据
             static const std::wregex pattern_temp_day{ L"var eventDay.*?(?=;)" };
             static const std::wregex pattern_temp_night{ L"var eventNight.*?(?=;)" };
-            static const std::wregex pattern_temp_values{ LR"(\"(-?\d+)\")" };
+            static const std::wregex pattern_temp_values{ LR"((-?\d+))" };
 
             {
                 auto match_results = _RegexExtractAll(content, pattern_temp_day);

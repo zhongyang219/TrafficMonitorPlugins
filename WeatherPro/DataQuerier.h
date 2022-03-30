@@ -56,7 +56,7 @@ namespace query
 {
     bool QueryCityInfo(const std::wstring &q_name, CityInfoList &city_list);
 
-    bool QueryRealTimeWeather(const std::wstring &city_code, SRealTimeWeather &weather);
-    bool QueryWeatherAlerts(const std::wstring &city_code, WeatherAlertList &alerts);
-    bool QueryForecastWeather(const std::wstring &city_code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm);
+    bool QueryRealTimeWeather(const std::wstring &code, SRealTimeWeather &weather);
+    bool QueryWeatherAlerts(const std::wstring &code, WeatherAlertList &alerts);
+    bool QueryForecastWeather(const std::wstring &code, SWeatherInfo &weather_td, SWeatherInfo &weather_tm);
 }
