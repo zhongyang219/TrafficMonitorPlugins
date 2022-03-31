@@ -371,7 +371,7 @@ namespace query
                         auto idx = wind_ds.find(L' ');
                         if (idx != std::wstring::npos)
                         {
-                            rt_weather.WindDirection = wind_ds.substr(0, idx + 1);
+                            rt_weather.WindDirection = wind_ds.substr(0, idx);
                             rt_weather.WindStrength = wind_ds.substr(idx + 1);
                         }
                         else
