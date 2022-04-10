@@ -63,9 +63,9 @@ BOOL CSelectCityDlg::OnInitDialog()
     m_alternativesList.GetClientRect(rect);
 	m_alternativesList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_LABELTIP);
     int width0 = rect.Width() / 5;
-	m_alternativesList.InsertColumn(0, CDataManager::InstanceRef().StringRes(IDS_CITY), LVCFMT_LEFT, width0);
-	m_alternativesList.InsertColumn(1, CDataManager::InstanceRef().StringRes(IDS_CITY_AO), LVCFMT_LEFT, width0 * 2);
-	m_alternativesList.InsertColumn(2, CDataManager::InstanceRef().StringRes(IDS_CITY_NO), LVCFMT_LEFT, width0 * 2);
+    m_alternativesList.InsertColumn(0, CDataManager::Instance().StringRes(IDS_CITY), LVCFMT_LEFT, width0);
+    m_alternativesList.InsertColumn(1, CDataManager::Instance().StringRes(IDS_CITY_AO), LVCFMT_LEFT, width0 * 2);
+    m_alternativesList.InsertColumn(2, CDataManager::Instance().StringRes(IDS_CITY_NO), LVCFMT_LEFT, width0 * 2);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -121,6 +121,6 @@ void CSelectCityDlg::OnBnClickedSearchBtn()
         }
 	}
 	else
-		MessageBox(CDataManager::InstanceRef().StringRes(IDS_QUERY_ERR),
-				   CDataManager::InstanceRef().StringRes(IDS_WEATHER_PRO));
+		MessageBox(CDataManager::Instance().StringRes(IDS_QUERY_ERR),
+				   CDataManager::Instance().StringRes(IDS_WEATHER_PRO));
 }

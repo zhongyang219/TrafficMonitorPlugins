@@ -29,9 +29,12 @@
 #define IDC_CHECK5                      1010
 #define IDC_CHECK_SHOW_BRIEF_WEATHER_ALERT_INFO 1010
 #define IDI_ICON_B_A05                  1010
+#define IDS_TODAY                       1010
 #define IDI_ICON_B_A06                  1011
 #define IDC_BTN_UPDATE_MANUALLY         1011
+#define IDS_TOMORROW                    1011
 #define IDI_ICON_B_A07                  1012
+#define IDS_DAY_AFTER_TOMORROW          1012
 #define IDI_ICON_B_A08                  1013
 #define IDI_ICON_B_A09                  1014
 #define IDI_ICON_B_A10                  1015

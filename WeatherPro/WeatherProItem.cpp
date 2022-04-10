@@ -4,7 +4,7 @@
 
 const wchar_t* CWeatherProItem::GetItemName() const
 {
-    return CDataManager::InstanceRef().StringRes(IDS_WEATHER_PRO);
+    return CDataManager::Instance().StringRes(IDS_WEATHER_PRO);
 }
 
 const wchar_t* CWeatherProItem::GetItemId() const

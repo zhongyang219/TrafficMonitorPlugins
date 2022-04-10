@@ -34,7 +34,7 @@ public:
     static const CDataManager& Instance();
     static CDataManager& InstanceRef();
 
-    const CString& StringRes(UINT id);
+    const CString& StringRes(UINT id) const;
 
     int DPI(int pixel) const;
     float DPIF(float pixel) const;
@@ -46,8 +46,8 @@ public:
     void UpdateWeather(WeatherInfoUpdatedCallback callback = nullptr);
 
     std::wstring GetWeatherTemperature() const;
-    std::wstring GetRealTimeWeatherInfo(bool brief) const;
-    std::wstring GetWeatherAlertsInfo(bool brief) const;
+    std::wstring GetRealTimeWeatherInfo() const;
+    std::wstring GetWeatherAlertsInfo() const;
     std::wstring GetWeatherInfo() const;
 
     std::wstring GetTooptipInfo() const;
@@ -58,17 +58,26 @@ public:
     void LoadConfigs(const std::wstring &cfg_dir);
     void SaveConfigs() const;
 
-    HICON GetIcon();
-    HICON GetIcon(const std::wstring& w_code);
+    HICON GetIcon() const;
+
+    void RefreshWeatherInfoCache();
     
 private:
     void _updateWeather(WeatherInfoUpdatedCallback callback = nullptr);
-    HICON _getIcon(UINT id);
+    HICON _getIcon();
+    HICON _getIconByID(UINT id);
+    HICON _getIconByCode(const std::wstring& w_code);
     UINT _getIconIdBlue(const std::wstring &code) const;
+
+    std::wstring _getWeatherTemperature() const;
+    std::wstring _getRealTimeWeatherInfo(bool brief) const;
+    std::wstring _getWeatherAlertsInfo(bool brief) const;
+    std::wstring _getWeatherInfo() const;
+    std::wstring _getTooptipInfo() const;
 
     static CDataManager m_instance;
     int m_dpi;
-    std::map<UINT, CString> m_string_resources;
+    mutable std::map<UINT, CString> m_string_resources;
 
     SConfiguration m_config;
     std::wstring m_config_file_path;
@@ -81,4 +90,17 @@ private:
     SWeatherInfo m_weather_tommrow;
 
     std::map<UINT, HICON> m_icons;
+
+    struct SWeatherInfoCache
+    {
+        std::wstring WeatherTemperature;
+        std::wstring RealTimeWeatherInfo;
+        std::wstring WeatherAlersInfo;
+        std::wstring WeatherInfo;
+        std::wstring TooltipInfo;
+
+        HICON Icon{ nullptr };
+    };
+
+    SWeatherInfoCache m_weather_info_cache;
 };

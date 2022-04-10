@@ -60,9 +60,9 @@ BOOL COptionsDlg::OnInitDialog()
 
 	const auto &config = CDataManager::Instance().GetConfig();
 
-	m_ctrlInfoType.AddString(CDataManager::InstanceRef().StringRes(IDS_WIT_REAL_TIME));
-	m_ctrlInfoType.AddString(CDataManager::InstanceRef().StringRes(IDS_WIT_24H));
-	m_ctrlInfoType.AddString(CDataManager::InstanceRef().StringRes(IDS_WIT_48H));
+	m_ctrlInfoType.AddString(CDataManager::Instance().StringRes(IDS_WIT_REAL_TIME));
+	m_ctrlInfoType.AddString(CDataManager::Instance().StringRes(IDS_WIT_24H));
+	m_ctrlInfoType.AddString(CDataManager::Instance().StringRes(IDS_WIT_48H));
 	m_ctrlInfoType.SetCurSel(static_cast<int>(config.m_wit));
 
 	m_showWeatherIcon = config.m_show_weather_icon ? TRUE : FALSE;
@@ -115,6 +115,7 @@ void COptionsDlg::OnOK()
 	config.m_show_brief_weather_alert_info = m_showBriefWeatherAlertInfo == TRUE;
 
 	// 更新tooltip
+	CDataManager::InstanceRef().RefreshWeatherInfoCache();
 	CWeatherPro::Instance().UpdateTooltip(CDataManager::Instance().GetTooptipInfo());
 
 	// 保存配置文件
@@ -134,9 +135,9 @@ void COptionsDlg::OnBnClickedBtnUpdateManually()
 	if (ts < time_span)
 	{
 		CString info;
-		info.Format(CDataManager::InstanceRef().StringRes(IDS_UPDATTE_MANUALLY_LATER),
+		info.Format(CDataManager::Instance().StringRes(IDS_UPDATTE_MANUALLY_LATER),
 					(time_span - ts));
-		MessageBox(info, CDataManager::InstanceRef().StringRes(IDS_WEATHER_PRO));
+		MessageBox(info, CDataManager::Instance().StringRes(IDS_WEATHER_PRO));
 		return;
 	}
 

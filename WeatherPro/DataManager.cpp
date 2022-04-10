@@ -43,7 +43,7 @@ CDataManager& CDataManager::InstanceRef()
     return m_instance;
 }
 
-const CString& CDataManager::StringRes(UINT id)
+const CString& CDataManager::StringRes(UINT id) const
 {
     if (m_string_resources.count(id) == 0)
     {
@@ -122,6 +122,8 @@ void CDataManager::_updateWeather(WeatherInfoUpdatedCallback callback)
         ++query_times;
     } while (!flag && query_times < 3);
 
+    RefreshWeatherInfoCache();
+
     if (callback != nullptr)
     {
         callback(GetTooptipInfo());
@@ -136,73 +138,27 @@ void CDataManager::UpdateWeather(WeatherInfoUpdatedCallback callback /* = nullpt
 
 std::wstring CDataManager::GetWeatherTemperature() const
 {
-    switch (m_config.m_wit)
-    {
-    case EWeatherInfoType::WEATHER_REALTIME:
-        if (m_config.m_show_weather_icon)
-            return m_rt_weather.GetTemperature();
-        else
-            return m_rt_weather.Weather + L" " + m_rt_weather.GetTemperature();
-
-    case EWeatherInfoType::WEATHER_TODAY:
-        if (m_config.m_show_weather_icon)
-            return m_weather_today.GetTemperature();
-        else
-            return m_weather_today.ToString();
-
-    case EWeatherInfoType::WEATHER_TOMMROW:
-        if (m_config.m_show_weather_icon)
-            return m_weather_tommrow.GetTemperature();
-        else
-            return m_weather_tommrow.ToString();
-
-    default:
-        return L"-";
-    }
+    return m_weather_info_cache.WeatherTemperature;
 }
 
-std::wstring CDataManager::GetRealTimeWeatherInfo(bool brief) const
+std::wstring CDataManager::GetRealTimeWeatherInfo() const
 {
-    return m_rt_weather.ToString(brief);
+    return m_weather_info_cache.RealTimeWeatherInfo;
 }
 
-std::wstring CDataManager::GetWeatherAlertsInfo(bool brief) const
+std::wstring CDataManager::GetWeatherAlertsInfo() const
 {
-    if (m_weather_alerts.empty())
-    {
-        return std::wstring();
-    }
-    else
-    {
-        std::wstringstream wss;
-
-        for (const auto &alert : m_weather_alerts)
-            wss << L"[!] " << alert.ToString(brief) << std::endl;
-
-        return wss.str();
-    }
+    return m_weather_info_cache.WeatherAlersInfo;
 }
 
 std::wstring CDataManager::GetWeatherInfo() const
 {
-    std::wstringstream wss;
-
-    wss << L"今天: " << m_weather_today.ToString() << std::endl
-        << L"明天: " << m_weather_tommrow.ToString();
-
-    return wss.str();
+    return m_weather_info_cache.WeatherInfo;
 }
 
 std::wstring CDataManager::GetTooptipInfo() const
 {
-    std::wstringstream wss;
-
-    wss << m_currentCityInfo.CityName << L" " << GetRealTimeWeatherInfo(m_config.m_show_brief_rt_weather_info) << std::endl;
-    if (m_config.m_show_weather_alerts)
-        wss << GetWeatherAlertsInfo(m_config.m_show_brief_weather_alert_info);
-    wss << GetWeatherInfo();
-
-    return wss.str();
+    return m_weather_info_cache.TooltipInfo;
 }
 
 SConfiguration& CDataManager::GetConfig()
@@ -269,7 +225,7 @@ void CDataManager::SaveConfigs() const
     cfg_int_val_writter(L"show_brief_weather_alert_info", m_config.m_show_brief_weather_alert_info ? 1 : 0);
 }
 
-HICON CDataManager::_getIcon(UINT id)
+HICON CDataManager::_getIconByID(UINT id)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);
@@ -344,23 +300,28 @@ UINT CDataManager::_getIconIdBlue(const std::wstring& code) const
     return IDI_ICON_B_A99;
 }
 
-HICON CDataManager::GetIcon()
+HICON CDataManager::GetIcon() const
+{
+    return m_weather_info_cache.Icon;
+}
+
+HICON CDataManager::_getIcon()
 {
     switch (m_config.m_wit)
     {
     default:
     case EWeatherInfoType::WEATHER_REALTIME:
-        return GetIcon(m_rt_weather.WeatherCode);
+        return _getIconByCode(m_rt_weather.WeatherCode);
 
     case EWeatherInfoType::WEATHER_TODAY:
-        return GetIcon(m_weather_today.WeatherCodeDay);
+        return _getIconByCode(m_weather_today.WeatherCodeDay);
 
     case EWeatherInfoType::WEATHER_TOMMROW:
-        return GetIcon(m_weather_tommrow.WeatherCodeDay);
+        return _getIconByCode(m_weather_tommrow.WeatherCodeDay);
     }
 }
 
-HICON CDataManager::GetIcon(const std::wstring& w_code)
+HICON CDataManager::_getIconByCode(const std::wstring& w_code)
 {
     if (w_code.empty()) return nullptr;
 
@@ -368,8 +329,89 @@ HICON CDataManager::GetIcon(const std::wstring& w_code)
 
     if (m_icons.find(icon_id) == m_icons.end())
     {
-        m_icons[icon_id] = _getIcon(icon_id);
+        m_icons[icon_id] = _getIconByID(icon_id);
     }
 
     return m_icons[icon_id];
+}
+
+std::wstring CDataManager::_getWeatherTemperature() const
+{
+    switch (m_config.m_wit)
+    {
+    case EWeatherInfoType::WEATHER_REALTIME:
+        if (m_config.m_show_weather_icon)
+            return m_rt_weather.GetTemperature();
+        else
+            return m_rt_weather.Weather + L" " + m_rt_weather.GetTemperature();
+
+    case EWeatherInfoType::WEATHER_TODAY:
+        if (m_config.m_show_weather_icon)
+            return m_weather_today.GetTemperature();
+        else
+            return m_weather_today.ToString();
+
+    case EWeatherInfoType::WEATHER_TOMMROW:
+        if (m_config.m_show_weather_icon)
+            return m_weather_tommrow.GetTemperature();
+        else
+            return m_weather_tommrow.ToString();
+
+    default:
+        return L"-";
+    }
+}
+
+std::wstring CDataManager::_getRealTimeWeatherInfo(bool brief) const
+{
+    return m_rt_weather.ToString(brief);
+}
+
+std::wstring CDataManager::_getWeatherAlertsInfo(bool brief) const
+{
+    if (m_weather_alerts.empty())
+    {
+        return std::wstring();
+    }
+    else
+    {
+        std::wstringstream wss;
+
+        for (const auto& alert : m_weather_alerts)
+            wss << L"[!] " << alert.ToString(brief) << std::endl;
+
+        return wss.str();
+    }
+}
+
+std::wstring CDataManager::_getWeatherInfo() const
+{
+    std::wstringstream wss;
+
+    wss << std::wstring(StringRes(IDS_TODAY)) << L": " << m_weather_today.ToString() << std::endl
+        << std::wstring(StringRes(IDS_TOMORROW)) << L": " << m_weather_tommrow.ToString();
+
+    return wss.str();
+}
+
+std::wstring CDataManager::_getTooptipInfo() const
+{
+    std::wstringstream wss;
+
+    wss << m_currentCityInfo.CityName << L" " << _getRealTimeWeatherInfo(m_config.m_show_brief_rt_weather_info) << std::endl;
+    if (m_config.m_show_weather_alerts)
+        wss << _getWeatherAlertsInfo(m_config.m_show_brief_weather_alert_info);
+    wss << _getWeatherInfo();
+
+    return wss.str();
+}
+
+void CDataManager::RefreshWeatherInfoCache()
+{
+    m_weather_info_cache.WeatherTemperature = _getWeatherTemperature();
+    m_weather_info_cache.RealTimeWeatherInfo = _getRealTimeWeatherInfo(m_config.m_show_brief_rt_weather_info);
+    m_weather_info_cache.WeatherAlersInfo = _getWeatherAlertsInfo(m_config.m_show_brief_weather_alert_info);
+    m_weather_info_cache.WeatherInfo = _getWeatherInfo();
+    m_weather_info_cache.TooltipInfo = _getTooptipInfo();
+    m_weather_info_cache.Icon = _getIcon();
 }
