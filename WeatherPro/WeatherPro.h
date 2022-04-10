@@ -24,6 +24,8 @@ public:
     void UpdateWeatherInfo(bool force = false);
     void UpdateTooltip(const std::wstring &info);
 
+    std::time_t GetLastUpdateTimestamp() const;
+
 private:
     static CWeatherPro m_instance;
 

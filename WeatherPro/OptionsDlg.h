@@ -33,4 +33,5 @@ public:
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	CComboBox m_ctrlInfoType;
+	afx_msg void OnBnClickedBtnUpdateManually();
 };

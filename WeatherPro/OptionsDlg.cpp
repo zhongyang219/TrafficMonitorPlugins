@@ -44,6 +44,7 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(COptionsDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_SELECT_CITY, &COptionsDlg::OnBnClickedBtnSelectCity)
+	ON_BN_CLICKED(IDC_BTN_UPDATE_MANUALLY, &COptionsDlg::OnBnClickedBtnUpdateManually)
 END_MESSAGE_MAP()
 
 
@@ -120,4 +121,24 @@ void COptionsDlg::OnOK()
 	CDataManager::Instance().SaveConfigs();
 
 	CDialogEx::OnOK();
+}
+
+
+void COptionsDlg::OnBnClickedBtnUpdateManually()
+{
+	// the time span between two updates should be at least 30 seconds
+	const std::time_t time_span{ 30 };
+
+	auto t = std::time(nullptr);
+	auto ts = t - CWeatherPro::Instance().GetLastUpdateTimestamp();
+	if (ts < time_span)
+	{
+		CString info;
+		info.Format(CDataManager::InstanceRef().StringRes(IDS_UPDATTE_MANUALLY_LATER),
+					(time_span - ts));
+		MessageBox(info, CDataManager::InstanceRef().StringRes(IDS_WEATHER_PRO));
+		return;
+	}
+
+	CWeatherPro::Instance().UpdateWeatherInfo(true);
 }

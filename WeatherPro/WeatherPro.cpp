@@ -129,6 +129,11 @@ void CWeatherPro::UpdateWeatherInfo(bool force /* = false */)
     }
 }
 
+std::time_t CWeatherPro::GetLastUpdateTimestamp() const
+{
+    return m_last_update_timestamp;
+}
+
 ITMPlugin* TMPluginGetInstance()
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());

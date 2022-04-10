@@ -22,13 +22,15 @@
 #define IDC_CHECK_SHOW_WEATHE_IN_TOOLTIP 1007
 #define IDS_QUERY_ERR                   1008
 #define IDC_CHECK_SHOW_BRIEF_RT_WEATHER 1008
+#define IDI_ICON_B_A02                  1008
 #define IDC_CHECK_SHOW_WEATHER_ALERTS   1009
+#define IDI_ICON_B_A04                  1009
+#define IDS_UPDATTE_MANUALLY_LATER      1009
 #define IDC_CHECK5                      1010
 #define IDC_CHECK_SHOW_BRIEF_WEATHER_ALERT_INFO 1010
-#define IDI_ICON_B_A02                  1008
-#define IDI_ICON_B_A04                  1009
 #define IDI_ICON_B_A05                  1010
 #define IDI_ICON_B_A06                  1011
+#define IDC_BTN_UPDATE_MANUALLY         1011
 #define IDI_ICON_B_A07                  1012
 #define IDI_ICON_B_A08                  1013
 #define IDI_ICON_B_A09                  1014
@@ -65,7 +67,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        1041
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1011
+#define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           1000
 #endif
 #endif
