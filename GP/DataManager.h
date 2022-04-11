@@ -8,9 +8,21 @@
 
 struct SettingData
 {
-    CString m_gp_code{}; // 代码
+    CString m_all_gp_code_str{};
+    vector<CString> m_gp_codes; // 代码
     bool m_full_day{}; // 全天更新
-    //CString m_licence{}; // licence
+
+    void setupByCodeStr(CString codeStr);
+    void updateAllCodeStr();
+};
+
+// GP显示数据
+struct GupiaoInfo
+{
+    std::wstring pc = L"--%";
+    std::wstring p = L"--";
+    std::wstring name = L"";
+    std::wstring ToString() const;
 };
 
 class CDataManager
@@ -23,7 +35,7 @@ public:
     static CDataManager& Instance();
 
     void LoadConfig(const std::wstring& config_dir);
-    void SaveConfig() const;
+    void SaveConfig();
     const CString& StringRes(UINT id);      //根据资源id获取一个字符串资源
     void DPIFromWindow(CWnd* pWnd);
     int DPI(int pixel);
@@ -34,16 +46,9 @@ public:
     void ResetText();
     SettingData m_setting_data;
 
-    //一个天气信息
-    struct GupiaoInfo
-    {
-        std::wstring pc = L"--%";
-        std::wstring p = L"--";
-        std::wstring ToString() const;
-    };
-    GupiaoInfo& GetGPInfo();
+    GupiaoInfo& GetGPInfo(CString key);
 
-    GupiaoInfo m_gupiao_info;
+    std::map<CString, GupiaoInfo> m_gupiao_info_map;
 
     std::wstring m_log_path;
     std::wstring m_config_dir;
