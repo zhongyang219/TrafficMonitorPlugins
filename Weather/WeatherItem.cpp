@@ -2,6 +2,9 @@
 #include "WeatherItem.h"
 #include "DataManager.h"
 #include "Weather.h"
+#include <algorithm>
+#undef min
+#undef max
 
 const wchar_t* CWeatherItem::GetItemName() const
 {
@@ -25,7 +28,21 @@ const wchar_t* CWeatherItem::GetItemValueText() const
 
 const wchar_t* CWeatherItem::GetItemValueSampleText() const
 {
-    return L"";
+    const CDataManager::WeatherInfo& weather_info{ g_data.GetWeather() };
+    if (g_data.m_setting_data.m_use_weather_icon)
+    {
+        if (weather_info.is_cur_weather)
+            return L"20℃";
+        else
+            return L"20~20℃";
+    }
+    else
+    {
+        if (weather_info.is_cur_weather)
+            return L"多云 20℃";
+        else
+            return L"多云 20~20℃";
+    }
 }
 
 bool CWeatherItem::IsCustomDraw() const
@@ -38,11 +55,11 @@ int CWeatherItem::GetItemWidthEx(void* hDC) const
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     if (g_data.m_setting_data.m_use_weather_icon)
     {
-        return g_data.DPI(20) + pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx;
+        return g_data.DPI(20) + std::max(pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
     }
     else
     {
-        return pDC->GetTextExtent(g_data.GetWeather().ToString().c_str()).cx;
+        return std::max(pDC->GetTextExtent(g_data.GetWeather().ToString().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
     }
 }
 
