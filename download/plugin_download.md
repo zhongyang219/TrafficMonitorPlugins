@@ -60,7 +60,7 @@
 
 作者：[CListery](https://github.com/CListery)
 
-下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.10_x86.zip?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.10_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.11_x86.zip?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.11_x64.zip?raw=true)
 
 ---
 
