@@ -302,14 +302,7 @@ void GP::ShowContextMenu(CWnd* pWnd)
             m_option_dlg = nullptr;
             if (rtn == IDOK)
             {
-                bool gp_code_changed{ g_data.m_setting_data.m_all_gp_code_str != dlg.m_data.m_all_gp_code_str };
-                if (gp_code_changed)
-                {
-                    g_data.m_setting_data = dlg.m_data;
-                    updateItems();
-                    GP::Instance().SendGPInfoQequest();
-                    MessageBox(NULL, TEXT("如果界面未刷新请重启TrafficMonitor"), TEXT(""), MB_ICONWARNING | MB_OK);
-                }
+                updateItems();
             }
         }
         //点击了“更新”

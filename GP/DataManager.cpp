@@ -145,7 +145,9 @@ void SettingData::updateAllCodeStr()
 {
     if (m_gp_codes.empty())
     {
-        m_all_gp_code_str = "";
+        m_all_gp_code_str.ReleaseBuffer();
+        int len = m_all_gp_code_str.GetLength();
+        m_all_gp_code_str.Delete(0, len);
         return;
     }
     m_all_gp_code_str = CCommon::vectorJoinString(m_gp_codes, ",");

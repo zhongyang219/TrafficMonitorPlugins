@@ -142,6 +142,7 @@ std::vector<std::string> CCommon::split(const std::string& str, const char patte
         return res;
     }
     if (str.find(pattern) == -1) {
+        res.push_back(str);
         return res;
     }
     std::stringstream input(str);   //读取str到字符串流中

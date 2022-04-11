@@ -116,7 +116,14 @@ void CManagerDialog::OnClickedFullDayCheck()
 
 void CManagerDialog::OnBnClickedOk()
 {
-    g_data.SaveConfig();
+    bool gp_code_changed{ g_data.m_setting_data.m_all_gp_code_str != m_data.m_all_gp_code_str };
+    if (gp_code_changed)
+    {
+        g_data.m_setting_data = m_data;
+        g_data.SaveConfig();
+        GP::Instance().SendGPInfoQequest();
+        MessageBox(TEXT("如果界面未刷新请重启TrafficMonitor"), TEXT(""), MB_ICONWARNING | MB_OK);
+    }
     CDialog::OnOK();
 }
 
