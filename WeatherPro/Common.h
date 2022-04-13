@@ -12,23 +12,3 @@ public:
     static std::wstring URLEncode(const std::wstring& wstr);
 
 };
-
-
-//通过构造函数传递一个bool变量的引用，在构造时将其置为true，析构时置为false
-class CFlagLocker
-{
-public:
-    CFlagLocker(bool& flag)
-        : m_flag(flag)
-    {
-        m_flag = true;
-    }
-
-    ~CFlagLocker()
-    {
-        m_flag = false;
-    }
-
-private:
-    bool& m_flag;
-};
