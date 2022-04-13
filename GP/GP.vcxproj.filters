@@ -51,6 +51,9 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ManagerDialog.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -69,6 +72,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="OptionsDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="ManagerDialog.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
   </ItemGroup>

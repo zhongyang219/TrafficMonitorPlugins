@@ -48,9 +48,11 @@
 
 ### GP插件
 
-![gp](images/D4BC1B57-87F5-46B4-AA05-20F2C62906ED.png)
+![gp](images/gp_viewer_20220411100625.png)
 
-<img src="images/95823F7A-0207-4ECF-B266-672DE5D73A60.png" alt="95823F7A-0207-4ECF-B266-672DE5D73A60" style="zoom:80%;" />
+<img src="images/gp_mgr_20220411100659.png" alt="gp_mgr" style="zoom:65%;" />
+
+<img src="images/gp_edit_20220411100337.png" alt="gp_edit" style="zoom:100%;" />
 
 显示指定GP的实时交易信息 `新浪接口`
 
@@ -58,7 +60,7 @@
 
 作者：[CListery](https://github.com/CListery)
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.02_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x86.zip?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x64.zip?raw=true)
 
 ---
 

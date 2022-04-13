@@ -2,61 +2,26 @@
 #include "GP.h"
 #include "DataManager.h"
 #include "OptionsDlg.h"
+#include "ManagerDialog.h"
 #include "Common.h"
 #include <fstream>
 #include "DataManager.h"
-#include "utilities/yyjson/yyjson.h"
 #include "OptionsDlg.h"
 #include <sstream>
 #include <iostream>
-
-//static std::wstring convert(double t)
-//{
-//    std::wstringstream str;
-//    str << t;
-//    std::wstring result;
-//    str >> result;
-//    return result;
-//}
-
-static std::vector<std::string> split(const std::string& str, const char pattern)
-{
-    std::vector<std::string> res;
-    std::stringstream input(str);   //读取str到字符串流中
-    std::string temp;
-    //使用getline函数从字符串流中读取,遇到分隔符时停止,和从cin中读取类似
-    //注意,getline默认是可以读取空格的
-    while (getline(input, temp, pattern))
-    {
-        res.push_back(temp);
-    }
-    return res;
-}
-
-template<class out_type, class in_value>
-static out_type convert(const in_value& t)
-{
-    std::stringstream str;
-    str << t;
-    out_type result;
-    str >> result;
-    return result;
-}
-
-template<class out_type, class in_value>
-static out_type convert(const in_value& t, bool bISWSring) //转wchar，wstring要用到这个
-{
-    std::wstringstream str;
-    str << t;
-    out_type result;
-    str >> result;
-    return result;
-}
+#include <algorithm>
+#include <Windows.h>
 
 GP GP::m_instance;
 
 GP::GP()
 {
+    m_items = vector<GPItem>(GP_ITEM_MAX);
+    fill(m_items.begin(), m_items.end(), GPItem());
+    for (int index = 0; index < m_items.size(); index++)
+    {
+        m_items[index].index = index;
+    }
 }
 
 GP& GP::Instance()
@@ -69,7 +34,7 @@ UINT GP::ThreadCallback(LPVOID dwUser)
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CFlagLocker flag_locker(m_instance.m_is_thread_runing);
 
-    if (g_data.m_setting_data.m_gp_code == "") {
+    if (g_data.m_setting_data.m_gp_codes.empty()) {
         CCommon::WriteLog(L"gp_code not setting!", g_data.m_log_path.c_str());
         g_data.ResetText();
         return 0;
@@ -102,7 +67,7 @@ UINT GP::ThreadCallback(LPVOID dwUser)
 
         // https://hq.sinajs.cn/list=sz002497
         std::wstring url{ L"https://hq.sinajs.cn/list=" };
-        url += g_data.m_setting_data.m_gp_code;
+        url += g_data.m_setting_data.m_all_gp_code_str;
         CString strHeaders = _T("Referer: https://finance.sina.com.cn");
         CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
 
@@ -123,6 +88,7 @@ UINT GP::ThreadCallback(LPVOID dwUser)
 void GP::ParseJsonData(std::string json_data)
 {
     //CCommon::WriteLog(json_data.c_str(), g_data.m_log_path.c_str());
+    //LogX(L"ParseJsonData: %s", CCommon::StrToUnicode(json_data.c_str()).c_str());
 
     g_data.ResetText();
 
@@ -131,47 +97,82 @@ void GP::ParseJsonData(std::string json_data)
         return;
     }
 
-    std::vector<std::string> origin_arr = split(json_data, '"');
+    std::vector<std::string> origin_arr = CCommon::split(json_data, "var hq_str_");
     if (origin_arr.size() < 1) {
         CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
         return;
     }
-    std::string data = origin_arr[1];
-    std::vector<std::string> data_arr = split(data, ',');
-    if (data_arr.size() != 33) {
-        CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
-        return;
+
+    for (int index = 0; index < origin_arr.size(); index++)
+    {
+        std::vector<std::string> item_arr = CCommon::split(origin_arr[index], "=\"");
+        if (item_arr.size() < 2)
+        {
+            CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
+            continue;
+        }
+
+        std::string key = item_arr[0];
+        std::string data = item_arr[1];
+        std::vector<std::string> data_arr = CCommon::split(data, ',');
+
+        GupiaoInfo& gpInfo = g_data.GetGPInfo(key.c_str());
+
+        int data_size = data_arr.size();
+
+        CString name;
+        float now = -1;
+        float yesterday = -1;
+        if (key.find(kMG) == 0)
+        {
+            if (data_size != 35) {
+                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
+                continue;
+            }
+            name = data_arr[0].c_str();
+            now = { convert<float>(data_arr[1]) };
+            yesterday = { convert<float>(data_arr[26]) };
+        }
+        else if (key.find(kHK) == 0) 
+        {
+            if (data_size != 25) {
+                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
+                continue;
+            }
+            name = data_arr[1].c_str();
+            now = { convert<float>(data_arr[6]) };
+            yesterday = { convert<float>(data_arr[3]) };
+        }
+        else if (key.find(kBJ) == 0)
+        {
+            if (data_size != 39) {
+                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
+                continue;
+            }
+            name = data_arr[0].c_str();
+            now = { convert<float>(data_arr[3]) };
+            yesterday = { convert<float>(data_arr[2]) };
+        }
+        else // key.find(kSH) != -1 || key.find(kSZ) != -1
+        {
+            if (data_size != 33 && data_size != 34) {
+                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
+                continue;
+            }
+            name = data_arr[0].c_str();
+            now = { convert<float>(data_arr[3]) };
+            yesterday = { convert<float>(data_arr[2]) };
+        }
+
+        char buff[32];
+        sprintf_s(buff, "%.2f", now);
+        gpInfo.p = CCommon::StrToUnicode(buff);
+
+        sprintf_s(buff, "%.2f%%", ((now - yesterday) / yesterday * 100));
+        gpInfo.pc = CCommon::StrToUnicode(buff);
+
+        gpInfo.name = name;
     }
-
-    float now { convert<float>(data_arr[3]) };
-    float yesterday { convert<float>(data_arr[2]) };
-
-    char buff[32];
-    sprintf_s(buff, "%.2f", now);
-    g_data.m_gupiao_info.p = CCommon::StrToUnicode(buff);
-
-    sprintf_s(buff, "%.2f%%", ((now - yesterday) / yesterday * 100));
-    g_data.m_gupiao_info.pc = CCommon::StrToUnicode(buff);
-
-    //yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
-    //if (doc != nullptr)
-    //{
-    //    //获取Json根节点
-    //    yyjson_val* root = yyjson_doc_get_root(doc);
-
-    //    g_data.m_gupiao_info.pc = convert(yyjson_get_real(yyjson_obj_get(root, "pc"))) + L"%";
-    //    g_data.m_gupiao_info.p = convert(yyjson_get_real(yyjson_obj_get(root, "p")));
-
-    //    const CDataManager::GupiaoInfo& gupiao_current{ g_data.m_gupiao_info };
-
-    //    std::wstringstream wss;
-    //    wss << gupiao_current.ToString();
-    //    m_tooltop_info = wss.str();
-
-    //    CCommon::WriteLog(m_tooltop_info.c_str(), g_data.m_log_path.c_str());
-
-    //    yyjson_doc_free(doc);
-    //}
 }
 
 void GP::LoadContextMenu()
@@ -185,14 +186,10 @@ void GP::LoadContextMenu()
 
 IPluginItem* GP::GetItem(int index)
 {
-    switch (index)
-    {
-    case 0:
-        return &m_item;
-    default:
-        break;
+    if (index >= m_items.size()) {
+        return nullptr;
     }
-    return nullptr;
+    return &(m_items[index]);
 }
 
 const wchar_t* GP::GetTooltipInfo()
@@ -214,7 +211,7 @@ ITMPlugin::OptionReturn GP::ShowOptionsDialog(void* hParent)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CWnd* pParent = CWnd::FromHandle((HWND)hParent);
-    COptionsDlg dlg(pParent);
+    CManagerDialog dlg(pParent);
     dlg.m_data = g_data.m_setting_data;
     if (dlg.DoModal() == IDOK)
     {
@@ -254,9 +251,28 @@ void GP::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     case ITMPlugin::EI_CONFIG_DIR:
         //从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
+        updateItems();
         break;
     default:
         break;
+    }
+}
+
+void GP::updateItems()
+{
+    for (GPItem item : m_items)
+    {
+        item.enable = FALSE;
+    }
+    for (int index = 0; index < g_data.m_setting_data.m_gp_codes.size(); index++)
+    {
+        CString key = g_data.m_setting_data.m_gp_codes[index];
+        if (index > m_items.size() - 1)
+        {
+            break;
+        }
+        m_items[index].enable = TRUE;
+        m_items[index].gp_id = key;
     }
 }
 
@@ -275,23 +291,18 @@ void GP::ShowContextMenu(CWnd* pWnd)
         CPoint point1;
         GetCursorPos(&point1);
         DWORD id = context_menu->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, point1.x, point1.y, pWnd);
-        //点击了“选项”
+        //点击了“管理”
         if (id == ID_OPTIONS)
         {
             AFX_MANAGE_STATE(AfxGetStaticModuleState());
-            COptionsDlg dlg;
+            CManagerDialog dlg;
             dlg.m_data = g_data.m_setting_data;
             m_option_dlg = &dlg;
             auto rtn = dlg.DoModal();
             m_option_dlg = nullptr;
             if (rtn == IDOK)
             {
-                bool gp_code_changed{ g_data.m_setting_data.m_gp_code != dlg.m_data.m_gp_code };
-                g_data.m_setting_data = dlg.m_data;
-                if (gp_code_changed)
-                {
-                    GP::Instance().SendGPInfoQequest();
-                }
+                updateItems();
             }
         }
         //点击了“更新”
@@ -304,16 +315,16 @@ void GP::ShowContextMenu(CWnd* pWnd)
 
 void GP::DisableUpdateCommand()
 {
-    if (m_option_dlg != nullptr)
-        m_option_dlg->EnableUpdateBtn(false);
+    //if (m_option_dlg != nullptr)
+    //    m_option_dlg->EnableUpdateBtn(false);
     if (m_menu.m_hMenu != NULL)
         m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_GRAYED);
 }
 
 void GP::EnableUpdateCommand()
 {
-    if (m_instance.m_option_dlg != nullptr)
-        m_instance.m_option_dlg->EnableUpdateBtn(true);
+    //if (m_instance.m_option_dlg != nullptr)
+    //    m_instance.m_option_dlg->EnableUpdateBtn(true);
     if (m_menu.m_hMenu != NULL)
         m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_ENABLED);
 }

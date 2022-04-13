@@ -50,18 +50,35 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 195, 105
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 195, 115
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "GP设置"
 FONT 9, "幼圆", 400, 0, 0x86
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,80,84,50,14
-    PUSHBUTTON      "取消",IDCANCEL,138,84,50,14
+    DEFPUSHBUTTON   "确定",IDOK,80,94,50,14
+    PUSHBUTTON      "取消",IDCANCEL,138,94,50,14
     LTEXT           "代码",IDC_CODE_LABEL,12,15,17,8
     EDITTEXT        IDC_CODE_EDIT,46,12,135,14,ES_AUTOHSCROLL
-    CONTROL         "全天更新",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,37,48,10
-    PUSHBUTTON      "更新GP",IDC_UPDATE_BUTTON,12,57,64,20
-    LTEXT           "深=sz\r\n上=sh",IDC_STATIC,144,31,37,19
+    GROUPBOX        "GP类型",IDC_STATIC,14,33,167,53
+    CONTROL         "深证",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,22,48,32,10
+    CONTROL         "港股",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,58,48,32,10
+    CONTROL         "北交所",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,94,48,40,10
+    CONTROL         "上证",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,138,48,32,10
+    CONTROL         "美股",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,22,65,32,10
+    CONTROL         "其他（需要输入前缀）",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,58,65,96,10
+END
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 309, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Manager"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,198,155,50,14
+    PUSHBUTTON      "取消",IDCANCEL,252,155,50,14
+    LISTBOX         IDC_MGR_LIST,15,15,278,96,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "添加",IDC_MGR_ADD_BTN,84,117,50,14
+    PUSHBUTTON      "删除",IDC_MGR_DEL_BTN,161,117,50,14
+    CONTROL         "全天更新",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,137,48,10
 END
 
 
@@ -78,7 +95,15 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 188
         TOPMARGIN, 7
-        BOTTOMMARGIN, 98
+        BOTTOMMARGIN, 108
+    END
+
+    IDD_MANAGER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -98,6 +123,10 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0
 END
 
@@ -110,6 +139,11 @@ BEGIN
     0, 0, 0, 0
 END
 
+IDD_MANAGER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -117,8 +151,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,2,0
- PRODUCTVERSION 1,0,2,0
+ FILEVERSION 1,1,1,0
+ PRODUCTVERSION 1,1,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -135,12 +169,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "By CListery"
             VALUE "FileDescription", "GP Plugin for TrafficMonitor"
-            VALUE "FileVersion", "1.0.2.0"
+            VALUE "FileVersion", "1.1.1.0"
             VALUE "InternalName", "GP.dll"
             VALUE "LegalCopyright", "Copyright (C) 2022 By CListery"
             VALUE "OriginalFilename", "GP.dll"
             VALUE "ProductName", "GP Plugin for TrafficMonitor"
-            VALUE "ProductVersion", "1.0.2.0"
+            VALUE "ProductVersion", "1.1.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -159,7 +193,7 @@ IDR_MENU1 MENU
 BEGIN
     POPUP "1"
     BEGIN
-        MENUITEM "选项(&O)...",                   ID_OPTIONS
+        MENUITEM "管理GP列表(&O)...",               ID_OPTIONS
         MENUITEM "更新GP信息(&U)",                  ID_UPDATE
     END
 END
@@ -174,7 +208,7 @@ STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "GP插件"
     IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的GP插件。"
-    IDS_PLUGIN_ITEM_NAME    "GP item"
+    IDS_PLUGIN_ITEM_NAME    "GP"
 END
 
 #endif    // 中文(简体，中国) resources

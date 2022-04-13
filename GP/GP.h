@@ -3,7 +3,16 @@
 #include "GPItem.h"
 #include <string>
 #include "PluginInterface.h"
-#include "OptionsDlg.h"
+#include "ManagerDialog.h"
+#include <map>
+
+#define kSH "sh" // 上海
+#define kSZ "sz" // 深圳
+#define kHK "rt_hk" // 香港
+#define kMG "gb" // 美国
+#define kBJ "bj" // 北京
+
+#define GP_ITEM_MAX 10
 
 class GP : public ITMPlugin
 {
@@ -28,13 +37,15 @@ private:
     static UINT ThreadCallback(LPVOID dwUser);
     void ParseJsonData(std::string json_data);
     void LoadContextMenu();
+    void updateItems();
 
 private:
     static GP m_instance;
-    GPItem m_item;
+    vector<GPItem> m_items;
+    //GPItem m_item;
     bool m_is_thread_runing{};
     std::wstring m_tooltop_info;
-    COptionsDlg* m_option_dlg{};      //保存选项设置对话框的句柄
+    CManagerDialog* m_option_dlg{};      //保存选项设置对话框的句柄
     unsigned __int64 m_last_request_time{}; //上次请求的时间
     CMenu m_menu;
 };
