@@ -1,5 +1,57 @@
 ﻿#pragma once
 #include <string>
+#include <iostream>
+#include <cstring>
+#include <string.h>
+#include <atltime.h>
+
+using namespace::std;
+// Log0("这是调试信息！\n")
+#define Log0(fmt) {TCHAR sOut[256];_stprintf_s(sOut,_T(fmt));OutputDebugString(sOut);}
+// Log1("这是调试信息%d\n", 10)
+#define Log1(fmt,var) {TCHAR sOut[256];_stprintf_s(sOut,_T(fmt),var);OutputDebugString(sOut);}
+// Log2("这是调试信息%d--%d\n", 10, 10 + 1)
+#define Log2(fmt,var1,var2) {TCHAR sOut[256];_stprintf_s(sOut,_T(fmt),var1,var2);OutputDebugString(sOut);}
+// Log3("这是调试信息%d--%d--%d\n", 10, 10 + 1, 10 + 2)
+#define Log3(fmt,var1,var2,var3) {TCHAR sOut[256];_stprintf_s(sOut,_T(fmt),var1,var2,var3);OutputDebugString(sOut);}
+// LogX(_T("error %d occured at %d line!\n"), 1170, 400)
+static void LogX(LPCTSTR pstrFormat, ...)
+{
+    //ATLTRACE(_T("In %s ...\n"), __FUNCTIONW__);//函数名
+    //ATLTRACE(_T("Run to %d ...\n"), __LINE__);	//函数行数
+    CTime timeWrite;
+    timeWrite = CTime::GetCurrentTime();
+    CString str = timeWrite.Format(_T("%d %b %y %H:%M:%S - "));
+    ATLTRACE(str);
+
+    va_list args;
+    va_start(args, pstrFormat);
+    str.FormatV(pstrFormat, args);
+    ATLTRACE(str);
+
+    return;
+}
+
+template<class out_type, class in_value>
+static out_type convert(const in_value& t)
+{
+    std::stringstream str;
+    str << t;
+    out_type result;
+    str >> result;
+    return result;
+}
+
+template<class out_type, class in_value>
+static out_type convert(const in_value& t, bool bISWSring) //转wchar，wstring要用到这个
+{
+    std::wstringstream str;
+    str << t;
+    out_type result;
+    str >> result;
+    return result;
+}
+
 class CCommon
 {
 public:
@@ -18,6 +70,10 @@ public:
     static void WriteLog(const WORD w, LPCTSTR file_path);
     static void WriteLog(const char* str_text, LPCTSTR file_path);
     static void WriteLog(const wchar_t* str_text, LPCTSTR file_path);
+    // 字符串拆分
+    static std::vector<std::string> split(const std::string& str, const char pattern);
+    static std::vector<std::string> split(std::string str, std::string pattern);
+    static CString vectorJoinString(const std::vector<CString> data, const CString pattern);
 };
 
 

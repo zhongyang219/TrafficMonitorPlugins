@@ -2,7 +2,6 @@
 #include "Common.h"
 #include <afxinet.h>    //用于支持使用网络相关的类
 #include <sstream>
-std::stringstream ss;
 #include "DataManager.h"
 
 std::wstring CCommon::StrToUnicode(const char* str, bool utf8)
@@ -134,4 +133,66 @@ void CCommon::WriteLog(const wchar_t* str_text, LPCTSTR file_path)
     std::ofstream file{ file_path, std::ios::app };  //以追加的方式打开日志文件
     file << buff;
     file << UnicodeToStr(str_text).c_str() << std::endl;
+}
+
+std::vector<std::string> CCommon::split(const std::string& str, const char pattern)
+{
+    std::vector<std::string> res;
+    if (str.size() <= 0) {
+        return res;
+    }
+    if (str.find(pattern) == -1) {
+        res.push_back(str);
+        return res;
+    }
+    std::stringstream input(str);   //读取str到字符串流中
+    std::string temp;
+    //使用getline函数从字符串流中读取,遇到分隔符时停止,和从cin中读取类似
+    //注意,getline默认是可以读取空格的
+    int len = 0;
+    while (getline(input, temp, pattern))
+    {
+        res.push_back(temp);
+        len++;
+    }
+    res.resize(len);
+    return res;
+}
+
+std::vector<std::string> CCommon::split(std::string str, std::string pattern)
+{
+    std::string::size_type pos;
+    std::vector<std::string> result;
+    str += pattern;//扩展字符串以方便操作
+    int size = str.size();
+    for (int i = 0; i < size; i++)
+    {
+        pos = str.find(pattern, i);
+        if (pos < size)
+        {
+            if (pos == 0)
+            {
+                i = pos + pattern.size() - 1;
+                continue;
+            }
+            std::string s = str.substr(i, pos - i);
+            result.push_back(s);
+            i = pos + pattern.size() - 1;
+        }
+    }
+    return result;
+}
+
+CString CCommon::vectorJoinString(const std::vector<CString> data, const CString pattern)
+{
+    std::wstring str{};
+    for (int index = 0; index < data.size(); index++)
+    {
+        str.append(data[index]);
+        if (index != data.size() - 1)
+        {
+            str.append(pattern);
+        }
+    }
+    return CCommon::UnicodeToStr(str.c_str(), true).c_str();
 }

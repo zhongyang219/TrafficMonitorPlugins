@@ -29,7 +29,8 @@ CDataManager& CDataManager::Instance()
 
 void CDataManager::ResetText()
 {
-    m_gupiao_info = GupiaoInfo();
+    //m_gupiao_info_arr = GupiaoInfo();
+    m_gupiao_info_map.clear();
 }
 
 static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_name, int value, const wchar_t* file_path)
@@ -56,17 +57,20 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     }
     m_config_path += L".ini";
     //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
-    ::GetPrivateProfileString(L"config", L"gp_code", L"", m_setting_data.m_gp_code.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
+    CString codeStr{};
+    ::GetPrivateProfileString(L"config", L"gp_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
+    m_setting_data.setupByCodeStr(codeStr);
+    //Log2("LoadConfig: %s -> %d\n", m_setting_data.m_all_gp_code_str, m_setting_data.m_gp_codes.size());
     //::GetPrivateProfileString(L"config", L"licence", L"", m_setting_data.m_licence.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
-    //CCommon::WriteLog(m_setting_data.m_gp_code, g_data.m_log_path.c_str());
     m_setting_data.m_full_day = (GetPrivateProfileInt(L"config", L"full_day", 1, m_config_path.c_str()) != 0);
 }
 
-void CDataManager::SaveConfig() const
+void CDataManager::SaveConfig()
 {
     if (!m_config_path.empty())
     {
-        ::WritePrivateProfileString(L"config", L"gp_code", m_setting_data.m_gp_code, m_config_path.c_str());
+        m_setting_data.updateAllCodeStr();
+        ::WritePrivateProfileString(L"config", L"gp_code", m_setting_data.m_all_gp_code_str, m_config_path.c_str());
         //::WritePrivateProfileString(L"config", L"licence", m_setting_data.m_licence, m_config_path.c_str());
         ::WritePrivateProfileInt(L"config", L"full_day", m_setting_data.m_full_day, m_config_path.c_str());
     }
@@ -125,14 +129,40 @@ HICON CDataManager::GetIcon(UINT id)
     }
 }
 
-std::wstring CDataManager::GupiaoInfo::ToString() const
+std::wstring GupiaoInfo::ToString() const
 {
     std::wstringstream wss;
     wss << p << ' ' << pc;
     return wss.str();
 }
 
-CDataManager::GupiaoInfo& CDataManager::GetGPInfo()
+GupiaoInfo& CDataManager::GetGPInfo(CString key)
 {
-    return m_gupiao_info;
+    return m_gupiao_info_map[key];
+}
+
+void SettingData::updateAllCodeStr()
+{
+    if (m_gp_codes.empty())
+    {
+        m_all_gp_code_str.ReleaseBuffer();
+        int len = m_all_gp_code_str.GetLength();
+        m_all_gp_code_str.Delete(0, len);
+        return;
+    }
+    m_all_gp_code_str = CCommon::vectorJoinString(m_gp_codes, ",");
+}
+
+void SettingData::setupByCodeStr(CString codeStr)
+{
+    vector<string> codes = CCommon::split(CCommon::UnicodeToStr(codeStr), ',');
+    if (codes.size() > 0)
+    {
+        m_all_gp_code_str = codeStr;
+        m_gp_codes.clear();
+        for (string item : codes)
+        {
+            m_gp_codes.push_back(item.c_str());
+        }
+    }
 }

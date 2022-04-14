@@ -12,7 +12,7 @@ public:
     virtual ~COptionsDlg();
     void EnableUpdateBtn(bool enable);
 
-    SettingData m_data;
+    CString m_gp_code;
 
     // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -27,10 +27,10 @@ protected:
 
     DECLARE_MESSAGE_MAP()
 public:
+    int m_radio_gp_types;
     virtual BOOL OnInitDialog();
     afx_msg void OnChangeCodeEdit();
-    afx_msg void OnClickedFullDayCheck();
-    afx_msg void OnClickedUpdateButton();
     afx_msg void OnBnClickedOk();
     afx_msg void OnBnClickedCancel();
+    afx_msg void OnRadioClickedGpTypes();
 };
