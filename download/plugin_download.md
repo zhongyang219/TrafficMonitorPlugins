@@ -34,6 +34,16 @@
 
 ---
 
+### 天气插件2
+
+![img-weather-pro](images/img-weather-pro.png)
+
+用于显示天气的插件，支持搜索选择城市、区县、乡镇和部分街道地址（目前仅支持中国区地址）。及时丰富的实时天气信息，支持显示天气预警。
+
+下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+
+---
+
 ### 电池电量插件
 
 ![battery](images/battery.png)
