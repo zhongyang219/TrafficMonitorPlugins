@@ -1,0 +1,366 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 165, 128
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "时期和日期设置"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,50,107,50,14
+    PUSHBUTTON      "取消",IDCANCEL,108,107,50,14
+    GROUPBOX        "时间格式",IDC_STATIC,7,7,151,45
+    EDITTEXT        IDC_TIME_FORMAT_EDIT,16,22,83,12,ES_AUTOHSCROLL
+    LTEXT           "预览：",IDC_STATIC,16,38,21,8
+    LTEXT           "",IDC_TIME_PREVIEW_STATIC,41,38,107,8
+    GROUPBOX        "日期格式",IDC_STATIC,7,57,151,45
+    EDITTEXT        IDC_DATE_FORMAT_EDIT,16,72,83,12,ES_AUTOHSCROLL
+    LTEXT           "预览：",IDC_STATIC,16,88,21,8
+    LTEXT           "",IDC_DATE_PREVIEW_STATIC,40,88,108,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 158
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 121
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "By ZhongYang"
+            VALUE "FileDescription", "Plugin Demo for TrafficMonitor"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "PluginDe.dll"
+            VALUE "LegalCopyright", "Copyright (C) 2021 By ZhongYang"
+            VALUE "OriginalFilename", "PluginDe.dll"
+            VALUE "ProductName", "Plugin Demo for TrafficMonitor"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "时间日期插件"
+    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的时间日期插件。"
+    IDS_TIME                "时间"
+    IDS_DATE                "日期"
+    IDS_CUSTOM_DRAW_ITEM    "自绘示例"
+    IDS_MON                 "周一"
+    IDS_TUE                 "周二"
+    IDS_WED                 "周三"
+    IDS_THU                 "周四"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FRI                 "周五"
+    IDS_SAT                 "周六"
+    IDS_SUN                 "周日"
+    IDS_MONDAY              "星期一"
+    IDS_TUESDAY             "星期二"
+    IDS_WEDNESDAY           "星期三"
+    IDS_THURSDAY            "星期四"
+    IDS_FRIDAY              "星期五"
+    IDS_SATURDAY            "星期六"
+    IDS_SUNDAY              "星期日"
+    IDS_JAN                 "1月"
+    IDS_FEB                 "2月"
+    IDS_MAR                 "3月"
+    IDS_ARI                 "4月"
+    IDS_MAY                 "5月"
+    IDS_JUN                 "6月"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_JUL                 "7月"
+    IDS_AUT                 "8月"
+    IDS_SEP                 "9月"
+    IDS_OCT                 "10月"
+    IDS_NOV                 "11月"
+    IDS_DEC                 "12月"
+    IDS_JANUARY             "一月"
+    IDS_FEBRUARY            "二月"
+    IDS_MARCH               "三月"
+    IDS_APRIL               "四月"
+    IDS_MAY_                "五月"
+    IDS_JUNE                "六月"
+    IDS_JULY                "七月"
+    IDS_AUGUST              "八月"
+    IDS_SEPTEMBER           "九月"
+    IDS_OCTOBER             "十月"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NOVEMBER            "十一月"
+    IDS_DECEMBER            "十二月"
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(美国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 165, 131
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Time and date settings"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,50,110,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,108,110,50,14
+    GROUPBOX        "Time format",IDC_STATIC,7,7,151,45
+    EDITTEXT        IDC_TIME_FORMAT_EDIT,13,22,94,12,ES_AUTOHSCROLL
+    LTEXT           "Preview:",IDC_STATIC,13,38,28,8
+    LTEXT           "",IDC_TIME_PREVIEW_STATIC,47,38,103,8
+    GROUPBOX        "Date format",IDC_STATIC,7,57,151,45
+    EDITTEXT        IDC_DATE_FORMAT_EDIT,13,72,94,12,ES_AUTOHSCROLL
+    LTEXT           "Preview:",IDC_STATIC,13,88,28,8
+    LTEXT           "",IDC_DATE_PREVIEW_STATIC,47,88,104,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 158
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 124
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Date time plugin"
+    IDS_PLUGIN_DESCRIPTION  "Date time plugin for TrafficMonitor."
+    IDS_TIME                "Time"
+    IDS_DATE                "Date"
+    IDS_CUSTOM_DRAW_ITEM    "Custom draw example"
+    IDS_MON                 "Mon"
+    IDS_TUE                 "Tue"
+    IDS_WED                 "Wed"
+    IDS_THU                 "Thu"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FRI                 "Fri"
+    IDS_SAT                 "Sat"
+    IDS_SUN                 "Sun"
+    IDS_MONDAY              "Monday"
+    IDS_TUESDAY             "Tuesday"
+    IDS_WEDNESDAY           "Wednesday"
+    IDS_THURSDAY            "Thursday"
+    IDS_FRIDAY              "Friday"
+    IDS_SATURDAY            "Saturday"
+    IDS_SUNDAY              "Sunday"
+    IDS_JAN                 "Jan"
+    IDS_FEB                 "Feb"
+    IDS_MAR                 "Mar"
+    IDS_ARI                 "Ari"
+    IDS_MAY                 "May"
+    IDS_JUN                 "Jun"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_JUL                 "Jul"
+    IDS_AUT                 "Aut"
+    IDS_SEP                 "Sep"
+    IDS_OCT                 "Oct"
+    IDS_NOV                 "Nov"
+    IDS_DEC                 "Dec"
+    IDS_JANUARY             "January"
+    IDS_FEBRUARY            "February"
+    IDS_MARCH               "March"
+    IDS_APRIL               "April"
+    IDS_MAY_                "May"
+    IDS_JUNE                "June"
+    IDS_JULY                "July"
+    IDS_AUGUST              "August"
+    IDS_SEPTEMBER           "September"
+    IDS_OCTOBER             "October"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NOVEMBER            "November"
+    IDS_DECEMBER            "December"
+END
+
+#endif    // 英语(美国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
