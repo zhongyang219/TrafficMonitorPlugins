@@ -168,6 +168,7 @@
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="DateTimeFormatHelper.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="MessageDlg.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="DateTime.h" />
@@ -179,6 +180,7 @@
     <ClCompile Include="CustomDrawItem.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="DateTimeFormatHelper.cpp" />
+    <ClCompile Include="MessageDlg.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -192,6 +194,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DateTime.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\date_time.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

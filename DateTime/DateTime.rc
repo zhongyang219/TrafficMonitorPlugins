@@ -50,21 +50,31 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 165, 128
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 176, 128
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "时期和日期设置"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,50,107,50,14
-    PUSHBUTTON      "取消",IDCANCEL,108,107,50,14
-    GROUPBOX        "时间格式",IDC_STATIC,7,7,151,45
-    EDITTEXT        IDC_TIME_FORMAT_EDIT,16,22,83,12,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "确定",IDOK,63,107,50,14
+    PUSHBUTTON      "取消",IDCANCEL,119,107,50,14
+    GROUPBOX        "时间格式",IDC_STATIC,7,7,162,45
+    EDITTEXT        IDC_TIME_FORMAT_EDIT,16,22,119,12,ES_AUTOHSCROLL
     LTEXT           "预览：",IDC_STATIC,16,38,21,8
-    LTEXT           "",IDC_TIME_PREVIEW_STATIC,41,38,107,8
-    GROUPBOX        "日期格式",IDC_STATIC,7,57,151,45
-    EDITTEXT        IDC_DATE_FORMAT_EDIT,16,72,83,12,ES_AUTOHSCROLL
+    LTEXT           "",IDC_TIME_PREVIEW_STATIC,41,38,117,8,SS_ENDELLIPSIS
+    GROUPBOX        "日期格式",IDC_STATIC,7,57,162,45
+    EDITTEXT        IDC_DATE_FORMAT_EDIT,16,72,119,12,ES_AUTOHSCROLL
     LTEXT           "预览：",IDC_STATIC,16,88,21,8
-    LTEXT           "",IDC_DATE_PREVIEW_STATIC,40,88,108,8
+    LTEXT           "",IDC_DATE_PREVIEW_STATIC,40,88,120,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "帮助(&H)",IDC_HELP_BUTTON,7,107,50,14
+END
+
+IDD_MESSAGE_DIALOG DIALOGEX 0, 0, 183, 128
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 9, "微软雅黑", 400, 0, 0x86
+BEGIN
+    PUSHBUTTON      "关闭",IDCANCEL,128,109,50,14
+    EDITTEXT        IDC_EDIT1,4,4,174,101,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
 END
 
 
@@ -79,9 +89,17 @@ BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 158
+        RIGHTMARGIN, 169
         TOPMARGIN, 7
         BOTTOMMARGIN, 121
+    END
+
+    IDD_MESSAGE_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 178
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 123
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -104,7 +122,15 @@ BEGIN
     0, 0, 100, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
-    0, 0, 100, 0
+    0, 0, 100, 0,
+    0, 100, 0, 0
+END
+
+IDD_MESSAGE_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
 END
 
 
@@ -145,6 +171,16 @@ BEGIN
         VALUE "Translation", 0x804, 1200
     END
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "res\\date_time.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -209,6 +245,8 @@ STRINGTABLE
 BEGIN
     IDS_NOVEMBER            "十一月"
     IDS_DECEMBER            "十二月"
+    IDS_FORMAT_HELP         "日期格式：\r\nd: 日，不带前面的0（1~31）\r\ndd: 日，带前面的0（01~31）\r\nddd: 短格式的星期（周一~周日）\r\ndddd: 长格式的星期（星期一~星期日）\r\nM: 数字表示的月份，不带前面的0（1~12）\r\nMM: 数字表示的月份，带前面的0（01~12）\r\nMMM: 短格式的月份（1月~12月）\r\nMMMM: 长格式的月份（一月~十二月）\r\nyy: 两位数的年份\r\nyyyy: 四位数的年份\r\n\r\n时间格式：\r\nh: 小时，12小时制，不带前面的0（1~12）\r\nhh: 小时，12小时制，带前面的0（01~12）\r\nH: 小时，24小时制，不带前面的0（0~23）\r\nHH: 小时，24小时制，带前面的0（00~23）\r\nm: 分钟，不带前面的0（0~59）\r\nmm: 分钟，带前面的0（00~59）\r\ns: 秒钟，不带前面的0（00~59）\r\nss: 秒钟，带前面的0（00~59）\r\nAP: 表示上午还是下午，只会是“AM”或“PM”\r\nap: 表示上午还是下午，只会是“am”或“pm”\r\n"
+    IDS_HELP                "帮助"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -227,21 +265,31 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 165, 131
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 175, 131
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Time and date settings"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,50,110,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,108,110,50,14
-    GROUPBOX        "Time format",IDC_STATIC,7,7,151,45
-    EDITTEXT        IDC_TIME_FORMAT_EDIT,13,22,94,12,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,63,110,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,118,110,50,14
+    GROUPBOX        "Time format",IDC_STATIC,7,7,161,45
+    EDITTEXT        IDC_TIME_FORMAT_EDIT,13,22,123,12,ES_AUTOHSCROLL
     LTEXT           "Preview:",IDC_STATIC,13,38,28,8
-    LTEXT           "",IDC_TIME_PREVIEW_STATIC,47,38,103,8
-    GROUPBOX        "Date format",IDC_STATIC,7,57,151,45
-    EDITTEXT        IDC_DATE_FORMAT_EDIT,13,72,94,12,ES_AUTOHSCROLL
+    LTEXT           "",IDC_TIME_PREVIEW_STATIC,47,38,114,8,SS_ENDELLIPSIS
+    GROUPBOX        "Date format",IDC_STATIC,7,57,161,45
+    EDITTEXT        IDC_DATE_FORMAT_EDIT,13,72,123,12,ES_AUTOHSCROLL
     LTEXT           "Preview:",IDC_STATIC,13,88,28,8
-    LTEXT           "",IDC_DATE_PREVIEW_STATIC,47,88,104,8
+    LTEXT           "",IDC_DATE_PREVIEW_STATIC,47,88,114,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "&Help",IDC_HELP_BUTTON,7,110,50,14
+END
+
+IDD_MESSAGE_DIALOG DIALOGEX 0, 0, 183, 128
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,128,109,50,14
+    EDITTEXT        IDC_EDIT1,4,4,174,101,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
 END
 
 
@@ -256,9 +304,17 @@ BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 158
+        RIGHTMARGIN, 168
         TOPMARGIN, 7
         BOTTOMMARGIN, 124
+    END
+
+    IDD_MESSAGE_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 178
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 123
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -281,7 +337,15 @@ BEGIN
     0, 0, 100, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
-    0, 0, 100, 0
+    0, 0, 100, 0,
+    0, 100, 0, 0
+END
+
+IDD_MESSAGE_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
 END
 
 
@@ -347,6 +411,8 @@ STRINGTABLE
 BEGIN
     IDS_NOVEMBER            "November"
     IDS_DECEMBER            "December"
+    IDS_FORMAT_HELP         "Date format:\r\nd: the day as number without a leading zero (1 to 31).\r\ndd: the day as number with a leading zero (01 to 31).\r\nddd: the abbreviated localized day name (e.g. 'Mon' to 'Sun').\r\ndddd: the long localized day name (e.g. 'Monday' to 'Sunday').\r\nM: the month as number without a leading zero (1-12).\r\nMM: the month as number with a leading zero (01-12).\r\nMMM: the abbreviated localized month name (e.g. 'Jan' to 'Dec').\r\nMMMM: the long localized month name (e.g. 'January' to 'December').\r\nyy: the year as two digit number (00-99).\r\nyyyy: the year as four digit number.\r\n\r\nTime format:\r\nh: the hour without a leading zero (1 to 12)\r\nhh: the hour with a leading zero (01 to 12)\r\nH: the hour without a leading zero (0 to 23)\r\nHH: the hour with a leading zero (00 to 23)\r\nm: the minute without a leading zero (0 to 59)\r\nmm: the minute with a leading zero (00 to 59)\r\ns: the second without a leading zero (0 to 59)\r\nss: the second with a leading zero (00 to 59)\r\nAP: interpret as an AM/PM time. AP must be either ""AM"" or ""PM"".\r\nap: interpret as an AM/PM time. ap must be either ""am"" or ""pm"".\r\n"
+    IDS_HELP                "Help"
 END
 
 #endif    // 英语(美国) resources

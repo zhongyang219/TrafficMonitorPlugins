@@ -6,8 +6,10 @@
 #define IDD_OPTIONS_DIALOG              101
 #define IDS_PLUGIN_NAME                 103
 #define IDS_PLUGIN_DESCRIPTION          104
+#define IDD_MESSAGE_DIALOG              104
 #define IDS_TIME                        105
 #define IDS_DATE                        106
+#define IDI_ICON1                       106
 #define IDS_CUSTOM_DRAW_ITEM            107
 #define IDS_MON                         108
 #define IDS_TUE                         109
@@ -47,20 +49,24 @@
 #define IDS_OCTOBER                     143
 #define IDS_NOVEMBER                    144
 #define IDS_DECEMBER                    145
+#define IDS_FORMAT_HELP                 146
+#define IDS_HELP                        147
 #define IDC_SHOW_SECOND_CHECK           1001
 #define IDC_SHOW_LABEL_CHECK            1002
 #define IDC_TIME_FORMAT_EDIT            1003
 #define IDC_TIME_PREVIEW_STATIC         1004
 #define IDC_DATE_FORMAT_EDIT            1005
+#define IDC_EDIT1                       1005
 #define IDC_DATE_PREVIEW_STATIC         1006
+#define IDC_HELP_BUTTON                 1007
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        104
+#define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1005
+#define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

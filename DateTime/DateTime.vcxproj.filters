@@ -48,6 +48,9 @@
     <ClInclude Include="DateTimeFormatHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MessageDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -74,10 +77,18 @@
     <ClCompile Include="DateTimeFormatHelper.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MessageDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DateTime.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\date_time.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

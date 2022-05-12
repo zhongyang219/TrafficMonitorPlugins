@@ -25,6 +25,7 @@ public:
     void LoadConfig(const std::wstring& config_dir);
     void SaveConfig() const;
     const CString& StringRes(UINT id);      //根据资源id获取一个字符串资源
+    int DPI(int pixel);
 
 public:
     std::wstring m_cur_time;
@@ -37,4 +38,5 @@ private:
     static CDataManager m_instance;
     std::wstring m_config_path;
     std::map<UINT, CString> m_string_table;
+    int m_dpi{ 96 };
 };

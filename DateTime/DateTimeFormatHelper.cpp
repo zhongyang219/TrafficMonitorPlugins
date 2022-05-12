@@ -16,7 +16,7 @@ CString CDataTimeFormatHelper::GetCurrentDateTimeByFormat(const CString& formula
     return GetDateTimeByFormat(formular, m_cur_time);
 }
 
-CString CDataTimeFormatHelper::GetDateTimeByFormat(const CString & formular, SYSTEMTIME sys_time)
+CString CDataTimeFormatHelper::GetDateTimeByFormat(const CString& formular, SYSTEMTIME sys_time)
 {
     CString result{ formular };
     for (int i = 0; i < result.GetLength(); i++)
@@ -28,7 +28,7 @@ CString CDataTimeFormatHelper::GetDateTimeByFormat(const CString & formular, SYS
                 result.Delete(i, item.GetLength());
                 CString formular_value = GetFormualrValue(item, sys_time);
                 result.Insert(i, formular_value);
-                i += formular_value.GetLength();
+                i += (formular_value.GetLength() - 1);
                 break;
             }
         }
@@ -41,7 +41,7 @@ void CDataTimeFormatHelper::GetCurrentDateTime()
     GetLocalTime(&m_cur_time);
 }
 
-const SYSTEMTIME & CDataTimeFormatHelper::CurrentDateTime()
+const SYSTEMTIME& CDataTimeFormatHelper::CurrentDateTime()
 {
     return m_cur_time;
 }

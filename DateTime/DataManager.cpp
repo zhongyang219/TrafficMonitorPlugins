@@ -5,6 +5,10 @@ CDataManager CDataManager::m_instance;
 
 CDataManager::CDataManager()
 {
+    //初始化DPI
+    HDC hDC = ::GetDC(HWND_DESKTOP);
+    m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
+    ::ReleaseDC(HWND_DESKTOP, hDC);
 }
 
 CDataManager::~CDataManager()
@@ -70,4 +74,9 @@ const CString& CDataManager::StringRes(UINT id)
         m_string_table[id].LoadString(id);
         return m_string_table[id];
     }
+}
+
+int CDataManager::DPI(int pixel)
+{
+    return m_dpi * pixel / 96;
 }
