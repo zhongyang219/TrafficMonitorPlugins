@@ -12,13 +12,15 @@
 
 ## 插件下载
 
-### 示例插件
+### 时间日期插件
 
 ![image-20211216220605288](images/image-20211216220605288.png)
 
+<img src="images/image-20220614195748677.png" alt="image-20220614195748677" style="zoom:80%;" />
+
 用于显示日期和时间的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/PluginDemo/PluginDemo_V1.00_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x64.zip?raw=true)
 
 ---
 
@@ -39,6 +41,8 @@
 ![img-weather-pro](images/img-weather-pro.png)
 
 用于显示天气的插件，支持搜索选择城市、区县、乡镇和部分街道地址（目前仅支持中国区地址）。及时丰富的实时天气信息，支持显示天气预警。
+
+作者：[Haojia521](https://github.com/Haojia521)
 
 下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
