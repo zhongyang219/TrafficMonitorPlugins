@@ -56,6 +56,7 @@ BOOL COptionsDlg::OnInitDialog()
     str.Format(_T("%d"), g_data.GetTextContexts().size());
     SetDlgItemText(IDC_TOTAL_CHAR_STATIC, str);
     CheckDlgButton(IDC_ENABLE_MULTI_LINE_CHECK, m_data.enable_mulit_line);
+    CheckDlgButton(IDC_HIDE_WHEN_LOSE_FOCUS_CHECK, m_data.hide_when_lose_focus);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -92,6 +93,7 @@ void COptionsDlg::OnOK()
     GetDlgItemText(IDC_WINDOW_WIDTH_EDIT, window_width_str);
     m_data.window_width = _ttoi(window_width_str);
     m_data.enable_mulit_line = (IsDlgButtonChecked(IDC_ENABLE_MULTI_LINE_CHECK) != 0);
+    m_data.hide_when_lose_focus = (IsDlgButtonChecked(IDC_HIDE_WHEN_LOSE_FOCUS_CHECK) != 0);
 
     CDialog::OnOK();
 }

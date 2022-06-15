@@ -13,6 +13,7 @@ struct SettingData
     int window_width;           //窗口宽度
     int current_position;       //当前阅读位置（字）
     bool enable_mulit_line;     //允许多行显示
+    bool hide_when_lose_focus;    //失去焦点时不显示
 };
 
 class CDataManager
@@ -42,12 +43,14 @@ public:
     void PageDown(int step);
 
     bool IsMultiLine() const;
+    bool HasFocus() const;
 
     SettingData m_setting_data;
     int m_page_step{ 1 };
     bool m_boss_key_pressed{ false };
     bool m_multi_line{ false };
     int m_draw_width{};
+    HWND m_wnd{};
 
 private:
     static CDataManager m_instance;

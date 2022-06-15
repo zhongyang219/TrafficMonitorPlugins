@@ -57,6 +57,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.current_position = GetPrivateProfileInt(_T("config"), _T("current_position"), 0, m_config_path.c_str());
     m_setting_data.window_width = GetPrivateProfileInt(_T("config"), _T("window_width"), 180, m_config_path.c_str());
     m_setting_data.enable_mulit_line = GetPrivateProfileInt(_T("config"), _T("enable_mulit_line"), 0, m_config_path.c_str());
+    m_setting_data.hide_when_lose_focus = GetPrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), 0, m_config_path.c_str());
 }
 
 void CDataManager::SaveConfig() const
@@ -68,6 +69,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(_T("config"), _T("current_position"), m_setting_data.current_position, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("window_width"), m_setting_data.window_width, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("enable_mulit_line"), m_setting_data.enable_mulit_line, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), m_setting_data.hide_when_lose_focus, m_config_path.c_str());
     }
 }
 
@@ -207,4 +209,9 @@ void CDataManager::PageDown(int step)
 bool CDataManager::IsMultiLine() const
 {
     return m_multi_line && m_setting_data.enable_mulit_line;
+}
+
+bool CDataManager::HasFocus() const
+{
+    return GetForegroundWindow() == m_wnd;
 }
