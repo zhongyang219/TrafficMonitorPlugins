@@ -12,7 +12,7 @@
 
 #include "resource.h"
 
-#define MAX_FILE_SIZE 20971520
+#define MAX_FILE_SIZE 52428800
 
 #define SAFE_DELETE(p) do \
 {\

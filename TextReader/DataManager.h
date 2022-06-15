@@ -41,9 +41,13 @@ public:
     void PageUp(int step);
     void PageDown(int step);
 
+    bool IsMultiLine() const;
+
     SettingData m_setting_data;
     int m_page_step{ 1 };
     bool m_boss_key_pressed{ false };
+    bool m_multi_line{ false };
+    int m_draw_width{};
 
 private:
     static CDataManager m_instance;

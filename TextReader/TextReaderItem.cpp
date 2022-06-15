@@ -42,6 +42,7 @@ int CTextReaderItem::GetItemWidth() const
 
 void CTextReaderItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 {
+    g_data.m_draw_width = w;
     static std::wstring text;
     if (g_data.m_boss_key_pressed)  //按下老板键，显示文本消失
     {
@@ -54,14 +55,14 @@ void CTextReaderItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_
 
     //绘图句柄
     CDC* pDC = CDC::FromHandle((HDC)hDC);
-    g_data.m_page_step = g_data.GetPageStep(pDC);
 
-    bool multi_line = (h > g_data.DPI(30));
+    g_data.m_multi_line = (h > g_data.DPI(30));
+    g_data.m_page_step = g_data.GetPageStep(pDC);
 
     //矩形区域
     CRect rect(CPoint(x, y), CSize(w, h));
     UINT flag{};
-    if (multi_line && g_data.m_setting_data.enable_mulit_line)
+    if (g_data.IsMultiLine())
     {
         flag = DT_NOPREFIX | DT_WORDBREAK;
     }

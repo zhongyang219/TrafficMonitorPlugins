@@ -145,11 +145,11 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "CompanyName", "<TODO: Company name>"
-            VALUE "FileDescription", "<TODO: plugin name> Plugin for TrafficMonitor"
+            VALUE "CompanyName", "By ZhongYang"
+            VALUE "FileDescription", "Text Reader Plugin for TrafficMonitor"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "TextReader.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2021"
+            VALUE "LegalCopyright", "Copyright (C) 2022 By ZhongYang"
             VALUE "OriginalFilename", "TextReader.dll"
             VALUE "ProductName", "TextReader Plugin for TrafficMonitor"
             VALUE "ProductVersion", "1.0.0.0"

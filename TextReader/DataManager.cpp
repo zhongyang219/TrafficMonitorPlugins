@@ -172,7 +172,7 @@ int CDataManager::GetPageStep(CDC* dc)
         if (m_setting_data.current_position + step >= m_text_contents.size())
             break;
         int text_width = dc->GetTextExtent(m_text_contents.c_str() + m_setting_data.current_position, step).cx;
-        if (text_width > m_setting_data.window_width)
+        if (text_width > m_draw_width)
         {
             return (step - 1);
         }
@@ -202,4 +202,9 @@ void CDataManager::PageDown(int step)
         m_setting_data.current_position = MAX_POS;
     if (m_setting_data.current_position < 0)
         m_setting_data.current_position = 0;
+}
+
+bool CDataManager::IsMultiLine() const
+{
+    return m_multi_line && m_setting_data.enable_mulit_line;
 }
