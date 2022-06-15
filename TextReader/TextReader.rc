@@ -1,0 +1,286 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 194, 135
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "文本阅读器设置"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,80,114,50,14
+    PUSHBUTTON      "取消",IDCANCEL,137,114,50,14
+    LTEXT           "打开文件：",IDC_STATIC,7,7,43,8
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,19,124,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "浏览(&B)...",IDC_BROWSE_BUTTON,137,18,50,14
+    LTEXT           "阅读位置:",IDC_STATIC,7,38,40,8
+    EDITTEXT        IDC_READ_POSITION_EDIT,47,37,30,12,ES_AUTOHSCROLL
+    LTEXT           "字，总共",IDC_STATIC,83,38,30,8
+    LTEXT           "窗口宽度:",IDC_STATIC,7,54,36,8
+    EDITTEXT        IDC_WINDOW_WIDTH_EDIT,47,53,30,12,ES_AUTOHSCROLL
+    RTEXT           "",IDC_TOTAL_CHAR_STATIC,114,38,46,8
+    LTEXT           "字",IDC_STATIC,164,38,20,8
+    CONTROL         "允许多行显示",IDC_ENABLE_MULTI_LINE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,70,117,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 187
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    100, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+IDD_SELECT_CITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "<TODO: Company name>"
+            VALUE "FileDescription", "<TODO: plugin name> Plugin for TrafficMonitor"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "TextReader.dll"
+            VALUE "LegalCopyright", "Copyright (C) 2021"
+            VALUE "OriginalFilename", "TextReader.dll"
+            VALUE "ProductName", "TextReader Plugin for TrafficMonitor"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "文本阅读器"
+    IDS_PLUGIN_DESCRIPTION  "可以在TrafficMonitor中阅读文本文件的插件。"
+    IDS_PLUGIN_ITEM_NAME    "文本阅读器"
+    IDS_FILTER              "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*||"
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(美国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 245, 135
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Text Reader Settings"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,130,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,188,114,50,14
+    LTEXT           "Open File:",IDC_STATIC,7,8,43,9
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,175,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "&Browse...",IDC_BROWSE_BUTTON,188,20,50,16
+    LTEXT           "Read position:",IDC_STATIC,7,43,56,9
+    EDITTEXT        IDC_READ_POSITION_EDIT,61,42,30,14,ES_AUTOHSCROLL
+    LTEXT           "charactors, total",IDC_STATIC,97,43,56,9
+    LTEXT           "Window width:",IDC_STATIC,7,61,52,9
+    EDITTEXT        IDC_WINDOW_WIDTH_EDIT,61,60,30,14,ES_AUTOHSCROLL
+    RTEXT           "",IDC_TOTAL_CHAR_STATIC,148,43,46,9
+    LTEXT           "charactors.",IDC_STATIC,198,43,40,9
+    CONTROL         "Enable multi line display",IDC_ENABLE_MULTI_LINE_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,117,11
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 238
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    100, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Text reader"
+    IDS_PLUGIN_DESCRIPTION  "Text reader plugin for TrafficMonitor."
+    IDS_PLUGIN_ITEM_NAME    "Text reader"
+    IDS_FILTER              "Text file(*.txt)|*.txt|All file(*.*)|*.*||"
+END
+
+#endif    // 英语(美国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
