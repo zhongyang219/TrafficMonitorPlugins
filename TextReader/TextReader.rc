@@ -51,12 +51,9 @@ END
 //
 
 IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 194, 135
-STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "文本阅读器设置"
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,80,114,50,14
-    PUSHBUTTON      "取消",IDCANCEL,137,114,50,14
     LTEXT           "打开文件：",IDC_STATIC,7,7,43,8
     EDITTEXT        IDC_FILE_PATH_EDIT,7,19,124,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "浏览(&B)...",IDC_BROWSE_BUTTON,137,18,50,14
@@ -69,6 +66,26 @@ BEGIN
     LTEXT           "字",IDC_STATIC,164,38,20,8
     CONTROL         "允许多行显示",IDC_ENABLE_MULTI_LINE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,70,117,10
     CONTROL         "失去焦点时自动隐藏",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,83,114,10
+END
+
+IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 127
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    LISTBOX         IDC_LIST1,7,7,153,95,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "重新获取章节(&R)",IDC_RE_PARSE_BUTTON,7,105,65,14
+    LTEXT           "当前章节：",IDC_STATIC,77,109,39,8
+    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,119,109,41,8
+END
+
+IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 237, 173
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "文本阅读器设置"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,125,152,50,14
+    PUSHBUTTON      "取消",IDCANCEL,180,152,50,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,223,142
 END
 
 
@@ -87,6 +104,22 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
+
+    IDD_CHAPTER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 160
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 120
+    END
+
+    IDD_OPTIONS_CONTAINER_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 230
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 166
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -99,8 +132,6 @@ END
 IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0,
-    100, 100, 0, 0,
-    100, 100, 0, 0,
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
@@ -122,6 +153,23 @@ BEGIN
     100, 100, 0, 0,
     0, 0, 100, 100,
     0, 0, 0, 0
+END
+
+IDD_CHAPTER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 100, 100,
+    0, 100, 0, 0,
+    0, 100, 0, 0,
+    0, 100, 100, 0
+END
+
+IDD_OPTIONS_CONTAINER_DLG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
 END
 
 
@@ -166,6 +214,16 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "res\\reader.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -175,6 +233,8 @@ BEGIN
     IDS_PLUGIN_DESCRIPTION  "可以在TrafficMonitor中阅读文本文件的插件。"
     IDS_PLUGIN_ITEM_NAME    "文本阅读器"
     IDS_FILTER              "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*||"
+    IDS_SETTINGS            "设置"
+    IDS_CHAPTERS            "章节"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -194,26 +254,43 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 245, 135
-STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "Text Reader Settings"
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,130,114,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,188,114,50,14
     LTEXT           "Open File:",IDC_STATIC,7,8,43,9
-    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,175,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,175,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "&Browse...",IDC_BROWSE_BUTTON,188,20,50,16
     LTEXT           "Read position:",IDC_STATIC,7,43,56,9
-    EDITTEXT        IDC_READ_POSITION_EDIT,61,42,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_READ_POSITION_EDIT,61,42,37,12,ES_AUTOHSCROLL
     LTEXT           "charactors, total",IDC_STATIC,100,43,56,9
     LTEXT           "Window width:",IDC_STATIC,7,61,52,9
-    EDITTEXT        IDC_WINDOW_WIDTH_EDIT,61,60,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_WINDOW_WIDTH_EDIT,61,60,37,12,ES_AUTOHSCROLL
     RTEXT           "",IDC_TOTAL_CHAR_STATIC,154,43,40,9
     LTEXT           "charactors.",IDC_STATIC,198,43,40,9
     CONTROL         "Enable multi line display",IDC_ENABLE_MULTI_LINE_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,77,117,11
     CONTROL         "Auto hide when lose focus",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,129,10
+END
+
+IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 127
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    LISTBOX         IDC_LIST1,7,7,177,95,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Re-acquire chapter",IDC_RE_PARSE_BUTTON,7,105,72,14
+    LTEXT           "Current chapter:",IDC_STATIC,82,109,59,8
+    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,143,109,41,8
+END
+
+IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 280, 173
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Text reader settings"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,167,152,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,223,152,50,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,266,142
 END
 
 
@@ -232,6 +309,22 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
+
+    IDD_CHAPTER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 184
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 120
+    END
+
+    IDD_OPTIONS_CONTAINER_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 273
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 166
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -244,8 +337,6 @@ END
 IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0,
-    100, 100, 0, 0,
-    100, 100, 0, 0,
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
@@ -260,6 +351,23 @@ BEGIN
     0, 0, 0, 0
 END
 
+IDD_CHAPTER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 100, 100,
+    0, 100, 0, 0,
+    0, 100, 0, 0,
+    0, 100, 100, 0
+END
+
+IDD_OPTIONS_CONTAINER_DLG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -272,6 +380,8 @@ BEGIN
     IDS_PLUGIN_DESCRIPTION  "Text reader plugin for TrafficMonitor."
     IDS_PLUGIN_ITEM_NAME    "Text reader"
     IDS_FILTER              "Text file(*.txt)|*.txt|All file(*.*)|*.*||"
+    IDS_SETTINGS            "Settings"
+    IDS_CHAPTERS            "Chapters"
 END
 
 #endif    // 英语(美国) resources

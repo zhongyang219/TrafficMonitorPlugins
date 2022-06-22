@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "DataManager.h"
+#include "afxdialogex.h"
 
 // COptionsDlg 对话框
 
-class COptionsDlg : public CDialog
+class COptionsDlg : public CDialogEx
 {
     DECLARE_DYNAMIC(COptionsDlg)
 
@@ -19,7 +20,6 @@ public:
 #endif
 
 private:
-    CSize m_min_size;
     std::wstring m_file_path_ori;   //初始时的文件路径
 
 protected:
@@ -30,5 +30,4 @@ public:
     virtual BOOL OnInitDialog();
     afx_msg void OnBnClickedBrowseButton();
     virtual void OnOK();
-    afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 };

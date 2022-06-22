@@ -2,6 +2,7 @@
 #include "TextReader.h"
 #include "DataManager.h"
 #include "OptionsDlg.h"
+#include "OptionsContainerDlg.h"
 
 CTextReader CTextReader::m_instance;
 
@@ -40,11 +41,15 @@ ITMPlugin::OptionReturn CTextReader::ShowOptionsDialog(void* hParent)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CWnd* pParent = CWnd::FromHandle((HWND)hParent);
-    COptionsDlg dlg(pParent);
-    dlg.m_data = g_data.m_setting_data;
+    COptionsContainerDlg dlg(0, pParent);
+    dlg.m_options_dlg.m_data = g_data.m_setting_data;
     if (dlg.DoModal() == IDOK)
     {
-        g_data.m_setting_data = dlg.m_data;
+        g_data.m_setting_data = dlg.m_options_dlg.m_data;
+        int chapter_position = dlg.m_chapter_dlg.GetSelectedPosition();
+        if (chapter_position >= 0)
+            g_data.m_setting_data.current_position = chapter_position;
+        g_data.SaveConfig();
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;

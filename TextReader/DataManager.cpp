@@ -155,6 +155,10 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     bool is_utf8 = CCommon::IsUTF8Bytes(buff);                              //判断编码类型
     m_text_contents = CCommon::StrToUnicode(buff, is_utf8);	                //转换成Unicode
     delete[] buff;
+
+    //解析章节
+    m_chapter_parser.Parse();
+
     return true;
 }
 
@@ -214,4 +218,9 @@ bool CDataManager::IsMultiLine() const
 bool CDataManager::HasFocus() const
 {
     return GetForegroundWindow() == m_wnd;
+}
+
+CChapterParser & CDataManager::GetChapter()
+{
+    return m_chapter_parser;
 }

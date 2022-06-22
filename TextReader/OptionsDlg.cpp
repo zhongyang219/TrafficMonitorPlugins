@@ -4,15 +4,14 @@
 #include "pch.h"
 #include "TextReader.h"
 #include "OptionsDlg.h"
-#include "afxdialogex.h"
 #include "DataManager.h"
 
 // COptionsDlg 对话框
 
-IMPLEMENT_DYNAMIC(COptionsDlg, CDialog)
+IMPLEMENT_DYNAMIC(COptionsDlg, CDialogEx)
 
 COptionsDlg::COptionsDlg(CWnd* pParent /*=nullptr*/)
-    : CDialog(IDD_OPTIONS_DIALOG, pParent)
+    : CDialogEx(IDD_OPTIONS_DIALOG, pParent)
 {
 }
 
@@ -22,11 +21,11 @@ COptionsDlg::~COptionsDlg()
 
 void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
-    CDialog::DoDataExchange(pDX);
+    CDialogEx::DoDataExchange(pDX);
 }
 
 
-BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
+BEGIN_MESSAGE_MAP(COptionsDlg, CDialogEx)
     ON_BN_CLICKED(IDC_BROWSE_BUTTON, &COptionsDlg::OnBnClickedBrowseButton)
     ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
@@ -37,13 +36,10 @@ END_MESSAGE_MAP()
 
 BOOL COptionsDlg::OnInitDialog()
 {
-    CDialog::OnInitDialog();
+    CDialogEx::OnInitDialog();
 
     // TODO:  在此添加额外的初始化
-    //获取初始时的大小
-    CRect rect;
-    GetWindowRect(rect);
-    m_min_size = rect.Size();
+    SetBackgroundColor(RGB(255, 255, 255));
 
     m_file_path_ori = m_data.file_path;
 
@@ -95,16 +91,5 @@ void COptionsDlg::OnOK()
     m_data.enable_mulit_line = (IsDlgButtonChecked(IDC_ENABLE_MULTI_LINE_CHECK) != 0);
     m_data.hide_when_lose_focus = (IsDlgButtonChecked(IDC_HIDE_WHEN_LOSE_FOCUS_CHECK) != 0);
 
-    CDialog::OnOK();
-}
-
-
-void COptionsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
-{
-    // TODO: 在此添加消息处理程序代码和/或调用默认值
-        //限制窗口最小大小
-    lpMMI->ptMinTrackSize.x = m_min_size.cx;
-    lpMMI->ptMinTrackSize.y = m_min_size.cy;
-
-    CDialog::OnGetMinMaxInfo(lpMMI);
+    CDialogEx::OnOK();
 }

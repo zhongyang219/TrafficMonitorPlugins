@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include "resource.h"
+#include "ChapterParser.h"
 
 #define g_data CDataManager::Instance()
 
@@ -45,6 +46,8 @@ public:
     bool IsMultiLine() const;
     bool HasFocus() const;
 
+    CChapterParser& GetChapter();
+
     SettingData m_setting_data;
     int m_page_step{ 1 };
     bool m_boss_key_pressed{ false };
@@ -59,4 +62,5 @@ private:
     std::map<UINT, HICON> m_icons;
     int m_dpi{ 96 };
     std::wstring m_text_contents;
+    CChapterParser m_chapter_parser{ m_text_contents };
 };

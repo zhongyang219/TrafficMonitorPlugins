@@ -51,6 +51,18 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ChapterParser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="OptionsContainerDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
+    <ClInclude Include="TabCtrlEx.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
+    <ClInclude Include="ChapterDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -71,10 +83,27 @@
     <ClCompile Include="OptionsDlg.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
+    <ClCompile Include="ChapterParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="OptionsContainerDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="TabCtrlEx.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="ChapterDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TextReader.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\reader.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
