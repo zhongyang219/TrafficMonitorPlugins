@@ -61,3 +61,16 @@ const std::map<int, std::wstring>& CChapterParser::GetChapterData() const
 {
     return m_chapter;
 }
+
+std::wstring CChapterParser::GetChapterByPos(int pos) const
+{
+    int cur_chapter_position{};
+    for (const auto& item : m_chapter)
+    {
+        if (item.first >= pos)
+        {
+            return item.second;
+        }
+    }
+    return std::wstring();
+}

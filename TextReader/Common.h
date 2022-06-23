@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <string>
+#include <vector>
 class CCommon
 {
 public:
@@ -11,4 +12,5 @@ public:
     //判断一个字符串是否UTF8编码
     static bool IsUTF8Bytes(const char* data);
 
+    static void StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty = true);
 };

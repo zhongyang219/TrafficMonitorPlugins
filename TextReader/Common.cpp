@@ -70,3 +70,20 @@ bool CCommon::IsUTF8Bytes(const char* data)
     if (ascii) return false;		//如果全是ASCII字符，返回false
     else return true;
 }
+
+void CCommon::StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty)
+{
+    results.clear();
+    size_t split_index = 0 - div_str.size();
+    size_t last_split_index = 0 - div_str.size();
+    while (true)
+    {
+        split_index = str.find(div_str, split_index + div_str.size());
+        std::wstring split_str = str.substr(last_split_index + div_str.size(), split_index - last_split_index - div_str.size());
+        if (!split_str.empty() || !skip_empty)
+            results.push_back(split_str);
+        if (split_index == std::wstring::npos)
+            break;
+        last_split_index = split_index;
+    }
+}

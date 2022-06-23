@@ -87,6 +87,13 @@ BEGIN
     CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,223,142
 END
 
+IDD_BOOKMARK_DLG DIALOGEX 0, 0, 169, 128
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,155,114
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -118,6 +125,14 @@ BEGIN
         RIGHTMARGIN, 230
         TOPMARGIN, 7
         BOTTOMMARGIN, 166
+    END
+
+    IDD_BOOKMARK_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 162
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 121
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -167,6 +182,12 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
+    0, 0, 100, 100
+END
+
+IDD_BOOKMARK_DLG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
     0, 0, 100, 100
 END
 
@@ -231,6 +252,7 @@ BEGIN
     BEGIN
         MENUITEM "上一页(&P)\t↑",                  40001
         MENUITEM "下一页(&N)\t↓",                  ID_NEXT
+        MENUITEM "添加书签(&A)",                    ID_ADD_BOOKMARK
         MENUITEM SEPARATOR
         MENUITEM "选项(&O)...",                   40004
         MENUITEM "章节(&C)...",                   40005
@@ -252,6 +274,14 @@ BEGIN
     IDS_FILTER              "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*||"
     IDS_SETTINGS            "设置"
     IDS_CHAPTERS            "章节"
+    IDS_BOOKMARK            "书签"
+    IDS_BOOKMARK_POSITION   "书签位置"
+    IDS_BOOKMARK_CONTENTS   "书签内容"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_CHAPTER             "章节"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -416,6 +446,14 @@ BEGIN
     IDS_FILTER              "Text file(*.txt)|*.txt|All file(*.*)|*.*||"
     IDS_SETTINGS            "Settings"
     IDS_CHAPTERS            "Chapters"
+    IDS_BOOKMARK            "Bookmarks"
+    IDS_BOOKMARK_POSITION   "Position"
+    IDS_BOOKMARK_CONTENTS   "Contents"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_CHAPTER             "Chapter"
 END
 
 #endif    // 英语(美国) resources

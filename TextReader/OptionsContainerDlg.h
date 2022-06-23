@@ -2,6 +2,7 @@
 #include "TabCtrlEx.h"
 #include "OptionsDlg.h"
 #include "ChapterDlg.h"
+#include "BookmarkDlg.h"
 
 // COptionsContainerDlg 对话框
 
@@ -16,6 +17,7 @@ public:
 public:
     COptionsDlg m_options_dlg;
     CChapterDlg m_chapter_dlg;
+    CBookmarkDlg m_bookmark_dlg;
 
 protected:
     CTabCtrlEx m_tab_ctrl;

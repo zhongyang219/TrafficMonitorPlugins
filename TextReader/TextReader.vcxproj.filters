@@ -63,6 +63,12 @@
     <ClInclude Include="ChapterDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="BookmarkMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BookmarkDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -93,6 +99,12 @@
       <Filter>对话框</Filter>
     </ClCompile>
     <ClCompile Include="ChapterDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="BookmarkMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BookmarkDlg.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
   </ItemGroup>

@@ -12,7 +12,12 @@
 #define IDD_OPTIONS_CONTAINER_DLG       108
 #define IDS_CHAPTERS                    108
 #define IDI_ICON1                       109
+#define IDS_BOOKMARK                    109
 #define IDR_MENU1                       110
+#define IDS_BOOKMARK_POSITION           110
+#define IDD_BOOKMARK_DLG                111
+#define IDS_BOOKMARK_CONTENTS           111
+#define IDS_CHAPTER                     112
 #define IDC_FILE_PATH_EDIT              1000
 #define IDC_BROWSE_BUTTON               1001
 #define IDC_READ_POSITION_EDIT          1002
@@ -32,13 +37,15 @@
 #define ID_OPTIONS                      40004
 #define ID_CHAPTERS                     40005
 #define ID_BOOKMARKS                    40006
+#define ID_1_40007                      40007
+#define ID_ADD_BOOKMARK                 40008
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40007
+#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           103
 #endif

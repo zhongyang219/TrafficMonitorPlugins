@@ -58,6 +58,9 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.window_width = GetPrivateProfileInt(_T("config"), _T("window_width"), 180, m_config_path.c_str());
     m_setting_data.enable_mulit_line = GetPrivateProfileInt(_T("config"), _T("enable_mulit_line"), 0, m_config_path.c_str());
     m_setting_data.hide_when_lose_focus = GetPrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), 0, m_config_path.c_str());
+
+    //载入书签
+    m_bookmark_mgr.LoadFromConfig(m_config_path);
 }
 
 void CDataManager::SaveConfig() const
@@ -70,6 +73,9 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(_T("config"), _T("window_width"), m_setting_data.window_width, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("enable_mulit_line"), m_setting_data.enable_mulit_line, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), m_setting_data.hide_when_lose_focus, m_config_path.c_str());
+
+        //保存书签
+        m_bookmark_mgr.SaveToConfig(m_config_path);
     }
 }
 
@@ -214,6 +220,11 @@ void CDataManager::PageDown(int step)
         m_setting_data.current_position = 0;
 }
 
+void CDataManager::AddBookmark()
+{
+    m_bookmark_mgr.AddBookmark(m_setting_data.file_path, m_setting_data.current_position);
+}
+
 bool CDataManager::IsMultiLine() const
 {
     return m_multi_line && m_setting_data.enable_mulit_line;
@@ -227,4 +238,9 @@ bool CDataManager::HasFocus() const
 CChapterParser & CDataManager::GetChapter()
 {
     return m_chapter_parser;
+}
+
+const std::set<int>& CDataManager::GetBookmark()
+{
+    return m_bookmark_mgr.GetBookmark(m_setting_data.file_path);
 }

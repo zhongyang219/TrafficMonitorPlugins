@@ -103,6 +103,11 @@ void CTextReader::ShowContextMenu(CWnd* pWnd)
         {
             ShowOptionsDlg(pWnd, 1);
         }
+        //点击了“书签”
+        else if (id == ID_BOOKMARKS)
+        {
+            ShowOptionsDlg(pWnd, 2);
+        }
         //点击了“上一页”
         else if (id == ID_PREVIOUS)
         {
@@ -112,6 +117,11 @@ void CTextReader::ShowContextMenu(CWnd* pWnd)
         else if (id == ID_NEXT)
         {
             g_data.PageDown();
+        }
+        //点击了“添加书签”
+        else if (id == ID_ADD_BOOKMARK)
+        {
+            g_data.AddBookmark();
         }
     }
 

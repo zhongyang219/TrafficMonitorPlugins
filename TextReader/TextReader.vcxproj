@@ -163,6 +163,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BookmarkDlg.h" />
+    <ClInclude Include="BookmarkMgr.h" />
     <ClInclude Include="ChapterDlg.h" />
     <ClInclude Include="ChapterParser.h" />
     <ClInclude Include="Common.h" />
@@ -177,6 +179,8 @@
     <ClInclude Include="TextReaderItem.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BookmarkDlg.cpp" />
+    <ClCompile Include="BookmarkMgr.cpp" />
     <ClCompile Include="ChapterDlg.cpp" />
     <ClCompile Include="ChapterParser.cpp" />
     <ClCompile Include="Common.cpp" />

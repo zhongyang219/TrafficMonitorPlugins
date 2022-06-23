@@ -8,6 +8,7 @@ public:
     ~CChapterParser();
     void Parse();
     const std::map<int, std::wstring>& GetChapterData() const;
+    std::wstring GetChapterByPos(int pos) const;
 
 private:
     const std::wstring& m_contents;

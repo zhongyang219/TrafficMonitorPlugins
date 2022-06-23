@@ -3,6 +3,7 @@
 #include <map>
 #include "resource.h"
 #include "ChapterParser.h"
+#include "BookmarkMgr.h"
 
 #define g_data CDataManager::Instance()
 
@@ -42,11 +43,13 @@ public:
 
     void PageUp(int step = 0);
     void PageDown(int step = 0);
+    void AddBookmark();
 
     bool IsMultiLine() const;
     bool HasFocus() const;
 
     CChapterParser& GetChapter();
+    const std::set<int>& GetBookmark();
 
     SettingData m_setting_data;
     int m_page_step{ 1 };
@@ -63,4 +66,5 @@ private:
     int m_dpi{ 96 };
     std::wstring m_text_contents;
     CChapterParser m_chapter_parser{ m_text_contents };
+    CBookmarkMgr m_bookmark_mgr;
 };

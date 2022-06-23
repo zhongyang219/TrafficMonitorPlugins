@@ -64,11 +64,13 @@ BOOL COptionsContainerDlg::OnInitDialog()
     //创建子对话框
     m_options_dlg.Create(IDD_OPTIONS_DIALOG, &m_tab_ctrl);
     m_chapter_dlg.Create(IDD_CHAPTER_DIALOG, &m_tab_ctrl);
+    m_bookmark_dlg.Create(IDD_BOOKMARK_DLG, &m_tab_ctrl);
 
 
     //添加对话框
     m_tab_ctrl.AddWindow(&m_options_dlg, g_data.StringRes(IDS_SETTINGS));
     m_tab_ctrl.AddWindow(&m_chapter_dlg, g_data.StringRes(IDS_CHAPTERS));
+    m_tab_ctrl.AddWindow(&m_bookmark_dlg, g_data.StringRes(IDS_BOOKMARK));
 
     //设置默认选中的标签
     if (m_tab_selected < 0 || m_tab_selected >= m_tab_ctrl.GetItemCount())
