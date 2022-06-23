@@ -12,7 +12,7 @@
 IMPLEMENT_DYNAMIC(COptionsContainerDlg, CDialog)
 
 COptionsContainerDlg::COptionsContainerDlg(int tab_selected, CWnd* pParent /*=nullptr*/)
-	: CDialog(IDD_OPTIONS_CONTAINER_DLG, pParent),
+    : CDialog(IDD_OPTIONS_CONTAINER_DLG, pParent),
     m_tab_selected(tab_selected)
 {
 

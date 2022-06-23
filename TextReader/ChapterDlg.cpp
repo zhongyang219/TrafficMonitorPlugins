@@ -12,7 +12,7 @@
 IMPLEMENT_DYNAMIC(CChapterDlg, CDialogEx)
 
 CChapterDlg::CChapterDlg(CWnd* pParent /*=nullptr*/)
-	: CDialogEx(IDD_CHAPTER_DIALOG, pParent)
+    : CDialogEx(IDD_CHAPTER_DIALOG, pParent)
 {
 
 }
@@ -28,14 +28,34 @@ int CChapterDlg::GetSelectedPosition() const
 
 void CChapterDlg::ShowData()
 {
+    //计算当前进度的章节
+    int cur_chapter_position{};
+    for (const auto& item : g_data.GetChapter().GetChapterData())
+    {
+        if (item.first >= g_data.m_setting_data.current_position)
+        {
+            SetDlgItemText(IDC_CHRRENT_CHAPTER_STATIC, item.second.c_str());
+            cur_chapter_position = item.first;
+            break;
+        }
+    }
+
     //显示列表内容
     m_chapter_index.clear();
     m_lst_box.ResetContent();
+    int index{};
+    int selected_index{};
     for (const auto& item : g_data.GetChapter().GetChapterData())
     {
         m_chapter_index.push_back(item.first);
         m_lst_box.AddString(item.second.c_str());
+        if (cur_chapter_position == item.first)
+        {
+            selected_index = index;
+        }
+        index++;
     }
+    m_lst_box.SetCurSel(selected_index);
 }
 
 void CChapterDlg::DoDataExchange(CDataExchange* pDX)
@@ -46,7 +66,8 @@ void CChapterDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CChapterDlg, CDialogEx)
-    ON_BN_CLICKED(IDC_RE_PARSE_BUTTON, &CChapterDlg::OnBnClickedReParseButton)
+    //ON_BN_CLICKED(IDC_RE_PARSE_BUTTON, &CChapterDlg::OnBnClickedReParseButton)
+    ON_LBN_SELCHANGE(IDC_LIST1, &CChapterDlg::OnLbnSelchangeList1)
 END_MESSAGE_MAP()
 
 
@@ -62,15 +83,6 @@ BOOL CChapterDlg::OnInitDialog()
     
     ShowData();
 
-    //计算当前进度的章节
-    for (const auto& item : g_data.GetChapter().GetChapterData())
-    {
-        if (item.first >= g_data.m_setting_data.current_position)
-        {
-            SetDlgItemText(IDC_CHRRENT_CHAPTER_STATIC, item.second.c_str());
-            break;
-        }
-    }
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -81,7 +93,7 @@ void CChapterDlg::OnOK()
 {
     // TODO: 在此添加专用代码和/或调用基类
     m_selected_position = -1;
-    if (IsWindow(m_lst_box.m_hWnd))
+    if (m_selected_changed && IsWindow(m_lst_box.m_hWnd))
     {
         int index = m_lst_box.GetCurSel();
         if (index >= 0 && index <= m_chapter_index.size())
@@ -92,9 +104,16 @@ void CChapterDlg::OnOK()
 }
 
 
-void CChapterDlg::OnBnClickedReParseButton()
+//void CChapterDlg::OnBnClickedReParseButton()
+//{
+//    // TODO: 在此添加控件通知处理程序代码
+//    g_data.GetChapter().Parse();
+//    ShowData();
+//}
+
+
+void CChapterDlg::OnLbnSelchangeList1()
 {
     // TODO: 在此添加控件通知处理程序代码
-    g_data.GetChapter().Parse();
-    ShowData();
+    m_selected_changed = true;
 }

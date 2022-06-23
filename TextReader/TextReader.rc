@@ -68,14 +68,13 @@ BEGIN
     CONTROL         "失去焦点时自动隐藏",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,83,114,10
 END
 
-IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 127
+IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 125
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
     LISTBOX         IDC_LIST1,7,7,153,95,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "重新获取章节(&R)",IDC_RE_PARSE_BUTTON,7,105,65,14
-    LTEXT           "当前章节：",IDC_STATIC,77,109,39,8
-    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,119,109,41,8
+    LTEXT           "当前章节：",IDC_STATIC,9,107,39,8
+    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,51,107,109,8
 END
 
 IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 237, 173
@@ -110,7 +109,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 160
         TOPMARGIN, 7
-        BOTTOMMARGIN, 120
+        BOTTOMMARGIN, 118
     END
 
     IDD_OPTIONS_CONTAINER_DLG, DIALOG
@@ -159,7 +158,6 @@ IDD_CHAPTER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0,
     0, 0, 100, 100,
-    0, 100, 0, 0,
     0, 100, 0, 0,
     0, 100, 100, 0
 END
@@ -224,6 +222,25 @@ IDI_ICON1               ICON                    "res\\reader.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "上一页(&P)\t↑",                  40001
+        MENUITEM "下一页(&N)\t↓",                  ID_NEXT
+        MENUITEM SEPARATOR
+        MENUITEM "选项(&O)...",                   40004
+        MENUITEM "章节(&C)...",                   40005
+        MENUITEM "书签(&B)...",                   40006
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -273,14 +290,13 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,129,10
 END
 
-IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 127
+IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 125
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
     LISTBOX         IDC_LIST1,7,7,177,95,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Re-acquire chapter",IDC_RE_PARSE_BUTTON,7,105,72,14
-    LTEXT           "Current chapter:",IDC_STATIC,82,109,59,8
-    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,143,109,41,8
+    LTEXT           "Current chapter:",IDC_STATIC,7,106,59,8
+    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,68,106,116,8
 END
 
 IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 280, 173
@@ -315,7 +331,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 184
         TOPMARGIN, 7
-        BOTTOMMARGIN, 120
+        BOTTOMMARGIN, 118
     END
 
     IDD_OPTIONS_CONTAINER_DLG, DIALOG
@@ -356,7 +372,6 @@ BEGIN
     0,
     0, 0, 100, 100,
     0, 100, 0, 0,
-    0, 100, 0, 0,
     0, 100, 100, 0
 END
 
@@ -366,6 +381,25 @@ BEGIN
     100, 100, 0, 0,
     100, 100, 0, 0,
     0, 0, 100, 100
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Previous\t?",                40001
+        MENUITEM "&Next\t?",                    ID_NEXT
+        MENUITEM SEPARATOR
+        MENUITEM "&Options...",                 40004
+        MENUITEM "&Chapters...",                40005
+        MENUITEM "&Bookmarks...",               40006
+    END
 END
 
 

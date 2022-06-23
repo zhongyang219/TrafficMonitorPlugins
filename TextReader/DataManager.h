@@ -40,8 +40,8 @@ public:
 
     int GetPageStep(CDC* dc);      //获取翻页步长，并保存在m_page_step中
 
-    void PageUp(int step);
-    void PageDown(int step);
+    void PageUp(int step = 0);
+    void PageDown(int step = 0);
 
     bool IsMultiLine() const;
     bool HasFocus() const;

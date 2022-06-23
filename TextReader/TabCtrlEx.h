@@ -7,29 +7,29 @@
 
 class CTabCtrlEx : public CTabCtrl
 {
-	DECLARE_DYNAMIC(CTabCtrlEx)
+    DECLARE_DYNAMIC(CTabCtrlEx)
 
 public:
-	CTabCtrlEx();
-	virtual ~CTabCtrlEx();
+    CTabCtrlEx();
+    virtual ~CTabCtrlEx();
 
-	void AddWindow(CWnd* pWnd, LPCTSTR lable_text);		//向当前tab控件添加一个子窗口
-	void SetCurTab(int index);
+    void AddWindow(CWnd* pWnd, LPCTSTR lable_text);		//向当前tab控件添加一个子窗口
+    void SetCurTab(int index);
     CWnd* GetCurrentTab();
     void AdjustTabWindowSize();
 
 protected:
     void CalSubWindowSize();
 
-	DECLARE_MESSAGE_MAP()
+    DECLARE_MESSAGE_MAP()
 
 protected:
-	std::vector<CWnd*> m_tab_list;		//保存tab控件每个子窗口的指针
+    std::vector<CWnd*> m_tab_list;		//保存tab控件每个子窗口的指针
 public:
-	afx_msg void OnTcnSelchange(NMHDR *pNMHDR, LRESULT *pResult);
-	virtual void PreSubclassWindow();
+    afx_msg void OnTcnSelchange(NMHDR *pNMHDR, LRESULT *pResult);
+    virtual void PreSubclassWindow();
 
-	CRect m_tab_rect;
+    CRect m_tab_rect;
     afx_msg void OnSize(UINT nType, int cx, int cy);
 };
 

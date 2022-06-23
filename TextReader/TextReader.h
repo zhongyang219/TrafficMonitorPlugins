@@ -17,13 +17,17 @@ public:
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
+    void ShowContextMenu(CWnd* pWnd);
 
 private:
+    int ShowOptionsDlg(CWnd* pParent, int cur_tab = 0);
+    void LoadContextMenu();
 
 private:
     static CTextReader m_instance;
     CTextReaderItem m_item;
     std::wstring m_tooltip_info;
+    CMenu m_menu;
 };
 
 #ifdef __cplusplus

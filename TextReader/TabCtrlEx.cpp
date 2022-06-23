@@ -20,36 +20,36 @@ CTabCtrlEx::~CTabCtrlEx()
 
 void CTabCtrlEx::AddWindow(CWnd* pWnd, LPCTSTR lable_text)
 {
-	if (pWnd == nullptr || pWnd->GetSafeHwnd() == NULL)
-		return;
+    if (pWnd == nullptr || pWnd->GetSafeHwnd() == NULL)
+        return;
 
     InsertItem(m_tab_list.size(), lable_text, m_tab_list.size());
 
-	pWnd->SetParent(this);
-	pWnd->MoveWindow(m_tab_rect);
+    pWnd->SetParent(this);
+    pWnd->MoveWindow(m_tab_rect);
 
-	m_tab_list.push_back(pWnd);
+    m_tab_list.push_back(pWnd);
 }
 
 void CTabCtrlEx::SetCurTab(int index)
 {
     if (index < 0 || index >= static_cast<int>(m_tab_list.size()))
         index = 0;
-	SetCurSel(index);
+    SetCurSel(index);
 
-	int tab_size = m_tab_list.size();
-	for (int i = 0; i < tab_size; i++)
-	{
-		if (i == index)
-		{
-			m_tab_list[i]->ShowWindow(SW_SHOW);
-			m_tab_list[i]->SetFocus();
-		}
-		else
-		{
-			m_tab_list[i]->ShowWindow(SW_HIDE);
-		}
-	}
+    int tab_size = m_tab_list.size();
+    for (int i = 0; i < tab_size; i++)
+    {
+        if (i == index)
+        {
+            m_tab_list[i]->ShowWindow(SW_SHOW);
+            m_tab_list[i]->SetFocus();
+        }
+        else
+        {
+            m_tab_list[i]->ShowWindow(SW_HIDE);
+        }
+    }
 }
 
 CWnd* CTabCtrlEx::GetCurrentTab()
@@ -87,7 +87,7 @@ void CTabCtrlEx::CalSubWindowSize()
 
 
 BEGIN_MESSAGE_MAP(CTabCtrlEx, CTabCtrl)
-	ON_NOTIFY_REFLECT(TCN_SELCHANGE, &CTabCtrlEx::OnTcnSelchange)
+    ON_NOTIFY_REFLECT(TCN_SELCHANGE, &CTabCtrlEx::OnTcnSelchange)
     ON_WM_SIZE()
 END_MESSAGE_MAP()
 
@@ -100,22 +100,22 @@ END_MESSAGE_MAP()
 
 void CTabCtrlEx::OnTcnSelchange(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	// TODO: 在此添加控件通知处理程序代码
-	int tab_selected = GetCurSel();
-	SetCurTab(tab_selected);
+    // TODO: 在此添加控件通知处理程序代码
+    int tab_selected = GetCurSel();
+    SetCurTab(tab_selected);
 
-	*pResult = 0;
+    *pResult = 0;
 }
 
 
 void CTabCtrlEx::PreSubclassWindow()
 {
-	// TODO: 在此添加专用代码和/或调用基类
+    // TODO: 在此添加专用代码和/或调用基类
 
-	//计算子窗口的位置
+    //计算子窗口的位置
     CalSubWindowSize();
 
-	CTabCtrl::PreSubclassWindow();
+    CTabCtrl::PreSubclassWindow();
 }
 
 

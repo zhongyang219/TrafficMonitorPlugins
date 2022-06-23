@@ -39,20 +39,9 @@ void CTextReader::DataRequired()
 
 ITMPlugin::OptionReturn CTextReader::ShowOptionsDialog(void* hParent)
 {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CWnd* pParent = CWnd::FromHandle((HWND)hParent);
-    COptionsContainerDlg dlg(0, pParent);
-    dlg.m_options_dlg.m_data = g_data.m_setting_data;
-    if (dlg.DoModal() == IDOK)
-    {
-        g_data.m_setting_data = dlg.m_options_dlg.m_data;
-        int chapter_position = dlg.m_chapter_dlg.GetSelectedPosition();
-        if (chapter_position >= 0)
-            g_data.m_setting_data.current_position = chapter_position;
-        g_data.SaveConfig();
-        return ITMPlugin::OR_OPTION_CHANGED;
-    }
-    return ITMPlugin::OR_OPTION_UNCHANGED;
+    int result = ShowOptionsDlg(pParent);
+    return (result == IDOK ? ITMPlugin::OR_OPTION_CHANGED : ITMPlugin::OR_OPTION_UNCHANGED);
 }
 
 const wchar_t* CTextReader::GetInfo(PluginInfoIndex index)
@@ -93,6 +82,69 @@ void CTextReader::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         break;
     }
 }
+
+
+void CTextReader::ShowContextMenu(CWnd* pWnd)
+{
+    LoadContextMenu();
+    CMenu* context_menu = m_menu.GetSubMenu(0);
+    if (context_menu != nullptr)
+    {
+        CPoint point1;
+        GetCursorPos(&point1);
+        DWORD id = context_menu->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, point1.x, point1.y, pWnd);
+        //点击了“选项”
+        if (id == ID_OPTIONS)
+        {
+            ShowOptionsDlg(pWnd);
+        }
+        //点击了“章节”
+        else if (id == ID_CHAPTERS)
+        {
+            ShowOptionsDlg(pWnd, 1);
+        }
+        //点击了“上一页”
+        else if (id == ID_PREVIOUS)
+        {
+            g_data.PageUp();
+        }
+        //点击了“下一页”
+        else if (id == ID_NEXT)
+        {
+            g_data.PageDown();
+        }
+    }
+
+}
+
+
+int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    COptionsContainerDlg dlg(cur_tab, pParent);
+    dlg.m_options_dlg.m_data = g_data.m_setting_data;
+    int rtn = dlg.DoModal();
+    if (rtn == IDOK)
+    {
+        g_data.m_setting_data = dlg.m_options_dlg.m_data;
+        int chapter_position = dlg.m_chapter_dlg.GetSelectedPosition();
+        if (chapter_position >= 0)
+            g_data.m_setting_data.current_position = chapter_position;
+        g_data.SaveConfig();
+    }
+    return rtn;
+}
+
+void CTextReader::LoadContextMenu()
+{
+    if (m_menu.m_hMenu == NULL)
+    {
+        AFX_MANAGE_STATE(AfxGetStaticModuleState());
+        m_menu.LoadMenu(IDR_MENU1);
+    }
+
+}
+
 
 ITMPlugin* TMPluginGetInstance()
 {

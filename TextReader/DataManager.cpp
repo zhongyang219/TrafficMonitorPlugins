@@ -189,6 +189,8 @@ int CDataManager::GetPageStep(CDC* dc)
 
 void CDataManager::PageUp(int step)
 {
+    if (step <= 0)
+        step = m_page_step;
     if (m_boss_key_pressed)
         return;
     if (m_setting_data.current_position > 0)
@@ -199,6 +201,8 @@ void CDataManager::PageUp(int step)
 
 void CDataManager::PageDown(int step)
 {
+    if (step <= 0)
+        step = m_page_step;
     if (m_boss_key_pressed)
         return;
     const int MAX_POS = GetTextContexts().size() - 2;

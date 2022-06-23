@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "TextReaderItem.h"
 #include "DataManager.h"
+#include "TextReader.h"
 
 const wchar_t* CTextReaderItem::GetItemName() const
 {
@@ -44,7 +45,7 @@ void CTextReaderItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_
 {
     g_data.m_draw_width = w;
     static std::wstring text;
-    bool hide{ g_data.m_setting_data.hide_when_lose_focus && g_data.m_wnd != nullptr && !g_data.HasFocus() };   //窗口没有没有焦点时，显示文本消失
+    bool hide{ g_data.m_setting_data.hide_when_lose_focus && !g_data.HasFocus() };   //窗口没有没有焦点时，显示文本消失
     if (g_data.m_boss_key_pressed || hide)                              //按下老板键，显示文本消失
     {
         text.clear();
@@ -78,6 +79,7 @@ void CTextReaderItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_
 int CTextReaderItem::OnMouseEvent(MouseEventType type, int x, int y, void * hWnd, int flag)
 {
     g_data.m_wnd = (HWND)hWnd;
+    CWnd* pWnd = CWnd::FromHandle((HWND)hWnd);
     if (type == IPluginItem::MT_LCLICKED)
     {
         g_data.PageDown(g_data.m_page_step);
@@ -87,6 +89,12 @@ int CTextReaderItem::OnMouseEvent(MouseEventType type, int x, int y, void * hWnd
     {
         return 1;
     }
+    else if (type == IPluginItem::MT_RCLICKED)
+    {
+        CTextReader::Instance().ShowContextMenu(pWnd);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -105,12 +113,12 @@ int CTextReaderItem::OnKeboardEvent(int key, bool ctrl, bool shift, bool alt, vo
     }
     else if (key == VK_UP)
     {
-        g_data.PageUp(g_data.m_page_step);
+        g_data.PageUp();
         return 1;
     }
     else if (key == VK_DOWN)
     {
-        g_data.PageDown(g_data.m_page_step);
+        g_data.PageDown();
     }
     else if (key == VK_SPACE)
     {
