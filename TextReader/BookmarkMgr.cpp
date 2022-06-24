@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "BookmarkMgr.h"
 #include "Common.h"
 
@@ -23,9 +23,11 @@ void CBookmarkMgr::LoadFromConfig(const std::wstring& config_file_path)
     {
         std::vector<std::wstring> bookmarks_a_file;
         CCommon::StringSplit(file_bookmarks, L"|", bookmarks_a_file);
-        std::wstring file_name;
-        if (!bookmarks_a_file.empty())
-            file_name = bookmarks_a_file[0];
+        if (bookmarks_a_file.empty())
+            continue;
+        std::wstring file_name = bookmarks_a_file[0];
+        if (file_name.empty())
+            continue;
         std::set<int> bookmark_indexes;
         if (bookmarks_a_file.size() >= 2)
         {
@@ -45,10 +47,10 @@ void CBookmarkMgr::SaveToConfig(const std::wstring& config_file_path) const
     std::wstring str_save;
     for (const auto& file_bookmark : m_bookmarks)
     {
-        if (file_bookmark.first.empty())
+        if (file_bookmark.first.empty() || file_bookmark.second.empty())
             continue;
         str_save += file_bookmark.first;
-        str_save += L"|,";
+        str_save += L"|";
         for (const auto& index : file_bookmark.second)
         {
             wchar_t buff[16];
@@ -56,6 +58,7 @@ void CBookmarkMgr::SaveToConfig(const std::wstring& config_file_path) const
             str_save += buff;
             str_save += L',';
         }
+        str_save.pop_back();
         str_save += L"||";
     }
     WritePrivateProfileString(_T("config"), _T("bookmarks"), str_save.c_str(), config_file_path.c_str());

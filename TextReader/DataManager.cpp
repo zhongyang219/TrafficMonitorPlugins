@@ -223,6 +223,7 @@ void CDataManager::PageDown(int step)
 void CDataManager::AddBookmark()
 {
     m_bookmark_mgr.AddBookmark(m_setting_data.file_path, m_setting_data.current_position);
+    g_data.SaveConfig();
 }
 
 bool CDataManager::IsMultiLine() const

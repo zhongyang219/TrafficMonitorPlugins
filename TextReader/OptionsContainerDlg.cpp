@@ -42,6 +42,7 @@ void COptionsContainerDlg::OnOK()
     // TODO: 在此添加专用代码和/或调用基类
     m_options_dlg.OnOK();
     m_chapter_dlg.OnOK();
+    m_bookmark_dlg.OnOK();
 
     CDialog::OnOK();
 }
@@ -71,6 +72,7 @@ BOOL COptionsContainerDlg::OnInitDialog()
     m_tab_ctrl.AddWindow(&m_options_dlg, g_data.StringRes(IDS_SETTINGS));
     m_tab_ctrl.AddWindow(&m_chapter_dlg, g_data.StringRes(IDS_CHAPTERS));
     m_tab_ctrl.AddWindow(&m_bookmark_dlg, g_data.StringRes(IDS_BOOKMARK));
+    m_bookmark_dlg.AdjustColumeWidth();
 
     //设置默认选中的标签
     if (m_tab_selected < 0 || m_tab_selected >= m_tab_ctrl.GetItemCount())

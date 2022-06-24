@@ -140,6 +140,9 @@ int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
         int chapter_position = dlg.m_chapter_dlg.GetSelectedPosition();
         if (chapter_position >= 0)
             g_data.m_setting_data.current_position = chapter_position;
+        int boolmark_position = dlg.m_bookmark_dlg.GetSelectedPosition();
+        if (boolmark_position >= 0)
+            g_data.m_setting_data.current_position = boolmark_position;
         g_data.SaveConfig();
     }
     return rtn;

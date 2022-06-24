@@ -10,7 +10,7 @@ const wchar_t* CTextReaderItem::GetItemName() const
 
 const wchar_t* CTextReaderItem::GetItemId() const
 {
-	//TODO: 在此返回插件的唯一ID，建议只包含字母和数字
+    //TODO: 在此返回插件的唯一ID，建议只包含字母和数字
     return L"W5XuBvH0";
 }
 
@@ -31,7 +31,7 @@ const wchar_t* CTextReaderItem::GetItemValueSampleText() const
 
 bool CTextReaderItem::IsCustomDraw() const
 {
-	//TODO: 根据是否由插件自绘返回对应的值
+    //TODO: 根据是否由插件自绘返回对应的值
     return true;
 }
 

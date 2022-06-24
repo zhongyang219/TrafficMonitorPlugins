@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <map>
 class CChapterParser
@@ -8,10 +8,11 @@ public:
     ~CChapterParser();
     void Parse();
     const std::map<int, std::wstring>& GetChapterData() const;
+    std::wstring GetChapterTitle(int chapter_index) const;
+    int GetChapterIndexByPos(int pos) const;
     std::wstring GetChapterByPos(int pos) const;
 
 private:
     const std::wstring& m_contents;
-    std::map<int, std::wstring> m_chapter;      //ÕÂ½Ú±êÌâ¡£keyÖĞË÷Òı£¬valueÎªÕÂ½Ú±êÌâ
+    std::map<int, std::wstring> m_chapter;      //ç« èŠ‚æ ‡é¢˜ã€‚keyä¸­ç´¢å¼•ï¼Œvalueä¸ºç« èŠ‚æ ‡é¢˜
 };
-

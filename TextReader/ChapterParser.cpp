@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "ChapterParser.h"
 
 
@@ -18,10 +18,10 @@ void CChapterParser::Parse()
     size_t index = -1;
     while (true)
     {
-        index = m_contents.find(L"µÚ", index + 1);
+        index = m_contents.find(L"ç¬¬", index + 1);
         if (index == std::wstring::npos)
             break;
-        size_t index1 = m_contents.find(L"ÕÂ", index + 2);
+        size_t index1 = m_contents.find(L"ç« ", index + 2);
         if (index1 == std::wstring::npos)
             break;
         if (index1 - index < 10)
@@ -62,15 +62,33 @@ const std::map<int, std::wstring>& CChapterParser::GetChapterData() const
     return m_chapter;
 }
 
-std::wstring CChapterParser::GetChapterByPos(int pos) const
+std::wstring CChapterParser::GetChapterTitle(int chapter_index) const
 {
-    int cur_chapter_position{};
-    for (const auto& item : m_chapter)
+    if (chapter_index >= 0)
     {
-        if (item.first >= pos)
-        {
-            return item.second;
-        }
+        auto iter = m_chapter.find(chapter_index);
+        if (iter != m_chapter.end())
+            return iter->second;
     }
     return std::wstring();
+}
+
+int CChapterParser::GetChapterIndexByPos(int pos) const
+{
+    for (auto iter = m_chapter.begin(); iter != m_chapter.end(); ++iter)
+    {
+        if (iter->first >= pos)
+        {
+            auto privious_iter = iter;
+            return (--privious_iter)->first;
+        }
+
+    }
+    return -1;
+}
+
+std::wstring CChapterParser::GetChapterByPos(int pos) const
+{
+    int chapter_index = GetChapterIndexByPos(pos);
+    return GetChapterTitle(chapter_index);
 }

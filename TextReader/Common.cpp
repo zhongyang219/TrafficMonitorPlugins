@@ -67,7 +67,7 @@ bool CCommon::IsUTF8Bytes(const char* data)
             charByteCounter--;
         }
     }
-    if (ascii) return false;		//如果全是ASCII字符，返回false
+    if (ascii) return false;        //如果全是ASCII字符，返回false
     else return true;
 }
 

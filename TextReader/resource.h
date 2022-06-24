@@ -31,6 +31,7 @@
 #define IDC_LIST1                       1009
 #define IDC_RE_PARSE_BUTTON             1010
 #define IDC_CHRRENT_CHAPTER_STATIC      1011
+#define IDC_PERCENT_STATIC              1012
 #define ID_PREVIOUS                     40001
 #define ID_1_40002                      40002
 #define ID_NEXT                         40003
@@ -46,7 +47,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1012
+#define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
