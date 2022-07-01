@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "ChapterParser.h"
+#include "DataManager.h"
 
 
 CChapterParser::CChapterParser(const std::wstring& contents)
@@ -71,6 +72,12 @@ std::wstring CChapterParser::GetChapterTitle(int chapter_index) const
             return iter->second;
     }
     return std::wstring();
+}
+
+std::wstring CChapterParser::GetCurrentChapterTitle() const
+{
+    int chapter_index = GetChapterIndexByPos(g_data.m_setting_data.current_position);
+    return GetChapterTitle(chapter_index);
 }
 
 int CChapterParser::GetChapterIndexByPos(int pos) const

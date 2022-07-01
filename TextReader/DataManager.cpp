@@ -56,8 +56,11 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
     m_setting_data.current_position = GetPrivateProfileInt(_T("config"), _T("current_position"), 0, m_config_path.c_str());
     m_setting_data.window_width = GetPrivateProfileInt(_T("config"), _T("window_width"), 180, m_config_path.c_str());
+    m_setting_data.show_in_tooltips = GetPrivateProfileInt(_T("config"), _T("show_in_tooltips"), 0, m_config_path.c_str());
     m_setting_data.enable_mulit_line = GetPrivateProfileInt(_T("config"), _T("enable_mulit_line"), 0, m_config_path.c_str());
     m_setting_data.hide_when_lose_focus = GetPrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), 0, m_config_path.c_str());
+    m_setting_data.auto_read = GetPrivateProfileInt(_T("config"), _T("auto_read"), 0, m_config_path.c_str());
+    m_setting_data.auto_read_timer_interval = GetPrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), 2000, m_config_path.c_str());
 
     //载入书签
     m_bookmark_mgr.LoadFromConfig(m_config_path);
@@ -71,8 +74,11 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileString(_T("config"), _T("file_path"), m_setting_data.file_path.c_str(), m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("current_position"), m_setting_data.current_position, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("window_width"), m_setting_data.window_width, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("show_in_tooltips"), m_setting_data.show_in_tooltips, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("enable_mulit_line"), m_setting_data.enable_mulit_line, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), m_setting_data.hide_when_lose_focus, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("auto_read"), m_setting_data.auto_read, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), m_setting_data.auto_read_timer_interval, m_config_path.c_str());
 
         //保存书签
         m_bookmark_mgr.SaveToConfig(m_config_path);

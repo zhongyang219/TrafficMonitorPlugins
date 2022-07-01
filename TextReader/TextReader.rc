@@ -50,13 +50,13 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 213, 135
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 218, 135
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
     LTEXT           "打开文件：",IDC_STATIC,7,7,43,8
-    EDITTEXT        IDC_FILE_PATH_EDIT,7,19,146,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "浏览(&B)...",IDC_BROWSE_BUTTON,156,18,50,14
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,19,150,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "浏览(&B)...",IDC_BROWSE_BUTTON,161,18,50,14
     LTEXT           "阅读位置:",IDC_STATIC,7,38,40,8
     EDITTEXT        IDC_READ_POSITION_EDIT,47,37,38,12,ES_AUTOHSCROLL
     LTEXT           "字，总共",IDC_STATIC,89,38,30,8
@@ -64,9 +64,14 @@ BEGIN
     EDITTEXT        IDC_WINDOW_WIDTH_EDIT,47,53,38,12,ES_AUTOHSCROLL
     RTEXT           "",IDC_TOTAL_CHAR_STATIC,122,38,38,8
     LTEXT           "字",IDC_STATIC,164,38,12,8
-    CONTROL         "允许多行显示",IDC_ENABLE_MULTI_LINE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,70,117,10
+    CONTROL         "允许多行显示",IDC_ENABLE_MULTI_LINE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,111,69,77,10
     CONTROL         "失去焦点时自动隐藏",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,83,114,10
-    LTEXT           "",IDC_PERCENT_STATIC,179,38,24,8
+    LTEXT           "",IDC_PERCENT_STATIC,179,38,32,8
+    CONTROL         "自动翻页",IDC_AUTO_READ_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,96,49,10
+    LTEXT           "自动翻页时间间隔：",IDC_STATIC,60,97,71,8
+    EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,130,96,40,12,ES_AUTOHSCROLL
+    LTEXT           "毫秒",IDC_STATIC,173,98,35,8
+    CONTROL         "在鼠标提示中显示",IDC_SHOT_TOOLTIP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,69,86,10
 END
 
 IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 125
@@ -107,7 +112,7 @@ BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 206
+        RIGHTMARGIN, 211
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
@@ -150,6 +155,11 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -256,6 +266,9 @@ BEGIN
         MENUITEM "下一页(&N)\t↓",                  ID_NEXT
         MENUITEM "添加书签(&A)",                    ID_ADD_BOOKMARK
         MENUITEM SEPARATOR
+        MENUITEM "开启自动翻页(&P)",                  40009
+        MENUITEM "停止自动翻页(&S)",                  40010
+        MENUITEM SEPARATOR
         MENUITEM "选项(&O)...",                   40004
         MENUITEM "章节(&C)...",                   40005
         MENUITEM "书签(&B)...",                   40006
@@ -284,6 +297,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_CHAPTER             "章节"
+    IDS_OPEN_FILE           "打开文件"
+    IDS_READ_POSITION       "阅读位置"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -302,13 +317,13 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 260, 135
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 266, 135
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
     LTEXT           "Open File:",IDC_STATIC,7,8,43,9
-    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,192,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "&Browse...",IDC_BROWSE_BUTTON,203,20,50,16
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,198,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "&Browse...",IDC_BROWSE_BUTTON,209,20,50,16
     LTEXT           "Read position:",IDC_STATIC,7,43,56,9
     EDITTEXT        IDC_READ_POSITION_EDIT,61,42,37,12,ES_AUTOHSCROLL
     LTEXT           "charactors, total",IDC_STATIC,100,43,55,9
@@ -317,10 +332,15 @@ BEGIN
     RTEXT           "",IDC_TOTAL_CHAR_STATIC,154,43,33,9
     LTEXT           "charactors.",IDC_STATIC,191,43,38,9
     CONTROL         "Enable multi line display",IDC_ENABLE_MULTI_LINE_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,77,117,11
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,115,76,117,11
     CONTROL         "Auto hide when lose focus",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,129,10
-    LTEXT           "",IDC_PERCENT_STATIC,228,43,25,9
+    LTEXT           "",IDC_PERCENT_STATIC,227,43,32,9
+    CONTROL         "Auto page turning",IDC_AUTO_READ_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,104,76,11
+    LTEXT           "Auto page turn interval:",IDC_STATIC,99,105,81,9
+    EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,180,104,40,12,ES_AUTOHSCROLL
+    LTEXT           "ms",IDC_STATIC,223,106,35,9
+    CONTROL         "Show in tooltops",IDC_SHOT_TOOLTIP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,77,101,11
 END
 
 IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 125
@@ -332,14 +352,14 @@ BEGIN
     LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,68,106,116,8
 END
 
-IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 280, 173
+IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 284, 173
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Text reader settings"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,167,152,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,223,152,50,14
-    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,266,142
+    DEFPUSHBUTTON   "OK",IDOK,171,152,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,227,152,50,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,270,142
 END
 
 
@@ -354,7 +374,7 @@ BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 253
+        RIGHTMARGIN, 259
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
@@ -370,7 +390,7 @@ BEGIN
     IDD_OPTIONS_CONTAINER_DLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 273
+        RIGHTMARGIN, 277
         TOPMARGIN, 7
         BOTTOMMARGIN, 166
     END
@@ -389,6 +409,11 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -427,8 +452,8 @@ IDR_MENU1 MENU
 BEGIN
     POPUP "1"
     BEGIN
-        MENUITEM "&Previous\t?",                40001
-        MENUITEM "&Next\t?",                    ID_NEXT
+        MENUITEM "&Previous\tUp",               40001
+        MENUITEM "&Next\tDown",                 ID_NEXT
         MENUITEM SEPARATOR
         MENUITEM "&Options...",                 40004
         MENUITEM "&Chapters...",                40005
@@ -458,6 +483,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_CHAPTER             "Chapter"
+    IDS_OPEN_FILE           "Open file"
+    IDS_READ_POSITION       "Read position"
 END
 
 #endif    // 英语(美国) resources

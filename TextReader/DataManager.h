@@ -14,8 +14,11 @@ struct SettingData
     std::wstring file_path;     //文本文件路径
     int window_width;           //窗口宽度
     int current_position;       //当前阅读位置（字）
+    bool show_in_tooltips;         //在鼠标提示中显示
     bool enable_mulit_line;     //允许多行显示
     bool hide_when_lose_focus;    //失去焦点时不显示
+    bool auto_read;             //自动阅读
+    int auto_read_timer_interval;   //自动阅读的时间间隔
 };
 
 class CDataManager

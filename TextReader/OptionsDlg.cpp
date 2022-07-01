@@ -53,8 +53,13 @@ BOOL COptionsDlg::OnInitDialog()
     SetDlgItemText(IDC_TOTAL_CHAR_STATIC, str);
     str.Format(_T("(%.2f%%)"), static_cast<double>(m_data.current_position) * 100 / g_data.GetTextContexts().size());
     SetDlgItemText(IDC_PERCENT_STATIC, str);
+    CheckDlgButton(IDC_SHOT_TOOLTIP_CHECK, m_data.show_in_tooltips);
     CheckDlgButton(IDC_ENABLE_MULTI_LINE_CHECK, m_data.enable_mulit_line);
     CheckDlgButton(IDC_HIDE_WHEN_LOSE_FOCUS_CHECK, m_data.hide_when_lose_focus);
+
+    CheckDlgButton(IDC_AUTO_READ_CHECK, m_data.auto_read);
+    str.Format(_T("%d"), m_data.auto_read_timer_interval);
+    SetDlgItemText(IDC_AUTO_READ_INTERVAL_EDIT, str);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -90,8 +95,14 @@ void COptionsDlg::OnOK()
     CString window_width_str;
     GetDlgItemText(IDC_WINDOW_WIDTH_EDIT, window_width_str);
     m_data.window_width = _ttoi(window_width_str);
+    m_data.show_in_tooltips = (IsDlgButtonChecked(IDC_SHOT_TOOLTIP_CHECK) != 0);
     m_data.enable_mulit_line = (IsDlgButtonChecked(IDC_ENABLE_MULTI_LINE_CHECK) != 0);
     m_data.hide_when_lose_focus = (IsDlgButtonChecked(IDC_HIDE_WHEN_LOSE_FOCUS_CHECK) != 0);
+
+    m_data.auto_read = (IsDlgButtonChecked(IDC_AUTO_READ_CHECK) != 0);
+    CString auto_read_interval;
+    GetDlgItemText(IDC_AUTO_READ_INTERVAL_EDIT, auto_read_interval);
+    m_data.auto_read_timer_interval = _ttoi(auto_read_interval);
 
     CDialogEx::OnOK();
 }
