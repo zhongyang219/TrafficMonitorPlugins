@@ -44,6 +44,8 @@
 
 作者：[Haojia521](https://github.com/Haojia521)
 
+主页：[Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
+
 下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
 ---
@@ -86,5 +88,30 @@
 
 作者：[AzulEterno](https://github.com/AzulEterno)
 
+主页：[AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
+
 下载链接：[32位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x86/PowerMonPlugin.dll) [64位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x64/PowerMonPlugin.dll)
 
+---
+
+### 文本阅读器插件
+
+![image-20220701210850528](images/image-20220701210850528.png)
+
+![image-20220701210924879](images/image-20220701210924879.png)
+
+<img src="images/image-20220701210937320.png" alt="image-20220701210937320" style="zoom:80%;" />
+
+<img src="images/image-20220701210958111.png" alt="image-20220701210958111" style="zoom:80%;" />
+
+<img src="images/image-20220701211005791.png" alt="image-20220701211005791" style="zoom:80%;" />
+
+文本阅读器插件可用于在任务栏阅读文本文件。具有章节识别、书签、自动翻页等功能。
+
+使用鼠标点击或下方向键可以向后翻页，上方向键向前翻页，左右方向键可以一次移动一个字符。
+
+由于TrafficMonitor 1.83版本还不支持向插件传递键盘事件，因此在使用此插件时无法使用键操作，请等TrafficMonitor下个版本更新。
+
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x64.zip?raw=true)
+
+---
