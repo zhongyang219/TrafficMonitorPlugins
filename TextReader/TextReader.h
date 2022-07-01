@@ -24,8 +24,6 @@ private:
     int ShowOptionsDlg(CWnd* pParent, int cur_tab = 0);
     void LoadContextMenu();
 
-    static void TimerCallBack(HWND, UINT, UINT_PTR, DWORD);
-
 private:
     static CTextReader m_instance;
     CTextReaderItem m_item;

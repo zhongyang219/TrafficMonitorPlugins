@@ -166,7 +166,10 @@ void CTextReader::SetAutoReadTimer()
         KillTimer(NULL, m_timer_id);
     if (g_data.m_setting_data.auto_read)
     {
-        m_timer_id = SetTimer(NULL, 1008, g_data.m_setting_data.auto_read_timer_interval, CTextReader::TimerCallBack);
+        m_timer_id = SetTimer(NULL, 1008, g_data.m_setting_data.auto_read_timer_interval, [](HWND, UINT, UINT_PTR, DWORD)
+            {
+                g_data.PageDown();
+            });
     }
 }
 
@@ -207,12 +210,6 @@ void CTextReader::LoadContextMenu()
         m_menu.LoadMenu(IDR_MENU1);
     }
 
-}
-
-
-void CTextReader::TimerCallBack(HWND, UINT, UINT_PTR, DWORD)
-{
-    g_data.PageDown();
 }
 
 ITMPlugin* TMPluginGetInstance()
