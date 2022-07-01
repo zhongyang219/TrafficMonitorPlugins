@@ -88,3 +88,14 @@
 
 下载链接：[32位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x86/PowerMonPlugin.dll) [64位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x64/PowerMonPlugin.dll)
 
+---
+
+### 番茄钟插件
+
+![](images/img-pomodoro-timer.png)
+
+提供基本的番茄时间管理功能。红色图标代表工作时段，绿色代表休息时段。
+
+作者：[Haojia521](https://github.com/Haojia521)
+
+下载链接：[PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
