@@ -18,6 +18,7 @@ public:
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
     void ShowContextMenu(CWnd* pWnd);
+    void SetAutoReadTimer();
 
 private:
     int ShowOptionsDlg(CWnd* pParent, int cur_tab = 0);
@@ -26,8 +27,8 @@ private:
 private:
     static CTextReader m_instance;
     CTextReaderItem m_item;
-    std::wstring m_tooltip_info;
     CMenu m_menu;
+    int m_timer_id{};
 };
 
 #ifdef __cplusplus

@@ -3,6 +3,8 @@
 #include "DataManager.h"
 #include "OptionsDlg.h"
 #include "OptionsContainerDlg.h"
+#include <sstream>
+#include <iomanip>
 
 CTextReader CTextReader::m_instance;
 
@@ -29,7 +31,19 @@ IPluginItem* CTextReader::GetItem(int index)
 
 const wchar_t* CTextReader::GetTooltipInfo()
 {
-    return m_tooltip_info.c_str();
+    static std::wstring tooltip_info;
+    tooltip_info.clear();
+    if (g_data.m_setting_data.show_in_tooltips)
+    {
+        std::wstringstream stream;
+        stream << g_data.StringRes(IDS_OPEN_FILE).GetString() << L": " << g_data.m_setting_data.file_path << L"\r\n";
+        std::wstring cur_chapter = g_data.GetChapter().GetCurrentChapterTitle();
+        if (!cur_chapter.empty())
+            stream << g_data.StringRes(IDS_CHAPTER).GetString() << L": " << cur_chapter << L"\r\n";
+        stream << g_data.StringRes(IDS_READ_POSITION).GetString() << L": " << std::setiosflags(std::ios::fixed) << std::setprecision(2) << static_cast<double>(g_data.m_setting_data.current_position) * 100 / g_data.GetTextContexts().size() << "%";
+        tooltip_info = stream.str();
+    }
+    return tooltip_info.c_str();
 }
 
 void CTextReader::DataRequired()
@@ -77,6 +91,7 @@ void CTextReader::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     case ITMPlugin::EI_CONFIG_DIR:
         //从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
+        SetAutoReadTimer();
         break;
     default:
         break;
@@ -123,8 +138,39 @@ void CTextReader::ShowContextMenu(CWnd* pWnd)
         {
             g_data.AddBookmark();
         }
+        //点击了“开启自动翻页”
+        else if (id == ID_START_AUTO_READ)
+        {
+            if (!g_data.m_setting_data.auto_read)
+            {
+                g_data.m_setting_data.auto_read = true;
+                SetAutoReadTimer();
+            }
+        }
+        //点击了“停止自动翻页”
+        else if (id == ID_STOP_AUTO_READ)
+        {
+            if (g_data.m_setting_data.auto_read)
+            {
+                g_data.m_setting_data.auto_read = false;
+                SetAutoReadTimer();
+            }
+        }
     }
 
+}
+
+void CTextReader::SetAutoReadTimer()
+{
+    if (m_timer_id != 0)
+        KillTimer(NULL, m_timer_id);
+    if (g_data.m_setting_data.auto_read)
+    {
+        m_timer_id = SetTimer(NULL, 1008, g_data.m_setting_data.auto_read_timer_interval, [](HWND, UINT, UINT_PTR, DWORD)
+            {
+                g_data.PageDown();
+            });
+    }
 }
 
 
@@ -136,6 +182,8 @@ int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
     int rtn = dlg.DoModal();
     if (rtn == IDOK)
     {
+        bool auto_read_changed{ g_data.m_setting_data.auto_read != dlg.m_options_dlg.m_data.auto_read || g_data.m_setting_data.auto_read_timer_interval != dlg.m_options_dlg.m_data.auto_read_timer_interval };
+
         g_data.m_setting_data = dlg.m_options_dlg.m_data;
         int chapter_position = dlg.m_chapter_dlg.GetSelectedPosition();
         if (chapter_position >= 0)
@@ -143,6 +191,12 @@ int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
         int boolmark_position = dlg.m_bookmark_dlg.GetSelectedPosition();
         if (boolmark_position >= 0)
             g_data.m_setting_data.current_position = boolmark_position;
+        
+        if (auto_read_changed)
+        {
+            SetAutoReadTimer();
+        }
+
         g_data.SaveConfig();
     }
     return rtn;
@@ -157,7 +211,6 @@ void CTextReader::LoadContextMenu()
     }
 
 }
-
 
 ITMPlugin* TMPluginGetInstance()
 {

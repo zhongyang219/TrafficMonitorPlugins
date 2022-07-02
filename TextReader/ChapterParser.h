@@ -9,6 +9,7 @@ public:
     void Parse();
     const std::map<int, std::wstring>& GetChapterData() const;
     std::wstring GetChapterTitle(int chapter_index) const;
+    std::wstring GetCurrentChapterTitle() const;
     int GetChapterIndexByPos(int pos) const;
     std::wstring GetChapterByPos(int pos) const;
 

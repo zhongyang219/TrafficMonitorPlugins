@@ -18,6 +18,8 @@
 #define IDD_BOOKMARK_DLG                111
 #define IDS_BOOKMARK_CONTENTS           111
 #define IDS_CHAPTER                     112
+#define IDS_OPEN_FILE                   113
+#define IDS_READ_POSITION               114
 #define IDC_FILE_PATH_EDIT              1000
 #define IDC_BROWSE_BUTTON               1001
 #define IDC_READ_POSITION_EDIT          1002
@@ -32,6 +34,10 @@
 #define IDC_RE_PARSE_BUTTON             1010
 #define IDC_CHRRENT_CHAPTER_STATIC      1011
 #define IDC_PERCENT_STATIC              1012
+#define IDC_AUTO_READ_CHECK             1013
+#define IDC_AUTO_READ_INTERVAL_EDIT     1014
+#define IDC_CHECK3                      1015
+#define IDC_SHOT_TOOLTIP_CHECK          1015
 #define ID_PREVIOUS                     40001
 #define ID_1_40002                      40002
 #define ID_NEXT                         40003
@@ -40,14 +46,16 @@
 #define ID_BOOKMARKS                    40006
 #define ID_1_40007                      40007
 #define ID_ADD_BOOKMARK                 40008
+#define ID_START_AUTO_READ              40009
+#define ID_STOP_AUTO_READ               40010
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        112
-#define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1013
+#define _APS_NEXT_COMMAND_VALUE         40011
+#define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
