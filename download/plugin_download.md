@@ -40,7 +40,7 @@
 
 ![img-weather-pro](images/img-weather-pro.png)
 
-用于显示天气的插件，支持搜索选择城市、区县、乡镇和部分街道地址（目前仅支持中国区地址）。及时丰富的实时天气信息，支持显示天气预警。
+用于显示天气的插件。支持网页抓取与和风天气API两种数据源。
 
 作者：[Haojia521](https://github.com/Haojia521)
 
@@ -94,6 +94,18 @@
 
 ---
 
+### 番茄钟插件
+
+![](images/img-pomodoro-timer.png)
+
+提供基本的番茄时间管理功能。红色图标代表工作时段，绿色代表休息时段。
+
+作者：[Haojia521](https://github.com/Haojia521)
+
+下载链接：[PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+
+---
+
 ### 文本阅读器插件
 
 ![image-20220701210850528](images/image-20220701210850528.png)
@@ -115,3 +127,4 @@
 下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x64.zip?raw=true)
 
 ---
+
