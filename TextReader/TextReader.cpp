@@ -108,6 +108,11 @@ void CTextReader::ShowContextMenu(CWnd* pWnd)
 {
     LoadContextMenu();
     CMenu* context_menu = m_menu.GetSubMenu(0);
+
+    //设置菜单状态
+    context_menu->CheckMenuItem(ID_START_AUTO_READ, MF_BYCOMMAND | (g_data.m_setting_data.auto_read ? MF_CHECKED : MF_UNCHECKED));
+    context_menu->CheckMenuItem(ID_HIDE, MF_BYCOMMAND | (g_data.m_boss_key_pressed ? MF_CHECKED : MF_UNCHECKED));
+
     if (context_menu != nullptr)
     {
         CPoint point1;
@@ -143,23 +148,16 @@ void CTextReader::ShowContextMenu(CWnd* pWnd)
         {
             g_data.AddBookmark();
         }
-        //点击了“开启自动翻页”
+        //点击了“自动翻页”
         else if (id == ID_START_AUTO_READ)
         {
-            if (!g_data.m_setting_data.auto_read)
-            {
-                g_data.m_setting_data.auto_read = true;
-                SetAutoReadTimer();
-            }
+            g_data.m_setting_data.auto_read = !g_data.m_setting_data.auto_read;
+            SetAutoReadTimer();
         }
-        //点击了“停止自动翻页”
-        else if (id == ID_STOP_AUTO_READ)
+        //点击了“隐藏”
+        else if (id == ID_HIDE)
         {
-            if (g_data.m_setting_data.auto_read)
-            {
-                g_data.m_setting_data.auto_read = false;
-                SetAutoReadTimer();
-            }
+            g_data.m_boss_key_pressed = !g_data.m_boss_key_pressed;
         }
     }
 

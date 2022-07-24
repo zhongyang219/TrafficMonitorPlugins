@@ -266,8 +266,8 @@ BEGIN
         MENUITEM "下一页(&N)\t↓",                  ID_NEXT
         MENUITEM "添加书签(&A)",                    ID_ADD_BOOKMARK
         MENUITEM SEPARATOR
-        MENUITEM "开启自动翻页(&P)",                  40009
-        MENUITEM "停止自动翻页(&S)",                  40010
+        MENUITEM "自动翻页(&P)",                    ID_START_AUTO_READ
+        MENUITEM "隐藏(&H)\t空格",                  ID_HIDE
         MENUITEM SEPARATOR
         MENUITEM "选项(&O)...",                   40004
         MENUITEM "章节(&C)...",                   40005
@@ -454,6 +454,9 @@ BEGIN
     BEGIN
         MENUITEM "&Previous\tUp",               40001
         MENUITEM "&Next\tDown",                 ID_NEXT
+        MENUITEM SEPARATOR
+        MENUITEM "Auto Page Turn",              ID_START_AUTO_READ
+        MENUITEM "&Hide\tSpace",                ID_HIDE
         MENUITEM SEPARATOR
         MENUITEM "&Options...",                 40004
         MENUITEM "&Chapters...",                40005
