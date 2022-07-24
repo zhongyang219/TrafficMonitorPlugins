@@ -54,12 +54,15 @@ public:
     CChapterParser& GetChapter();
     const std::set<int>& GetBookmark();
 
+    void SaveReadPosition();
+
     SettingData m_setting_data;
     int m_page_step{ 1 };
     bool m_boss_key_pressed{ false };
     bool m_multi_line{ false };
     int m_draw_width{};
     HWND m_wnd{};
+    int m_position_modified{ false };
 
 private:
     static CDataManager m_instance;

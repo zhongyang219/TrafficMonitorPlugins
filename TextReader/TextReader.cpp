@@ -92,6 +92,11 @@ void CTextReader::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         //从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
         SetAutoReadTimer();
+
+        //设置阅读进度定时保存
+        SetTimer(NULL, 1009, 10000, [](HWND, UINT, UINT_PTR, DWORD) {
+            g_data.SaveReadPosition();
+            });
         break;
     default:
         break;

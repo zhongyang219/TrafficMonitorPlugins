@@ -209,6 +209,7 @@ void CDataManager::PageUp(int step)
         m_setting_data.current_position -= step;
     if (m_setting_data.current_position < 0)
         m_setting_data.current_position = 0;
+    m_position_modified = true;
 }
 
 void CDataManager::PageDown(int step)
@@ -224,6 +225,7 @@ void CDataManager::PageDown(int step)
         m_setting_data.current_position = MAX_POS;
     if (m_setting_data.current_position < 0)
         m_setting_data.current_position = 0;
+    m_position_modified = true;
 }
 
 void CDataManager::AddBookmark()
@@ -250,4 +252,13 @@ CChapterParser & CDataManager::GetChapter()
 const std::set<int>& CDataManager::GetBookmark()
 {
     return m_bookmark_mgr.GetBookmark(m_setting_data.file_path);
+}
+
+void CDataManager::SaveReadPosition()
+{
+    if (m_position_modified)
+    {
+        SaveConfig();
+        m_position_modified = false;
+    }
 }
