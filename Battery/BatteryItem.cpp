@@ -21,7 +21,8 @@ const wchar_t* CBatteryItem::GetItemLableText() const
 
 const wchar_t* CBatteryItem::GetItemValueText() const
 {
-    static std::wstring battery_str = g_data.GetBatteryString();
+    static std::wstring battery_str;
+    battery_str = g_data.GetBatteryString();
     return battery_str.c_str();
 }
 
@@ -84,7 +85,17 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         Gdiplus::RectF rc_indicater;
         rc_indicater.X = icon_point.x + g_data.DPIF(1);
         rc_indicater.Y = icon_point.y + g_data.DPIF(6);
-        float indicater_width = g_data.DPIF(11.7) * g_data.m_sysPowerStatus.BatteryLifePercent / 100;
+        int percent = g_data.m_sysPowerStatus.BatteryLifePercent;
+        //显示充电动画
+        if (g_data.m_setting_data.show_charging_animation && g_data.IsAcOnline() && g_data.m_sysPowerStatus.BatteryLifePercent < 100)
+        {
+            static int display_percent = 0;
+            display_percent += 2;
+            if (display_percent > g_data.m_sysPowerStatus.BatteryLifePercent)
+                display_percent = 0;
+            percent = display_percent;
+        }
+        float indicater_width = g_data.DPIF(11.7) * percent / 100;
         rc_indicater.Width = indicater_width;
         rc_indicater.Height = g_data.DPIF(3.7);
         CDrawCommon drawer;

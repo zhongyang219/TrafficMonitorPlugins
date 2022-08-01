@@ -31,6 +31,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_CBN_SELCHANGE(IDC_COMBO1, &COptionsDlg::OnCbnSelchangeCombo1)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
     ON_BN_CLICKED(IDC_SHOW_PERCENT_CHECK, &COptionsDlg::OnBnClickedShowPercentCheck)
+    ON_BN_CLICKED(IDC_SHOW_CHARGING_ANIMATION_CHECK, &COptionsDlg::OnBnClickedShowChargingAnimationCheck)
 END_MESSAGE_MAP()
 
 
@@ -49,6 +50,7 @@ BOOL COptionsDlg::OnInitDialog()
 
     CheckDlgButton(IDC_SHOW_TOOLTIPS_CHECK, m_data.show_battery_in_tooltip);
     CheckDlgButton(IDC_SHOW_PERCENT_CHECK, m_data.show_percent);
+    CheckDlgButton(IDC_SHOW_CHARGING_ANIMATION_CHECK, m_data.show_charging_animation);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -70,4 +72,10 @@ void COptionsDlg::OnBnClickedShowTooltipsCheck()
 void COptionsDlg::OnBnClickedShowPercentCheck()
 {
     m_data.show_percent = (IsDlgButtonChecked(IDC_SHOW_PERCENT_CHECK) != 0);
+}
+
+
+void COptionsDlg::OnBnClickedShowChargingAnimationCheck()
+{
+    m_data.show_charging_animation = (IsDlgButtonChecked(IDC_SHOW_CHARGING_ANIMATION_CHECK) != 0);
 }

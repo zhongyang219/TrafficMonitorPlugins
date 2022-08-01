@@ -22,6 +22,7 @@ struct SettingData
     BatteryType battery_type{};
     bool show_battery_in_tooltip{};
     bool show_percent{};
+    bool show_charging_animation{};     //显示充电动画
 };
 
 class CDataManager
@@ -41,6 +42,8 @@ public:
     float DPIF(float pixel);
     int RDPI(int pixel);
     HICON GetIcon(UINT id);
+    bool IsAcOnline() const;        //电源是否已接通
+    bool IsCharging() const;        //是否正在充电
 
     std::wstring GetBatteryString() const;
     COLORREF GetBatteryColor() const;

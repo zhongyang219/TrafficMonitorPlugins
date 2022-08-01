@@ -46,7 +46,7 @@ void CBattery::DataRequired()
     //生成鼠标提示信息
     std::wstringstream wss;
     wss << g_data.StringRes(IDS_BATTERY).GetString() << L": " << g_data.GetBatteryString();
-    if (g_data.m_sysPowerStatus.ACLineStatus == 1)
+    if (g_data.IsAcOnline())
         wss << L" " << g_data.StringRes(IDS_CHARGING).GetString();
     if (g_data.m_sysPowerStatus.BatteryLifeTime != -1)
         wss << std::endl << g_data.StringRes(IDS_BATTERY_LIFE_TIME).GetString() << L": " << CCommon::TimeFormat(g_data.m_sysPowerStatus.BatteryLifeTime);
@@ -64,6 +64,7 @@ ITMPlugin::OptionReturn CBattery::ShowOptionsDialog(void* hParent)
     if (dlg.DoModal() == IDOK)
     {
         g_data.m_setting_data = dlg.m_data;
+        g_data.SaveConfig();
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;
@@ -86,7 +87,7 @@ const wchar_t* CBattery::GetInfo(PluginInfoIndex index)
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        return L"1.00";
+        return L"1.01";
     default:
         break;
     }

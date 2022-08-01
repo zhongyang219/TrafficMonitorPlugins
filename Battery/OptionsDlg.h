@@ -30,4 +30,5 @@ public:
     afx_msg void OnCbnSelchangeCombo1();
     afx_msg void OnBnClickedShowTooltipsCheck();
     afx_msg void OnBnClickedShowPercentCheck();
+    afx_msg void OnBnClickedShowChargingAnimationCheck();
 };

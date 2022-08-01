@@ -56,6 +56,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.battery_type = static_cast<BatteryType>(GetPrivateProfileInt(L"config", L"battery_type", static_cast<int>(BatteryType::NUMBER_BESIDE_ICON), m_config_path.c_str()));
     m_setting_data.show_battery_in_tooltip = (GetPrivateProfileInt(L"config", L"show_battery_in_tooltip", 1, m_config_path.c_str()) != 0);
     m_setting_data.show_percent = (GetPrivateProfileInt(L"config", L"show_percent", 1, m_config_path.c_str()) != 0);
+    m_setting_data.show_charging_animation = (GetPrivateProfileInt(L"config", L"show_charging_animation", 0, m_config_path.c_str()) != 0);
 }
 
 void CDataManager::SaveConfig() const
@@ -65,6 +66,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(L"config", L"battery_type", static_cast<int>(m_setting_data.battery_type), m_config_path.c_str());
         WritePrivateProfileInt(L"config", L"show_battery_in_tooltip", m_setting_data.show_battery_in_tooltip, m_config_path.c_str());
         WritePrivateProfileInt(L"config", L"show_percent", m_setting_data.show_percent, m_config_path.c_str());
+        WritePrivateProfileInt(L"config", L"show_charging_animation", m_setting_data.show_charging_animation, m_config_path.c_str());
     }
 }
 
@@ -121,6 +123,16 @@ HICON CDataManager::GetIcon(UINT id)
     }
 }
 
+
+bool CDataManager::IsAcOnline() const
+{
+    return m_sysPowerStatus.ACLineStatus == 1;
+}
+
+bool CDataManager::IsCharging() const
+{
+    return m_sysPowerStatus.BatteryFlag == 8;
+}
 
 std::wstring CDataManager::GetBatteryString() const
 {

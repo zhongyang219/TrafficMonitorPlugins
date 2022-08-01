@@ -58,11 +58,11 @@
 
 用于显示电脑电池的电量的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.00_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x64.zip?raw=true)
 
 ---
 
-### GP插件
+### 股票插件
 
 ![gp](images/gp_viewer_20220411100625.png)
 
@@ -70,7 +70,7 @@
 
 <img src="images/gp_edit_20220411100337.png" alt="gp_edit" style="zoom:100%;" />
 
-显示指定GP的实时交易信息 `新浪接口`
+显示指定股票的实时交易信息 `新浪接口`
 
 - **配置时sh表示“上证”，sz表示深证，依次类推**
 
