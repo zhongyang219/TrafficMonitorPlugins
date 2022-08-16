@@ -59,6 +59,13 @@ void GPItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
         GupiaoInfo& gpInfo = g_data.GetGPInfo(gp_id);
         std::wstring current{ gpInfo.ToString() };
         //pDC->DrawText(gpInfo.name.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+        if (gpInfo.ToString().find('-') != -1) {
+            pDC->SetTextColor(RGB(46, 139, 87));//设置文字的颜色为绿色
+        }
+        else {
+            pDC->SetTextColor(RGB(255, 0, 0));//设置文字的颜色为红色
+        }
         pDC->DrawText(current.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         // TODO: 暂时没想好怎么展示name
         //CFont font;

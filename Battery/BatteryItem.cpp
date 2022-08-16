@@ -90,7 +90,7 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         if (g_data.m_setting_data.show_charging_animation && g_data.IsAcOnline() && g_data.m_sysPowerStatus.BatteryLifePercent < 100)
         {
             static int display_percent = 0;
-            display_percent += 2;
+            display_percent += 4;
             if (display_percent > g_data.m_sysPowerStatus.BatteryLifePercent)
                 display_percent = 0;
             percent = display_percent;
