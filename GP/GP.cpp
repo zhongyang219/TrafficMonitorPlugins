@@ -118,7 +118,7 @@ void GP::ParseJsonData(std::string json_data)
 
         GupiaoInfo& gpInfo = g_data.GetGPInfo(key.c_str());
 
-        int data_size = data_arr.size();
+        size_t data_size = data_arr.size();
 
         CString name;
         float now = -1;
