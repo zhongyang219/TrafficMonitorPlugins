@@ -64,7 +64,7 @@ void CManagerDialog::OnListItemClick()
 
     curSelPos = m_gp_listbox.GetCurSel();
     m_gp_listbox.GetText(curSelPos, curSelTxt);
-    Log1("OnListItemClick: %s\n", curSelTxt);
+    Log1("OnListItemClick: %s\n", curSelTxt.GetString());
 }
 
 
@@ -98,10 +98,10 @@ void CManagerDialog::OnAddBtnClick()
         {
             if (count(m_data.m_gp_codes.begin(), m_data.m_gp_codes.end(), newGpCode))
             {
-                Log1("OnAddBtnClick: ignore %s\n", newGpCode);
+                Log1("OnAddBtnClick: ignore %s\n", newGpCode.GetString());
                 return;
             }
-            Log1("OnAddBtnClick: %s\n", newGpCode);
+            Log1("OnAddBtnClick: %s\n", newGpCode.GetString());
             m_data.m_gp_codes.push_back(newGpCode);
             m_data.updateAllCodeStr();
             m_gp_listbox.AddString(newGpCode);
