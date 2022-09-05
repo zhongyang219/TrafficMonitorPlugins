@@ -43,7 +43,10 @@ int GPItem::GetItemWidthEx(void * hDC) const
     {
         //绘图句柄
         CDC* pDC = CDC::FromHandle((HDC)hDC);
-        return pDC->GetTextExtent(L"000000000000").cx;
+        GupiaoInfo& gpInfo = g_data.GetGPInfo(gp_id);
+
+        //return pDC->GetTextExtent(gpInfo.ToString().append(gpInfo.name.c_str()).c_str()).cx;
+        return pDC->GetTextExtent(L"000000000000000000").cx;
     }
     return 0;
 }
@@ -55,8 +58,11 @@ void GPItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
         //绘图句柄
         CDC* pDC = CDC::FromHandle((HDC)hDC);
         //矩形区域
-        CRect rect(CPoint(x, y), CSize(w, h));
+
         GupiaoInfo& gpInfo = g_data.GetGPInfo(gp_id);
+        size_t _long = gpInfo.name.length();
+
+        CRect rect(CPoint(x + (int)_long * 14, y), CSize(w, h));
         std::wstring current{ gpInfo.ToString() };
         //pDC->DrawText(gpInfo.name.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
@@ -66,15 +72,17 @@ void GPItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
         else {
             pDC->SetTextColor(RGB(255, 0, 0));//设置文字的颜色为红色
         }
+
         pDC->DrawText(current.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         // TODO: 暂时没想好怎么展示name
-        //CFont font;
-        //font.CreatePointFont(100, _T("微软雅黑"));//创建字体属性：字体大小100
-        //CFont* pOldFont = pDC->SelectObject(&font);
-        //pDC->SetBkMode(TRANSPARENT);//这样文字的背后就不会有难看的背景颜色了
-        //pDC->SetTextColor(RGB(255, 0, 0));//设置文字的颜色为红色
-        //pDC->DrawText(gpInfo.name.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-        //pDC->SelectObject(pOldFont);
+        CFont font;
+        font.CreatePointFont(100, _T("微软雅黑"));//创建字体属性：字体大小100
+        CFont* pOldFont = pDC->SelectObject(&font);
+        pDC->SetBkMode(TRANSPARENT);//这样文字的背后就不会有难看的背景颜色了
+        pDC->SetTextColor(RGB(255, 0, 0));//设置文字的颜色为红色
+        CRect _rect(CPoint(x, y), CSize(w, h));
+        pDC->DrawText(gpInfo.name.c_str(), _rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        pDC->SelectObject(pOldFont);
     }
 }
 
