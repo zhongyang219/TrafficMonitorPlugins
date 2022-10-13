@@ -82,7 +82,7 @@
 
 ### 电池功耗检测插件
 
-![](https://user-images.githubusercontent.com/75287037/155976271-b3e58b7a-d3ec-442d-8107-c0c69a2d7610.png)
+![](images/155976271-b3e58b7a-d3ec-442d-8107-c0c69a2d7610.png)
 
 用于显示电池的功耗。同时可以在鼠标提示中显示剩余电量、电池电压信息。
 
