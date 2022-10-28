@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include "../utilities/bass64/base64.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -163,10 +164,17 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     file.read(buff, length);
     file.close();
     buff[length] = '\0';
-
-    bool is_utf8 = CCommon::IsUTF8Bytes(buff);                              //判断编码类型
-    m_text_contents = CCommon::StrToUnicode(buff, is_utf8);	                //转换成Unicode
+    std::string str_contents(buff, length);
     delete[] buff;
+
+    //判断是否是base64编码
+    if (utilities::IsBase64Code(str_contents))
+    {
+        str_contents = utilities::Base64Decode(str_contents);
+    }
+
+    bool is_utf8 = CCommon::IsUTF8Bytes(str_contents.c_str());                              //判断编码类型
+    m_text_contents = CCommon::StrToUnicode(str_contents.c_str(), is_utf8);	                //转换成Unicode
 
     //解析章节
     m_chapter_parser.Parse();

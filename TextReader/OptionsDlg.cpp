@@ -88,7 +88,8 @@ void COptionsDlg::OnOK()
     // TODO: 在此添加专用代码和/或调用基类
 
     //载入文本
-    g_data.LoadTextContents(m_data.file_path.c_str());
+    if (m_data.file_path != m_file_path_ori)
+        g_data.LoadTextContents(m_data.file_path.c_str());
     CString current_position_str;
     GetDlgItemText(IDC_READ_POSITION_EDIT, current_position_str);
     m_data.current_position = _ttoi(current_position_str.GetString());

@@ -86,8 +86,15 @@ int CChapterParser::GetChapterIndexByPos(int pos) const
     {
         if (iter->first >= pos)
         {
-            auto privious_iter = iter;
-            return (--privious_iter)->first;
+            if (iter == m_chapter.begin())
+            {
+                return iter->first;
+            }
+            else
+            {
+                auto privious_iter = iter;
+                return (--privious_iter)->first;
+            }
         }
 
     }
