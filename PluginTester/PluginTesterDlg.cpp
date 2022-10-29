@@ -11,6 +11,7 @@
 #include <fstream>
 #include "PluginInfoDlg.h"
 #include "DrawCommon.h"
+#include <vector>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -167,6 +168,7 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_WM_LBUTTONUP()
     ON_WM_LBUTTONDBLCLK()
     ON_WM_RBUTTONUP()
+    ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -227,6 +229,17 @@ BOOL CPluginTesterDlg::OnInitDialog()
     m_select_plugin_combo.SetCurSel(0);
     OnCbnSelchangeSelectPluginCombo();
 
+    //初始化预览视图
+    m_view = (CDrawScrollView*)RUNTIME_CLASS(CDrawScrollView)->CreateObject();
+    m_proview_top_pos = GalculatePreviewTopPos();
+    CRect scroll_view_rect;
+    GetClientRect(scroll_view_rect);
+    scroll_view_rect.top = m_proview_top_pos;
+    m_view->Create(NULL, NULL, WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL, scroll_view_rect, this, 3000);
+    m_view->InitialUpdate();
+    m_view->ShowWindow(SW_SHOW);
+    m_view->SetSize(CalculatePreviewSize());
+
     SetTimer(TIMER_ID, 1000, nullptr);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -272,104 +285,37 @@ int CPluginTesterDlg::GetItemWidth(IPluginItem* pItem, CDC* pDC)
 }
 
 
-void CPluginTesterDlg::SavePluginItemRect(IPluginItem* pItem, CRect rect)
+int CPluginTesterDlg::GalculatePreviewTopPos()
 {
-    if (pItem != nullptr)
+    int pos = 0;
+    std::vector<UINT> control_id{ IDC_SELECT_PLUGIN_COMBO, IDC_OPTION_BUTTON, IDC_DETAIL_BUTTON };
+    for (const auto& id : control_id)
     {
-        rect.MoveToX(rect.left + m_draw_rect.left);
-        rect.MoveToY(rect.top + m_draw_rect.top);
-        m_plugin_item_rect[pItem->GetItemId()] = rect;
+        CWnd* control = GetDlgItem(id);
+        if (control != nullptr)
+        {
+            CRect rect;
+            control->GetWindowRect(rect);
+            ScreenToClient(&rect);
+            if (pos < rect.bottom)
+                pos = rect.bottom;
+        }
     }
+    return pos + theApp.DPI(8);
 }
 
-IPluginItem* CPluginTesterDlg::GetPluginItemByPoint(CPoint point)
+CSize CPluginTesterDlg::CalculatePreviewSize()
 {
+    CSize size;
+    size.cx = theApp.DPI(152);
+
     PluginInfo plugin_info = GetCurrentPlugin();
-    for (IPluginItem* plugin : plugin_info.plugin_items)
-    {
-        if (plugin != nullptr)
-        {
-            CRect rc_item = m_plugin_item_rect[plugin->GetItemId()];
-            if (rc_item.PtInRect(point))
-                return plugin;
-        }
-    }
-    return nullptr;
-}
-
-CPoint CPluginTesterDlg::GetMouseCursurPosition()
-{
-    CPoint point;
-    GetCursorPos(&point);
-    ScreenToClient(&point);
-    return point;
-}
-
-// 如果向对话框添加最小化按钮，则需要下面的代码
-//  来绘制该图标。  对于使用文档/视图模型的 MFC 应用程序，
-//  这将由框架自动完成。
-
-void CPluginTesterDlg::OnPaint()
-{
-    CWindowDC dc(this);
-    CRect draw_rect;
-    GetClientRect(draw_rect);
-    draw_rect.MoveToY(theApp.DPI(100));
-    draw_rect.MoveToX(0);
-    CDrawDoubleBuffer draw_double_buffer(&dc, draw_rect);
-    m_draw_rect = draw_rect;
-
-    CDrawCommon drawer;
-    drawer.Create(draw_double_buffer.GetMemDC(), this);
+    int item_num = plugin_info.plugin_items.size();
+    size.cy = theApp.DPI(16) + item_num * theApp.DPI(56);
     
-    draw_rect.MoveToY(0);
-    drawer.FillRect(draw_rect, GetSysColor(COLOR_WINDOW));
-
-    //绘制插件的显示项目
-    int index = 0;
-    PluginInfo cur_plugin = GetCurrentPlugin();
-    for (const auto& item : cur_plugin.plugin_items)
-    {
-        if (item != nullptr)
-        {
-            //绘制文本
-            CRect rc_text;
-            rc_text.left = theApp.DPI(16);
-            rc_text.top = theApp.DPI(12) + index * (theApp.DPI(56));
-            rc_text.bottom = rc_text.top + theApp.DPI(24);
-            rc_text.right = rc_text.left + theApp.DPI(120);
-            drawer.DrawWindowText(rc_text, item->GetItemName(), RGB(0, 0, 0));
-
-            //绘制显示项目
-            CRect rc_item = rc_text;
-            rc_item.MoveToY(rc_text.bottom);
-            int item_width = GetItemWidth(item, drawer.GetDC());
-            if (item_width > 0)
-                rc_item.right = rc_item.left + item_width;
-            drawer.FillRect(rc_item, RGB(205, 221, 234));
-
-            //保存显示项目的位置
-            SavePluginItemRect(item, rc_item);
-
-            if (item->IsCustomDraw())
-            {
-                item->DrawItem(drawer.GetDC()->GetSafeHdc(), rc_item.left, rc_item.top, rc_item.Width(), rc_item.Height(), false);
-            }
-            else
-            {
-                CRect rc_label = rc_item;
-                rc_label.right = rc_label.left + drawer.GetDC()->GetTextExtent(item->GetItemLableText()).cx;
-                drawer.DrawWindowText(rc_label, item->GetItemLableText(), RGB(0, 0, 0));
-
-                CRect rc_value = rc_item;
-                rc_value.left = rc_label.right + theApp.DPI(6);
-                drawer.DrawWindowText(rc_value, item->GetItemValueText(), RGB(0, 0, 0));
-            }
-            index++;
-        }
-    }
-    CDialog::OnPaint();
+    return size;
 }
+
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
 //显示。
@@ -416,8 +362,12 @@ void CPluginTesterDlg::OnAppAbout()
 void CPluginTesterDlg::OnCbnSelchangeSelectPluginCombo()
 {
     m_cur_index = m_select_plugin_combo.GetCurSel();
+    if (IsWindow(m_view->GetSafeHwnd()))
+    {
+        m_view->Invalidate();
+        m_view->SetSize(CalculatePreviewSize());
+    }
     EnableControl();
-    Invalidate();
 }
 
 
@@ -447,60 +397,24 @@ void CPluginTesterDlg::OnTimer(UINT_PTR nIDEvent)
         if (cur_plugin.plugin != nullptr)
         {
             cur_plugin.plugin->DataRequired();
-            InvalidateRect(m_draw_rect, FALSE);
+            if (IsWindow(m_view->GetSafeHwnd()))
+                m_view->Invalidate(FALSE);
         }
     }
 
     CDialog::OnTimer(nIDEvent);
 }
 
-
-void CPluginTesterDlg::OnLButtonUp(UINT nFlags, CPoint point)
+void CPluginTesterDlg::OnSize(UINT nType, int cx, int cy)
 {
-    // TODO: 在此添加消息处理程序代码和/或调用默认值
-    point = GetMouseCursurPosition();
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
-    {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_RCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
-    }
-    else
-    {
-        CDialog::OnLButtonUp(nFlags, point);
-    }
-}
+    CDialog::OnSize(nType, cx, cy);
 
-
-void CPluginTesterDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
-{
-    // TODO: 在此添加消息处理程序代码和/或调用默认值
-    point = GetMouseCursurPosition();
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
+    // TODO: 在此处添加消息处理程序代码
+    if (IsWindow(m_view->GetSafeHwnd()))
     {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_DBCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
-    }
-    else
-    {
-        CDialog::OnLButtonDblClk(nFlags, point);
-    }
-}
-
-
-void CPluginTesterDlg::OnRButtonUp(UINT nFlags, CPoint point)
-{
-    // TODO: 在此添加消息处理程序代码和/或调用默认值
-    point = GetMouseCursurPosition();
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
-    {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_RCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
-    }
-    else
-    {
-        CDialog::OnRButtonUp(nFlags, point);
+        CRect rect;
+        GetClientRect(rect);
+        rect.top = m_proview_top_pos;
+        m_view->MoveWindow(rect);
     }
 }

@@ -214,6 +214,7 @@
     <ClInclude Include="PluginInfoDlg.h" />
     <ClInclude Include="PluginTester.h" />
     <ClInclude Include="PluginTesterDlg.h" />
+    <ClInclude Include="PreviewScrollView.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -224,6 +225,7 @@
     <ClCompile Include="PluginInfoDlg.cpp" />
     <ClCompile Include="PluginTester.cpp" />
     <ClCompile Include="PluginTesterDlg.cpp" />
+    <ClCompile Include="PreviewScrollView.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
