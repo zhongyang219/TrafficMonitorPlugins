@@ -72,4 +72,6 @@ public:
     afx_msg void OnBnClickedUserDefinedRadio();
     afx_msg void OnBnClickedBrowseButton();
     afx_msg void OnDestroy();
+    afx_msg void OnEnChangeEdit2();
+    afx_msg void OnBnClickedSpecifyWidthCheck();
 };

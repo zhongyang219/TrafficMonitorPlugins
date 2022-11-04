@@ -147,6 +147,8 @@ void CPluginTesterDlg::EnableControl()
     bool cur_dir_checked = IsDlgButtonChecked(IDC_CUR_DIR_RADIO);
     GetDlgItem(IDC_EDIT1)->EnableWindow(!cur_dir_checked);
     GetDlgItem(IDC_BROWSE_BUTTON)->EnableWindow(!cur_dir_checked);
+
+    GetDlgItem(IDC_ITEM_WIDTH_EDIT)->EnableWindow(IsDlgButtonChecked(IDC_SPECIFY_WIDTH_CHECK));
 }
 
 PluginInfo CPluginTesterDlg::GetCurrentPlugin()
@@ -178,6 +180,8 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_BN_CLICKED(IDC_USER_DEFINED_RADIO, &CPluginTesterDlg::OnBnClickedUserDefinedRadio)
     ON_BN_CLICKED(IDC_BROWSE_BUTTON, &CPluginTesterDlg::OnBnClickedBrowseButton)
     ON_WM_DESTROY()
+    ON_EN_CHANGE(IDC_ITEM_WIDTH_EDIT, &CPluginTesterDlg::OnEnChangeEdit2)
+    ON_BN_CLICKED(IDC_SPECIFY_WIDTH_CHECK, &CPluginTesterDlg::OnBnClickedSpecifyWidthCheck)
 END_MESSAGE_MAP()
 
 
@@ -273,6 +277,8 @@ void CPluginTesterDlg::LoadConfig()
     std::wstring plugin_dir = ini.GetString(L"config", L"plugin_dir");
     bool dark_mode = ini.GetBool(L"config", L"dark_mode");
     bool double_line = ini.GetBool(L"config", L"double_line");
+    bool specify_item_width = ini.GetBool(L"config", L"specify_item_width");
+    int item_width = ini.GetInt(L"config", L"item_width", 120);
 
     if (is_cur_dir)
         CheckDlgButton(IDC_CUR_DIR_RADIO, TRUE);
@@ -281,6 +287,9 @@ void CPluginTesterDlg::LoadConfig()
     SetDlgItemText(IDC_EDIT1, plugin_dir.c_str());
     CheckDlgButton(IDC_DARK_BACKGROUND_CHECK, dark_mode);
     CheckDlgButton(IDC_DOUBLE_LINE_CHECK, double_line);
+    CheckDlgButton(IDC_SPECIFY_WIDTH_CHECK, specify_item_width);
+
+    SetDlgItemText(IDC_ITEM_WIDTH_EDIT, std::to_wstring(item_width).c_str());
 }
 
 void CPluginTesterDlg::SaveConfig() const
@@ -292,6 +301,10 @@ void CPluginTesterDlg::SaveConfig() const
     ini.WriteString(L"config", L"plugin_dir", plugin_dir.GetString());
     ini.WriteBool(L"config", L"dark_mode", IsDlgButtonChecked(IDC_DARK_BACKGROUND_CHECK));
     ini.WriteBool(L"config", L"double_line", IsDlgButtonChecked(IDC_DOUBLE_LINE_CHECK));
+    ini.WriteBool(L"config", L"specify_item_width", IsDlgButtonChecked(IDC_SPECIFY_WIDTH_CHECK));
+    CString item_width;
+    GetDlgItemText(IDC_ITEM_WIDTH_EDIT, item_width);
+    ini.WriteString(L"config", L"item_width", item_width.GetString());
 
     ini.Save();
 }
@@ -321,15 +334,25 @@ void CPluginTesterDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 int CPluginTesterDlg::GetItemWidth(IPluginItem* pItem, CDC* pDC)
 {
+
     int width = 0;
-    ITMPlugin* plugin = GetCurrentPlugin().plugin;
-    if (plugin != nullptr && plugin->GetAPIVersion() >= 3)
+    if (!IsDlgButtonChecked(IDC_SPECIFY_WIDTH_CHECK))
     {
-        width = pItem->GetItemWidthEx(pDC->GetSafeHdc());       //优先使用GetItemWidthEx接口获取宽度
+        ITMPlugin* plugin = GetCurrentPlugin().plugin;
+        if (plugin != nullptr && plugin->GetAPIVersion() >= 3)
+        {
+            width = pItem->GetItemWidthEx(pDC->GetSafeHdc());       //优先使用GetItemWidthEx接口获取宽度
+        }
+        if (width == 0)
+        {
+            width = theApp.DPI(pItem->GetItemWidth());
+        }
     }
-    if (width == 0)
+    else
     {
-        width = theApp.DPI(pItem->GetItemWidth());
+        CString str;
+        GetDlgItemText(IDC_ITEM_WIDTH_EDIT, str);
+        width = _ttoi(str.GetString());
     }
     return width;
 
@@ -349,7 +372,8 @@ bool CPluginTesterDlg::IsDoubleLineChecked() const
 int CPluginTesterDlg::CalculatePreviewTopPos()
 {
     int pos = 0;
-    std::vector<UINT> control_id{ IDC_SELECT_PLUGIN_COMBO, IDC_OPTION_BUTTON, IDC_DETAIL_BUTTON, IDC_DARK_BACKGROUND_CHECK };
+    std::vector<UINT> control_id{ IDC_SELECT_PLUGIN_COMBO, IDC_OPTION_BUTTON, IDC_DETAIL_BUTTON, IDC_DARK_BACKGROUND_CHECK,
+        IDC_SPECIFY_WIDTH_CHECK, IDC_ITEM_WIDTH_EDIT };
     for (const auto& id : control_id)
     {
         CWnd* control = GetDlgItem(id);
@@ -508,7 +532,8 @@ void CPluginTesterDlg::OnSize(UINT nType, int cx, int cy)
 void CPluginTesterDlg::OnBnClickedDarkBackgroundCheck()
 {
     // TODO: 在此添加控件通知处理程序代码
-    m_view->Invalidate();
+    if (IsWindow(m_view->GetSafeHwnd()))
+        m_view->Invalidate();
 }
 
 
@@ -558,4 +583,28 @@ void CPluginTesterDlg::OnDestroy()
     CDialog::OnDestroy();
 
     SaveConfig();
+}
+
+
+void CPluginTesterDlg::OnEnChangeEdit2()
+{
+    // TODO:  如果该控件是 RICHEDIT 控件，它将不
+    // 发送此通知，除非重写 CDialog::OnInitDialog()
+    // 函数并调用 CRichEditCtrl().SetEventMask()，
+    // 同时将 ENM_CHANGE 标志“或”运算到掩码中。
+
+    // TODO:  在此添加控件通知处理程序代码
+
+    if (IsWindow(m_view->GetSafeHwnd()))
+        m_view->Invalidate();
+
+}
+
+
+void CPluginTesterDlg::OnBnClickedSpecifyWidthCheck()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    if (IsWindow(m_view->GetSafeHwnd()))
+        m_view->Invalidate();
+    EnableControl();
 }
