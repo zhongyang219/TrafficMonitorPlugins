@@ -29,7 +29,7 @@ void CPluginInfoDlg::ShowInfo()
 {
     m_info_list.SetItemText(RI_NAME, 1, m_plugin_info.Property(ITMPlugin::TMI_NAME).c_str());
     m_info_list.SetItemText(RI_DESCRIPTION, 1, m_plugin_info.Property(ITMPlugin::TMI_DESCRIPTION).c_str());
-    m_info_list.SetItemText(RI_FILE_NAME, 1, CFilePathHelper(m_plugin_info.file_path).GetFileName().c_str());
+    m_info_list.SetItemText(RI_FILE_NAME, 1, utilities::CFilePathHelper(m_plugin_info.file_path).GetFileName().c_str());
     m_info_list.SetItemText(RI_FILE_PATH, 1, m_plugin_info.file_path.c_str());
     m_info_list.SetItemText(RI_ITEM_NUM, 1, std::to_wstring(m_plugin_info.plugin_items.size()).c_str());
     std::wstring item_names;

@@ -6,25 +6,35 @@
 
 const wchar_t* GPItem::GetItemName() const
 {
-    // TODO: TrafficMonitor 暂不支持动态创建
-    return g_data.StringRes(IDS_PLUGIN_ITEM_NAME);
+    static std::wstring item_name;
+    item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
+    item_name += std::to_wstring(index);
+    return item_name.c_str();
 }
 
 const wchar_t* GPItem::GetItemId() const
 {
-    // TODO: TrafficMonitor 暂不支持动态创建
-    return L"GP999SS";
+    static std::wstring item_id;
+    item_id = L"GP999SS";
+    item_id += std::to_wstring(index);
+    return item_id.c_str();
 }
 
 const wchar_t* GPItem::GetItemLableText() const
 {
-    // TODO: TrafficMonitor 暂不支持动态创建
-    return g_data.StringRes(IDS_PLUGIN_ITEM_NAME);
+    if (index >= 0 && index < g_data.m_setting_data.m_gp_codes.size())
+        return g_data.m_setting_data.m_gp_codes[index].GetString();
+    else
+        return GetItemName();
 }
 
 const wchar_t* GPItem::GetItemValueText() const
 {
     return L"";
+    //GupiaoInfo& gpInfo = g_data.GetGPInfo(gp_id);
+    //static std::wstring current;
+    //current = gpInfo.ToString();
+    //return current.c_str();
 }
 
 const wchar_t* GPItem::GetItemValueSampleText() const

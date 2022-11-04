@@ -29,7 +29,7 @@ protected:
     virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 private:
-    PluginInfo LoadPlugin(const std::wstring& plugin_file_path);
+    PluginInfo LoadPlugin(const std::wstring& plugin_file_path, const std::wstring& config_dir);
     void EnableControl();
     int CalculatePreviewTopPos();       //计算预览图顶部位置
     CSize CalculatePreviewSize();       //计算预览区域的大小

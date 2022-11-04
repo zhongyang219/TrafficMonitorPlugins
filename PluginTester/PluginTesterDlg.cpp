@@ -73,7 +73,7 @@ void CPluginTesterDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_SELECT_PLUGIN_COMBO, m_select_plugin_combo);
 }
 
-PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_path)
+PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_path, const std::wstring& config_dir)
 {
     PluginInfo plugin_info;
     if (plugin_file_path.empty())
@@ -111,6 +111,9 @@ PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_path)
     //    plugin_info.state = PluginState::PS_VERSION_NOT_SUPPORT;
     //    continue;
     //}
+
+    if (plugin_info.plugin != nullptr)
+        plugin_info.plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, config_dir.c_str());
 
     //获取插件信息
     for (int i{}; i < ITMPlugin::TMI_MAX; i++)
@@ -240,20 +243,20 @@ void CPluginTesterDlg::InitPlugins()
     std::wstring plugin_dir = GetPluginDir();
     if (plugin_dir != m_plugin_dir && !plugin_dir.empty())
     {
-        for (const auto& plugin_info : m_plugins)
-            FreeLibrary(plugin_info.plugin_module);
-        m_plugins.clear();
-        m_select_plugin_combo.ResetContent();
+        //for (const auto& plugin_info : m_plugins)
+        //    FreeLibrary(plugin_info.plugin_module);
+        //m_plugins.clear();
+        //m_select_plugin_combo.ResetContent();
 
         std::vector<std::wstring> files;
-        CCommon::GetFiles((plugin_dir + L"*.dll").c_str(), files);
+        utilities::CCommon::GetFiles((plugin_dir + L"*.dll").c_str(), files);
         for (const auto& file_name : files)
         {
             m_select_plugin_combo.AddString(file_name.c_str());
-            m_plugins.push_back(LoadPlugin(plugin_dir + file_name));
+            m_plugins.push_back(LoadPlugin(plugin_dir + file_name, plugin_dir));
             ITMPlugin* plugin = m_plugins.back().plugin;
-            if (plugin != nullptr)
-                plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, plugin_dir.c_str());
+            //if (plugin != nullptr)
+            //    plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, plugin_dir.c_str());
         }
 
         m_select_plugin_combo.SetCurSel(0);
@@ -265,7 +268,7 @@ void CPluginTesterDlg::InitPlugins()
 
 void CPluginTesterDlg::LoadConfig()
 {
-    CIniHelper ini(m_config_path);
+    utilities::CIniHelper ini(m_config_path);
     bool is_cur_dir = ini.GetBool(L"config", L"is_cur_dir", true);
     std::wstring plugin_dir = ini.GetString(L"config", L"plugin_dir");
     bool dark_mode = ini.GetBool(L"config", L"dark_mode");
@@ -282,7 +285,7 @@ void CPluginTesterDlg::LoadConfig()
 
 void CPluginTesterDlg::SaveConfig() const
 {
-    CIniHelper ini(m_config_path);
+    utilities::CIniHelper ini(m_config_path);
     ini.WriteBool(L"config", L"is_cur_dir", IsDlgButtonChecked(IDC_CUR_DIR_RADIO));
     CString plugin_dir;
     GetDlgItemText(IDC_EDIT1, plugin_dir);
@@ -297,9 +300,9 @@ void CPluginTesterDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
     if (nID == IDM_TEST_CMD)
     {
-        std::string str_base64 = utilities::Base64Encode(CCommon::UnicodeToStr(L"测试文本abcde", true));
+        std::string str_base64 = utilities::Base64Encode(utilities::CCommon::UnicodeToStr(L"测试文本abcde", true));
 
-        std::wstring str_ori = CCommon::StrToUnicode(utilities::Base64Decode(str_base64).c_str(), true);
+        std::wstring str_ori = utilities::CCommon::StrToUnicode(utilities::Base64Decode(str_base64).c_str(), true);
 
         bool is_base64 = utilities::IsBase64Code(str_base64);
 
@@ -385,7 +388,7 @@ std::wstring CPluginTesterDlg::GetPluginDir()
     {
         wchar_t path[MAX_PATH];
         GetModuleFileNameW(NULL, path, MAX_PATH);
-        plugin_dir = CFilePathHelper(path).GetDir();
+        plugin_dir = utilities::CFilePathHelper(path).GetDir();
     }
     //选择了自定义目录
     else
@@ -415,7 +418,7 @@ void CPluginTesterDlg::OnBass64Encode()
     {
         CString file_name = fileDlg.GetPathName();
         std::string file_contents;
-        CCommon::GetFileContent(file_name.GetString(), file_contents);
+        utilities::CCommon::GetFileContent(file_name.GetString(), file_contents);
         std::string base64_contents = utilities::Base64Encode(file_contents);
 
         //保存文件
@@ -525,14 +528,17 @@ void CPluginTesterDlg::OnBnClickedDoubleLineCheck()
 void CPluginTesterDlg::OnBnClickedCurDirRadio()
 {
     EnableControl();
-    InitPlugins();
+    MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
 }
 
 
 void CPluginTesterDlg::OnBnClickedUserDefinedRadio()
 {
     EnableControl();
-    InitPlugins();
+    CString str;
+    GetDlgItemText(IDC_EDIT1, str);
+    if (!str.IsEmpty())
+        MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
 }
 
 
@@ -542,7 +548,7 @@ void CPluginTesterDlg::OnBnClickedBrowseButton()
     if (dlg.DoModal() == IDOK)
     {
         SetDlgItemText(IDC_EDIT1, dlg.GetPathName());
-        InitPlugins();
+        MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
     }
 }
 

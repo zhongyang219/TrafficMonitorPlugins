@@ -12,8 +12,9 @@
 
 IMPLEMENT_DYNAMIC(COptionsDlg, CDialog)
 
-COptionsDlg::COptionsDlg(CWnd* pParent /*=nullptr*/)
+COptionsDlg::COptionsDlg(const std::wstring& code, CWnd* pParent /*=nullptr*/)
     : CDialog(IDD_OPTIONS_DIALOG, pParent)
+    , m_gp_code(code.c_str())
     , m_radio_gp_types(0)
 {
 }
@@ -58,7 +59,27 @@ BOOL COptionsDlg::OnInitDialog()
 
     // TODO:  在此添加额外的初始化
 
-    SetDlgItemText(IDC_CODE_EDIT, m_gp_code);
+    CString code{ m_gp_code };
+    RemoveTypeFromCode(code);
+    SetDlgItemText(IDC_CODE_EDIT, code);
+
+    if (!m_gp_code.IsEmpty())
+    {
+        CString type = GetCodeType(m_gp_code);
+        if (type == kSZ)
+            m_radio_gp_types = 0;
+        else if (type == kHK)
+            m_radio_gp_types = 1;
+        else if (type == kBJ)
+            m_radio_gp_types = 2;
+        else if (type == kSH)
+            m_radio_gp_types = 3;
+        else if (type == kMG)
+            m_radio_gp_types = 4;
+        else
+            m_radio_gp_types = 5;
+        UpdateData(FALSE);
+    }
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -75,6 +96,29 @@ void COptionsDlg::OnChangeCodeEdit()
 	// TODO:  在此添加控件通知处理程序代码
 }
 
+void COptionsDlg::RemoveTypeFromCode(CString& code)
+{
+    for (const auto& type : GPTypeSet)
+    {
+        if (code.Left(type.GetLength()) == type)
+        {
+            code = code.Right(code.GetLength() - type.GetLength());
+            return;
+        }
+    }
+}
+
+CString COptionsDlg::GetCodeType(const CString & code)
+{
+    for (const auto& type : GPTypeSet)
+    {
+        if (code.Left(type.GetLength()) == type)
+        {
+            return type;
+        }
+    }
+    return CString();
+}
 
 void COptionsDlg::OnBnClickedOk()
 {
@@ -83,6 +127,7 @@ void COptionsDlg::OnBnClickedOk()
     if (code.IsEmpty())
     {
         CDialog::OnCancel();
+        return;
     }
     CString type = "";
     switch (m_radio_gp_types)
@@ -103,9 +148,8 @@ void COptionsDlg::OnBnClickedOk()
         type = kMG;
         break;
     }
-    m_gp_code = "";
-    m_gp_code.Append(type);
-    m_gp_code.Append(code);
+    RemoveTypeFromCode(code);
+    m_gp_code = type + code;
     CDialog::OnOK();
 }
 

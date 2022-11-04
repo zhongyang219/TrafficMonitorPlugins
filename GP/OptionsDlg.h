@@ -8,9 +8,12 @@ class COptionsDlg : public CDialog
     DECLARE_DYNAMIC(COptionsDlg)
 
 public:
-    COptionsDlg(CWnd* pParent = nullptr);   // 标准构造函数
+    COptionsDlg(const std::wstring& code = std::wstring(), CWnd* pParent = nullptr);   // 标准构造函数
     virtual ~COptionsDlg();
     void EnableUpdateBtn(bool enable);
+
+    static void RemoveTypeFromCode(CString& code);      //从股票代码中移除类型
+    static CString GetCodeType(const CString& code);    //获取股票代码的类型
 
     CString m_gp_code;
 

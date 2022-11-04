@@ -36,6 +36,7 @@ BEGIN_MESSAGE_MAP(CManagerDialog, CDialog)
     ON_BN_CLICKED(IDC_FULL_DAY_CHECK, &CManagerDialog::OnClickedFullDayCheck)
     ON_BN_CLICKED(IDOK, &CManagerDialog::OnBnClickedOk)
     ON_BN_CLICKED(IDCANCEL, &CManagerDialog::OnBnClickedCancel)
+    ON_LBN_DBLCLK(IDC_MGR_LIST, &CManagerDialog::OnLbnDblclkMgrList)
 END_MESSAGE_MAP()
 
 
@@ -48,6 +49,11 @@ BOOL CManagerDialog::OnInitDialog()
     for (CString gpCode : m_data.m_gp_codes)
     {
         m_gp_listbox.AddString(gpCode);
+    }
+
+    for (int i = 0; i < m_gp_listbox.GetCount(); i++)
+    {
+        m_gp_listbox.SetItemHeight(i, g_data.DPI(22));
     }
 
     CheckDlgButton(IDC_FULL_DAY_CHECK, m_data.m_full_day);
@@ -130,4 +136,25 @@ void CManagerDialog::OnBnClickedOk()
 void CManagerDialog::OnBnClickedCancel()
 {
     CDialog::OnCancel();
+}
+
+
+void CManagerDialog::OnLbnDblclkMgrList()
+{
+    int index = m_gp_listbox.GetCurSel();
+    if (index >= 0 && index < m_data.m_gp_codes.size())
+    {
+        COptionsDlg dlg(m_data.m_gp_codes[index].GetString());
+        auto rtn = dlg.DoModal();
+        if (rtn == IDOK)
+        {
+            if (!dlg.m_gp_code.IsEmpty())
+            {
+                m_data.m_gp_codes[index] = dlg.m_gp_code;
+                m_data.updateAllCodeStr();
+                m_gp_listbox.DeleteString(index);
+                m_gp_listbox.InsertString(index, dlg.m_gp_code);
+            }
+        }
+    }
 }

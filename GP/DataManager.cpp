@@ -42,20 +42,7 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
 
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
-    //获取模块的路径
-    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(hModule, path, MAX_PATH);
-    std::wstring module_path = path;
-    m_config_path = module_path;
-    if (!config_dir.empty())
-    {
-        size_t index = module_path.find_last_of(L"\\/");
-        //模块的文件名
-        std::wstring module_file_name = module_path.substr(index + 1);
-        m_config_path = config_dir + module_file_name;
-    }
-    m_config_path += L".ini";
+    m_config_path = config_dir + L"GP.exe.ini";
     //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
     CString codeStr{};
     ::GetPrivateProfileString(L"config", L"gp_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());

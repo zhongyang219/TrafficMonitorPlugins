@@ -5,12 +5,15 @@
 #include "PluginInterface.h"
 #include "ManagerDialog.h"
 #include <map>
+#include <vector>
 
 #define kSH "sh" // 上海
 #define kSZ "sz" // 深圳
 #define kHK "rt_hk" // 香港
 #define kMG "gb" // 美国
 #define kBJ "bj" // 北京
+
+const std::vector<CString> GPTypeSet{ kSH, kSZ, kHK, kMG, kBJ };
 
 #define GP_ITEM_MAX 10
 
