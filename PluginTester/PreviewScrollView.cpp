@@ -25,6 +25,7 @@ BEGIN_MESSAGE_MAP(CDrawScrollView, CScrollView)
     ON_WM_LBUTTONUP()
     ON_WM_LBUTTONDBLCLK()
     ON_WM_RBUTTONUP()
+    ON_WM_KEYUP()
 END_MESSAGE_MAP()
 
 
@@ -71,21 +72,29 @@ void CDrawScrollView::OnDraw(CDC* pDC)
     {
         if (item != nullptr)
         {
+            bool dark_mode = dlg->IsDarkmodeChecked();
+            COLORREF text_color = (dark_mode ? RGB(255, 255, 255) : RGB(0, 0, 0));
+            COLORREF back_color = (dark_mode ? RGB(24, 37, 55) : RGB(205, 221, 234));
+
+            bool double_line = dlg->IsDoubleLineChecked();
+
             //绘制文本
             CRect rc_text;
             rc_text.left = theApp.DPI(16);
-            rc_text.top = theApp.DPI(8) + index * (theApp.DPI(56));
+            rc_text.top = theApp.DPI(8) + index * (double_line ? theApp.DPI(64) : theApp.DPI(56));
             rc_text.bottom = rc_text.top + theApp.DPI(24);
             rc_text.right = rc_text.left + theApp.DPI(120);
             drawer.DrawWindowText(rc_text, item->GetItemName(), RGB(0, 0, 0));
 
             //绘制显示项目
             CRect rc_item = rc_text;
+            if (double_line)
+                rc_item.bottom += theApp.DPI(10);
             rc_item.MoveToY(rc_text.bottom);
             int item_width = dlg->GetItemWidth(item, drawer.GetDC());
             if (item_width > 0)
                 rc_item.right = rc_item.left + item_width;
-            drawer.FillRect(rc_item, RGB(205, 221, 234));
+            drawer.FillRect(rc_item, back_color);
 
             //保存显示项目位置
             m_plugin_item_rect[item->GetItemId()] = rc_item;
@@ -102,17 +111,27 @@ void CDrawScrollView::OnDraw(CDC* pDC)
 
             if (item->IsCustomDraw())
             {
-                item->DrawItem(drawer.GetDC()->GetSafeHdc(), rc_item.left, rc_item.top, rc_item.Width(), rc_item.Height(), false);
+                drawer.GetDC()->SetTextColor(text_color);
+                item->DrawItem(drawer.GetDC()->GetSafeHdc(), rc_item.left, rc_item.top, rc_item.Width(), rc_item.Height(), dark_mode);
             }
             else
             {
                 CRect rc_label = rc_item;
-                rc_label.right = rc_label.left + drawer.GetDC()->GetTextExtent(item->GetItemLableText()).cx;
-                drawer.DrawWindowText(rc_label, item->GetItemLableText(), RGB(0, 0, 0));
-
                 CRect rc_value = rc_item;
-                rc_value.left = rc_label.right + theApp.DPI(6);
-                drawer.DrawWindowText(rc_value, item->GetItemValueText(), RGB(0, 0, 0));
+
+                if (double_line)
+                {
+                    rc_label.bottom = rc_label.top + (rc_label.Height() / 2);
+                    rc_value.top = rc_label.bottom;
+                }
+                else
+                {
+                    rc_label.right = rc_label.left + drawer.GetDC()->GetTextExtent(item->GetItemLableText()).cx;
+                    rc_value.left = rc_label.right + theApp.DPI(6);
+                }
+
+                drawer.DrawWindowText(rc_value, item->GetItemValueText(), text_color);
+                drawer.DrawWindowText(rc_label, item->GetItemLableText(), text_color);
             }
             index++;
         }
@@ -153,6 +172,18 @@ void CDrawScrollView::SetSize(CSize size)
     SetScrollSizes(MM_TEXT, m_size);
 }
 
+
+void CDrawScrollView::PluginChanged()
+{
+    m_plugin_item_clicked = nullptr;
+}
+
+
+CSize CDrawScrollView::GetSize() const
+{
+    return m_size;
+}
+
 IPluginItem* CDrawScrollView::GetPluginItemByPoint(CPoint point)
 {
     CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
@@ -188,11 +219,12 @@ BOOL CDrawScrollView::OnEraseBkgnd(CDC* pDC)
 
 void CDrawScrollView::OnLButtonUp(UINT nFlags, CPoint point)
 {
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
+    SetFocus();
+    m_plugin_item_clicked = GetPluginItemByPoint(point);
+    if (m_plugin_item_clicked != nullptr)
     {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_LCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
+        CRect rc_item = m_plugin_item_rect[m_plugin_item_clicked->GetItemId()];
+        m_plugin_item_clicked->OnMouseEvent(IPluginItem::MT_LCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
         InvalidateRect(rc_item);
     }
     else
@@ -204,11 +236,12 @@ void CDrawScrollView::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CDrawScrollView::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
+    SetFocus();
+    m_plugin_item_clicked = GetPluginItemByPoint(point);
+    if (m_plugin_item_clicked != nullptr)
     {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_DBCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
+        CRect rc_item = m_plugin_item_rect[m_plugin_item_clicked->GetItemId()];
+        m_plugin_item_clicked->OnMouseEvent(IPluginItem::MT_DBCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
         InvalidateRect(rc_item);
     }
     else
@@ -220,15 +253,53 @@ void CDrawScrollView::OnLButtonDblClk(UINT nFlags, CPoint point)
 
 void CDrawScrollView::OnRButtonUp(UINT nFlags, CPoint point)
 {
-    IPluginItem* plugin_item = GetPluginItemByPoint(point);
-    if (plugin_item != nullptr)
+    SetFocus();
+    m_plugin_item_clicked = GetPluginItemByPoint(point);
+    if (m_plugin_item_clicked != nullptr)
     {
-        CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
-        plugin_item->OnMouseEvent(IPluginItem::MT_RCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
+        CRect rc_item = m_plugin_item_rect[m_plugin_item_clicked->GetItemId()];
+        m_plugin_item_clicked->OnMouseEvent(IPluginItem::MT_RCLICKED, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
         InvalidateRect(rc_item);
     }
     else
     {
         CScrollView::OnRButtonUp(nFlags, point);
     }
+}
+
+
+BOOL CDrawScrollView::PreTranslateMessage(MSG* pMsg)
+{
+    // TODO: 在此添加专用代码和/或调用基类
+    if (pMsg->message == WM_KEYDOWN)
+    {
+        CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
+        if (dlg != nullptr)
+        {
+            PluginInfo plugin_info = dlg->GetCurrentPlugin();
+            IPluginItem* plugin_item = m_plugin_item_clicked;
+            if (plugin_item == nullptr && !plugin_info.plugin_items.empty())
+                plugin_item = plugin_info.plugin_items.front();
+            if (plugin_info.plugin != nullptr && plugin_info.plugin->GetAPIVersion() >= 4 && plugin_item != nullptr)
+            {
+                bool ctrl = (GetKeyState(VK_CONTROL) & 0x80);
+                bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
+                bool alt = (GetKeyState(VK_MENU) & 0x8000);
+                int rtn = plugin_item->OnKeboardEvent(pMsg->wParam, ctrl, shift, alt, (void*)GetSafeHwnd(), IPluginItem::KF_TASKBAR_WND);
+                CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
+                InvalidateRect(rc_item);
+                if (rtn != 0)
+                    return TRUE;
+            }
+        }
+    }
+    return CScrollView::PreTranslateMessage(pMsg);
+}
+
+
+void CDrawScrollView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+    // TODO: 在此添加消息处理程序代码和/或调用默认值
+
+    CScrollView::OnKeyUp(nChar, nRepCnt, nFlags);
 }

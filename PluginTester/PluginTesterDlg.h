@@ -17,6 +17,8 @@ public:
 
     PluginInfo GetCurrentPlugin();
     int GetItemWidth(IPluginItem* pItem, CDC* pDC);
+    bool IsDarkmodeChecked() const;
+    bool IsDoubleLineChecked() const;
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -27,11 +29,11 @@ protected:
     virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 private:
-    PluginInfo LoadPlugin(const std::wstring& plugin_file_name);
+    PluginInfo LoadPlugin(const std::wstring& plugin_file_path);
     void EnableControl();
-    void EnableControl(bool enable);
-    int GalculatePreviewTopPos();       //计算预览图顶部位置
+    int CalculatePreviewTopPos();       //计算预览图顶部位置
     CSize CalculatePreviewSize();       //计算预览区域的大小
+    std::wstring GetPluginDir();             //获取插件目录
 
 // 实现
 protected:
@@ -41,9 +43,16 @@ protected:
     int m_cur_index{ -1 };
     CDrawScrollView* m_view{};    //预览区视图类
     int m_proview_top_pos{};
+    std::wstring m_config_path;
 
     // 生成的消息映射函数
     virtual BOOL OnInitDialog();
+
+    void InitPlugins();
+
+    void LoadConfig();
+    void SaveConfig() const;
+
     afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
     afx_msg HCURSOR OnQueryDragIcon();
     DECLARE_MESSAGE_MAP()
@@ -57,4 +66,10 @@ public:
     afx_msg void OnBnClickedDetailButton();
     afx_msg void OnTimer(UINT_PTR nIDEvent);
     afx_msg void OnSize(UINT nType, int cx, int cy);
+    afx_msg void OnBnClickedDarkBackgroundCheck();
+    afx_msg void OnBnClickedDoubleLineCheck();
+    afx_msg void OnBnClickedCurDirRadio();
+    afx_msg void OnBnClickedUserDefinedRadio();
+    afx_msg void OnBnClickedBrowseButton();
+    afx_msg void OnDestroy();
 };

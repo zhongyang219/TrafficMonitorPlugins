@@ -12,6 +12,8 @@
 #include "PluginInfoDlg.h"
 #include "DrawCommon.h"
 #include <vector>
+#include "../utilities/FilePathHelper.h"
+#include "../utilities/IniHelper.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -60,6 +62,9 @@ CPluginTesterDlg::CPluginTesterDlg(CWnd* pParent /*=NULL*/)
     : CDialog(IDD_PLUGINTESTER_DIALOG, pParent)
 {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(NULL, path, MAX_PATH);
+    m_config_path = std::wstring(path) + L".ini";
 }
 
 void CPluginTesterDlg::DoDataExchange(CDataExchange* pDX)
@@ -68,21 +73,17 @@ void CPluginTesterDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_SELECT_PLUGIN_COMBO, m_select_plugin_combo);
 }
 
-PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_name)
+PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_path)
 {
     PluginInfo plugin_info;
-    if (plugin_file_name.empty())
+    if (plugin_file_path.empty())
         return plugin_info;
 
     if (plugin_info.plugin_module != NULL)
         FreeLibrary(plugin_info.plugin_module);
 
     //插件dll的路径
-    plugin_info.file_path = m_plugin_dir + plugin_file_name;
-    //插件文件名
-    std::wstring file_name{ plugin_file_name };
-    if (!file_name.empty() && (file_name[0] == L'\\' || file_name[0] == L'/'))
-        file_name = file_name.substr(1);
+    plugin_info.file_path = plugin_file_path;
 
     //载入dll
     plugin_info.plugin_module = LoadLibrary(plugin_info.file_path.c_str());
@@ -137,13 +138,12 @@ void CPluginTesterDlg::EnableControl()
     CString str;
     m_select_plugin_combo.GetWindowText(str);
     bool enable = (!str.IsEmpty());
-    EnableControl(enable);
-}
-
-void CPluginTesterDlg::EnableControl(bool enable)
-{
     GetDlgItem(IDC_OPTION_BUTTON)->EnableWindow(enable);
     GetDlgItem(IDC_DETAIL_BUTTON)->EnableWindow(enable);
+
+    bool cur_dir_checked = IsDlgButtonChecked(IDC_CUR_DIR_RADIO);
+    GetDlgItem(IDC_EDIT1)->EnableWindow(!cur_dir_checked);
+    GetDlgItem(IDC_BROWSE_BUTTON)->EnableWindow(!cur_dir_checked);
 }
 
 PluginInfo CPluginTesterDlg::GetCurrentPlugin()
@@ -169,6 +169,12 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_WM_LBUTTONDBLCLK()
     ON_WM_RBUTTONUP()
     ON_WM_SIZE()
+    ON_BN_CLICKED(IDC_DARK_BACKGROUND_CHECK, &CPluginTesterDlg::OnBnClickedDarkBackgroundCheck)
+    ON_BN_CLICKED(IDC_DOUBLE_LINE_CHECK, &CPluginTesterDlg::OnBnClickedDoubleLineCheck)
+    ON_BN_CLICKED(IDC_CUR_DIR_RADIO, &CPluginTesterDlg::OnBnClickedCurDirRadio)
+    ON_BN_CLICKED(IDC_USER_DEFINED_RADIO, &CPluginTesterDlg::OnBnClickedUserDefinedRadio)
+    ON_BN_CLICKED(IDC_BROWSE_BUTTON, &CPluginTesterDlg::OnBnClickedBrowseButton)
+    ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -208,30 +214,13 @@ BOOL CPluginTesterDlg::OnInitDialog()
 
     // TODO: 在此添加额外的初始化代码
 
-    //加载所有插件，初始化下拉列表
-    std::vector<std::wstring> files;
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(NULL, path, MAX_PATH);
-    size_t index;
-    m_plugin_dir = path;
-    index = m_plugin_dir.find_last_of(L'\\');
-    m_plugin_dir = m_plugin_dir.substr(0, index + 1);
-    CCommon::GetFiles((m_plugin_dir + L"*.dll").c_str(), files);
-    for (const auto& file_name : files)
-    {
-        m_select_plugin_combo.AddString(file_name.c_str());
-        m_plugins.push_back(LoadPlugin(file_name));
-        ITMPlugin* plugin = m_plugins.back().plugin;
-        if (plugin != nullptr)
-            plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, m_plugin_dir.c_str());
-    }
+    LoadConfig();
 
-    m_select_plugin_combo.SetCurSel(0);
-    OnCbnSelchangeSelectPluginCombo();
+    InitPlugins();
 
     //初始化预览视图
     m_view = (CDrawScrollView*)RUNTIME_CLASS(CDrawScrollView)->CreateObject();
-    m_proview_top_pos = GalculatePreviewTopPos();
+    m_proview_top_pos = CalculatePreviewTopPos();
     CRect scroll_view_rect;
     GetClientRect(scroll_view_rect);
     scroll_view_rect.top = m_proview_top_pos;
@@ -243,6 +232,65 @@ BOOL CPluginTesterDlg::OnInitDialog()
     SetTimer(TIMER_ID, 1000, nullptr);
 
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+}
+
+void CPluginTesterDlg::InitPlugins()
+{
+    //加载所有插件，初始化下拉列表
+    std::wstring plugin_dir = GetPluginDir();
+    if (plugin_dir != m_plugin_dir && !plugin_dir.empty())
+    {
+        for (const auto& plugin_info : m_plugins)
+            FreeLibrary(plugin_info.plugin_module);
+        m_plugins.clear();
+        m_select_plugin_combo.ResetContent();
+
+        std::vector<std::wstring> files;
+        CCommon::GetFiles((plugin_dir + L"*.dll").c_str(), files);
+        for (const auto& file_name : files)
+        {
+            m_select_plugin_combo.AddString(file_name.c_str());
+            m_plugins.push_back(LoadPlugin(plugin_dir + file_name));
+            ITMPlugin* plugin = m_plugins.back().plugin;
+            if (plugin != nullptr)
+                plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, plugin_dir.c_str());
+        }
+
+        m_select_plugin_combo.SetCurSel(0);
+        OnCbnSelchangeSelectPluginCombo();
+
+        m_plugin_dir = plugin_dir;
+    }
+}
+
+void CPluginTesterDlg::LoadConfig()
+{
+    CIniHelper ini(m_config_path);
+    bool is_cur_dir = ini.GetBool(L"config", L"is_cur_dir", true);
+    std::wstring plugin_dir = ini.GetString(L"config", L"plugin_dir");
+    bool dark_mode = ini.GetBool(L"config", L"dark_mode");
+    bool double_line = ini.GetBool(L"config", L"double_line");
+
+    if (is_cur_dir)
+        CheckDlgButton(IDC_CUR_DIR_RADIO, TRUE);
+    else
+        CheckDlgButton(IDC_USER_DEFINED_RADIO, TRUE);
+    SetDlgItemText(IDC_EDIT1, plugin_dir.c_str());
+    CheckDlgButton(IDC_DARK_BACKGROUND_CHECK, dark_mode);
+    CheckDlgButton(IDC_DOUBLE_LINE_CHECK, double_line);
+}
+
+void CPluginTesterDlg::SaveConfig() const
+{
+    CIniHelper ini(m_config_path);
+    ini.WriteBool(L"config", L"is_cur_dir", IsDlgButtonChecked(IDC_CUR_DIR_RADIO));
+    CString plugin_dir;
+    GetDlgItemText(IDC_EDIT1, plugin_dir);
+    ini.WriteString(L"config", L"plugin_dir", plugin_dir.GetString());
+    ini.WriteBool(L"config", L"dark_mode", IsDlgButtonChecked(IDC_DARK_BACKGROUND_CHECK));
+    ini.WriteBool(L"config", L"double_line", IsDlgButtonChecked(IDC_DOUBLE_LINE_CHECK));
+
+    ini.Save();
 }
 
 void CPluginTesterDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -284,11 +332,21 @@ int CPluginTesterDlg::GetItemWidth(IPluginItem* pItem, CDC* pDC)
 
 }
 
+bool CPluginTesterDlg::IsDarkmodeChecked() const
+{
+    return IsDlgButtonChecked(IDC_DARK_BACKGROUND_CHECK);
+}
 
-int CPluginTesterDlg::GalculatePreviewTopPos()
+
+bool CPluginTesterDlg::IsDoubleLineChecked() const
+{
+    return IsDlgButtonChecked(IDC_DOUBLE_LINE_CHECK);
+}
+
+int CPluginTesterDlg::CalculatePreviewTopPos()
 {
     int pos = 0;
-    std::vector<UINT> control_id{ IDC_SELECT_PLUGIN_COMBO, IDC_OPTION_BUTTON, IDC_DETAIL_BUTTON };
+    std::vector<UINT> control_id{ IDC_SELECT_PLUGIN_COMBO, IDC_OPTION_BUTTON, IDC_DETAIL_BUTTON, IDC_DARK_BACKGROUND_CHECK };
     for (const auto& id : control_id)
     {
         CWnd* control = GetDlgItem(id);
@@ -311,11 +369,35 @@ CSize CPluginTesterDlg::CalculatePreviewSize()
 
     PluginInfo plugin_info = GetCurrentPlugin();
     int item_num = plugin_info.plugin_items.size();
-    size.cy = theApp.DPI(16) + item_num * theApp.DPI(56);
-    
+    size.cy = theApp.DPI(16) + item_num * (IsDoubleLineChecked() ? theApp.DPI(64) : theApp.DPI(56));
+    //if (IsDoubleLineChecked())
+    //    size.cy += theApp.DPI(8);
+
     return size;
 }
 
+
+std::wstring CPluginTesterDlg::GetPluginDir()
+{
+    std::wstring plugin_dir;
+    //选择了当前目录
+    if (IsDlgButtonChecked(IDC_CUR_DIR_RADIO))
+    {
+        wchar_t path[MAX_PATH];
+        GetModuleFileNameW(NULL, path, MAX_PATH);
+        plugin_dir = CFilePathHelper(path).GetDir();
+    }
+    //选择了自定义目录
+    else
+    {
+        CString str;
+        GetDlgItemText(IDC_EDIT1, str);
+        plugin_dir = str.GetString();
+    }
+    if (!plugin_dir.empty() && plugin_dir.back() != L'/' && plugin_dir.back() != L'\\')
+        plugin_dir.push_back('\\');
+    return plugin_dir;
+}
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
 //显示。
@@ -417,4 +499,57 @@ void CPluginTesterDlg::OnSize(UINT nType, int cx, int cy)
         rect.top = m_proview_top_pos;
         m_view->MoveWindow(rect);
     }
+}
+
+
+void CPluginTesterDlg::OnBnClickedDarkBackgroundCheck()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    m_view->Invalidate();
+}
+
+
+void CPluginTesterDlg::OnBnClickedDoubleLineCheck()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    if (IsWindow(m_view->GetSafeHwnd()))
+    {
+        m_view->Invalidate();
+        CSize view_size = CalculatePreviewSize();
+        view_size.cx = m_view->GetSize().cx;        //切换双行显示时不改变视图的宽度
+        m_view->SetSize(view_size);
+    }
+}
+
+
+void CPluginTesterDlg::OnBnClickedCurDirRadio()
+{
+    EnableControl();
+    InitPlugins();
+}
+
+
+void CPluginTesterDlg::OnBnClickedUserDefinedRadio()
+{
+    EnableControl();
+    InitPlugins();
+}
+
+
+void CPluginTesterDlg::OnBnClickedBrowseButton()
+{
+    CFolderPickerDialog dlg;
+    if (dlg.DoModal() == IDOK)
+    {
+        SetDlgItemText(IDC_EDIT1, dlg.GetPathName());
+        InitPlugins();
+    }
+}
+
+
+void CPluginTesterDlg::OnDestroy()
+{
+    CDialog::OnDestroy();
+
+    SaveConfig();
 }

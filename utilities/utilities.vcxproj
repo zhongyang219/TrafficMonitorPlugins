@@ -158,12 +158,14 @@
     <ClInclude Include="bass64\base64.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="FilePathHelper.h" />
+    <ClInclude Include="IniHelper.h" />
     <ClInclude Include="yyjson\yyjson.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bass64\base64.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="FilePathHelper.cpp" />
+    <ClCompile Include="IniHelper.cpp" />
     <ClCompile Include="yyjson\yyjson.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
