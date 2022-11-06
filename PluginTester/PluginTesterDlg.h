@@ -53,6 +53,8 @@ protected:
     void LoadConfig();
     void SaveConfig() const;
 
+    void ShowRestartMessage();
+
     afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
     afx_msg HCURSOR OnQueryDragIcon();
     DECLARE_MESSAGE_MAP()

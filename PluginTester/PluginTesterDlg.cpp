@@ -244,30 +244,21 @@ BOOL CPluginTesterDlg::OnInitDialog()
 void CPluginTesterDlg::InitPlugins()
 {
     //加载所有插件，初始化下拉列表
-    std::wstring plugin_dir = GetPluginDir();
-    if (plugin_dir != m_plugin_dir && !plugin_dir.empty())
+    m_plugin_dir = GetPluginDir();
+
+    std::vector<std::wstring> files;
+    utilities::CCommon::GetFiles((m_plugin_dir + L"*.dll").c_str(), files);
+    for (const auto& file_name : files)
     {
-        //for (const auto& plugin_info : m_plugins)
-        //    FreeLibrary(plugin_info.plugin_module);
-        //m_plugins.clear();
-        //m_select_plugin_combo.ResetContent();
-
-        std::vector<std::wstring> files;
-        utilities::CCommon::GetFiles((plugin_dir + L"*.dll").c_str(), files);
-        for (const auto& file_name : files)
-        {
-            m_select_plugin_combo.AddString(file_name.c_str());
-            m_plugins.push_back(LoadPlugin(plugin_dir + file_name, plugin_dir));
-            ITMPlugin* plugin = m_plugins.back().plugin;
-            //if (plugin != nullptr)
-            //    plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, plugin_dir.c_str());
-        }
-
-        m_select_plugin_combo.SetCurSel(0);
-        OnCbnSelchangeSelectPluginCombo();
-
-        m_plugin_dir = plugin_dir;
+        m_select_plugin_combo.AddString(file_name.c_str());
+        m_plugins.push_back(LoadPlugin(m_plugin_dir + file_name, m_plugin_dir));
+        ITMPlugin* plugin = m_plugins.back().plugin;
+        //if (plugin != nullptr)
+        //    plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, plugin_dir.c_str());
     }
+
+    m_select_plugin_combo.SetCurSel(0);
+    OnCbnSelchangeSelectPluginCombo();
 }
 
 void CPluginTesterDlg::LoadConfig()
@@ -553,9 +544,17 @@ void CPluginTesterDlg::OnBnClickedDoubleLineCheck()
 void CPluginTesterDlg::OnBnClickedCurDirRadio()
 {
     EnableControl();
-    MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
+    ShowRestartMessage();
 }
 
+
+void CPluginTesterDlg::ShowRestartMessage()
+{
+    if (m_plugin_dir != GetPluginDir())
+    {
+        MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
+    }
+}
 
 void CPluginTesterDlg::OnBnClickedUserDefinedRadio()
 {
@@ -563,7 +562,7 @@ void CPluginTesterDlg::OnBnClickedUserDefinedRadio()
     CString str;
     GetDlgItemText(IDC_EDIT1, str);
     if (!str.IsEmpty())
-        MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
+        ShowRestartMessage();
 }
 
 
@@ -573,7 +572,7 @@ void CPluginTesterDlg::OnBnClickedBrowseButton()
     if (dlg.DoModal() == IDOK)
     {
         SetDlgItemText(IDC_EDIT1, dlg.GetPathName());
-        MessageBox(theApp.LoadText(IDS_RESTART_TO_CHANGE_PLUGIN_DIR_INFO), NULL, MB_ICONINFORMATION | MB_OK);
+        ShowRestartMessage();
     }
 }
 
