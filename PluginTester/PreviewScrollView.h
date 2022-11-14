@@ -23,6 +23,7 @@ public:
     void SetSize(CSize size);
     void PluginChanged();
     CSize GetSize() const;
+    void UpdateMouseToolTip();
 
 private:
     IPluginItem* GetPluginItemByPoint(CPoint point);
@@ -32,6 +33,7 @@ protected:
     CSize m_size;
     std::map<std::wstring, CRect> m_plugin_item_rect;   //保存每个插件项目的显示位置
     IPluginItem* m_plugin_item_clicked{};
+    CToolTipCtrl m_tool_tips;
 
 protected:
     virtual void OnDraw(CDC* pDC);      // 重写以绘制该视图

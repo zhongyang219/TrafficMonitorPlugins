@@ -26,6 +26,7 @@ BEGIN_MESSAGE_MAP(CDrawScrollView, CScrollView)
     ON_WM_LBUTTONDBLCLK()
     ON_WM_RBUTTONUP()
     ON_WM_KEYUP()
+    ON_WM_MOUSEMOVE()
 END_MESSAGE_MAP()
 
 
@@ -35,8 +36,12 @@ void CDrawScrollView::OnInitialUpdate()
 {
 	CScrollView::OnInitialUpdate();
 
-	// TODO: 计算此视图的合计大小
-	m_size.cx = 0;	
+    //初始化鼠标提示
+    m_tool_tips.Create(this, TTS_ALWAYSTIP | TTS_NOPREFIX);
+    m_tool_tips.SetMaxTipWidth(800);		//为鼠标提示设置一个最大宽度，以允许其换行
+    m_tool_tips.AddTool(this, _T(""));
+
+    m_size.cx = 0;	
 	m_size.cy = 0;	
 	SetScrollSizes(MM_TEXT, m_size);
 }
@@ -184,6 +189,21 @@ CSize CDrawScrollView::GetSize() const
     return m_size;
 }
 
+void CDrawScrollView::UpdateMouseToolTip()
+{
+    CString tip_info;
+    CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
+    if (dlg != nullptr)
+    {
+        ITMPlugin* plugin = dlg->GetCurrentPlugin().plugin;
+        if (plugin != nullptr)
+        {
+            tip_info = plugin->GetTooltipInfo();
+            m_tool_tips.UpdateTipText(tip_info, this);
+        }
+    }
+}
+
 IPluginItem* CDrawScrollView::GetPluginItemByPoint(CPoint point)
 {
     CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
@@ -293,6 +313,12 @@ BOOL CDrawScrollView::PreTranslateMessage(MSG* pMsg)
             }
         }
     }
+
+    if (m_tool_tips.GetSafeHwnd() != 0)
+    {
+        m_tool_tips.RelayEvent(pMsg);
+    }
+
     return CScrollView::PreTranslateMessage(pMsg);
 }
 

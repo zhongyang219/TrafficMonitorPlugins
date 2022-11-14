@@ -498,7 +498,10 @@ void CPluginTesterDlg::OnTimer(UINT_PTR nIDEvent)
         {
             cur_plugin.plugin->DataRequired();
             if (IsWindow(m_view->GetSafeHwnd()))
+            {
                 m_view->Invalidate(FALSE);
+                m_view->UpdateMouseToolTip();
+            }
         }
     }
 
