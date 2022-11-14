@@ -173,6 +173,7 @@
   <ItemGroup>
     <ClInclude Include="CityCode.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="CurLocationHelper.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OptionsDlg.h" />
@@ -184,6 +185,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="CurLocationHelper.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">

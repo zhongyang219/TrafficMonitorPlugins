@@ -11,6 +11,7 @@ public:
     COptionsDlg(CWnd* pParent = nullptr);   // 标准构造函数
     virtual ~COptionsDlg();
     void EnableUpdateBtn(bool enable);
+    void UpdateAutoLocteResult();
 
     SettingData m_data;
 
@@ -21,6 +22,9 @@ public:
 
 private:
     CComboBox m_weather_type_combo;
+
+private:
+    void EnableControl();
 
 protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
@@ -33,4 +37,6 @@ public:
     afx_msg void OnBnClickedShowTooltipsCheck();
     afx_msg void OnBnClickedUseWeatherIconCheck();
     afx_msg void OnBnClickedUpdateWeatherButton();
+    afx_msg void OnBnClickedTestButton();
+    afx_msg void OnBnClickedAutoLocateCheck();
 };

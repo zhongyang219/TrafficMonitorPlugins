@@ -7,6 +7,7 @@
 #include "afxdialogex.h"
 #include "DataManager.h"
 #include "SelectCityDlg.h"
+#include "CurLocationHelper.h"
 
 // COptionsDlg 对话框
 
@@ -26,6 +27,27 @@ void COptionsDlg::EnableUpdateBtn(bool enable)
     ::EnableWindow(GetDlgItem(IDC_UPDATE_WEATHER_BUTTON)->GetSafeHwnd(), enable);
 }
 
+void COptionsDlg::UpdateAutoLocteResult()
+{
+    if (g_data.m_setting_data.auto_locate && g_data.m_auto_located)
+    {
+        if (g_data.m_auto_located_city.name.empty())
+            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_LOCATION_FAILED));
+        else
+            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_CUR_POSITION) + g_data.m_auto_located_city.name.c_str());
+    }
+    else
+    {
+        SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, _T(""));
+    }
+}
+
+void COptionsDlg::EnableControl()
+{
+    GetDlgItem(IDC_CITY_EDIT)->EnableWindow(!m_data.auto_locate);
+    GetDlgItem(IDC_SELECT_CITY_BUTTON)->EnableWindow(!m_data.auto_locate);
+}
+
 void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
@@ -39,6 +61,8 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
     ON_BN_CLICKED(IDC_USE_WEATHER_ICON_CHECK, &COptionsDlg::OnBnClickedUseWeatherIconCheck)
     ON_BN_CLICKED(IDC_UPDATE_WEATHER_BUTTON, &COptionsDlg::OnBnClickedUpdateWeatherButton)
+    ON_BN_CLICKED(IDC_TEST_BUTTON, &COptionsDlg::OnBnClickedTestButton)
+    ON_BN_CLICKED(IDC_AUTO_LOCATE_CHECK, &COptionsDlg::OnBnClickedAutoLocateCheck)
 END_MESSAGE_MAP()
 
 
@@ -58,8 +82,19 @@ BOOL COptionsDlg::OnInitDialog()
     m_weather_type_combo.AddString(g_data.StringRes(IDS_TOMMORROW_WEATHER));
     m_weather_type_combo.SetCurSel(m_data.m_weather_selected);
 
+    CheckDlgButton(IDC_AUTO_LOCATE_CHECK, m_data.auto_locate);
     CheckDlgButton(IDC_SHOW_TOOLTIPS_CHECK, m_data.m_show_weather_in_tooltips);
     CheckDlgButton(IDC_USE_WEATHER_ICON_CHECK, m_data.m_use_weather_icon);
+
+#ifndef _DEBUG
+    CWnd* pBtn = GetDlgItem(IDC_TEST_BUTTON);
+    if (pBtn != nullptr)
+        pBtn->ShowWindow(SW_HIDE);
+#endif // !_DEBUG
+
+    EnableControl();
+
+    UpdateAutoLocteResult();
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -104,4 +139,22 @@ void COptionsDlg::OnBnClickedUpdateWeatherButton()
 {
     // TODO: 在此添加控件通知处理程序代码
     CWeather::Instance().SendWetherInfoQequest();
+}
+
+
+void COptionsDlg::OnBnClickedTestButton()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    std::wstring cur_city = CCurLocationHelper::GetCurrentCity();
+    CCurLocationHelper::Location location = CCurLocationHelper::ParseCityName(cur_city);
+    CityCodeItem city_code_item = CCurLocationHelper::FindCityCodeItem(location);
+    int a = 0;
+}
+
+
+void COptionsDlg::OnBnClickedAutoLocateCheck()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    m_data.auto_locate = (IsDlgButtonChecked(IDC_AUTO_LOCATE_CHECK) != 0);
+    EnableControl();
 }

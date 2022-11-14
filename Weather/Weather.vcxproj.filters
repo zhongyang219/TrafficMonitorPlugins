@@ -57,6 +57,9 @@
     <ClInclude Include="SelectCityDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="CurLocationHelper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -79,6 +82,9 @@
     </ClCompile>
     <ClCompile Include="SelectCityDlg.cpp">
       <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="CurLocationHelper.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

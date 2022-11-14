@@ -6,6 +6,7 @@
 #include "utilities/yyjson/yyjson.h"
 #include "OptionsDlg.h"
 #include <sstream>
+#include "CurLocationHelper.h"
 
 CWeather CWeather::m_instance;
 
@@ -51,6 +52,22 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
 
         //禁用选项设置中的“更新”按钮
         m_instance.DisableUpdateWeatherCommand();
+
+        CityCodeItem cur_city_item;
+        if (g_data.m_setting_data.auto_locate)      //自动获取当前城市
+        {
+            std::wstring cur_city = CCurLocationHelper::GetCurrentCity();
+            CCurLocationHelper::Location location = CCurLocationHelper::ParseCityName(cur_city);
+            cur_city_item = CCurLocationHelper::FindCityCodeItem(location);
+            g_data.m_auto_located_city = cur_city_item;
+            g_data.m_auto_located = true;
+            if (m_instance.m_option_dlg != nullptr)
+                m_instance.m_option_dlg->UpdateAutoLocteResult();
+        }
+        if (cur_city_item.name.empty())
+        {
+            cur_city_item = g_data.CurCity();
+        }
 
         //获取天气信息
         std::wstring url{ L"http://t.weather.itboy.net/api/weather/city/" };
@@ -188,7 +205,8 @@ ITMPlugin::OptionReturn CWeather::ShowOptionsDialog(void* hParent)
     m_option_dlg = nullptr;
     if (rtn == IDOK)
     {
-        bool city_changed{ g_data.m_setting_data.m_city_index != dlg.m_data.m_city_index };
+        bool city_changed{ g_data.m_setting_data.m_city_index != dlg.m_data.m_city_index ||
+            g_data.m_setting_data.auto_locate != dlg.m_data.auto_locate };
         g_data.m_setting_data = dlg.m_data;
         if (city_changed)
         {

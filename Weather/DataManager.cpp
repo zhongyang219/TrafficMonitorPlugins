@@ -88,6 +88,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, m_config_path.c_str()));
     m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, m_config_path.c_str()) != 0);
     m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, m_config_path.c_str()) != 0);
+    m_setting_data.auto_locate = (GetPrivateProfileInt(L"config", L"auto_locate", 0, m_config_path.c_str()) != 0);
 }
 
 void CDataManager::SaveConfig() const
@@ -98,6 +99,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, m_config_path.c_str());
         WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, m_config_path.c_str());
         WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, m_config_path.c_str());
+        WritePrivateProfileInt(L"config", L"auto_locate", m_setting_data.auto_locate, m_config_path.c_str());
     }
 }
 
