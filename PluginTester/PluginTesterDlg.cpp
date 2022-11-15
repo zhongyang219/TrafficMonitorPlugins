@@ -62,9 +62,6 @@ CPluginTesterDlg::CPluginTesterDlg(CWnd* pParent /*=NULL*/)
     : CDialog(IDD_PLUGINTESTER_DIALOG, pParent)
 {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(NULL, path, MAX_PATH);
-    m_config_path = std::wstring(path) + L".ini";
 }
 
 void CPluginTesterDlg::DoDataExchange(CDataExchange* pDX)
@@ -182,6 +179,10 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_WM_DESTROY()
     ON_EN_CHANGE(IDC_ITEM_WIDTH_EDIT, &CPluginTesterDlg::OnEnChangeEdit2)
     ON_BN_CLICKED(IDC_SPECIFY_WIDTH_CHECK, &CPluginTesterDlg::OnBnClickedSpecifyWidthCheck)
+    ON_COMMAND(ID_LANGUAGE_CHINESE, &CPluginTesterDlg::OnLanguageChinese)
+    ON_COMMAND(ID_LANGUAGE_ENGLISH, &CPluginTesterDlg::OnLanguageEnglish)
+    ON_COMMAND(ID_LANGUAGE_FOLLOWING_SYSTEM, &CPluginTesterDlg::OnLanguageFollowingSystem)
+    ON_WM_INITMENU()
 END_MESSAGE_MAP()
 
 
@@ -263,7 +264,7 @@ void CPluginTesterDlg::InitPlugins()
 
 void CPluginTesterDlg::LoadConfig()
 {
-    utilities::CIniHelper ini(m_config_path);
+    utilities::CIniHelper ini(theApp.m_config_path);
     bool is_cur_dir = ini.GetBool(L"config", L"is_cur_dir", true);
     std::wstring plugin_dir = ini.GetString(L"config", L"plugin_dir");
     bool dark_mode = ini.GetBool(L"config", L"dark_mode");
@@ -285,7 +286,7 @@ void CPluginTesterDlg::LoadConfig()
 
 void CPluginTesterDlg::SaveConfig() const
 {
-    utilities::CIniHelper ini(m_config_path);
+    utilities::CIniHelper ini(theApp.m_config_path);
     ini.WriteBool(L"config", L"is_cur_dir", IsDlgButtonChecked(IDC_CUR_DIR_RADIO));
     CString plugin_dir;
     GetDlgItemText(IDC_EDIT1, plugin_dir);
@@ -609,4 +610,50 @@ void CPluginTesterDlg::OnBnClickedSpecifyWidthCheck()
     if (IsWindow(m_view->GetSafeHwnd()))
         m_view->Invalidate();
     EnableControl();
+}
+
+
+void CPluginTesterDlg::OnLanguageChinese()
+{
+    if (theApp.m_language != Language::SIMPLIFIED_CHINESE)
+    {
+        theApp.m_language = Language::SIMPLIFIED_CHINESE;
+        SaveConfig();
+        MessageBox(theApp.LoadText(IDS_LANGUAGE_CHANGE), NULL, MB_ICONINFORMATION);
+    }
+}
+
+
+void CPluginTesterDlg::OnLanguageEnglish()
+{
+    if (theApp.m_language != Language::ENGLISH)
+    {
+        theApp.m_language = Language::ENGLISH;
+        SaveConfig();
+        MessageBox(theApp.LoadText(IDS_LANGUAGE_CHANGE), NULL, MB_ICONINFORMATION);
+    }
+}
+
+
+void CPluginTesterDlg::OnLanguageFollowingSystem()
+{
+    if (theApp.m_language != Language::FOLLOWING_SYSTEM)
+    {
+        theApp.m_language = Language::FOLLOWING_SYSTEM;
+        SaveConfig();
+        MessageBox(theApp.LoadText(IDS_LANGUAGE_CHANGE), NULL, MB_ICONINFORMATION);
+    }
+}
+
+
+void CPluginTesterDlg::OnInitMenu(CMenu* pMenu)
+{
+    CDialog::OnInitMenu(pMenu);
+
+    switch (theApp.m_language)
+    {
+    case Language::ENGLISH: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_ENGLISH, MF_BYCOMMAND | MF_CHECKED); break;
+    case Language::SIMPLIFIED_CHINESE: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_CHINESE, MF_BYCOMMAND | MF_CHECKED); break;
+    default: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_FOLLOWING_SYSTEM, MF_BYCOMMAND | MF_CHECKED); break;
+    }
 }

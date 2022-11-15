@@ -209,7 +209,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConmmonData.h" />
+    <ClInclude Include="CommonData.h" />
     <ClInclude Include="DrawCommon.h" />
     <ClInclude Include="PluginInfoDlg.h" />
     <ClInclude Include="PluginTester.h" />
@@ -220,7 +220,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ConmmonData.cpp" />
+    <ClCompile Include="CommonData.cpp" />
     <ClCompile Include="DrawCommon.cpp" />
     <ClCompile Include="PluginInfoDlg.cpp" />
     <ClCompile Include="PluginTester.cpp" />

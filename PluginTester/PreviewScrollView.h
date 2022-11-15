@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ConmmonData.h"
+#include "CommonData.h"
 
 // DrawScrollView 视图
 class CDrawScrollView : public CScrollView

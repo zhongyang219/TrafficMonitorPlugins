@@ -9,7 +9,7 @@
 #endif
 
 #include "resource.h"		// 主符号
-
+#include "CommonData.h"
 
 // CPluginTesterApp: 
 // 有关此类的实现，请参阅 PluginTester.cpp
@@ -21,6 +21,13 @@ public:
     CPluginTesterApp();
     int DPI(int pixel);
     static CString LoadText(UINT id);
+
+    Language m_language;
+    std::wstring m_config_path;
+
+private:
+    void LoadConfig();
+    void SaveConfig() const;
 
 private:
     int m_dpi{ 96 };

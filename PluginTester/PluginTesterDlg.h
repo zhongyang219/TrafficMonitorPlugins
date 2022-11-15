@@ -4,7 +4,7 @@
 
 #pragma once
 #include "afxwin.h"
-#include "ConmmonData.h"
+#include "CommonData.h"
 #include <map>
 #include "PreviewScrollView.h"
 
@@ -43,7 +43,6 @@ protected:
     int m_cur_index{ -1 };
     CDrawScrollView* m_view{};    //预览区视图类
     int m_proview_top_pos{};
-    std::wstring m_config_path;
 
     // 生成的消息映射函数
     virtual BOOL OnInitDialog();
@@ -76,4 +75,8 @@ public:
     afx_msg void OnDestroy();
     afx_msg void OnEnChangeEdit2();
     afx_msg void OnBnClickedSpecifyWidthCheck();
+    afx_msg void OnLanguageChinese();
+    afx_msg void OnLanguageEnglish();
+    afx_msg void OnLanguageFollowingSystem();
+    afx_msg void OnInitMenu(CMenu* pMenu);
 };

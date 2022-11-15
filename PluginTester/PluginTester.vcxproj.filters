@@ -33,7 +33,7 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ConmmonData.h">
+    <ClInclude Include="CommonData.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="PluginInfoDlg.h">
@@ -56,7 +56,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ConmmonData.cpp">
+    <ClCompile Include="CommonData.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PluginInfoDlg.cpp">

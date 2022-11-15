@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "PluginTester.h"
 #include "PluginTesterDlg.h"
+#include "../utilities/IniHelper.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -39,6 +40,19 @@ CString CPluginTesterApp::LoadText(UINT id)
     return str;
 }
 
+void CPluginTesterApp::LoadConfig()
+{
+    utilities::CIniHelper ini(m_config_path);
+    m_language = static_cast<Language>(ini.GetInt(L"config", L"language"));
+}
+
+void CPluginTesterApp::SaveConfig() const
+{
+    utilities::CIniHelper ini(m_config_path);
+    ini.WriteInt(L"config", L"language", static_cast<int>(m_language));
+    ini.Save();
+}
+
 // 唯一的一个 CPluginTesterApp 对象
 
 CPluginTesterApp theApp;
@@ -48,6 +62,25 @@ CPluginTesterApp theApp;
 
 BOOL CPluginTesterApp::InitInstance()
 {
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(NULL, path, MAX_PATH);
+    m_config_path = std::wstring(path) + L".ini";
+
+    LoadConfig();
+
+    //初始化界面语言
+    switch (m_language)
+    {
+    case Language::ENGLISH:
+        SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+        break;
+    case Language::SIMPLIFIED_CHINESE:
+        SetThreadUILanguage(MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED));
+        break;
+    default:
+        break;
+    }
+
     CWinApp::InitInstance();
 
 
@@ -96,6 +129,8 @@ BOOL CPluginTesterApp::InitInstance()
     {
         delete pShellManager;
     }
+
+    SaveConfig();
 
     // 由于对话框已关闭，所以将返回 FALSE 以便退出应用程序，
     //  而不是启动应用程序的消息泵。

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "ConmmonData.h"
+#include "CommonData.h"
 
 std::wstring PluginInfo::Property(ITMPlugin::PluginInfoIndex index) const
 {

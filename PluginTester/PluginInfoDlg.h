@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ConmmonData.h"
+#include "CommonData.h"
 
 // CPluginInfoDlg 对话框
 
