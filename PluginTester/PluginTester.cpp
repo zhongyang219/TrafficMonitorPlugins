@@ -15,7 +15,7 @@
 // CPluginTesterApp
 
 BEGIN_MESSAGE_MAP(CPluginTesterApp, CWinApp)
-    ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
+    ON_COMMAND(ID_HELP, &CPluginTesterApp::OnHelp)
 END_MESSAGE_MAP()
 
 
@@ -137,3 +137,9 @@ BOOL CPluginTesterApp::InitInstance()
     return FALSE;
 }
 
+
+
+void CPluginTesterApp::OnHelp()
+{
+    ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E6%8F%92%E4%BB%B6%E6%B5%8B%E8%AF%95%E5%99%A8"), NULL, NULL, SW_SHOW);
+}

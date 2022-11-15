@@ -39,6 +39,7 @@ public:
 // й╣ож
 
     DECLARE_MESSAGE_MAP()
+    afx_msg void OnHelp();
 };
 
 extern CPluginTesterApp theApp;
