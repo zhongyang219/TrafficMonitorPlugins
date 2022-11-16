@@ -61,8 +61,8 @@ public:
 
     SettingData m_setting_data;
     std::wstring m_config_dir;
-    CityCodeItem m_auto_located_city;       //自动定位的城市
-    bool m_auto_located{};
+    bool m_auto_located{};          //是否执行了自动定位
+    bool m_auto_locate_succeed{};   //自动定位是否成功
 
 private:
     static CDataManager m_instance;

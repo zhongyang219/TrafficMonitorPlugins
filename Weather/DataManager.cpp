@@ -158,17 +158,10 @@ HICON CDataManager::GetIcon(UINT id)
 
 CityCodeItem CDataManager::CurCity() const
 {
-    if (m_setting_data.auto_locate && m_auto_located && !m_auto_located_city.name.empty())
-    {
-        return m_auto_located_city;
-    }
+    if (m_setting_data.m_city_index >= 0 && m_setting_data.m_city_index < static_cast<int>(CityCode.size()))
+        return CityCode[m_setting_data.m_city_index];
     else
-    {
-        if (m_setting_data.m_city_index >= 0 && m_setting_data.m_city_index < static_cast<int>(CityCode.size()))
-            return CityCode[m_setting_data.m_city_index];
-        else
-            return CityCodeItem();
-    }
+        return CityCodeItem();
 }
 
 void CDataManager::ResetText()

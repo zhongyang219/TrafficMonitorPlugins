@@ -84,16 +84,16 @@ CCurLocationHelper::Location CCurLocationHelper::ParseCityName(std::wstring city
     return result;
 }
 
-CityCodeItem CCurLocationHelper::FindCityCodeItem(Location location)
+int CCurLocationHelper::FindCityCodeItem(Location location)
 {
-    CityCodeItem result;
+    int result;
     result = FindCityCodeItem(location.conty);
-    if (result.name.empty())
+    if (result < 0)
         result = FindCityCodeItem(location.city);
     return result;
 }
 
-CityCodeItem CCurLocationHelper::FindCityCodeItem(std::wstring city_name)
+int CCurLocationHelper::FindCityCodeItem(std::wstring city_name)
 {
     if (!city_name.empty())
     {
@@ -109,7 +109,7 @@ CityCodeItem CCurLocationHelper::FindCityCodeItem(std::wstring city_name)
                     return city_code_item.name == city_name;
                 });
         }
-        return *iter;
+        return iter - CityCode.begin();
     }
-    return CityCodeItem();
+    return -1;
 }

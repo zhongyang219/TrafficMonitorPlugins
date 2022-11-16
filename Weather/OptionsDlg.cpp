@@ -31,10 +31,10 @@ void COptionsDlg::UpdateAutoLocteResult()
 {
     if (g_data.m_setting_data.auto_locate && g_data.m_auto_located)
     {
-        if (g_data.m_auto_located_city.name.empty())
+        if (!g_data.m_auto_locate_succeed)
             SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_LOCATION_FAILED));
         else
-            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_CUR_POSITION) + g_data.m_auto_located_city.name.c_str());
+            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_CUR_POSITION) + g_data.CurCity().name.c_str());
     }
     else
     {
@@ -147,7 +147,7 @@ void COptionsDlg::OnBnClickedTestButton()
     // TODO: 在此添加控件通知处理程序代码
     std::wstring cur_city = CCurLocationHelper::GetCurrentCity();
     CCurLocationHelper::Location location = CCurLocationHelper::ParseCityName(cur_city);
-    CityCodeItem city_code_item = CCurLocationHelper::FindCityCodeItem(location);
+    int city_code_index = CCurLocationHelper::FindCityCodeItem(location);
     int a = 0;
 }
 
