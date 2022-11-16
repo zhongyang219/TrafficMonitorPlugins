@@ -95,7 +95,6 @@ void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forec
 
 void CWeather::ParseJsonData(std::string json_data)
 {
-    //int a = 0;
     std::ofstream stream{ g_data.m_config_dir + L"Weather.dll.log" };
     stream << json_data;
 

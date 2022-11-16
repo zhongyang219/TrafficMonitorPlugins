@@ -322,7 +322,7 @@ BEGIN
     CONTROL         "Use weather icon",IDC_USE_WEATHER_ICON_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,92,127,10
     PUSHBUTTON      "&Update weather manually",IDC_UPDATE_WEATHER_BUTTON,7,62,106,14
     CONTROL         "Automatic positioning",IDC_AUTO_LOCATE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,144,9
-    LTEXT           "",IDC_AUTO_LOCATE_RESULT_STATIC,7,34,156,7
+    LTEXT           "",IDC_AUTO_LOCATE_RESULT_STATIC,7,33,156,10
 END
 
 IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 170, 135
@@ -393,6 +393,21 @@ BEGIN
     100, 100, 0, 0,
     0, 0, 100, 100,
     0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Options...",                 40001
+        MENUITEM "&Update weather",             ID_UPDATE_WEATHER
+    END
 END
 
 
