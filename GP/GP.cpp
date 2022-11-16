@@ -187,11 +187,8 @@ void GP::LoadContextMenu()
 IPluginItem* GP::GetItem(int index)
 {
     size_t item_size = m_items.size();
-    if (!g_data.m_setting_data.m_gp_codes.empty())
-    {
-        if (g_data.m_setting_data.m_gp_codes.size() < item_size)
-            item_size = g_data.m_setting_data.m_gp_codes.size();
-    }
+    if (g_data.m_setting_data.m_gp_codes.size() < item_size)
+        item_size = g_data.m_setting_data.m_gp_codes.size();
     if (item_size == 0)
         item_size = 1;
     if (index >= item_size)
