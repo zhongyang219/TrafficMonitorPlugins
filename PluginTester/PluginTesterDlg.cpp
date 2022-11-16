@@ -448,7 +448,21 @@ void CPluginTesterDlg::OnBass64Encode()
 
 void CPluginTesterDlg::OnBase64Decode()
 {
-    // TODO: 在此添加命令处理程序代码
+    //打开一个文件
+    CFileDialog fileDlg(TRUE, NULL, NULL, OFN_ALLOWMULTISELECT, _T("(*.*)|*.*||"), this);
+    if (fileDlg.DoModal() == IDOK)
+    {
+        CString file_name = fileDlg.GetPathName();
+        std::string file_contents;
+        utilities::CCommon::GetFileContent(file_name.GetString(), file_contents);
+        std::string contents_decoded = utilities::Base64Decode(file_contents);
+
+        //保存文件
+        CString file_name_decoded = file_name += _T(".decoded.txt");
+        std::ofstream file_stream(file_name_decoded.GetString());
+        file_stream << contents_decoded;
+        file_stream.close();
+    }
 }
 
 
