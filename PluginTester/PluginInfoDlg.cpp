@@ -70,6 +70,8 @@ BOOL CPluginInfoDlg::OnInitDialog()
 
     // TODO:  在此添加额外的初始化
 
+    SetIcon(theApp.m_plugin_icon, FALSE);
+
     //初始化列表控件
     CRect rect;
     m_info_list.GetClientRect(rect);

@@ -24,6 +24,7 @@ public:
 
     Language m_language;
     std::wstring m_config_path;
+    HICON m_plugin_icon;
 
 private:
     void LoadConfig();

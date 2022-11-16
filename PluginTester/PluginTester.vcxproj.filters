@@ -83,5 +83,8 @@
     <Image Include="res\PluginTester.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\plugins.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

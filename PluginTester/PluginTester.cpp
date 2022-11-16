@@ -105,6 +105,8 @@ BOOL CPluginTesterApp::InitInstance()
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
     ::ReleaseDC(HWND_DESKTOP, hDC);
 
+    m_plugin_icon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDI_PLUGIN), IMAGE_ICON, DPI(16), DPI(16), 0);
+
     CPluginTesterDlg dlg;
     m_pMainWnd = &dlg;
     INT_PTR nResponse = dlg.DoModal();
