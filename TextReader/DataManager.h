@@ -19,6 +19,7 @@ struct SettingData
     bool hide_when_lose_focus;    //失去焦点时不显示
     bool auto_read;             //自动阅读
     int auto_read_timer_interval;   //自动阅读的时间间隔
+    bool auto_decode_base64{};  //自动对base64编码的文本文件解码
 };
 
 class CDataManager

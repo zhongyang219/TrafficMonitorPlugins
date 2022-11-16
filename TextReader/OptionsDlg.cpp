@@ -61,6 +61,8 @@ BOOL COptionsDlg::OnInitDialog()
     str.Format(_T("%d"), m_data.auto_read_timer_interval);
     SetDlgItemText(IDC_AUTO_READ_INTERVAL_EDIT, str);
 
+    CheckDlgButton(IDC_AUTO_DECODE_CHECK, m_data.auto_decode_base64);
+
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
 }
@@ -104,6 +106,8 @@ void COptionsDlg::OnOK()
     CString auto_read_interval;
     GetDlgItemText(IDC_AUTO_READ_INTERVAL_EDIT, auto_read_interval);
     m_data.auto_read_timer_interval = _ttoi(auto_read_interval);
+
+    m_data.auto_decode_base64 = (IsDlgButtonChecked(IDC_AUTO_DECODE_CHECK) != 0);
 
     CDialogEx::OnOK();
 }

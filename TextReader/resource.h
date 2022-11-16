@@ -38,6 +38,8 @@
 #define IDC_AUTO_READ_INTERVAL_EDIT     1014
 #define IDC_CHECK3                      1015
 #define IDC_SHOT_TOOLTIP_CHECK          1015
+#define IDC_CHECK4                      1016
+#define IDC_AUTO_DECODE_CHECK           1016
 #define ID_PREVIOUS                     40001
 #define ID_1_40002                      40002
 #define ID_NEXT                         40003
@@ -57,7 +59,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif

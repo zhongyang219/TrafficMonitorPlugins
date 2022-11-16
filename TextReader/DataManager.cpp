@@ -62,6 +62,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.hide_when_lose_focus = GetPrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), 0, m_config_path.c_str());
     m_setting_data.auto_read = GetPrivateProfileInt(_T("config"), _T("auto_read"), 0, m_config_path.c_str());
     m_setting_data.auto_read_timer_interval = GetPrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), 2000, m_config_path.c_str());
+    m_setting_data.auto_decode_base64 = GetPrivateProfileInt(_T("config"), _T("auto_decode_base64"), 1, m_config_path.c_str());
 
     //载入书签
     m_bookmark_mgr.LoadFromConfig(m_config_path);
@@ -80,6 +81,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(_T("config"), _T("hide_when_lose_focus"), m_setting_data.hide_when_lose_focus, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("auto_read"), m_setting_data.auto_read, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), m_setting_data.auto_read_timer_interval, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("auto_decode_base64"), m_setting_data.auto_decode_base64, m_config_path.c_str());
 
         //保存书签
         m_bookmark_mgr.SaveToConfig(m_config_path);
@@ -168,7 +170,7 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     delete[] buff;
 
     //判断是否是base64编码
-    if (utilities::IsBase64Code(str_contents))
+    if (g_data.m_setting_data.auto_decode_base64 && utilities::IsBase64Code(str_contents))
     {
         str_contents = utilities::Base64Decode(str_contents);
     }
