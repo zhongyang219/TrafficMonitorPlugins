@@ -4,6 +4,19 @@
 #include "DrawCommon.h"
 #include "GdiPlusTool.h"
 
+static double battery_percent = 0.0;
+
+CBatteryItem::CBatteryItem()
+{
+    //设置一个定时器，让battery_percent的值每200毫秒加4，如果超100，则变为0
+    SetTimer(NULL, 0, 200, [](HWND, UINT, UINT_PTR, DWORD)
+        {
+            battery_percent += 4;
+            if (battery_percent > 100)
+                battery_percent = 0;
+        });
+}
+
 const wchar_t* CBatteryItem::GetItemName() const
 {
     return g_data.StringRes(IDS_BATTERY);
@@ -85,15 +98,11 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         Gdiplus::RectF rc_indicater;
         rc_indicater.X = icon_point.x + g_data.DPIF(1);
         rc_indicater.Y = icon_point.y + g_data.DPIF(6);
-        int percent = g_data.m_sysPowerStatus.BatteryLifePercent;
+        double percent = g_data.m_sysPowerStatus.BatteryLifePercent;
         //显示充电动画
         if (g_data.m_setting_data.show_charging_animation && g_data.IsAcOnline() && g_data.m_sysPowerStatus.BatteryLifePercent < 100)
         {
-            static int display_percent = g_data.m_sysPowerStatus.BatteryLifePercent;
-            display_percent += 4;
-            if (display_percent > 100)
-                display_percent = g_data.m_sysPowerStatus.BatteryLifePercent;
-            percent = display_percent;
+            percent = g_data.m_sysPowerStatus.BatteryLifePercent + (battery_percent / 100 * (100 - g_data.m_sysPowerStatus.BatteryLifePercent));
         }
         float indicater_width = g_data.DPIF(11.7) * percent / 100;
         rc_indicater.Width = indicater_width;
