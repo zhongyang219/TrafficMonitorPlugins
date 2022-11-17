@@ -1,3 +1,5 @@
+**简体中文 | [English](plugin_download_en.md)**
+
 # TrafficMonitor插件下载
 
 欢迎大家为TrafficMonitor开发自己的插件，如果你想提交你制作的插件，请将插件编译成dll文件后通过电子邮件发送到 zhongyang219@hotmail.com，邮件请注明“TrafficMonitor插件”，请尽可能提供32位和64位的版本。
