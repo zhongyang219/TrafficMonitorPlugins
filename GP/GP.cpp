@@ -241,7 +241,7 @@ const wchar_t* GP::GetInfo(PluginInfoIndex index)
     case ITMPlugin::TMI_URL:
         return L"https://github.com/CListery";
     case TMI_VERSION:
-        return L"1.02";
+        return L"1.12";
     default:
         break;
     }

@@ -64,6 +64,7 @@
 #define IDC_TEST_BUTTON                 1013
 #define IDC_AUTO_LOCATE_CHECK           1014
 #define IDC_AUTO_LOCATE_RESULT_STATIC   1015
+#define IDC_HELP_SYSLINK                1016
 #define ID_OPTIONS                      40001
 #define ID_1_40002                      40002
 #define ID_UPDATE_WEATHER               40003
@@ -74,7 +75,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         40004
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

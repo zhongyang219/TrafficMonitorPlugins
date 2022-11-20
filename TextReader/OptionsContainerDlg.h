@@ -39,4 +39,5 @@ public:
     virtual void OnOK();
     virtual BOOL OnInitDialog();
     afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+    afx_msg void OnNMClickHelpSyslink1(NMHDR* pNMHDR, LRESULT* pResult);
 };

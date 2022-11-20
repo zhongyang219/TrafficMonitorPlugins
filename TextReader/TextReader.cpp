@@ -77,7 +77,7 @@ const wchar_t* CTextReader::GetInfo(PluginInfoIndex index)
         break;
     case TMI_VERSION:
         //TODO: 在此修改插件的版本
-        return L"1.00";
+        return L"1.01";
     default:
         break;
     }

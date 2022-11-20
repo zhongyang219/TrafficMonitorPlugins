@@ -63,6 +63,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_UPDATE_WEATHER_BUTTON, &COptionsDlg::OnBnClickedUpdateWeatherButton)
     ON_BN_CLICKED(IDC_TEST_BUTTON, &COptionsDlg::OnBnClickedTestButton)
     ON_BN_CLICKED(IDC_AUTO_LOCATE_CHECK, &COptionsDlg::OnBnClickedAutoLocateCheck)
+    ON_NOTIFY(NM_CLICK, IDC_HELP_SYSLINK, &COptionsDlg::OnNMClickHelpSyslink)
 END_MESSAGE_MAP()
 
 
@@ -157,4 +158,11 @@ void COptionsDlg::OnBnClickedAutoLocateCheck()
     // TODO: 在此添加控件通知处理程序代码
     m_data.auto_locate = (IsDlgButtonChecked(IDC_AUTO_LOCATE_CHECK) != 0);
     EnableControl();
+}
+
+
+void COptionsDlg::OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E5%A4%A9%E6%B0%94%E6%8F%92%E4%BB%B6"), NULL, NULL, SW_SHOW);
+    *pResult = 0;
 }

@@ -31,4 +31,5 @@ public:
     afx_msg void OnBnClickedShowTooltipsCheck();
     afx_msg void OnBnClickedShowPercentCheck();
     afx_msg void OnBnClickedShowChargingAnimationCheck();
+    afx_msg void OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult);
 };

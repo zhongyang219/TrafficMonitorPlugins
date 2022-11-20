@@ -31,6 +31,7 @@ void COptionsContainerDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(COptionsContainerDlg, CDialog)
     ON_WM_GETMINMAXINFO()
+    ON_NOTIFY(NM_CLICK, IDC_HELP_SYSLINK1, &COptionsContainerDlg::OnNMClickHelpSyslink1)
 END_MESSAGE_MAP()
 
 
@@ -93,4 +94,11 @@ void COptionsContainerDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
     lpMMI->ptMinTrackSize.y = m_min_size.cy;
 
     CDialog::OnGetMinMaxInfo(lpMMI);
+}
+
+
+void COptionsContainerDlg::OnNMClickHelpSyslink1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E6%96%87%E6%9C%AC%E9%98%85%E8%AF%BB%E5%99%A8%E6%8F%92%E4%BB%B6"), NULL, NULL, SW_SHOW);
+    *pResult = 0;
 }

@@ -65,9 +65,10 @@ BEGIN
     CONTROL         "在鼠标提示中显示天气",IDC_SHOW_TOOLTIPS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,68,104,10
     CONTROL         "使用天气图标",IDC_USE_WEATHER_ICON_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,80,113,10
     PUSHBUTTON      "手动更新天气(&U)",IDC_UPDATE_WEATHER_BUTTON,7,50,70,14
-    PUSHBUTTON      "Test",IDC_TEST_BUTTON,7,114,24,14
+    PUSHBUTTON      "Test",IDC_TEST_BUTTON,7,98,24,14
     CONTROL         "自动定位",IDC_AUTO_LOCATE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,53,10
     LTEXT           "",IDC_AUTO_LOCATE_RESULT_STATIC,64,23,92,8
+    CONTROL         "<a>帮助</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,118,24,10
 END
 
 IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 161, 135
@@ -119,6 +120,7 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -214,8 +216,8 @@ IDI_CLOUDY_NIGHT        ICON                    "res\\多云_夜晚.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,1,0
- PRODUCTVERSION 1,0,1,0
+ FILEVERSION 1,0,2,0
+ PRODUCTVERSION 1,0,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -232,12 +234,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "By ZhongYang"
             VALUE "FileDescription", "Weather Plugin for TrafficMonitor"
-            VALUE "FileVersion", "1.0.1.0"
+            VALUE "FileVersion", "1.0.2.0"
             VALUE "InternalName", "Weather.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2021 By ZhongYang"
+            VALUE "LegalCopyright", "Copyright (C) 2022 By ZhongYang"
             VALUE "OriginalFilename", "Weather.dll"
             VALUE "ProductName", "Weather Plugin for TrafficMonitor"
-            VALUE "ProductVersion", "1.0.1.0"
+            VALUE "ProductVersion", "1.0.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -323,6 +325,7 @@ BEGIN
     PUSHBUTTON      "&Update weather manually",IDC_UPDATE_WEATHER_BUTTON,7,62,106,14
     CONTROL         "Automatic positioning",IDC_AUTO_LOCATE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,144,9
     LTEXT           "",IDC_AUTO_LOCATE_RESULT_STATIC,7,33,156,10
+    CONTROL         "<a>Help</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,119,26,9
 END
 
 IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 170, 135
@@ -374,6 +377,7 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,

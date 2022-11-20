@@ -34,7 +34,7 @@ Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPl
 
 A plugin for displaying the weather. Support manual selection of cities (only cities in China is supported), support display of today's and tomorrow's weather.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x64.zip?raw=true)
+Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x64.zip?raw=true)
 
 ---
 
@@ -60,7 +60,7 @@ Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorP
 
 A plugin for displaying the battery level of your computer.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x64.zip?raw=true)
+Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x64.zip?raw=true)
 
 ---
 
@@ -78,7 +78,7 @@ Displays real-time trading information for specified stocks. Use the Sina interf
 
 Author: [CListery](https://github.com/CListery)
 
-Download url: [32 bit download](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x86.zip?raw=true) [64 bit download](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x64.zip?raw=true)
+Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x64.zip?raw=true)
 
 ---
 
@@ -116,7 +116,7 @@ The text reader plugin can be used to read text files in the taskbar. Including 
 
 Use the mouse click or down arrow key to turn the page backward, the up arrow keys to turn the page forward. The left and right arrow keys to move the page one character at a time.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x64.zip?raw=true)
+Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x64.zip?raw=true)
 
 ---
 

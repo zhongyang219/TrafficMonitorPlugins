@@ -39,4 +39,5 @@ public:
     afx_msg void OnBnClickedUpdateWeatherButton();
     afx_msg void OnBnClickedTestButton();
     afx_msg void OnBnClickedAutoLocateCheck();
+    afx_msg void OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult);
 };

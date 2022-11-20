@@ -92,6 +92,7 @@ BEGIN
     DEFPUSHBUTTON   "确定",IDOK,125,152,50,14
     PUSHBUTTON      "取消",IDCANCEL,180,152,50,14
     CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,223,142
+    CONTROL         "<a>帮助</a>",IDC_HELP_SYSLINK1,"SysLink",WS_TABSTOP,7,156,28,10
 END
 
 IDD_BOOKMARK_DLG DIALOGEX 0, 0, 169, 128
@@ -196,7 +197,8 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 100, 100
+    0, 0, 100, 100,
+    0, 0, 0, 0
 END
 
 IDD_BOOKMARK_DLG AFX_DIALOG_LAYOUT
@@ -212,8 +214,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,2
- PRODUCTVERSION 1,0,0,2
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -230,12 +232,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "By ZhongYang"
             VALUE "FileDescription", "Text Reader Plugin for TrafficMonitor"
-            VALUE "FileVersion", "1.0.0.2"
+            VALUE "FileVersion", "1.0.1.0"
             VALUE "InternalName", "TextReader.dll"
             VALUE "LegalCopyright", "Copyright (C) 2022 By ZhongYang"
             VALUE "OriginalFilename", "TextReader.dll"
             VALUE "ProductName", "TextReader Plugin for TrafficMonitor"
-            VALUE "ProductVersion", "1.0.0.2"
+            VALUE "ProductVersion", "1.0.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -364,6 +366,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,171,152,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,227,152,50,14
     CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,270,142
+    CONTROL         "<a>Help</a>",IDC_HELP_SYSLINK1,"SysLink",WS_TABSTOP,7,157,30,9
 END
 
 
@@ -444,7 +447,8 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 100, 100
+    0, 0, 100, 100,
+    0, 0, 0, 0
 END
 
 

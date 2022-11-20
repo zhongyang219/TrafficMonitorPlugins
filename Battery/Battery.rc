@@ -62,6 +62,7 @@ BEGIN
     CONTROL         "在鼠标提示中显示电池信息",IDC_SHOW_TOOLTIPS_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,23,104,10
     CONTROL         "显示百分号",IDC_SHOW_PERCENT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,103,10
     CONTROL         "显示充电动画",IDC_SHOW_CHARGING_ANIMATION_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,48,108,10
+    CONTROL         "<a>帮助</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,68,31,11
 END
 
 
@@ -110,8 +111,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,1,0
- PRODUCTVERSION 1,0,1,0
+ FILEVERSION 1,0,2,0
+ PRODUCTVERSION 1,0,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -128,12 +129,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "By ZhongYang"
             VALUE "FileDescription", "Battery Plugin for TrafficMonitor"
-            VALUE "FileVersion", "1.0.1.0"
+            VALUE "FileVersion", "1.0.2.0"
             VALUE "InternalName", "Battery.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2021 By ZhongYang"
+            VALUE "LegalCopyright", "Copyright (C) 2022 By ZhongYang"
             VALUE "OriginalFilename", "Battery.dll"
             VALUE "ProductName", "Battery Plugin for TrafficMonitor"
-            VALUE "ProductVersion", "1.0.1.0"
+            VALUE "ProductVersion", "1.0.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -211,6 +212,7 @@ BEGIN
     CONTROL         "Show percent",IDC_SHOW_PERCENT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,35,126,9
     CONTROL         "Show charging animation",IDC_SHOW_CHARGING_ANIMATION_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,47,122,10
+    CONTROL         "<a>Help</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,70,34,10
 END
 
 

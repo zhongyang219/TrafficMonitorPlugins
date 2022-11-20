@@ -231,7 +231,7 @@ const wchar_t* CWeather::GetInfo(PluginInfoIndex index)
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        return L"1.01";
+        return L"1.02";
     default:
         break;
     }

@@ -34,7 +34,7 @@
 
 用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.01_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x64.zip?raw=true)
 
 ---
 
@@ -60,7 +60,7 @@
 
 用于显示电脑电池的电量的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.01_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x64.zip?raw=true)
 
 ---
 
@@ -78,7 +78,7 @@
 
 作者：[CListery](https://github.com/CListery)
 
-下载链接：[32位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x86.zip?raw=true) [64位下载](https://github.com/CListery/TrafficMonitorPlugins/blob/clistery/download/GP/GP_V1.11_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x64.zip?raw=true)
 
 ---
 
@@ -118,7 +118,7 @@
 
 由于TrafficMonitor 1.83版本还不支持向插件传递键盘事件，因此在使用此插件时无法使用键操作，请等TrafficMonitor下个版本更新。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.00_x64.zip?raw=true)
+下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x64.zip?raw=true)
 
 ---
 

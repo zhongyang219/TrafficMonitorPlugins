@@ -32,6 +32,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_SHOW_TOOLTIPS_CHECK, &COptionsDlg::OnBnClickedShowTooltipsCheck)
     ON_BN_CLICKED(IDC_SHOW_PERCENT_CHECK, &COptionsDlg::OnBnClickedShowPercentCheck)
     ON_BN_CLICKED(IDC_SHOW_CHARGING_ANIMATION_CHECK, &COptionsDlg::OnBnClickedShowChargingAnimationCheck)
+    ON_NOTIFY(NM_CLICK, IDC_HELP_SYSLINK, &COptionsDlg::OnNMClickHelpSyslink)
 END_MESSAGE_MAP()
 
 
@@ -78,4 +79,11 @@ void COptionsDlg::OnBnClickedShowPercentCheck()
 void COptionsDlg::OnBnClickedShowChargingAnimationCheck()
 {
     m_data.show_charging_animation = (IsDlgButtonChecked(IDC_SHOW_CHARGING_ANIMATION_CHECK) != 0);
+}
+
+
+void COptionsDlg::OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E7%94%B5%E6%B1%A0%E6%8F%92%E4%BB%B6"), NULL, NULL, SW_SHOW);
+    *pResult = 0;
 }
