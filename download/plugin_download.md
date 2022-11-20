@@ -12,6 +12,10 @@
 
 请根据你使用的TrafficMonitor版本下载对应版本的插件（32位或64位），下载后将dll放到TrafficMonitor.exe所在目录的plugins目录下（如果没有请创建），然后重新启动TrafficMonitor，插件将会被自动加载。
 
+关于插件使用的详细说明，请参考以下链接：
+
+[插件功能 · zhongyang219/TrafficMonitor Wiki (github.com)](https://github.com/zhongyang219/TrafficMonitor/wiki/插件功能)
+
 ## 插件下载
 
 ### 时间日期插件

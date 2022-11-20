@@ -12,6 +12,10 @@ About how to develop the plugin for TrafficMonitor, please refer to [Plugin Deve
 
 Please download the corresponding version (32 bit or 64 bit)  According to the version of TrafficMonitor you use. After downloaded, please put the dll file in the "plugins" directory where TrafficMonitor.exe is located (Create it if directory "plugins" is not exist). Then restart TrafficMonitor, the plugin will be loaded automatically. 
 
+For the detail description of the plugin usage instruction, please refer to the following link:
+
+[插件功能 · zhongyang219/TrafficMonitor Wiki (github.com)](https://github.com/zhongyang219/TrafficMonitor/wiki/插件功能)
+
 ## Plugin download
 
 ### Time date plugin

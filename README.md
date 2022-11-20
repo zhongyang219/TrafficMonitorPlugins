@@ -1,7 +1,11 @@
 # TrafficMonitorPlugins
 这是用于[TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor)的插件。
 
-**[插件下载](./download/plugin_download.md)**
+## 插件下载
+
+请点击以下链接转到插件下载页面：
+
+[TrafficMonitor 插件下载](./download/plugin_download.md)
 
 ## 插件使用说明
 
@@ -20,3 +24,14 @@
 ![image-20221013203621714](images/image-20221013203621714.png)
 
 此时，“显示设置”中会显示已加载的插件项目，勾选你希望显示在任务栏上的项目，点击确定即可。
+
+关于更多插件使用的详细说明，请参考以下链接：
+
+[插件功能 · zhongyang219/TrafficMonitor Wiki (github.com)](https://github.com/zhongyang219/TrafficMonitor/wiki/插件功能)
+
+## 如何开发插件
+
+关于如何开发TrafficMonitor，请参考以下链接：
+
+[插件开发指南 · zhongyang219/TrafficMonitor Wiki (github.com)](https://github.com/zhongyang219/TrafficMonitor/wiki/插件开发指南)
+
