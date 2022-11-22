@@ -91,11 +91,11 @@ void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
 
 int CWeatherItem::OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag)
 {
-    CWnd* pWnd = CWnd::FromHandle((HWND)hWnd);
-    if (type == IPluginItem::MT_RCLICKED)
-    {
-        CWeather::Instance().ShowContextMenu(pWnd);
-        return 1;
-    }
+    //CWnd* pWnd = CWnd::FromHandle((HWND)hWnd);
+    //if (type == IPluginItem::MT_RCLICKED)
+    //{
+    //    CWeather::Instance().ShowContextMenu(pWnd);
+    //    return 1;
+    //}
     return 0;
 }

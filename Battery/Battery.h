@@ -17,6 +17,7 @@ public:
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
+    virtual void* GetPluginIcon() override;
 
 private:
 

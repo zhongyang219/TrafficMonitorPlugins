@@ -23,6 +23,7 @@
 #define IDS_CUR_POSITION                113
 #define IDS_LOCATION_FAILED             114
 #define IDI_WEATHER                     115
+#define IDS_UPDATE_WEATHER              115
 #define IDI_SNOWSTORM                   116
 #define IDI_RAINSTORM                   117
 #define IDI_HAIL                        118

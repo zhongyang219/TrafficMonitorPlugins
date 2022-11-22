@@ -251,6 +251,11 @@ void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     }
 }
 
+void* CWeather::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_WEATHER);
+}
+
 void CWeather::SendWetherInfoQequest()
 {
     if (!m_is_thread_runing)    //确保线程已退出
@@ -307,6 +312,34 @@ void CWeather::EnableUpdateWeatherCommand()
         m_instance.m_option_dlg->EnableUpdateBtn(true);
     if (m_menu.m_hMenu != NULL)
         m_menu.EnableMenuItem(ID_UPDATE_WEATHER, MF_BYCOMMAND | MF_ENABLED);
+}
+
+const wchar_t* CWeather::GetCommandName(int command_index)
+{
+    switch (command_index)
+    {
+    case 0:
+        return g_data.StringRes(IDS_UPDATE_WEATHER).GetString();
+    default:
+        return nullptr;
+    }
+}
+
+void* CWeather::GetCommandIcon(int command_index)
+{
+    return nullptr;
+}
+
+void CWeather::OnPluginCommand(int command_index)
+{
+    switch (command_index)
+    {
+    case 0:
+        SendWetherInfoQequest();
+        break;
+    default:
+        break;
+    }
 }
 
 ITMPlugin* TMPluginGetInstance()

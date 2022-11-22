@@ -108,6 +108,11 @@ void CBattery::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     }
 }
 
+void* CBattery::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_BATTERY_DARK);
+}
+
 ITMPlugin* TMPluginGetInstance()
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());

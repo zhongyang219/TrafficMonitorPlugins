@@ -289,6 +289,7 @@ BEGIN
     IDS_CURRENT_WEATHER     "实时天气"
     IDS_CUR_POSITION        "当前位置："
     IDS_LOCATION_FAILED     "自动定位失败！"
+    IDS_UPDATE_WEATHER      "更新天气"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -440,6 +441,7 @@ BEGIN
     IDS_CURRENT_WEATHER     "Real time weather"
     IDS_CUR_POSITION        "Current location: "
     IDS_LOCATION_FAILED     "Automatic positioning failed!"
+    IDS_UPDATE_WEATHER      "Update weather"
 END
 
 #endif    // 英语(美国) resources
