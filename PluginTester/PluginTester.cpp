@@ -40,6 +40,21 @@ CString CPluginTesterApp::LoadText(UINT id)
     return str;
 }
 
+HICON CPluginTesterApp::GetIcon(UINT id)
+{
+    auto iter = m_icons.find(id);
+    if (iter != m_icons.end())
+    {
+        return iter->second;
+    }
+    else
+    {
+        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);
+        m_icons[id] = hIcon;
+        return hIcon;
+    }
+}
+
 void CPluginTesterApp::LoadConfig()
 {
     utilities::CIniHelper ini(m_config_path);

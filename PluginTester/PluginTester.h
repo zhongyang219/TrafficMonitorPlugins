@@ -21,6 +21,7 @@ public:
     CPluginTesterApp();
     int DPI(int pixel);
     static CString LoadText(UINT id);
+    HICON GetIcon(UINT id);
 
     Language m_language;
     std::wstring m_config_path;
@@ -32,6 +33,7 @@ private:
 
 private:
     int m_dpi{ 96 };
+    std::map<UINT, HICON> m_icons;
 
 // ÖØÐ´
 public:

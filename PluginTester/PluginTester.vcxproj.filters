@@ -45,6 +45,9 @@
     <ClInclude Include="PreviewScrollView.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="WIC.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PluginTester.cpp">
@@ -68,6 +71,9 @@
     <ClCompile Include="PreviewScrollView.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="WIC.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PluginTester.rc">
@@ -84,6 +90,18 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\plugins.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\exit.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\help.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\item.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\setting.ico">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

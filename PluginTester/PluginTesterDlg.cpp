@@ -14,6 +14,7 @@
 #include <vector>
 #include "../utilities/FilePathHelper.h"
 #include "../utilities/IniHelper.h"
+#include "WIC.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -146,6 +147,14 @@ void CPluginTesterDlg::EnableControl()
     GetDlgItem(IDC_BROWSE_BUTTON)->EnableWindow(!cur_dir_checked);
 
     GetDlgItem(IDC_ITEM_WIDTH_EDIT)->EnableWindow(IsDlgButtonChecked(IDC_SPECIFY_WIDTH_CHECK));
+
+    bool plugin_command_exist = false;
+    PluginInfo cur_plugin = GetCurrentPlugin();
+    if (cur_plugin.plugin != nullptr && cur_plugin.plugin->GetAPIVersion() >= 5)
+    {
+        plugin_command_exist = cur_plugin.plugin->GetCommandCount() > 0;
+    }
+    GetDlgItem(IDC_PLUGIN_COMMANDS_BUTTON)->EnableWindow(plugin_command_exist);
 }
 
 PluginInfo CPluginTesterDlg::GetCurrentPlugin()
@@ -183,6 +192,7 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_COMMAND(ID_LANGUAGE_ENGLISH, &CPluginTesterDlg::OnLanguageEnglish)
     ON_COMMAND(ID_LANGUAGE_FOLLOWING_SYSTEM, &CPluginTesterDlg::OnLanguageFollowingSystem)
     ON_WM_INITMENU()
+    ON_BN_CLICKED(IDC_PLUGIN_COMMANDS_BUTTON, &CPluginTesterDlg::OnBnClickedPluginCommandsButton)
 END_MESSAGE_MAP()
 
 
@@ -225,6 +235,15 @@ BOOL CPluginTesterDlg::OnInitDialog()
     LoadConfig();
 
     InitPlugins();
+
+    //为菜单添加图标
+    HMENU menu = GetMenu()->GetSafeHmenu();
+    if (menu != NULL)
+    {
+        CMenuIcon::AddIconToMenuItem(menu, ID_APP_EXIT, FALSE, theApp.GetIcon(IDI_EXIT));
+        CMenuIcon::AddIconToMenuItem(menu, ID_HELP, FALSE, theApp.GetIcon(IDI_HELP));
+        CMenuIcon::AddIconToMenuItem(menu, ID_APP_ABOUT, FALSE, theApp.GetIcon(IDR_MAINFRAME));
+    }
 
     //初始化预览视图
     m_view = (CDrawScrollView*)RUNTIME_CLASS(CDrawScrollView)->CreateObject();
@@ -361,6 +380,7 @@ bool CPluginTesterDlg::IsDoubleLineChecked() const
     return IsDlgButtonChecked(IDC_DOUBLE_LINE_CHECK);
 }
 
+
 int CPluginTesterDlg::CalculatePreviewTopPos()
 {
     int pos = 0;
@@ -483,6 +503,17 @@ void CPluginTesterDlg::OnCbnSelchangeSelectPluginCombo()
         m_view->SetSize(CalculatePreviewSize());
     }
     EnableControl();
+
+    //设置插件图标
+    PluginInfo cur_plugin = GetCurrentPlugin();
+    HICON hIcon{};
+    if (cur_plugin.plugin != nullptr && cur_plugin.plugin->GetAPIVersion() >= 5)
+    {
+        hIcon = (HICON)cur_plugin.plugin->GetPluginIcon();
+    }
+    CButton* btn = (CButton*)(GetDlgItem(IDC_PLUGIN_COMMANDS_BUTTON));
+    if (btn != nullptr)
+        btn->SetIcon(hIcon);
 }
 
 
@@ -670,4 +701,54 @@ void CPluginTesterDlg::OnInitMenu(CMenu* pMenu)
     case Language::SIMPLIFIED_CHINESE: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_CHINESE, MF_BYCOMMAND | MF_CHECKED); break;
     default: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_FOLLOWING_SYSTEM, MF_BYCOMMAND | MF_CHECKED); break;
     }
+}
+
+
+void CPluginTesterDlg::OnBnClickedPluginCommandsButton()
+{
+    // TODO: 在此添加控件通知处理程序代码
+    PluginInfo cur_plugin = GetCurrentPlugin();
+    if (cur_plugin.plugin != nullptr && cur_plugin.plugin->GetAPIVersion() >= 5)
+    {
+        int command_num = cur_plugin.plugin->GetCommandCount();
+        if (command_num > 0)
+        {
+            //初始化菜单
+            m_plugin_command_menu.DestroyMenu();
+            m_plugin_command_menu.CreatePopupMenu();
+            for (int i = 0; i < command_num; i++)
+            {
+                const wchar_t* cmd_name = cur_plugin.plugin->GetCommandName(i);
+                m_plugin_command_menu.AppendMenu(MF_STRING | MF_ENABLED, ID_PLUGIN_COMMAND_START + i, cmd_name);
+                HICON command_icon = (HICON)cur_plugin.plugin->GetCommandIcon(i);
+                if (command_icon != nullptr)
+                    CMenuIcon::AddIconToMenuItem(m_plugin_command_menu.m_hMenu, ID_PLUGIN_COMMAND_START + i, FALSE, command_icon);
+            }
+            //获取弹出菜单的位置
+            CRect btn_rect;
+            ::GetWindowRect(GetDlgItem(IDC_PLUGIN_COMMANDS_BUTTON)->GetSafeHwnd(), btn_rect);
+            //弹出菜单
+            m_plugin_command_menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, btn_rect.left, btn_rect.bottom, this); //在指定位置显示弹出菜单
+        }
+    }
+
+}
+
+
+BOOL CPluginTesterDlg::OnCommand(WPARAM wParam, LPARAM lParam)
+{
+    // TODO: 在此添加专用代码和/或调用基类
+    UINT uMsg = LOWORD(wParam);
+    //选择了插件命令
+    if (uMsg >= ID_PLUGIN_COMMAND_START && uMsg <= ID_PLUGIN_COMMAND_MAX)
+    {
+        int index = uMsg - ID_PLUGIN_COMMAND_START;
+        PluginInfo cur_plugin = GetCurrentPlugin();
+        if (cur_plugin.plugin != nullptr && cur_plugin.plugin->GetAPIVersion() >= 5)
+        {
+            cur_plugin.plugin->OnPluginCommand(index);
+        }
+    }
+
+    return CDialog::OnCommand(wParam, lParam);
 }

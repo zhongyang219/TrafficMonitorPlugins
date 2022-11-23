@@ -218,6 +218,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="WIC.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CommonData.cpp" />
@@ -232,6 +233,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="WIC.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PluginTester.rc" />
@@ -240,8 +242,12 @@
     <None Include="res\PluginTester.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\exit.ico" />
+    <Image Include="res\help.ico" />
+    <Image Include="res\item.ico" />
     <Image Include="res\plugins.ico" />
     <Image Include="res\PluginTester.ico" />
+    <Image Include="res\setting.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

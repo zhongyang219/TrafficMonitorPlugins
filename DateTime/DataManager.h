@@ -34,11 +34,11 @@ public:
     //SYSTEMTIME m_system_time;
     SettingData m_setting_data;
     CDataTimeFormatHelper m_format_helper;
-    std::map<UINT, HICON> m_icons;
 
 private:
     static CDataManager m_instance;
     std::wstring m_config_path;
     std::map<UINT, CString> m_string_table;
     int m_dpi{ 96 };
+    std::map<UINT, HICON> m_icons;
 };

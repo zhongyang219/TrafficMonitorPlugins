@@ -43,6 +43,7 @@ protected:
     int m_cur_index{ -1 };
     CDrawScrollView* m_view{};    //预览区视图类
     int m_proview_top_pos{};
+    CMenu m_plugin_command_menu;
 
     // 生成的消息映射函数
     virtual BOOL OnInitDialog();
@@ -79,4 +80,6 @@ public:
     afx_msg void OnLanguageEnglish();
     afx_msg void OnLanguageFollowingSystem();
     afx_msg void OnInitMenu(CMenu* pMenu);
+    afx_msg void OnBnClickedPluginCommandsButton();
+    virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 };

@@ -69,8 +69,12 @@ BOOL CPluginInfoDlg::OnInitDialog()
     CDialog::OnInitDialog();
 
     // TODO:  在此添加额外的初始化
-
-    SetIcon(theApp.m_plugin_icon, FALSE);
+    HICON hIcon{};
+    if (m_plugin_info.plugin != nullptr && m_plugin_info.plugin->GetAPIVersion() >= 5)
+        hIcon = (HICON)m_plugin_info.plugin->GetPluginIcon();
+    if (hIcon == nullptr)
+        hIcon = theApp.m_plugin_icon;
+    SetIcon(hIcon, FALSE);
 
     //初始化列表控件
     CRect rect;
