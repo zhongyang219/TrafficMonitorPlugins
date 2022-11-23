@@ -80,3 +80,19 @@ int CDataManager::DPI(int pixel)
 {
     return m_dpi * pixel / 96;
 }
+
+HICON CDataManager::GetIcon(UINT id)
+{
+    auto iter = m_icons.find(id);
+    if (iter != m_icons.end())
+    {
+        return iter->second;
+    }
+    else
+    {
+        AFX_MANAGE_STATE(AfxGetStaticModuleState());
+        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);
+        m_icons[id] = hIcon;
+        return hIcon;
+    }
+}

@@ -45,7 +45,7 @@ BOOL COptionsDlg::OnInitDialog()
 
     // TODO:  在此添加额外的初始化
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
-    HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, g_data.DPI(16), g_data.DPI(16), 0);
+    HICON hIcon = g_data.GetIcon(IDI_ICON1);
     SetIcon(hIcon, FALSE);
 
     //获取初始时的大小

@@ -26,6 +26,7 @@ public:
     void SaveConfig() const;
     const CString& StringRes(UINT id);      //根据资源id获取一个字符串资源
     int DPI(int pixel);
+    HICON GetIcon(UINT id);
 
 public:
     std::wstring m_cur_time;
@@ -33,6 +34,7 @@ public:
     //SYSTEMTIME m_system_time;
     SettingData m_setting_data;
     CDataTimeFormatHelper m_format_helper;
+    std::map<UINT, HICON> m_icons;
 
 private:
     static CDataManager m_instance;

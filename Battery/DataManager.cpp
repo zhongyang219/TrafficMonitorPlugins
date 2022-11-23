@@ -117,7 +117,7 @@ HICON CDataManager::GetIcon(UINT id)
     else
     {
         AFX_MANAGE_STATE(AfxGetStaticModuleState());
-        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);;
+        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);
         m_icons[id] = hIcon;
         return hIcon;
     }
