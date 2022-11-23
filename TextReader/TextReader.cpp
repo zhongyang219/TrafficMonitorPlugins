@@ -176,6 +176,11 @@ void CTextReader::SetAutoReadTimer()
     }
 }
 
+void* CTextReader::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_ICON1);
+}
+
 
 int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
 {

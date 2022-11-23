@@ -19,6 +19,7 @@ public:
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
     void ShowContextMenu(CWnd* pWnd);
     void SetAutoReadTimer();
+    void* GetPluginIcon() override;
 
 private:
     int ShowOptionsDlg(CWnd* pParent, int cur_tab = 0);

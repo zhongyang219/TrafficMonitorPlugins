@@ -107,7 +107,6 @@ void CDateTime::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
 
 void* CDateTime::GetPluginIcon()
 {
-
     return g_data.GetIcon(IDI_ICON1);
 }
 
