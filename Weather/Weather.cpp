@@ -327,7 +327,14 @@ const wchar_t* CWeather::GetCommandName(int command_index)
 
 void* CWeather::GetCommandIcon(int command_index)
 {
-    return nullptr;
+    switch (command_index)
+    {
+    case 0:
+        return g_data.GetIcon(IDI_UPDATE);
+        break;
+    default:
+        return nullptr;
+    }
 }
 
 void CWeather::OnPluginCommand(int command_index)
@@ -340,6 +347,11 @@ void CWeather::OnPluginCommand(int command_index)
     default:
         break;
     }
+}
+
+int CWeather::GetCommandCount()
+{
+    return 1;
 }
 
 ITMPlugin* TMPluginGetInstance()

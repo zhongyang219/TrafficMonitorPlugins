@@ -23,6 +23,7 @@ public:
     void ShowContextMenu(CWnd* pWnd);
     void DisableUpdateWeatherCommand();
     void EnableUpdateWeatherCommand();
+    int GetCommandCount() override;
     const wchar_t* GetCommandName(int command_index) override;
     void* GetCommandIcon(int command_index) override;
     void OnPluginCommand(int command_index) override;

@@ -189,5 +189,8 @@
     <Image Include="res\多云_夜晚.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\update.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
