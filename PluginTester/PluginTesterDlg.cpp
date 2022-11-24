@@ -701,6 +701,17 @@ void CPluginTesterDlg::OnInitMenu(CMenu* pMenu)
     case Language::SIMPLIFIED_CHINESE: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_CHINESE, MF_BYCOMMAND | MF_CHECKED); break;
     default: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_FOLLOWING_SYSTEM, MF_BYCOMMAND | MF_CHECKED); break;
     }
+
+    //ÉèÖÃ²å¼þÃüÁîµÄ¹´Ñ¡×´Ì¬
+    ITMPlugin* plugin = GetCurrentPlugin().plugin;
+    if (plugin != nullptr && plugin->GetAPIVersion() >= 5)
+    {
+        for (int i = ID_PLUGIN_COMMAND_START; i <= ID_PLUGIN_COMMAND_MAX; i++)
+        {
+            bool checked = (plugin->IsCommandChecked(i - ID_PLUGIN_COMMAND_START) != 0);
+            pMenu->CheckMenuItem(i, MF_BYCOMMAND | (checked ? MF_CHECKED : MF_UNCHECKED));
+        }
+    }
 }
 
 
