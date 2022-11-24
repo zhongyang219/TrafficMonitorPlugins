@@ -62,6 +62,7 @@ BOOL COptionsDlg::OnInitDialog()
     SetDlgItemText(IDC_AUTO_READ_INTERVAL_EDIT, str);
 
     CheckDlgButton(IDC_AUTO_DECODE_CHECK, m_data.auto_decode_base64);
+    CheckDlgButton(IDC_USE_OWN_CONTEXT_MENU_CHECK, m_data.use_own_context_menu);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -108,6 +109,7 @@ void COptionsDlg::OnOK()
     m_data.auto_read_timer_interval = _ttoi(auto_read_interval);
 
     m_data.auto_decode_base64 = (IsDlgButtonChecked(IDC_AUTO_DECODE_CHECK) != 0);
+    m_data.use_own_context_menu = (IsDlgButtonChecked(IDC_USE_OWN_CONTEXT_MENU_CHECK) != 0);
 
     CDialogEx::OnOK();
 }

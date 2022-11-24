@@ -75,6 +75,18 @@ BOOL COptionsContainerDlg::OnInitDialog()
     m_tab_ctrl.AddWindow(&m_bookmark_dlg, g_data.StringRes(IDS_BOOKMARK));
     m_bookmark_dlg.AdjustColumeWidth();
 
+    //为每个标签添加图标
+    CImageList ImageList;
+    ImageList.Create(g_data.DPI(16), g_data.DPI(16), ILC_COLOR32 | ILC_MASK, 2, 2);
+    ImageList.Add(g_data.GetIcon(IDI_SETTINGS));
+    ImageList.Add(g_data.GetIcon(IDI_CHAPTER));
+    ImageList.Add(g_data.GetIcon(IDI_BOOKMARK));
+    m_tab_ctrl.SetImageList(&ImageList);
+    ImageList.Detach();
+
+    m_tab_ctrl.SetItemSize(CSize(g_data.DPI(60), g_data.DPI(24)));
+    m_tab_ctrl.AdjustTabWindowSize();
+
     //设置默认选中的标签
     if (m_tab_selected < 0 || m_tab_selected >= m_tab_ctrl.GetItemCount())
         m_tab_selected = 0;

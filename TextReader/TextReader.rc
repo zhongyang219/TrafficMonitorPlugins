@@ -50,7 +50,7 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 218, 139
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 218, 147
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
@@ -73,6 +73,7 @@ BEGIN
     LTEXT           "自动翻页时间间隔：",IDC_STATIC,60,111,71,8
     EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,130,110,40,12,ES_AUTOHSCROLL
     LTEXT           "毫秒",IDC_STATIC,173,112,35,8
+    CONTROL         "使用独立的右键菜单",IDC_USE_OWN_CONTEXT_MENU_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,124,106,10
 END
 
 IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 125
@@ -84,15 +85,15 @@ BEGIN
     LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,51,107,109,8
 END
 
-IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 237, 173
+IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 237, 182
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "文本阅读器设置"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,125,152,50,14
-    PUSHBUTTON      "取消",IDCANCEL,180,152,50,14
-    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,223,142
-    CONTROL         "<a>帮助</a>",IDC_HELP_SYSLINK1,"SysLink",WS_TABSTOP,7,156,28,10
+    DEFPUSHBUTTON   "确定",IDOK,125,161,50,14
+    PUSHBUTTON      "取消",IDCANCEL,180,161,50,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,223,151
+    CONTROL         "<a>帮助</a>",IDC_HELP_SYSLINK1,"SysLink",WS_TABSTOP,7,165,28,10
 END
 
 IDD_BOOKMARK_DLG DIALOGEX 0, 0, 169, 128
@@ -116,7 +117,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 211
         TOPMARGIN, 7
-        BOTTOMMARGIN, 132
+        BOTTOMMARGIN, 140
     END
 
     IDD_CHAPTER_DIALOG, DIALOG
@@ -132,7 +133,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 230
         TOPMARGIN, 7
-        BOTTOMMARGIN, 166
+        BOTTOMMARGIN, 175
     END
 
     IDD_BOOKMARK_DLG, DIALOG
@@ -157,6 +158,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -198,7 +200,7 @@ BEGIN
     100, 100, 0, 0,
     100, 100, 0, 0,
     0, 0, 100, 100,
-    0, 0, 0, 0
+    0, 100, 0, 0
 END
 
 IDD_BOOKMARK_DLG AFX_DIALOG_LAYOUT
@@ -256,6 +258,22 @@ END
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "res\\reader.ico"
 
+IDI_ADD_BOOKMARK        ICON                    "res\\add_bookmark.ico"
+
+IDI_AUTO_PAGE           ICON                    "res\\auto_page.ico"
+
+IDI_BOOKMARK            ICON                    "res\\bookmark.ico"
+
+IDI_CHAPTER             ICON                    "res\\chapter.ico"
+
+IDI_HIDE                ICON                    "res\\hide.ico"
+
+IDI_NEXT                ICON                    "res\\next.ico"
+
+IDI_PREVIOUS            ICON                    "res\\previous.ico"
+
+IDI_SETTINGS            ICON                    "res\\setting.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -303,6 +321,13 @@ BEGIN
     IDS_CHAPTER             "章节"
     IDS_OPEN_FILE           "打开文件"
     IDS_READ_POSITION       "阅读位置"
+    IDS_MENU_PREVIOUS       "上一页(&P)\t↑"
+    IDS_MENU_NEXT           "下一页(&N)\t↓"
+    IDS_MENU_ADD_BOOKMARK   "添加书签(&A)"
+    IDS_MENU_AUTO_PAGE      "自动翻页(&P)"
+    IDS_MENU_HIDE           "隐藏(&H)\t空格"
+    IDS_MENU_CHAPTER        "章节(&C)..."
+    IDS_MENU_BOOKMARK       "书签(&B)..."
 END
 
 #endif    // 中文(简体，中国) resources
@@ -448,7 +473,7 @@ BEGIN
     100, 100, 0, 0,
     100, 100, 0, 0,
     0, 0, 100, 100,
-    0, 0, 0, 0
+    0, 100, 0, 0
 END
 
 
@@ -497,6 +522,13 @@ BEGIN
     IDS_CHAPTER             "Chapter"
     IDS_OPEN_FILE           "Open file"
     IDS_READ_POSITION       "Read position"
+    IDS_MENU_PREVIOUS       "&Previous\tUp"
+    IDS_MENU_NEXT           "&Next\tDown"
+    IDS_MENU_ADD_BOOKMARK   "Add &Bookmark"
+    IDS_MENU_AUTO_PAGE      "&Auto Page Turn"
+    IDS_MENU_HIDE           "&Hide\tSpace"
+    IDS_MENU_CHAPTER        "&Chapters..."
+    IDS_MENU_BOOKMARK       "&Bookmarks..."
 END
 
 #endif    // 英语(美国) resources

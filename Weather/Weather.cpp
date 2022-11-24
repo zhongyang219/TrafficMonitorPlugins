@@ -337,7 +337,7 @@ void* CWeather::GetCommandIcon(int command_index)
     }
 }
 
-void CWeather::OnPluginCommand(int command_index)
+void CWeather::OnPluginCommand(int command_index, void* hWnd, void* para)
 {
     switch (command_index)
     {

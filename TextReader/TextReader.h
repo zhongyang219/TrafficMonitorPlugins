@@ -20,10 +20,27 @@ public:
     void ShowContextMenu(CWnd* pWnd);
     void SetAutoReadTimer();
     void* GetPluginIcon() override;
+    int GetCommandCount() override;
+    const wchar_t* GetCommandName(int command_index) override;
+    void* GetCommandIcon(int command_index) override;
+    void OnPluginCommand(int command_index, void* hWnd, void* para) override;
+    int IsCommandChecked(int command_index) override;
 
 private:
     int ShowOptionsDlg(CWnd* pParent, int cur_tab = 0);
     void LoadContextMenu();
+
+    enum CommandIndex
+    {
+        CMD_PRE,
+        CMD_NEXT,
+        CMD_ADD_BOOKMARK,
+        CMD_AUTO_PAGE,
+        CMD_HIDE,
+        CMD_CHAPTER,
+        CMD_BOOKMARK,
+        CMD_MAX
+    };
 
 private:
     static CTextReader m_instance;

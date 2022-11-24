@@ -20,6 +20,7 @@ struct SettingData
     bool auto_read;             //自动阅读
     int auto_read_timer_interval;   //自动阅读的时间间隔
     bool auto_decode_base64{};  //自动对base64编码的文本文件解码
+    bool use_own_context_menu{};    //使用独立的右键菜单
 };
 
 class CDataManager

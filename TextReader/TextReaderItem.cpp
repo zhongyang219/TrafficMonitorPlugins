@@ -89,7 +89,7 @@ int CTextReaderItem::OnMouseEvent(MouseEventType type, int x, int y, void * hWnd
     {
         return 1;
     }
-    else if (type == IPluginItem::MT_RCLICKED)
+    else if (type == IPluginItem::MT_RCLICKED && g_data.m_setting_data.use_own_context_menu)
     {
         CTextReader::Instance().ShowContextMenu(pWnd);
         return 1;

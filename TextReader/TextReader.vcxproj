@@ -209,7 +209,15 @@
     <ResourceCompile Include="TextReader.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\add_bookmark.ico" />
+    <Image Include="res\auto_page.ico" />
+    <Image Include="res\bookmark.ico" />
+    <Image Include="res\chapter.ico" />
+    <Image Include="res\hide.ico" />
+    <Image Include="res\next.ico" />
+    <Image Include="res\previous.ico" />
     <Image Include="res\reader.ico" />
+    <Image Include="res\setting.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

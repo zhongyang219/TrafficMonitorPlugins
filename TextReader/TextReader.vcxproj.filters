@@ -117,5 +117,29 @@
     <Image Include="res\reader.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\add_bookmark.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\auto_page.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\bookmark.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\chapter.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\hide.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\next.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\previous.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\setting.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

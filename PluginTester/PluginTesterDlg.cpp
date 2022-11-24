@@ -746,7 +746,7 @@ BOOL CPluginTesterDlg::OnCommand(WPARAM wParam, LPARAM lParam)
         PluginInfo cur_plugin = GetCurrentPlugin();
         if (cur_plugin.plugin != nullptr && cur_plugin.plugin->GetAPIVersion() >= 5)
         {
-            cur_plugin.plugin->OnPluginCommand(index);
+            cur_plugin.plugin->OnPluginCommand(index, m_hWnd, nullptr);
         }
     }
 

@@ -182,6 +182,105 @@ void* CTextReader::GetPluginIcon()
 }
 
 
+int CTextReader::GetCommandCount()
+{
+    return CMD_MAX;
+}
+
+const wchar_t* CTextReader::GetCommandName(int command_index)
+{
+    CommandIndex index = static_cast<CommandIndex>(command_index);
+    switch (index)
+    {
+    case CTextReader::CMD_PRE:
+        return g_data.StringRes(IDS_MENU_PREVIOUS);
+    case CTextReader::CMD_NEXT:
+        return g_data.StringRes(IDS_MENU_NEXT);
+    case CTextReader::CMD_ADD_BOOKMARK:
+        return g_data.StringRes(IDS_MENU_ADD_BOOKMARK);
+    case CTextReader::CMD_AUTO_PAGE:
+        return g_data.StringRes(IDS_MENU_AUTO_PAGE);
+    case CTextReader::CMD_HIDE:
+        return g_data.StringRes(IDS_MENU_HIDE);
+    case CTextReader::CMD_CHAPTER:
+        return g_data.StringRes(IDS_MENU_CHAPTER);
+    case CTextReader::CMD_BOOKMARK:
+        return g_data.StringRes(IDS_MENU_BOOKMARK);
+    }
+    return nullptr;
+}
+
+void* CTextReader::GetCommandIcon(int command_index)
+{
+    CommandIndex index = static_cast<CommandIndex>(command_index);
+    switch (index)
+    {
+    case CTextReader::CMD_PRE:
+        return g_data.GetIcon(IDI_PREVIOUS);
+    case CTextReader::CMD_NEXT:
+        return g_data.GetIcon(IDI_NEXT);
+    case CTextReader::CMD_ADD_BOOKMARK:
+        return g_data.GetIcon(IDI_ADD_BOOKMARK);
+    //case CTextReader::CMD_AUTO_PAGE:
+    //    return g_data.GetIcon(IDI_AUTO_PAGE);
+    //case CTextReader::CMD_HIDE:
+    //    return g_data.GetIcon(IDI_HIDE);
+    case CTextReader::CMD_CHAPTER:
+        return g_data.GetIcon(IDI_CHAPTER);
+    case CTextReader::CMD_BOOKMARK:
+        return g_data.GetIcon(IDI_BOOKMARK);
+    default:
+        break;
+    }
+    return nullptr;
+}
+
+void CTextReader::OnPluginCommand(int command_index, void* hWnd, void* para)
+{
+    CWnd* pWnd = CWnd::FromHandle((HWND)hWnd);
+    CommandIndex index = static_cast<CommandIndex>(command_index);
+    switch (index)
+    {
+    case CTextReader::CMD_PRE:
+        g_data.PageUp();
+        break;
+    case CTextReader::CMD_NEXT:
+        g_data.PageDown();
+        break;
+    case CTextReader::CMD_ADD_BOOKMARK:
+        g_data.AddBookmark();
+        break;
+    case CTextReader::CMD_AUTO_PAGE:
+        g_data.m_setting_data.auto_read = !g_data.m_setting_data.auto_read;
+        SetAutoReadTimer();
+        break;
+    case CTextReader::CMD_HIDE:
+        g_data.m_boss_key_pressed = !g_data.m_boss_key_pressed;
+        break;
+    case CTextReader::CMD_CHAPTER:
+        ShowOptionsDlg(pWnd, 1);
+        break;
+    case CTextReader::CMD_BOOKMARK:
+        ShowOptionsDlg(pWnd, 2);
+        break;
+    default:
+        break;
+    }
+}
+
+int CTextReader::IsCommandChecked(int command_index)
+{
+    CommandIndex index = static_cast<CommandIndex>(command_index);
+    switch (index)
+    {
+    case CMD_AUTO_PAGE:
+        return g_data.m_setting_data.auto_read;
+    case CMD_HIDE:
+        return g_data.m_boss_key_pressed;
+    }
+    return 0;
+}
+
 int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());

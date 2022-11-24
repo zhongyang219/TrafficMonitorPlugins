@@ -18,8 +18,24 @@
 #define IDD_BOOKMARK_DLG                111
 #define IDS_BOOKMARK_CONTENTS           111
 #define IDS_CHAPTER                     112
+#define IDI_ADD_BOOKMARK                112
 #define IDS_OPEN_FILE                   113
+#define IDI_AUTO_PAGE                   113
 #define IDS_READ_POSITION               114
+#define IDI_BOOKMARK                    114
+#define IDS_MENU_PREVIOUS               115
+#define IDI_CHAPTER                     115
+#define IDS_MENU_NEXT                   116
+#define IDI_HIDE                        116
+#define IDS_MENU_ADD_BOOKMARK           117
+#define IDI_NEXT                        117
+#define IDS_MENU_AUTO_PAGE              118
+#define IDI_PREVIOUS                    118
+#define IDS_MENU_HIDE                   119
+#define IDI_ICON2                       119
+#define IDI_SETTINGS                    119
+#define IDS_MENU_CHAPTER                120
+#define IDS_MENU_BOOKMARK               121
 #define IDC_FILE_PATH_EDIT              1000
 #define IDC_BROWSE_BUTTON               1001
 #define IDC_READ_POSITION_EDIT          1002
@@ -39,8 +55,8 @@
 #define IDC_CHECK3                      1015
 #define IDC_SHOT_TOOLTIP_CHECK          1015
 #define IDC_AUTO_DECODE_CHECK           1016
-#define IDC_SYSLINK1                    1017
 #define IDC_HELP_SYSLINK1               1017
+#define IDC_USE_OWN_CONTEXT_MENU_CHECK  1018
 #define ID_PREVIOUS                     40001
 #define ID_1_40002                      40002
 #define ID_NEXT                         40003
@@ -58,9 +74,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_CONTROL_VALUE         1019
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
