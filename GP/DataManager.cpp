@@ -41,8 +41,8 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
     m_config_dir = config_dir;
-    m_config_path = config_dir + L"GP.exe.ini";
-    m_log_path = config_dir + L"GP.dll.log";
+    m_config_path = config_dir + L"GP.ini";
+    m_log_path = config_dir + L"GP.log";
 
     //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
     CString codeStr{};
