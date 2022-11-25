@@ -13,8 +13,6 @@ CDataManager::CDataManager()
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
     ::ReleaseDC(HWND_DESKTOP, hDC);
 
-    m_config_dir = L".\\";
-    m_log_path = m_config_dir + L"GP.dll.log";
 }
 
 CDataManager::~CDataManager()
@@ -42,7 +40,10 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
 
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
+    m_config_dir = config_dir;
     m_config_path = config_dir + L"GP.exe.ini";
+    m_log_path = config_dir + L"GP.dll.log";
+
     //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
     CString codeStr{};
     ::GetPrivateProfileString(L"config", L"gp_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
