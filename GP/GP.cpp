@@ -35,7 +35,7 @@ UINT GP::ThreadCallback(LPVOID dwUser)
     CFlagLocker flag_locker(m_instance.m_is_thread_runing);
 
     if (g_data.m_setting_data.m_gp_codes.empty()) {
-        CCommon::WriteLog(L"gp_code not setting!", g_data.m_log_path.c_str());
+        //CCommon::WriteLog(L"gp_code not setting!", g_data.m_log_path.c_str());
         g_data.ResetText();
         return 0;
     }
