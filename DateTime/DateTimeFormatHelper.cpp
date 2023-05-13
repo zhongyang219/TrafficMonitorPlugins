@@ -185,7 +185,7 @@ CString CDataTimeFormatHelper::GetMonthStringShort(DWORD month)
     case 5: return g_data.StringRes(IDS_MAY);
     case 6: return g_data.StringRes(IDS_JUN);
     case 7: return g_data.StringRes(IDS_JUL);
-    case 8: return g_data.StringRes(IDS_AUT);
+    case 8: return g_data.StringRes(IDS_AUG);
     case 9: return g_data.StringRes(IDS_SEP);
     case 10: return g_data.StringRes(IDS_OCT);
     case 11: return g_data.StringRes(IDS_NOV);

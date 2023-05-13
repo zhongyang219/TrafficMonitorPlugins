@@ -78,6 +78,7 @@ public:
     afx_msg void OnBnClickedSpecifyWidthCheck();
     afx_msg void OnLanguageChinese();
     afx_msg void OnLanguageEnglish();
+    afx_msg void OnLanguageRussian();
     afx_msg void OnLanguageFollowingSystem();
     afx_msg void OnInitMenu(CMenu* pMenu);
     afx_msg void OnBnClickedPluginCommandsButton();

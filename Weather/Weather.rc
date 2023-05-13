@@ -299,6 +299,160 @@ END
 
 
 /////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 170, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Настройки погоды"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,59,114,50,14
+    PUSHBUTTON      "Отмена",IDCANCEL,113,114,50,14
+    LTEXT           "Город:",IDC_STATIC,7,9,25,8
+    EDITTEXT        IDC_CITY_EDIT,34,7,66,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Выбрать город...",IDC_SELECT_CITY_BUTTON,104,7,59,13
+    LTEXT           "Отображение погоды:",IDC_STATIC,7,48,71,8
+    COMBOBOX        IDC_WEATHER_TYPE_COMBO,80,46,83,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Показывать погоду в подсказке",IDC_SHOW_TOOLTIPS_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,80,156,10
+    CONTROL         "Использовать иконку для погоды",IDC_USE_WEATHER_ICON_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,92,156,10
+    PUSHBUTTON      "&Обновить погоду вручную",IDC_UPDATE_WEATHER_BUTTON,7,62,106,14
+    CONTROL         "Автоматическое определение",IDC_AUTO_LOCATE_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,156,9
+    LTEXT           "",IDC_AUTO_LOCATE_RESULT_STATIC,7,33,156,10
+    CONTROL         "<a>Справка</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,119,26,9
+END
+
+IDD_SELECT_CITY_DIALOG DIALOGEX 0, 0, 170, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Выбор города"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,57,114,50,14
+    PUSHBUTTON      "Отмена",IDCANCEL,113,114,50,14
+    CONTROL         "",IDC_CITY_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,22,156,88
+    EDITTEXT        IDC_SEARCH_EDIT,7,7,156,12,ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_SELECT_CITY_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+IDD_SELECT_CITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Настройки...",               40001
+        MENUITEM "&Обновить погоду",            ID_UPDATE_WEATHER
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_WEATHER             "Погода"
+    IDS_PLUGIN_NAME         "Погодный плагин"
+    IDS_PLUGIN_DESCRIPTION  "Погодный плагин для TrafficMonitor"
+    IDS_CITY                "Город"
+    IDS_CITY_CODE           "Код города"
+    IDS_CLEAR_SEARCH_RESULT "Очистить результаты поиска"
+    IDS_INPUT_KEY_WORD      "Введите запрос сюда"
+    IDS_TODAY_WEATHER       "Сегодня"
+    IDS_TOMMORROW_WEATHER   "Завтра"
+    IDS_UPDATE_TIME         "Последнее обновление"
+    IDS_THE_DAY_AFTER_TOMMORROW_WEATHER "Послезавтра"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_CURRENT_WEATHER     "Погода сейчас"
+    IDS_CUR_POSITION        "Местоположение: "
+    IDS_LOCATION_FAILED     "Не удалось определить положение!"
+    IDS_UPDATE_WEATHER      "Обновить погоду"
+END
+
+#endif    // Русский (Россия) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // УўУп(ГА№ъ) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)

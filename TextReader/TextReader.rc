@@ -335,6 +335,209 @@ END
 
 
 /////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 125
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    LISTBOX         IDC_LIST1,7,7,177,95,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Текущая глава:",IDC_STATIC,7,106,59,8
+    LTEXT           "",IDC_CHRRENT_CHAPTER_STATIC,68,106,116,8
+END
+
+IDD_OPTIONS_CONTAINER_DLG DIALOGEX 0, 0, 284, 182
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Настройки читалки текста"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,171,161,50,14
+    PUSHBUTTON      "Отмена",IDCANCEL,227,161,50,14
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,270,150
+    CONTROL         "<a>Справка</a>",IDC_HELP_SYSLINK1,"SysLink",WS_TABSTOP,7,166,30,9
+END
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 266, 151
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    LTEXT           "Открыть файл:",IDC_STATIC,7,8,43,9
+    EDITTEXT        IDC_FILE_PATH_EDIT,7,21,198,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "&Обзор...",IDC_BROWSE_BUTTON,209,19,50,15
+    CONTROL         "Автоматически декодировать Base64 при обнаружении",IDC_AUTO_DECODE_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,252,9
+    LTEXT           "Позиция:",IDC_STATIC,7,52,56,9
+    EDITTEXT        IDC_READ_POSITION_EDIT,61,51,37,12,ES_AUTOHSCROLL
+    LTEXT           "символов, всего",IDC_STATIC,100,52,55,9
+    RTEXT           "",IDC_TOTAL_CHAR_STATIC,154,52,33,9
+    LTEXT           "символов.",IDC_STATIC,191,52,38,9
+    LTEXT           "",IDC_PERCENT_STATIC,227,53,32,9
+    LTEXT           "Ширина окна:",IDC_STATIC,7,68,52,9
+    EDITTEXT        IDC_WINDOW_WIDTH_EDIT,61,67,37,12,ES_AUTOHSCROLL
+    CONTROL         "Показывать в подсказке",IDC_SHOT_TOOLTIP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,101,11
+    CONTROL         "В несколько строк",IDC_ENABLE_MULTI_LINE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,115,80,117,11
+    CONTROL         "Скрывать при потере фокуса",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,94,129,10
+    CONTROL         "Автоперелистывание страниц",IDC_AUTO_READ_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,107,111,10
+    LTEXT           "через",IDC_STATIC,124,108,19,8
+    EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,146,106,40,12,ES_AUTOHSCROLL
+    LTEXT           "мс",IDC_STATIC,190,108,10,8
+    CONTROL         "Использовать своё контекстное меню",IDC_USE_OWN_CONTEXT_MENU_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,121,162,9
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CHAPTER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 184
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 118
+    END
+
+    IDD_OPTIONS_CONTAINER_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 277
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 175
+    END
+
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 259
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 144
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CHAPTER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 100, 100,
+    0, 100, 0, 0,
+    0, 100, 100, 0
+END
+
+IDD_OPTIONS_CONTAINER_DLG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    0, 100, 0, 0
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    100, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Предыдущая\tUp",             40001
+        MENUITEM "&Следующая\tDown",            ID_NEXT
+        MENUITEM SEPARATOR
+        MENUITEM "Автоперелистывание",          ID_START_AUTO_READ
+        MENUITEM "&Спрятать\tSpace",            ID_HIDE
+        MENUITEM SEPARATOR
+        MENUITEM "&Настройки...",               40004
+        MENUITEM "&Главы...",                   40005
+        MENUITEM "&Закладки...",                40006
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Читалка текста"
+    IDS_PLUGIN_DESCRIPTION  "Читалка текста для TrafficMonitor"
+    IDS_PLUGIN_ITEM_NAME    "Читалка текста"
+    IDS_FILTER              "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*||"
+    IDS_SETTINGS            "Настройки"
+    IDS_CHAPTERS            "Главы"
+    IDS_BOOKMARK            "Закладки"
+    IDS_BOOKMARK_POSITION   "Позиция"
+    IDS_BOOKMARK_CONTENTS   "Содержание"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_CHAPTER             "Глава"
+    IDS_OPEN_FILE           "Открыть файл"
+    IDS_READ_POSITION       "Прочитано"
+    IDS_MENU_PREVIOUS       "&Предыдущая\tUp"
+    IDS_MENU_NEXT           "&Следующая\tDown"
+    IDS_MENU_ADD_BOOKMARK   "Добавить &Закладку"
+    IDS_MENU_AUTO_PAGE      "&Автоперелистывание"
+    IDS_MENU_HIDE           "&Спрятать\tSpace"
+    IDS_MENU_CHAPTER        "&Главы..."
+    IDS_MENU_BOOKMARK       "&Закладки..."
+END
+
+#endif    // Русский (Россия) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // УўУп(ГА№ъ) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
@@ -357,13 +560,13 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,252,9
     LTEXT           "Read position:",IDC_STATIC,7,52,56,9
     EDITTEXT        IDC_READ_POSITION_EDIT,61,51,37,12,ES_AUTOHSCROLL
-    LTEXT           "charactors, total",IDC_STATIC,100,52,55,9
+    LTEXT           "characters, total",IDC_STATIC,100,52,55,9
     RTEXT           "",IDC_TOTAL_CHAR_STATIC,154,52,33,9
-    LTEXT           "charactors.",IDC_STATIC,191,52,38,9
+    LTEXT           "characters.",IDC_STATIC,191,52,38,9
     LTEXT           "",IDC_PERCENT_STATIC,227,53,32,9
     LTEXT           "Window width:",IDC_STATIC,7,68,52,9
     EDITTEXT        IDC_WINDOW_WIDTH_EDIT,61,67,37,12,ES_AUTOHSCROLL
-    CONTROL         "Show in tooltops",IDC_SHOT_TOOLTIP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,101,11
+    CONTROL         "Show in tooltips",IDC_SHOT_TOOLTIP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,101,11
     CONTROL         "Enable multi line display",IDC_ENABLE_MULTI_LINE_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,115,80,117,11
     CONTROL         "Auto hide when lose focus",IDC_HIDE_WHEN_LOSE_FOCUS_CHECK,
