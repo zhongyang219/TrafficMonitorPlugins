@@ -522,7 +522,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_CHAPTER             "Глава"
-    IDS_OPEN_FILE           "Открыть файл"
+    IDS_OPEN_FILE           "Открытый файл"
     IDS_READ_POSITION       "Прочитано"
     IDS_MENU_PREVIOUS       "&Предыдущая\tUp"
     IDS_MENU_NEXT           "&Следующая\tDown"

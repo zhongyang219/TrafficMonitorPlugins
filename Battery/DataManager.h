@@ -23,6 +23,7 @@ struct SettingData
     bool show_battery_in_tooltip{};
     bool show_percent{};
     bool show_charging_animation{};     //显示充电动画
+    bool show_space{};
 };
 
 class CDataManager

@@ -103,6 +103,9 @@ void CBattery::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         g_data.LoadConfig(std::wstring(data));
 
         break;
+    case ITMPlugin::EI_TASKBAR_WND_SPERATE_WITH_SPACE:
+        g_data.m_setting_data.show_space = _wtoi(data);
+        break;
     default:
         break;
     }

@@ -7,6 +7,8 @@
 #define IDS_PLUGIN_DESCRIPTION          104
 #define IDR_MENU1                       104
 #define IDS_PLUGIN_ITEM_NAME            105
+#define IDS_PLUGIN_INFO_DYNAMIC_CREATE  106
+#define IDS_PLUGIN_INFO_RESTART         107
 #define IDD_MANAGER_DIALOG              108
 #define IDC_CODE_EDIT                   1003
 #define IDC_UPDATE_BUTTON               1004

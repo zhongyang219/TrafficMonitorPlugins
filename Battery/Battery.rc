@@ -180,6 +180,7 @@ BEGIN
     IDS_HOUR                "РЎК±"
     IDS_MINUTE              "·ЦЦУ"
     IDS_SECOND              "Гл"
+    IDS_NA                  "N/A"
 END
 
 #endif    // ЦРОД(јтМеЈ¬ЦР№ъ) resources
@@ -260,7 +261,7 @@ BEGIN
     IDS_BATTYER_TYPE_ICON   "Только иконка"
     IDS_BATTYER_TYPE_NUMBER_IN_ICON "Число внутри иконки"
     IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "Число рядом с иконкой"
-    IDS_CHARGING            "AC power in online"
+    IDS_CHARGING            "Зарядное устройство подключено"
     IDS_BATTERY_LIFE_TIME   "Время работы от аккумулятора"
 END
 
@@ -270,6 +271,7 @@ BEGIN
     IDS_HOUR                "часов"
     IDS_MINUTE              "минут"
     IDS_SECOND              "секунд"
+    IDS_NA                  "Н/Д"
 END
 
 #endif    // Русский (Россия) resources
@@ -360,6 +362,7 @@ BEGIN
     IDS_HOUR                "hour"
     IDS_MINUTE              "minute"
     IDS_SECOND              "second"
+    IDS_NA                  "N/A"
 END
 
 #endif    // УўУп(ГА№ъ) resources
