@@ -180,9 +180,101 @@ BEGIN
     IDS_HOUR                "РЎК±"
     IDS_MINUTE              "·ЦЦУ"
     IDS_SECOND              "Гл"
+    IDS_NA                  "N/A"
 END
 
 #endif    // ЦРОД(јтМеЈ¬ЦР№ъ) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 202, 87
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Батарея"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,87,66,50,14
+    PUSHBUTTON      "Отмена",IDCANCEL,145,66,50,14
+    LTEXT           "Внешний вид батареи:",IDC_STATIC,7,9,72,8
+    COMBOBOX        IDC_COMBO1,82,7,113,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Информация о батарее во всплывающей подсказке",IDC_SHOW_TOOLTIPS_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,23,181,10
+    CONTROL         "Показать процент",IDC_SHOW_PERCENT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,73,10
+    CONTROL         "Анимация зарядки",IDC_SHOW_CHARGING_ANIMATION_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,47,75,10
+    CONTROL         "<a>Справка</a>",IDC_HELP_SYSLINK,"SysLink",WS_TABSTOP,7,70,34,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 195
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 80
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Плагин батареи"
+    IDS_PLUGIN_DESCRIPTION  "Плагин батареи для TrafficMonitor"
+    IDS_BATTERY             "Батарея"
+    IDS_BATTYER_TYPE_NUMBER "Только число"
+    IDS_BATTYER_TYPE_ICON   "Только иконка"
+    IDS_BATTYER_TYPE_NUMBER_IN_ICON "Число внутри иконки"
+    IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON "Число рядом с иконкой"
+    IDS_CHARGING            "Зарядное устройство подключено"
+    IDS_BATTERY_LIFE_TIME   "Время работы от аккумулятора"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_BATTERY_FULL_LIFE_TIME "Время работы аккумулятора при полной зарядке"
+    IDS_HOUR                "часов"
+    IDS_MINUTE              "минут"
+    IDS_SECOND              "секунд"
+    IDS_NA                  "Н/Д"
+END
+
+#endif    // Русский (Россия) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -270,6 +362,7 @@ BEGIN
     IDS_HOUR                "hour"
     IDS_MINUTE              "minute"
     IDS_SECOND              "second"
+    IDS_NA                  "N/A"
 END
 
 #endif    // УўУп(ГА№ъ) resources

@@ -224,7 +224,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_JUL                 "7ФВ"
-    IDS_AUT                 "8ФВ"
+    IDS_AUG                 "8ФВ"
     IDS_SEP                 "9ФВ"
     IDS_OCT                 "10ФВ"
     IDS_NOV                 "11ФВ"
@@ -250,6 +250,174 @@ BEGIN
 END
 
 #endif    // ЦРОД(јтМеЈ¬ЦР№ъ) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MESSAGE_DIALOG DIALOGEX 0, 0, 183, 128
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Закрыть",IDCANCEL,128,109,50,14
+    EDITTEXT        IDC_EDIT1,4,4,174,101,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
+END
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 175, 131
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Дата и время"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,63,110,50,14
+    PUSHBUTTON      "Отмена",IDCANCEL,118,110,50,14
+    GROUPBOX        "Формат времени",IDC_STATIC,7,7,161,45
+    EDITTEXT        IDC_TIME_FORMAT_EDIT,14,22,147,12,ES_AUTOHSCROLL
+    LTEXT           "Предпросмотр:",IDC_STATIC,14,38,50,8
+    LTEXT           "",IDC_TIME_PREVIEW_STATIC,67,38,94,8,SS_ENDELLIPSIS
+    GROUPBOX        "Формат даты",IDC_STATIC,7,57,161,45
+    EDITTEXT        IDC_DATE_FORMAT_EDIT,14,72,147,12,ES_AUTOHSCROLL
+    LTEXT           "Предпросмотр:",IDC_STATIC,14,88,50,8
+    LTEXT           "",IDC_DATE_PREVIEW_STATIC,67,88,94,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "&Справка",IDC_HELP_BUTTON,7,110,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_MESSAGE_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 178
+        TOPMARGIN, 4
+        BOTTOMMARGIN, 123
+    END
+
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 168
+        VERTGUIDE, 14
+        VERTGUIDE, 161
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 124
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_MESSAGE_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    0, 0, 100, 100
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 0,
+    0, 100, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Плагин даты и времени"
+    IDS_PLUGIN_DESCRIPTION  "Плагин даты и времени для TrafficMonitor"
+    IDS_TIME                "Время"
+    IDS_DATE                "Дата"
+    IDS_CUSTOM_DRAW_ITEM    "Пример отрисовки"
+    IDS_MON                 "Пн"
+    IDS_TUE                 "Вт"
+    IDS_WED                 "Ср"
+    IDS_THU                 "Чт"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FRI                 "Пт"
+    IDS_SAT                 "Сб"
+    IDS_SUN                 "Вс"
+    IDS_MONDAY              "Понедельник"
+    IDS_TUESDAY             "Вторник"
+    IDS_WEDNESDAY           "Среда"
+    IDS_THURSDAY            "Четверг"
+    IDS_FRIDAY              "Пятница"
+    IDS_SATURDAY            "Суббота"
+    IDS_SUNDAY              "Воскресенье"
+    IDS_JAN                 "Янв"
+    IDS_FEB                 "Фев"
+    IDS_MAR                 "Мар"
+    IDS_ARI                 "Апр"
+    IDS_MAY                 "Май"
+    IDS_JUN                 "Июн"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_JUL                 "Июл"
+    IDS_AUG                 "Авг"
+    IDS_SEP                 "Сен"
+    IDS_OCT                 "Окт"
+    IDS_NOV                 "Ноя"
+    IDS_DEC                 "Дек"
+    IDS_JANUARY             "Январь"
+    IDS_FEBRUARY            "Февраль"
+    IDS_MARCH               "Март"
+    IDS_APRIL               "Апрель"
+    IDS_MAY_                "Май"
+    IDS_JUNE                "Июнь"
+    IDS_JULY                "Июль"
+    IDS_AUGUST              "Август"
+    IDS_SEPTEMBER           "Сентябрь"
+    IDS_OCTOBER             "Октябрь"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_NOVEMBER            "Ноябрь"
+    IDS_DECEMBER            "Декабрь"
+    IDS_FORMAT_HELP         "Формат даты:\r\nd: день числом (1 до 31).\r\ndd: день числом с ведущим нулём (01 до 31).\r\nddd: день текстом, сокращённый ('Пн', .., 'Вс').\r\ndddd: день текстом, полный ('Понедельник', .., 'Воскресенье').\r\nM: месяц числом (1-12).\r\nMM: месяц числом с ведущим нулём (01-12).\r\nMMM: месяц текстом, сокращённый ('Янв', .., 'Дек').\r\nMMMM: месяц текстом, полный ('Январь', .., 'Декабрь').\r\nyy: год двумя цифрами (00-99).\r\nyyyy: год четырьмя цифрами.\r\n\r\nФормат времени:\r\nh: час (1 до 12)\r\nhh: час с ведущим нулём (01 до 12)\r\nH: час (0 до 23)\r\nHH: час с ведущим нулём (00 до 23)\r\nm: минуты (0 до 59)\r\nmm: минуты с ведущим нулём (00 до 59)\r\ns: секунды (0 до 59)\r\nss: секунды с ведущим нулём (00 до 59)\r\nAP: 12-часовой формат времени. Вместо AP будет ""AM"" или ""PM"".\r\nap: 12-часовой формат времени. Вместо ap будет ""am"" или ""pm"".\r\n"
+    IDS_HELP                "Справка"
+END
+
+#endif    // Русский (Россия) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -390,7 +558,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_JUL                 "Jul"
-    IDS_AUT                 "Aut"
+    IDS_AUG                 "Aug"
     IDS_SEP                 "Sep"
     IDS_OCT                 "Oct"
     IDS_NOV                 "Nov"

@@ -126,26 +126,26 @@ HICON CDataManager::GetIcon(UINT id)
 
 bool CDataManager::IsAcOnline() const
 {
-    return m_sysPowerStatus.ACLineStatus == 1;
+    return m_sysPowerStatus.ACLineStatus == AC_LINE_ONLINE;
 }
 
 bool CDataManager::IsCharging() const
 {
-    return m_sysPowerStatus.BatteryFlag == 8;
+    return m_sysPowerStatus.BatteryFlag & BATTERY_FLAG_CHARGING;
 }
 
 std::wstring CDataManager::GetBatteryString() const
 {
-    if (m_sysPowerStatus.BatteryFlag == 128)
+    if (m_sysPowerStatus.BatteryFlag & BATTERY_FLAG_NO_BATTERY)
     {
-        return L"N/A";
+        return g_data.StringRes(IDS_NA).GetString();
     }
     else
     {
         std::wstring str = std::to_wstring(m_sysPowerStatus.BatteryLifePercent);
         if (m_setting_data.show_percent)
         {
-            if (m_sysPowerStatus.BatteryLifePercent < 100)
+            if (g_data.m_setting_data.show_space)
                 str.push_back(L' ');
             str.push_back(L'%');
         }
@@ -155,10 +155,9 @@ std::wstring CDataManager::GetBatteryString() const
 
 COLORREF CDataManager::GetBatteryColor() const
 {
-    if (m_sysPowerStatus.BatteryLifePercent < 20)
+    if (m_sysPowerStatus.BatteryFlag & BATTERY_FLAG_CRITICAL)
         return BATTERY_COLOR_CRITICAL;
-    else if (m_sysPowerStatus.BatteryLifePercent < 60)
+    if (m_sysPowerStatus.BatteryFlag & BATTERY_FLAG_LOW)
         return BATTERY_COLOR_LOW;
-    else
-        return BATTERY_COLOR_HIGH;
+    return BATTERY_COLOR_HIGH;
 }

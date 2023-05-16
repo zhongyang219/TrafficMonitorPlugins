@@ -37,7 +37,7 @@ void CChapterParser::Parse()
         }
 
     }
-    
+
     if (m_chapter.empty())
     {
         index = -1;
@@ -54,7 +54,24 @@ void CChapterParser::Parse()
                 index = index2 + 1;
             }
         }
+    }
 
+    if (m_chapter.empty())
+    {
+        index = -1;
+        while (true)
+        {
+            index = m_contents.find(L"Глава", index + 1);
+            if (index == std::wstring::npos)
+                break;
+            size_t index2 = m_contents.find_first_of(L"\r\n", index + 1);
+            if (index2 - index < 60)
+            {
+                std::wstring title = m_contents.substr(index, index2 - index);
+                m_chapter[index] = title;
+                index = index2 + 1;
+            }
+        }
     }
 }
 

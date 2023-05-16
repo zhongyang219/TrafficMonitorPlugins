@@ -190,6 +190,7 @@ BEGIN_MESSAGE_MAP(CPluginTesterDlg, CDialog)
     ON_BN_CLICKED(IDC_SPECIFY_WIDTH_CHECK, &CPluginTesterDlg::OnBnClickedSpecifyWidthCheck)
     ON_COMMAND(ID_LANGUAGE_CHINESE, &CPluginTesterDlg::OnLanguageChinese)
     ON_COMMAND(ID_LANGUAGE_ENGLISH, &CPluginTesterDlg::OnLanguageEnglish)
+    ON_COMMAND(ID_LANGUAGE_RUSSIAN, &CPluginTesterDlg::OnLanguageRussian)
     ON_COMMAND(ID_LANGUAGE_FOLLOWING_SYSTEM, &CPluginTesterDlg::OnLanguageFollowingSystem)
     ON_WM_INITMENU()
     ON_BN_CLICKED(IDC_PLUGIN_COMMANDS_BUTTON, &CPluginTesterDlg::OnBnClickedPluginCommandsButton)
@@ -680,6 +681,17 @@ void CPluginTesterDlg::OnLanguageEnglish()
 }
 
 
+void CPluginTesterDlg::OnLanguageRussian()
+{
+    if (theApp.m_language != Language::RUSSIAN)
+    {
+        theApp.m_language = Language::RUSSIAN;
+        SaveConfig();
+        MessageBox(theApp.LoadText(IDS_LANGUAGE_CHANGE), NULL, MB_ICONINFORMATION);
+    }
+}
+
+
 void CPluginTesterDlg::OnLanguageFollowingSystem()
 {
     if (theApp.m_language != Language::FOLLOWING_SYSTEM)
@@ -699,6 +711,7 @@ void CPluginTesterDlg::OnInitMenu(CMenu* pMenu)
     {
     case Language::ENGLISH: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_ENGLISH, MF_BYCOMMAND | MF_CHECKED); break;
     case Language::SIMPLIFIED_CHINESE: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_CHINESE, MF_BYCOMMAND | MF_CHECKED); break;
+    case Language::RUSSIAN: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_RUSSIAN, MF_BYCOMMAND | MF_CHECKED); break;
     default: pMenu->CheckMenuRadioItem(ID_LANGUAGE_FOLLOWING_SYSTEM, ID_LANGUAGE_ENGLISH, ID_LANGUAGE_FOLLOWING_SYSTEM, MF_BYCOMMAND | MF_CHECKED); break;
     }
 

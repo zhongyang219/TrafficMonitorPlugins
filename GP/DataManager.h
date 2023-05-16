@@ -11,6 +11,7 @@ struct SettingData
     CString m_all_gp_code_str{};
     vector<CString> m_gp_codes; // 代码
     bool m_full_day{}; // 全天更新
+    bool show_space{};
 
     void setupByCodeStr(CString codeStr);
     void updateAllCodeStr();
@@ -19,10 +20,10 @@ struct SettingData
 // GP显示数据
 struct GupiaoInfo
 {
-    std::wstring pc = L"--%";
-    std::wstring p = L"--";
-    std::wstring name = L"";
-    std::wstring ToString() const;
+    CString pc = L"--";
+    CString p = L"--";
+    CString name = L"";
+    CString ToString() const;
 };
 
 class CDataManager

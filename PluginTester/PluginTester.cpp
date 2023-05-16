@@ -92,6 +92,9 @@ BOOL CPluginTesterApp::InitInstance()
     case Language::SIMPLIFIED_CHINESE:
         SetThreadUILanguage(MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED));
         break;
+    case Language::RUSSIAN:
+        SetThreadUILanguage(MAKELANGID(LANG_RUSSIAN, SUBLANG_RUSSIAN_RUSSIA));
+        break;
     default:
         break;
     }

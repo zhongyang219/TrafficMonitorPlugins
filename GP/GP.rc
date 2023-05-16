@@ -209,9 +209,145 @@ BEGIN
     IDS_PLUGIN_NAME         "№ЙЖ±Іејю"
     IDS_PLUGIN_DESCRIPTION  "УГУЪTrafficMonitorµД№ЙЖ±ІејюЎЈ"
     IDS_PLUGIN_ITEM_NAME    "GP"
+    IDS_PLUGIN_INFO_DYNAMIC_CREATE "УЙУЪTrafficMonitorОЮ·Ё¶ЇМ¬ґґЅЁItemЈ¬ТСґпµЅЙи¶ЁЙППЮ"
+    IDS_PLUGIN_INFO_RESTART "Из№ыЅзГжОґЛўРВЗлЦШЖфTrafficMonitor"
 END
 
 #endif    // ЦРОД(јтМеЈ¬ЦР№ъ) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Русский (Россия) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 142, 145
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Список акций"
+FONT 9, "Segoe UI", 400, 0, 0xCC
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,31,126,50,12
+    PUSHBUTTON      "Отмена",IDCANCEL,85,126,50,12
+    LISTBOX         IDC_MGR_LIST,7,7,128,82,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Добавить",IDC_MGR_ADD_BTN,21,93,50,12
+    PUSHBUTTON      "Удалить",IDC_MGR_DEL_BTN,75,93,50,12
+    CONTROL         "Обновлять на протяжении дня",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,107,113,10
+END
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 138, 138
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Акция"
+FONT 9, "Segoe UI", 400, 0, 0xCC
+BEGIN
+    DEFPUSHBUTTON   "ОК",IDOK,24,119,50,12
+    PUSHBUTTON      "Отмена",IDCANCEL,81,119,50,12
+    LTEXT           "Тикер:",IDC_CODE_LABEL,7,8,21,8
+    EDITTEXT        IDC_CODE_EDIT,31,7,100,12,ES_AUTOHSCROLL
+    GROUPBOX        "Фондовая биржа",IDC_STATIC,7,22,124,88
+    CONTROL         "Шэньчжэнь",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,33,53,10
+    CONTROL         "Гонконг",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,45,42,10
+    CONTROL         "Пекин",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,57,36,10
+    CONTROL         "Шанхай",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,69,41,10
+    CONTROL         "Акции США",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,81,53,10
+    CONTROL         "Другая (укажите префикс)",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,93,99,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_MANAGER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 135
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 138
+    END
+
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 131
+        VERTGUIDE, 14
+        VERTGUIDE, 24
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 131
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_MANAGER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Список акций...",            ID_OPTIONS
+        MENUITEM "&Обновить информацию об акциях", ID_UPDATE
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Данные биржи"
+    IDS_PLUGIN_DESCRIPTION  "Данные биржи для TrafficMonitor"
+    IDS_PLUGIN_ITEM_NAME    "Акция "
+    IDS_PLUGIN_INFO_DYNAMIC_CREATE 
+                            "TrafficMonitor не может динамически создавать элементы.\nДостигнут установленный верхний предел"
+    IDS_PLUGIN_INFO_RESTART "Если интерфейс не обновился,\nперезапустите TrafficMonitor"
+END
+
+#endif    // Русский (Россия) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -232,6 +368,9 @@ BEGIN
     IDS_PLUGIN_NAME         "Stock Plugin"
     IDS_PLUGIN_DESCRIPTION  "Stock plugin for TrafficMonitor."
     IDS_PLUGIN_ITEM_NAME    "Stock"
+    IDS_PLUGIN_INFO_DYNAMIC_CREATE 
+                            "Since TrafficMonitor cannot dynamically create items, the set limit has been reached"
+    IDS_PLUGIN_INFO_RESTART "If the interface is not refreshed, please restart TrafficMonitor"
 END
 
 #endif    // УўУп(ГА№ъ) resources

@@ -92,7 +92,7 @@ void CManagerDialog::OnAddBtnClick()
 {
     if (m_data.m_gp_codes.size() >= GP_ITEM_MAX)
     {
-        MessageBox(TEXT("由于TrafficMonitor无法动态创建Item，已达到设定上限"), TEXT(""), MB_ICONWARNING | MB_OK);
+        MessageBox(g_data.StringRes(IDS_PLUGIN_INFO_DYNAMIC_CREATE), TEXT(""), MB_ICONWARNING | MB_OK);
         return;
     }
     COptionsDlg dlg;
@@ -127,8 +127,8 @@ void CManagerDialog::OnBnClickedOk()
     {
         g_data.m_setting_data = m_data;
         g_data.SaveConfig();
-        GP::Instance().SendGPInfoQequest();
-        MessageBox(TEXT("如果界面未刷新请重启TrafficMonitor"), TEXT(""), MB_ICONWARNING | MB_OK);
+        GP::Instance().SendGPInfoRequest();
+        MessageBox(g_data.StringRes(IDS_PLUGIN_INFO_RESTART), TEXT(""), MB_ICONWARNING | MB_OK);
     }
     CDialog::OnOK();
 }

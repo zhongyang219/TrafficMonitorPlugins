@@ -53,7 +53,10 @@ int GPItem::GetItemWidthEx(void * hDC) const
     {
         //绘图句柄
         CDC* pDC = CDC::FromHandle((HDC)hDC);
-        return pDC->GetTextExtent(L"000000000000").cx;
+        if (g_data.GetGPInfo(gp_id).p != L"--")
+            return pDC->GetTextExtent(g_data.GetGPInfo(gp_id).ToString()).cx;
+        else
+            return pDC->GetTextExtent(L"999.99¥ 99.99%").cx;
     }
     return 0;
 }

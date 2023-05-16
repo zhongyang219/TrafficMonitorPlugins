@@ -46,11 +46,17 @@ UINT GP::ThreadCallback(LPVOID dwUser)
         m_instance.m_last_request_time = cur_time;
 
         if (g_data.m_setting_data.m_full_day != 1) {
-            SYSTEMTIME now_time;
-            GetLocalTime(&now_time);
-            //CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
-            //CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
-            if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30)) {
+            TIME_ZONE_INFORMATION tz_china{};
+            tz_china.Bias = -8 * 60; // China Standard Time UTC+08:00
+
+            SYSTEMTIME utc_time{}, china_time{};
+            GetSystemTime(&utc_time);
+            SystemTimeToTzSpecificLocalTime(&tz_china, &utc_time, &china_time);
+            //CString log_time;
+            //log_time.Format(_T("UTC: %d:%02d, China: %d:%02d"), utc_time.wHour, utc_time.wMinute, china_time.wHour, china_time.wMinute);
+            //CCommon::WriteLog(log_time, g_data.m_log_path.c_str());
+
+            if (china_time.wHour < 9 || (china_time.wHour == 15 && china_time.wMinute > 30) || china_time.wHour > 15) { // 9:00-15:30
                 CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
                 g_data.ResetText();
                 return 0;
@@ -164,12 +170,8 @@ void GP::ParseJsonData(std::string json_data)
             yesterday = { convert<float>(data_arr[2]) };
         }
 
-        char buff[32];
-        sprintf_s(buff, "%.2f", now);
-        gpInfo.p = CCommon::StrToUnicode(buff);
-
-        sprintf_s(buff, "%.2f%%", ((now - yesterday) / yesterday * 100));
-        gpInfo.pc = CCommon::StrToUnicode(buff);
+        gpInfo.p.Format(_T("%.2f"), now);
+        gpInfo.pc.Format(_T("%.2f"), ((now - yesterday) / yesterday * 100));
 
         gpInfo.name = name;
     }
@@ -207,7 +209,7 @@ void GP::DataRequired()
     time_t cur_time = time(nullptr);
     if (cur_time - m_instance.m_last_request_time > 3) {
         last_req_time = cur_time;
-        SendGPInfoQequest();
+        SendGPInfoRequest();
     }
 }
 
@@ -257,6 +259,9 @@ void GP::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         g_data.LoadConfig(std::wstring(data));
         updateItems();
         break;
+    case ITMPlugin::EI_TASKBAR_WND_SPERATE_WITH_SPACE:
+        g_data.m_setting_data.show_space = _wtoi(data);
+        break;
     default:
         break;
     }
@@ -280,7 +285,7 @@ void GP::updateItems()
     }
 }
 
-void GP::SendGPInfoQequest()
+void GP::SendGPInfoRequest()
 {
     if (!m_is_thread_runing)    //确保线程已退出
         AfxBeginThread(ThreadCallback, nullptr);
@@ -312,7 +317,7 @@ void GP::ShowContextMenu(CWnd* pWnd)
         //点击了“更新”
         else if (id == ID_UPDATE)
         {
-            SendGPInfoQequest();
+            SendGPInfoRequest();
         }
     }
 }

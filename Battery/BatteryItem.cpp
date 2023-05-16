@@ -42,7 +42,12 @@ const wchar_t* CBatteryItem::GetItemValueText() const
 const wchar_t* CBatteryItem::GetItemValueSampleText() const
 {
     if (g_data.m_setting_data.show_percent)
-        return L"100%";
+    {
+        if (g_data.m_setting_data.show_space)
+            return L"100 %";
+        else
+            return L"100%";
+    }
     else
         return L"100";
 }
@@ -63,7 +68,12 @@ int CBatteryItem::GetItemWidthEx(void * hDC) const
 
     CString sample_str;
     if (g_data.m_setting_data.show_percent)
-        sample_str = _T("100%");
+    {
+        if (g_data.m_setting_data.show_space)
+            sample_str = _T("100 %");
+        else
+            sample_str = _T("100%");
+    }
     else
         sample_str = _T("100");
 
@@ -93,14 +103,14 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     icon_point.y = rect.top + (rect.Height() - icon_size) / 2;
     ::DrawIconEx(pDC->GetSafeHdc(), icon_point.x, icon_point.y, hIcon, icon_size, icon_size, 0, NULL, DI_NORMAL);
     //填充电量指示
-    if (g_data.m_sysPowerStatus.BatteryFlag != 128 && g_data.m_sysPowerStatus.BatteryLifePercent > 0 && g_data.m_sysPowerStatus.BatteryLifePercent <= 100)
+    if (!(g_data.m_sysPowerStatus.BatteryFlag & BATTERY_FLAG_NO_BATTERY) && g_data.m_sysPowerStatus.BatteryLifePercent != BATTERY_PERCENTAGE_UNKNOWN)
     {
         Gdiplus::RectF rc_indicater;
         rc_indicater.X = icon_point.x + g_data.DPIF(1);
         rc_indicater.Y = icon_point.y + g_data.DPIF(6);
         double percent = g_data.m_sysPowerStatus.BatteryLifePercent;
         //显示充电动画
-        if (g_data.m_setting_data.show_charging_animation && g_data.IsAcOnline() && g_data.m_sysPowerStatus.BatteryLifePercent < 100)
+        if (g_data.m_setting_data.show_charging_animation && g_data.IsCharging())
         {
             percent = g_data.m_sysPowerStatus.BatteryLifePercent + (battery_percent / 100 * (100 - g_data.m_sysPowerStatus.BatteryLifePercent));
         }
