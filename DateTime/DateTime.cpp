@@ -22,8 +22,6 @@ IPluginItem* CDateTime::GetItem(int index)
         return &m_system_date;
     case 1:
         return &m_system_time;
-    case 2:
-        return &m_custom_draw_item;
     default:
         break;
     }
@@ -32,19 +30,6 @@ IPluginItem* CDateTime::GetItem(int index)
 
 void CDateTime::DataRequired()
 {
-    ////获取时间和日期
-    //SYSTEMTIME& system_time{ CDataManager::Instance().m_system_time };
-    //GetLocalTime(&system_time);
-    //wchar_t buff[128];
-    //swprintf_s(buff, L"%d/%.2d/%.2d", system_time.wYear, system_time.wMonth, system_time.wDay);
-    //CDataManager::Instance().m_cur_date = buff;
-
-    //if (CDataManager::Instance().m_setting_data.show_second)
-    //    swprintf_s(buff, L"%.2d:%.2d:%.2d", system_time.wHour, system_time.wMinute, system_time.wSecond);
-    //else
-    //    swprintf_s(buff, L"%.2d:%.2d", system_time.wHour, system_time.wMinute);
-    //CDataManager::Instance().m_cur_time = buff;
-
     g_data.m_format_helper.GetCurrentDateTime();
     g_data.m_cur_date = g_data.m_format_helper.GetCurrentDateTimeByFormat(g_data.m_setting_data.date_format.c_str());
     g_data.m_cur_time = g_data.m_format_helper.GetCurrentDateTimeByFormat(g_data.m_setting_data.time_format.c_str());
@@ -69,7 +54,7 @@ const wchar_t* CDateTime::GetInfo(PluginInfoIndex index)
     case TMI_VERSION:
         return L"1.0";
     case ITMPlugin::TMI_URL:
-        return L"https://github.com/zhongyang219/TrafficMonitor";
+        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;
     default:
         break;

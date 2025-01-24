@@ -42,9 +42,6 @@
     <ClInclude Include="OptionsDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CustomDrawItem.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="DateTimeFormatHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -69,9 +66,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DateTime.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CustomDrawItem.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DateTimeFormatHelper.cpp">

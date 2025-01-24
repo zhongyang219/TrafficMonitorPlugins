@@ -164,7 +164,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\include\PluginInterface.h" />
-    <ClInclude Include="CustomDrawItem.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="DateTimeFormatHelper.h" />
     <ClInclude Include="framework.h" />
@@ -177,7 +176,6 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CustomDrawItem.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="DateTimeFormatHelper.cpp" />
     <ClCompile Include="MessageDlg.cpp" />

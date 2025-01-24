@@ -72,11 +72,9 @@ const wchar_t* CTextReader::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"Copyright (C) by Zhong Yang 2022";
     case ITMPlugin::TMI_URL:
-        //TODO: 在此返回URL
-        return L"";
+        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        //TODO: 在此修改插件的版本
         return L"1.01";
     default:
         break;

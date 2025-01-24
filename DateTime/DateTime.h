@@ -2,7 +2,6 @@
 #include "PluginInterface.h"
 #include "PluginSystemDate.h"
 #include "PluginSystemTime.h"
-#include "CustomDrawItem.h"
 
 class CDateTime : public ITMPlugin
 {
@@ -23,7 +22,6 @@ public:
 private:
     CPluginSystemDate m_system_date;
     CPluginSystemTime m_system_time;
-    CCustomDrawItem m_custom_draw_item;
 
     static CDateTime m_instance;
 };
