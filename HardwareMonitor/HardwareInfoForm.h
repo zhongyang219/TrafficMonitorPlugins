@@ -31,12 +31,13 @@ namespace HardwareMonitor {
 			}
 		}
 
-        void InitContextMenu();
+        void InitUserComponent();
 
     private:
         void AddItem_Click(System::Object^ sender, System::EventArgs^ e);
         void ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e);
         void TreeView_MouseClick(Object^ sender, MouseEventArgs^ e);
+        void TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e);
 
     private: System::Windows::Forms::TreeView^ treeView1;
 

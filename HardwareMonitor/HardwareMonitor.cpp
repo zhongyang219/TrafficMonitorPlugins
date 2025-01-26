@@ -6,6 +6,7 @@
 #include <vector>
 #include "HardwareMonitorHelper.h"
 #include "../utilities/IniHelper.h"
+#include "SettingsForm.h"
 
 namespace HardwareMonitor
 {
@@ -69,6 +70,23 @@ namespace HardwareMonitor
             }
         }
         return false;
+    }
+
+    bool CHardwareMonitor::RemoveDisplayItem(int index)
+    {
+        if (index >= 0 && index < static_cast<int>(m_items.size()))
+        {
+            auto iter = m_items.begin();
+            std::advance(iter, index);
+            m_items.erase(iter);
+            return true;
+        }
+        return false;
+    }
+
+    const std::list<CHardwareMonitorItem>& CHardwareMonitor::GetAllDisplayItems() const
+    {
+        return m_items;
     }
 
     void CHardwareMonitor::LoadConfig(const std::wstring& config_dir)
@@ -150,6 +168,17 @@ namespace HardwareMonitor
             break;
         }
         return L"";
+    }
+
+    ITMPlugin::OptionReturn CHardwareMonitor::ShowOptionsDialog(void* hParent)
+    {
+        SettingsForm^ form = gcnew SettingsForm();
+        if (form->ShowDialog() == DialogResult::OK)
+        {
+            SaveConfig();
+            return ITMPlugin::OR_OPTION_CHANGED;
+        }
+        return ITMPlugin::OR_OPTION_UNCHANGED;
     }
 
     void CHardwareMonitor::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)

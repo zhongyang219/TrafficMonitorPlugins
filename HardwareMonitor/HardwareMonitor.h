@@ -29,6 +29,12 @@ namespace HardwareMonitor
         //如果监控项目已存在，返回false，否则返回true
         bool AddDisplayItem(ISensor^ sensor);
 
+        //移除一个监控项目
+        //成功返回true，否则返回false
+        bool RemoveDisplayItem(int index);
+
+        const std::list<CHardwareMonitorItem>& GetAllDisplayItems() const;
+
         void LoadConfig(const std::wstring& config_dir);
         void SaveConfig();
 
@@ -41,6 +47,7 @@ namespace HardwareMonitor
         IPluginItem* GetItem(int index) override;
         void DataRequired() override;
         const wchar_t* GetInfo(PluginInfoIndex index) override;
+        virtual OptionReturn ShowOptionsDialog(void* hParent) override;
         virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
 
         virtual int GetCommandCount() override;

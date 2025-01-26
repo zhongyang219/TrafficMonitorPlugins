@@ -22,6 +22,9 @@
     <Filter Include="Helper">
       <UniqueIdentifier>{79ade818-fcec-438c-aea0-24f9333623b6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Forms">
+      <UniqueIdentifier>{b24c6d18-c318-4142-86a3-30dfa80a75f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Stdafx.h">
@@ -45,15 +48,15 @@
     <ClInclude Include="HardwareMonitorHelper.h">
       <Filter>Helper</Filter>
     </ClInclude>
+    <ClInclude Include="SettingsForm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="UpdateVisitor.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="HardwareInfoForm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="HardwareMonitor.cpp">
@@ -64,6 +67,12 @@
     </ClCompile>
     <ClCompile Include="HardwareMonitorHelper.cpp">
       <Filter>Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="HardwareInfoForm.cpp">
+      <Filter>Forms</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingsForm.cpp">
+      <Filter>Forms</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

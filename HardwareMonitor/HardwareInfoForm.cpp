@@ -9,8 +9,10 @@ namespace HardwareMonitor
 
     HardwareInfoForm::HardwareInfoForm(void)
     {
+        this->StartPosition = FormStartPosition::CenterParent;
+
         InitializeComponent();
-        InitContextMenu();
+        InitUserComponent();
 
         //填充数据
         auto computer = MonitorGlobal::Instance()->computer;
@@ -76,7 +78,7 @@ namespace HardwareMonitor
         treeView1->EndUpdate();
     }
 
-    void HardwareInfoForm::InitContextMenu()
+    void HardwareInfoForm::InitUserComponent()
     {
         contextMenuStrip = gcnew System::Windows::Forms::ContextMenuStrip();
 
@@ -94,6 +96,10 @@ namespace HardwareMonitor
 
         // 添加 MouseClick 事件处理程序
         treeView1->MouseClick += gcnew MouseEventHandler(this, &HardwareInfoForm::TreeView_MouseClick);
+
+        treeView1->DrawMode = TreeViewDrawMode::OwnerDrawText; // 设置为自定义绘制模式
+        // 添加 DrawNode 事件处理程序
+        treeView1->DrawNode += gcnew DrawTreeNodeEventHandler(this, &HardwareInfoForm::TreeView_DrawNode);
     }
 
     void HardwareInfoForm::AddItem_Click(System::Object^ sender, System::EventArgs^ e)
@@ -123,15 +129,54 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::TreeView_MouseClick(Object^ sender, MouseEventArgs^ e)
     {
-        if (e->Button == System::Windows::Forms::MouseButtons::Right)
+        // 获取点击位置的节点
+        TreeNode^ clickedNode = treeView1->GetNodeAt(e->X, e->Y);
+        if (clickedNode != nullptr)
         {
-            // 获取点击位置的节点
-            TreeNode^ clickedNode = treeView1->GetNodeAt(e->X, e->Y);
-            if (clickedNode != nullptr)
-            {
-                // 选中点击的节点
-                treeView1->SelectedNode = clickedNode;
-            }
+            // 选中点击的节点
+            treeView1->SelectedNode = clickedNode;
         }
+    }
+    void HardwareInfoForm::TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e)
+    {
+        // 获取节点的矩形区域
+        Rectangle bounds = e->Bounds;
+        // 扩展 bounds 的宽度到整个控件的宽度
+        bounds.Width = treeView1->ClientSize.Width - bounds.Left - 1; // 减去1以避免绘制超出控件边界
+        System::Drawing::Color textColor;
+        // 如果节点被选中，绘制选中背景
+        if (e->Node == treeView1->SelectedNode)
+        {
+            // 绘制选中背景
+            e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Highlight), bounds);
+            textColor = SystemColors::HighlightText;
+        }
+        else
+        {
+            e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Window), bounds);
+            textColor = treeView1->ForeColor;
+        }
+
+        // 获取节点的文本
+        String^ text = e->Node->Text;
+
+        // 拆分文本
+        array<String^>^ parts = System::Text::RegularExpressions::Regex::Split(text, "\\s{4}");
+        if (parts->Length < 2)
+            parts = gcnew array<String^>{text, ""};
+
+        // 计算两个矩形区域
+        SizeF rightTextSize = e->Graphics->MeasureString(parts[1], treeView1->Font);
+        int rightWidth = (int)rightTextSize.Width;
+        Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
+        Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
+
+        // 绘制第二部分文本（右对齐）
+        String^ rightText = parts[1];
+        TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right);
+
+        // 绘制第一部分文本（左对齐）
+        String^ leftText = parts[0];
+        TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
     }
 }

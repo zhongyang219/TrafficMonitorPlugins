@@ -217,6 +217,9 @@
     <ClInclude Include="HardwareMonitor.h" />
     <ClInclude Include="HardwareMonitorItem.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SettingsForm.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
     <ClInclude Include="Stdafx.h" />
     <ClInclude Include="UpdateVisitor.h" />
   </ItemGroup>
@@ -225,6 +228,7 @@
     <ClCompile Include="HardwareInfoForm.cpp" />
     <ClCompile Include="HardwareMonitor.cpp" />
     <ClCompile Include="HardwareMonitorItem.cpp" />
+    <ClCompile Include="SettingsForm.cpp" />
     <ClCompile Include="Stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -246,6 +250,9 @@
       <DependentUpon>HardwareInfoForm.h</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="resource.resx" />
+    <EmbeddedResource Include="SettingsForm.resx">
+      <DependentUpon>SettingsForm.h</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
