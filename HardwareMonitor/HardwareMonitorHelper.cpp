@@ -6,30 +6,30 @@ using namespace LibreHardwareMonitor::Hardware;
 
 namespace HardwareMonitor
 {
-    const wchar_t* HardwareMonitorHelper::GetSensorTypeName(SensorType type)
+    System::String^ HardwareMonitorHelper::GetSensorTypeName(SensorType type)
     {
         switch (type)
         {
-        case SensorType::Voltage: return L"Voltage";
-        case SensorType::Current: return L"Current";
-        case SensorType::Power: return L"Power";
-        case SensorType::Clock: return L"Clock";
-        case SensorType::Temperature: return L"Temperature";
-        case SensorType::Load: return L"Load";
-        case SensorType::Frequency: return L"Frequency";
-        case SensorType::Fan: return L"Fan";
-        case SensorType::Flow: return L"Flow";
-        case SensorType::Control: return L"Control";
-        case SensorType::Level: return L"Level";
-        case SensorType::Factor: return L"Factor";
-        case SensorType::Data: return L"Data";
-        case SensorType::SmallData: return L"SmallData";
-        case SensorType::Throughput: return L"Throughput";
-        case SensorType::TimeSpan: return L"TimeSpan";
-        case SensorType::Energy: return L"Energy";
-        case SensorType::Noise: return L"Noise";
-        case SensorType::Conductivity: return L"Conductivity";
-        case SensorType::Humidity: return L"Humidity";
+        case SensorType::Voltage: return MonitorGlobal::Instance()->GetString(L"Voltage");
+        case SensorType::Current: return MonitorGlobal::Instance()->GetString(L"Current");
+        case SensorType::Power: return MonitorGlobal::Instance()->GetString(L"Power");
+        case SensorType::Clock: return MonitorGlobal::Instance()->GetString(L"Clock");
+        case SensorType::Temperature: return MonitorGlobal::Instance()->GetString(L"Temperature");
+        case SensorType::Load: return MonitorGlobal::Instance()->GetString(L"Load");
+        case SensorType::Frequency: return MonitorGlobal::Instance()->GetString(L"Frequency");
+        case SensorType::Fan: return MonitorGlobal::Instance()->GetString(L"Fan");
+        case SensorType::Flow: return MonitorGlobal::Instance()->GetString(L"Flow");
+        case SensorType::Control: return MonitorGlobal::Instance()->GetString(L"Control");
+        case SensorType::Level: return MonitorGlobal::Instance()->GetString(L"Level");
+        case SensorType::Factor: return MonitorGlobal::Instance()->GetString(L"Factor");
+        case SensorType::Data: return MonitorGlobal::Instance()->GetString(L"Data");
+        case SensorType::SmallData: return MonitorGlobal::Instance()->GetString(L"Data");
+        case SensorType::Throughput: return MonitorGlobal::Instance()->GetString(L"Throughput");
+        case SensorType::TimeSpan: return MonitorGlobal::Instance()->GetString(L"TimeSpan");
+        case SensorType::Energy: return MonitorGlobal::Instance()->GetString(L"Energy");
+        case SensorType::Noise: return MonitorGlobal::Instance()->GetString(L"Noise");
+        case SensorType::Conductivity: return MonitorGlobal::Instance()->GetString(L"Conductivity");
+        case SensorType::Humidity: return MonitorGlobal::Instance()->GetString(L"Humidity");
         }
         return L"";
     }

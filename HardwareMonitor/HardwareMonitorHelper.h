@@ -4,7 +4,7 @@ namespace HardwareMonitor
     class HardwareMonitorHelper
     {
     public:
-        static const wchar_t* GetSensorTypeName(LibreHardwareMonitor::Hardware::SensorType type);
+        static System::String^ GetSensorTypeName(LibreHardwareMonitor::Hardware::SensorType type);
         static const wchar_t* GetSensorTypeUnit(LibreHardwareMonitor::Hardware::SensorType type);
         static LibreHardwareMonitor::Hardware::ISensor^ FindSensorByIdentifyer(System::String^ identifyer);
         static System::String^ GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor);

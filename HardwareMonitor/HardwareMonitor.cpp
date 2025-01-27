@@ -103,6 +103,16 @@ namespace HardwareMonitor
     {
         m_config_path = config_dir + L"HardwareMonitor.ini";
         utilities::CIniHelper ini(m_config_path);
+
+        //载入要监控的硬件
+        Computer^ computer = MonitorGlobal::Instance()->computer;
+        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);
+        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);
+        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);
+        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);
+        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);
+        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);
+
         //载入要监控的项目
         int item_count = ini.GetInt(L"config", L"item_count");
         //添加监控的项目
@@ -120,30 +130,11 @@ namespace HardwareMonitor
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
-
-        //载入要监控的硬件
-        Computer^ computer = MonitorGlobal::Instance()->computer;
-        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);
-        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);
-        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);
-        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);
-        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);
-        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);
     }
 
     void CHardwareMonitor::SaveConfig()
     {
-        //保存监控的项目
         utilities::CIniHelper ini(m_config_path);
-        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.item_identifyers.size()));
-        int index = 0;
-        for (const auto& item : m_settings.item_identifyers)
-        {
-            std::wstring app_name = L"item" + std::to_wstring(index);
-            ini.WriteString(app_name.c_str(), L"identifier", item.c_str());
-            index++;
-        }
-        ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
 
         //保存要监控的硬件
         Computer^ computer = MonitorGlobal::Instance()->computer;
@@ -153,6 +144,17 @@ namespace HardwareMonitor
         ini.WriteBool(L"hardware", L"IsStorageEnabled", computer->IsStorageEnabled);
         ini.WriteBool(L"hardware", L"IsBatteryEnabled", computer->IsBatteryEnabled);
         ini.WriteBool(L"hardware", L"IsNetworkEnabled", computer->IsNetworkEnabled);
+
+        //保存监控的项目
+        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.item_identifyers.size()));
+        int index = 0;
+        for (const auto& item : m_settings.item_identifyers)
+        {
+            std::wstring app_name = L"item" + std::to_wstring(index);
+            ini.WriteString(app_name.c_str(), L"identifier", item.c_str());
+            index++;
+        }
+        ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
 
         ini.Save();
     }

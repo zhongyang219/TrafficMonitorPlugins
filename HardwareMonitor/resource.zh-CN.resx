@@ -123,12 +123,54 @@
   <data name="AddToMonitorItem" xml:space="preserve">
     <value>添加到监控项目</value>
   </data>
+  <data name="Clock" xml:space="preserve">
+    <value>时钟频率</value>
+  </data>
+  <data name="Conductivity" xml:space="preserve">
+    <value>Conductivity</value>
+  </data>
+  <data name="Control" xml:space="preserve">
+    <value>Controls</value>
+  </data>
+  <data name="Current" xml:space="preserve">
+    <value>电流</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>数据</value>
+  </data>
+  <data name="Energy" xml:space="preserve">
+    <value>Energy</value>
+  </data>
+  <data name="Factor" xml:space="preserve">
+    <value>Factor</value>
+  </data>
+  <data name="Fan" xml:space="preserve">
+    <value>风扇</value>
+  </data>
+  <data name="Flow" xml:space="preserve">
+    <value>Flow</value>
+  </data>
+  <data name="Frequency" xml:space="preserve">
+    <value>频率</value>
+  </data>
   <data name="HardwareInfo" xml:space="preserve">
     <value>硬件信息</value>
+  </data>
+  <data name="Humidity" xml:space="preserve">
+    <value>Humidity</value>
+  </data>
+  <data name="Level" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="Load" xml:space="preserve">
+    <value>负载</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="logo1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>logo1.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Noise" xml:space="preserve">
+    <value>Noise</value>
   </data>
   <data name="PluginDescription" xml:space="preserve">
     <value>用于TrafficMonitor的硬件监控插件。</value>
@@ -136,7 +178,22 @@
   <data name="PluginName" xml:space="preserve">
     <value>硬件监控插件</value>
   </data>
+  <data name="Power" xml:space="preserve">
+    <value>功率</value>
+  </data>
   <data name="RemoveMonitorItemInquery" xml:space="preserve">
     <value>确实要删除选中项吗？</value>
+  </data>
+  <data name="Temperature" xml:space="preserve">
+    <value>温度</value>
+  </data>
+  <data name="Throughput" xml:space="preserve">
+    <value>Throughput</value>
+  </data>
+  <data name="TimeSpan" xml:space="preserve">
+    <value>TimeSpan</value>
+  </data>
+  <data name="Voltage" xml:space="preserve">
+    <value>电压</value>
   </data>
 </root>

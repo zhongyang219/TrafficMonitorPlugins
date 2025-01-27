@@ -123,12 +123,54 @@
   <data name="AddToMonitorItem" xml:space="preserve">
     <value>Add to monitor item</value>
   </data>
+  <data name="Clock" xml:space="preserve">
+    <value>Clock</value>
+  </data>
+  <data name="Conductivity" xml:space="preserve">
+    <value>Conductivity</value>
+  </data>
+  <data name="Control" xml:space="preserve">
+    <value>Controls</value>
+  </data>
+  <data name="Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>Data</value>
+  </data>
+  <data name="Energy" xml:space="preserve">
+    <value>Energy</value>
+  </data>
+  <data name="Factor" xml:space="preserve">
+    <value>Factor</value>
+  </data>
+  <data name="Fan" xml:space="preserve">
+    <value>Fan</value>
+  </data>
+  <data name="Flow" xml:space="preserve">
+    <value>Flow</value>
+  </data>
+  <data name="Frequency" xml:space="preserve">
+    <value>Frequency</value>
+  </data>
   <data name="HardwareInfo" xml:space="preserve">
     <value>Hardware info</value>
+  </data>
+  <data name="Humidity" xml:space="preserve">
+    <value>Humidity</value>
+  </data>
+  <data name="Level" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="Load" xml:space="preserve">
+    <value>Load</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="logo" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>res\logo.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Noise" xml:space="preserve">
+    <value>Noise</value>
   </data>
   <data name="PluginDescription" xml:space="preserve">
     <value>Hardware monitor plugin for TrafficMonitor.</value>
@@ -136,7 +178,22 @@
   <data name="PluginName" xml:space="preserve">
     <value>Hardware monitor plugin</value>
   </data>
+  <data name="Power" xml:space="preserve">
+    <value>Power</value>
+  </data>
   <data name="RemoveMonitorItemInquery" xml:space="preserve">
     <value>Are you sure you want to remove the selected item?</value>
+  </data>
+  <data name="Temperature" xml:space="preserve">
+    <value>Temperature</value>
+  </data>
+  <data name="Throughput" xml:space="preserve">
+    <value>Throughput</value>
+  </data>
+  <data name="TimeSpan" xml:space="preserve">
+    <value>TimeSpan</value>
+  </data>
+  <data name="Voltage" xml:space="preserve">
+    <value>Voltage</value>
   </data>
 </root>

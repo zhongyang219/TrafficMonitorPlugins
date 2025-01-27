@@ -41,6 +41,7 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::CheckBox^ batteryCheck;
     private: System::Windows::Forms::CheckBox^ storageCheck;
     private: System::Windows::Forms::CheckBox^ motherBoardCheck;
+    private: System::Windows::Forms::Label^ label2;
     private: System::Windows::Forms::Button^ addItemBtn;
 
 
@@ -74,6 +75,7 @@ namespace HardwareMonitor {
             this->motherBoardCheck = (gcnew System::Windows::Forms::CheckBox());
             this->gpuCheck = (gcnew System::Windows::Forms::CheckBox());
             this->cpuCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->label2 = (gcnew System::Windows::Forms::Label());
             this->groupBox1->SuspendLayout();
             this->SuspendLayout();
             // 
@@ -157,10 +159,16 @@ namespace HardwareMonitor {
             this->cpuCheck->Name = L"cpuCheck";
             this->cpuCheck->UseVisualStyleBackColor = true;
             // 
+            // label2
+            // 
+            resources->ApplyResources(this->label2, L"label2");
+            this->label2->Name = L"label2";
+            // 
             // SettingsForm
             // 
             resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+            this->Controls->Add(this->label2);
             this->Controls->Add(this->groupBox1);
             this->Controls->Add(this->cancelBtn);
             this->Controls->Add(this->label1);
