@@ -252,11 +252,14 @@
     </EmbeddedResource>
     <EmbeddedResource Include="HardwareInfoForm.zh-CN.resx">
       <DependentUpon>HardwareInfoForm.h</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="resource.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="resource.zh-CN.resx" />
+    <EmbeddedResource Include="resource.zh-CN.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="SettingsForm.resx">
       <DependentUpon>SettingsForm.h</DependentUpon>
       <SubType>Designer</SubType>
@@ -264,6 +267,11 @@
     <EmbeddedResource Include="SettingsForm.zh-CN.resx">
       <DependentUpon>SettingsForm.h</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="app_icon.ico" />
+    <Image Include="logo1.ico" />
+    <Image Include="res\logo.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

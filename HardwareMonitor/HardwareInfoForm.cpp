@@ -10,6 +10,7 @@ namespace HardwareMonitor
     HardwareInfoForm::HardwareInfoForm(void)
     {
         this->StartPosition = FormStartPosition::CenterParent;
+        this->Icon = MonitorGlobal::Instance()->GetAppIcon();
 
         InitializeComponent();
         InitUserComponent();

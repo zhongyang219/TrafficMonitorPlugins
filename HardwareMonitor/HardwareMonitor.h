@@ -58,6 +58,7 @@ namespace HardwareMonitor
         const wchar_t* GetInfo(PluginInfoIndex index) override;
         virtual OptionReturn ShowOptionsDialog(void* hParent) override;
         virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
+        virtual void* GetPluginIcon() override;
 
         virtual int GetCommandCount() override;
         virtual const wchar_t* GetCommandName(int command_index) override;
@@ -89,6 +90,7 @@ namespace HardwareMonitor
 
         String^ GetString(const wchar_t* name);
         std::wstring GetStdWString(const wchar_t* name);
+        Icon^ GetAppIcon();
 
         void ShowHardwareInfoDialog();
 
@@ -100,6 +102,7 @@ namespace HardwareMonitor
 
     private:
         Resources::ResourceManager^ resourceManager{};
+        Icon^ app_icon{};
 
     private:
         static MonitorGlobal^ m_instance{};

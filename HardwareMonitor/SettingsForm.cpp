@@ -8,6 +8,7 @@ namespace HardwareMonitor
     SettingsForm::SettingsForm(void)
     {
         this->StartPosition = FormStartPosition::CenterParent;
+        this->Icon = MonitorGlobal::Instance()->GetAppIcon();
         InitializeComponent();
         UpdateItemList();
 

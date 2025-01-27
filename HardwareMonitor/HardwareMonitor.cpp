@@ -208,6 +208,11 @@ namespace HardwareMonitor
 
     }
 
+    void* CHardwareMonitor::GetPluginIcon()
+    {
+        return MonitorGlobal::Instance()->GetAppIcon()->Handle.ToPointer();
+    }
+
     int CHardwareMonitor::GetCommandCount()
     {
         return 1;
@@ -249,6 +254,7 @@ namespace HardwareMonitor
         computer->IsStorageEnabled = true;
 
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
+        app_icon = dynamic_cast<Icon^>(resourceManager->GetObject("logo"));
     }
 
     void MonitorGlobal::UnInit()
@@ -279,6 +285,11 @@ namespace HardwareMonitor
     std::wstring MonitorGlobal::GetStdWString(const wchar_t* name)
     {
         return ClrStringToStdWstring(GetString(name));
+    }
+
+    Icon^ MonitorGlobal::GetAppIcon()
+    {
+        return app_icon;
     }
 
     void MonitorGlobal::ShowHardwareInfoDialog()
