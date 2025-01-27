@@ -64,6 +64,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.auto_read_timer_interval = GetPrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), 2000, m_config_path.c_str());
     m_setting_data.auto_decode_base64 = GetPrivateProfileInt(_T("config"), _T("auto_decode_base64"), 1, m_config_path.c_str());
     m_setting_data.use_own_context_menu = GetPrivateProfileInt(_T("config"), _T("use_own_context_menu"), 1, m_config_path.c_str());
+    m_setting_data.restart_at_end = GetPrivateProfileInt(_T("config"), _T("restart_at_end"), 0, m_config_path.c_str());
 
     //载入书签
     m_bookmark_mgr.LoadFromConfig(m_config_path);
@@ -84,6 +85,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(_T("config"), _T("auto_read_timer_interval"), m_setting_data.auto_read_timer_interval, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("auto_decode_base64"), m_setting_data.auto_decode_base64, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("use_own_context_menu"), m_setting_data.use_own_context_menu, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("restart_at_end"), m_setting_data.restart_at_end, m_config_path.c_str());
 
         //保存书签
         m_bookmark_mgr.SaveToConfig(m_config_path);
@@ -231,10 +233,15 @@ void CDataManager::PageDown(int step)
     if (m_boss_key_pressed)
         return;
     const int MAX_POS = GetTextContexts().size() - 2;
-    if (m_setting_data.current_position < MAX_POS)
+    if (m_setting_data.current_position < MAX_POS || m_setting_data.restart_at_end)
         m_setting_data.current_position += step;
     if (m_setting_data.current_position > MAX_POS)
-        m_setting_data.current_position = MAX_POS;
+    {
+        if (m_setting_data.restart_at_end)
+            m_setting_data.current_position = 0;
+        else
+            m_setting_data.current_position = MAX_POS;
+    }
     if (m_setting_data.current_position < 0)
         m_setting_data.current_position = 0;
     m_position_modified = true;

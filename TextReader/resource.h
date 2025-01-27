@@ -45,6 +45,8 @@
 #define IDC_ENABLE_MULTI_LINE_CHECK     1005
 #define IDC_CHECK2                      1006
 #define IDC_HIDE_WHEN_LOSE_FOCUS_CHECK  1006
+#define IDC_ENABLE_MULTI_LINE_CHECK2    1007
+#define IDC_RESTART_AT_END_CHECK        1007
 #define IDC_TAB1                        1008
 #define IDC_LIST1                       1009
 #define IDC_RE_PARSE_BUTTON             1010

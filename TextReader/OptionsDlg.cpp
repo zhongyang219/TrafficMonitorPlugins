@@ -63,6 +63,7 @@ BOOL COptionsDlg::OnInitDialog()
 
     CheckDlgButton(IDC_AUTO_DECODE_CHECK, m_data.auto_decode_base64);
     CheckDlgButton(IDC_USE_OWN_CONTEXT_MENU_CHECK, m_data.use_own_context_menu);
+    CheckDlgButton(IDC_RESTART_AT_END_CHECK, m_data.restart_at_end);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -110,6 +111,7 @@ void COptionsDlg::OnOK()
 
     m_data.auto_decode_base64 = (IsDlgButtonChecked(IDC_AUTO_DECODE_CHECK) != 0);
     m_data.use_own_context_menu = (IsDlgButtonChecked(IDC_USE_OWN_CONTEXT_MENU_CHECK) != 0);
+    m_data.restart_at_end = (IsDlgButtonChecked(IDC_RESTART_AT_END_CHECK) != 0);
 
     CDialogEx::OnOK();
 }
