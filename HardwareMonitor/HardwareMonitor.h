@@ -36,6 +36,9 @@ namespace HardwareMonitor
         //如果监控项目已存在，返回false，否则返回true
         bool AddDisplayItem(ISensor^ sensor);
 
+        //判断一个监控项目是否已存在
+        bool IsDisplayItemExist(const std::wstring& identifyer);
+
         //移除一个监控项目
         //成功返回true，否则返回false
         bool RemoveDisplayItem(int index);

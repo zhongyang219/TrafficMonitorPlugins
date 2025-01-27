@@ -52,21 +52,21 @@ namespace HardwareMonitor
         {
             std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(sensor->Identifier->ToString());
             //检查监控项目是否存在
-            bool exist = false;
-            for (const auto& item : m_settings.item_identifyers)
-            {
-                if (item == identifyer)
-                {
-                    exist = true;
-                    break;
-                }
-            }
-
-            if (!exist)
+            if (!IsDisplayItemExist(identifyer))
             {
                 m_settings.item_identifyers.push_back(identifyer);
                 return true;
             }
+        }
+        return false;
+    }
+
+    bool CHardwareMonitor::IsDisplayItemExist(const std::wstring& identifyer)
+    {
+        for (const auto& item : m_settings.item_identifyers)
+        {
+            if (item == identifyer)
+                return true;
         }
         return false;
     }

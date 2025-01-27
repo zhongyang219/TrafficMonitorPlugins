@@ -158,7 +158,15 @@ namespace HardwareMonitor
         else
         {
             e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Window), bounds);
-            textColor = treeView1->ForeColor;
+            //判断当前项是否已添加到监控
+            String^ identifyer{};
+            if (e->Node->Tag != nullptr)
+                identifyer = e->Node->Tag->ToString();
+            //已添加到监控项目的文本颜色显示为高亮颜色
+            if (identifyer != nullptr && CHardwareMonitor::GetInstance()->IsDisplayItemExist(MonitorGlobal::ClrStringToStdWstring(identifyer)))
+                textColor = SystemColors::Highlight;
+            else
+                textColor = treeView1->ForeColor;
         }
 
         // 获取节点的文本
