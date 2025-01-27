@@ -133,7 +133,20 @@ public:
     {
 
     };
+    //预留的接口
     virtual void* OnItemInfo(ItemInfoType, void* para1, void* para2) { return 0; }
+
+    /**
+     * @brief 是否在在任务栏中显示此项目的资源占用图
+     * @return 1：显示，0：不显示
+     */
+    virtual int IsDrawResourceUsageGraph() const { return 0; }
+
+    /**
+     * @brief 获取资源占用图的值。当IsDrawResourceUsageGraphType返回值不为0时有效
+     * @return float 资源占用图的值，范围为0.0~1.0。
+     */
+    virtual float GetResourceUsageGraphValue() const { return 0.0; }
 };
 
 
@@ -146,7 +159,7 @@ public:
      * @attention 插件开发者不应该修改这里的返回值，也不应该重写此虚函数。
      * @return  int
      */
-    virtual int GetAPIVersion() const { return 5; }
+    virtual int GetAPIVersion() const { return 6; }
 
     /**
      * @brief   获取插件显示项目的对象
@@ -286,6 +299,8 @@ public:
     /**
      * @brief   执行一个插件命令时由框架调用
      * @param   int command_index 插件命令的索引（从0开始，小于GetCommandCount()的返回值）
+     * @param   void* hWnd 发送此命令的窗口句柄
+     * @param   void* para 预留参数
      */
     virtual void OnPluginCommand(int command_index, void* hWnd, void* para) {}
 
@@ -320,5 +335,7 @@ public:
 *     4       | 新增 IPluginItem::OnKeboardEvent IPluginItem::OnItemInfo 函数
 * -------------------------------------------------------------------------
 *     5       | 新增 ITMPlugin::GetCommandName ITMPlugin::GetCommandIcon ITMPlugin::OnPluginCommand 函数
+* -------------------------------------------------------------------------
+*     6       | 新增 IPluginItem::GetResourceUsageGraphType IPluginItem::GetResourceUsageGraphValue 函数
 * -------------------------------------------------------------------------
 */

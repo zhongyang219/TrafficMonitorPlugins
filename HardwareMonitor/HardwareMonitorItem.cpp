@@ -12,12 +12,6 @@ namespace HardwareMonitor
     {
     }
 
-    void CHardwareMonitorItem::FromSensor(LibreHardwareMonitor::Hardware::ISensor^ sensor)
-    {
-        identifier = MonitorGlobal::ClrStringToStdWstring(sensor->Identifier->ToString());
-
-    }
-
     const wchar_t* CHardwareMonitorItem::GetItemName() const
     {
         return item_name.c_str();
@@ -46,8 +40,24 @@ namespace HardwareMonitor
         if (item_value.empty())
             sample_text = L"99.99 °„C";
         else
-            sample_text = item_value + L' ';
+            sample_text = L'0' + item_value;
         return sample_text.c_str();
+    }
+
+    int CHardwareMonitorItem::IsDrawResourceUsageGraph() const
+    {
+        SensorType type = static_cast<SensorType>(sensor_type);
+        return type == SensorType::Temperature || type == SensorType::Load;
+    }
+
+    float CHardwareMonitorItem::GetResourceUsageGraphValue() const
+    {
+        SensorType type = static_cast<SensorType>(sensor_type);
+        if (type == SensorType::Temperature || type == SensorType::Load)
+        {
+            return item_value_num / 100.0f;
+        }
+        return 0.0f;
     }
 
     void CHardwareMonitorItem::UpdateValue()
@@ -56,6 +66,8 @@ namespace HardwareMonitor
         if (sensor != nullptr)
         {
             item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor));
+            item_value_num = sensor->Value.Value;
+            sensor_type = static_cast<int>(sensor->SensorType);
         }
     }
 
