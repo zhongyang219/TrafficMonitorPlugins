@@ -70,7 +70,8 @@ namespace HardwareMonitor
                     if (sensor != nullptr)
                     {
                         String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
-                        sensor_node->Text = sensor_str;
+                        if (sensor_str != sensor_node->Text)
+                            sensor_node->Text = sensor_str;
                     }
                 }
             }

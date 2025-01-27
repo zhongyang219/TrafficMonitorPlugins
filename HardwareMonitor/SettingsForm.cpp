@@ -11,10 +11,11 @@ namespace HardwareMonitor
         InitializeComponent();
 
         //Ìî³äÊý¾Ý
-        for (const auto& item : CHardwareMonitor::GetInstance()->GetAllDisplayItems())
+        for (const auto& identifyer : CHardwareMonitor::GetInstance()->m_settings.item_identifyers)
         {
-            String^ item_name = gcnew String(item.GetItemName());
-            monitorItemListBox->Items->Add(item_name);
+            String^ item_name = gcnew String(CHardwareMonitor::GetInstance()->GetItemName(identifyer).c_str());
+            if (item_name->Length > 0)
+                monitorItemListBox->Items->Add(item_name);
         }
     }
 

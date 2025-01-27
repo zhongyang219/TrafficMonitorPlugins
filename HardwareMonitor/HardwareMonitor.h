@@ -7,13 +7,19 @@
 #include "PluginInterface.h"
 #include "HardwareInfoForm.h"
 #include "HardwareMonitorItem.h"
-#include <list>
+#include <vector>
+#include <map>
 
 using namespace System;
 using namespace LibreHardwareMonitor::Hardware;
 
 namespace HardwareMonitor
 {
+    struct OptionSettings
+    {
+        std::vector<std::wstring> item_identifyers;
+    };
+
     public class CHardwareMonitor : public ITMPlugin
 	{
     private:
@@ -33,15 +39,18 @@ namespace HardwareMonitor
         //成功返回true，否则返回false
         bool RemoveDisplayItem(int index);
 
-        const std::list<CHardwareMonitorItem>& GetAllDisplayItems() const;
+        std::wstring GetItemName(const std::wstring& identifier);
 
         void LoadConfig(const std::wstring& config_dir);
         void SaveConfig();
 
+        OptionSettings m_settings;
+
     private:
         static CHardwareMonitor* m_pIns;
-        std::list<CHardwareMonitorItem> m_items;
+        std::vector<CHardwareMonitorItem> m_items;
         std::wstring m_config_path;
+        std::map<std::wstring, std::wstring> m_item_names;  //保存每个Sensor的identifier和名称的map
 
         // 通过 ITMPlugin 继承
         IPluginItem* GetItem(int index) override;

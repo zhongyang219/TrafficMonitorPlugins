@@ -53,9 +53,9 @@ namespace HardwareMonitor
             std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(sensor->Identifier->ToString());
             //检查监控项目是否存在
             bool exist = false;
-            for (const auto& item : m_items)
+            for (const auto& item : m_settings.item_identifyers)
             {
-                if (item.GetIdentifier() == identifyer)
+                if (item == identifyer)
                 {
                     exist = true;
                     break;
@@ -64,8 +64,7 @@ namespace HardwareMonitor
 
             if (!exist)
             {
-                std::wstring item_name = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
-                m_items.emplace_back(identifyer, item_name);
+                m_settings.item_identifyers.push_back(identifyer);
                 return true;
             }
         }
@@ -74,19 +73,30 @@ namespace HardwareMonitor
 
     bool CHardwareMonitor::RemoveDisplayItem(int index)
     {
-        if (index >= 0 && index < static_cast<int>(m_items.size()))
+        if (index >= 0 && index < static_cast<int>(m_settings.item_identifyers.size()))
         {
-            auto iter = m_items.begin();
-            std::advance(iter, index);
-            m_items.erase(iter);
+            auto iter = m_settings.item_identifyers.begin() + index;
+            m_settings.item_identifyers.erase(iter);
             return true;
         }
         return false;
     }
 
-    const std::list<CHardwareMonitorItem>& CHardwareMonitor::GetAllDisplayItems() const
+    std::wstring CHardwareMonitor::GetItemName(const std::wstring& identifier)
     {
-        return m_items;
+        auto iter = m_item_names.find(identifier);
+        if (iter != m_item_names.end())
+        {
+            return iter->second;
+        }
+        else
+        {
+            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
+            if (sensor != nullptr)
+                return MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+        }
+
+        return std::wstring();
     }
 
     void CHardwareMonitor::LoadConfig(const std::wstring& config_dir)
@@ -100,9 +110,14 @@ namespace HardwareMonitor
         {
             std::wstring app_name = L"item" + std::to_wstring(i);
             std::wstring identifyer = ini.GetString(app_name.c_str(), L"identifier");
+            m_settings.item_identifyers.push_back(identifyer);
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifyer.c_str()));
             if (sensor != nullptr)
-                AddDisplayItem(sensor);
+            {
+                std::wstring item_name = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+                m_item_names[identifyer] = item_name;
+                m_items.emplace_back(identifyer, item_name);
+            }
         }
     }
 
@@ -110,12 +125,12 @@ namespace HardwareMonitor
     {
         //保存监控的项目
         utilities::CIniHelper ini(m_config_path);
-        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_items.size()));
+        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.item_identifyers.size()));
         int index = 0;
-        for (const auto& item : m_items)
+        for (const auto& item : m_settings.item_identifyers)
         {
             std::wstring app_name = L"item" + std::to_wstring(index);
-            ini.WriteString(app_name.c_str(), L"identifier", item.GetIdentifier().c_str());
+            ini.WriteString(app_name.c_str(), L"identifier", item.c_str());
             index++;
         }
         ini.Save();
@@ -125,9 +140,7 @@ namespace HardwareMonitor
     {
         if (index >= 0 && index < static_cast<int>(m_items.size()))
         {
-            auto it = m_items.begin();
-            std::advance(it, index);
-            return &(*it);
+            return &m_items[index];
         }
         return nullptr;
     }
