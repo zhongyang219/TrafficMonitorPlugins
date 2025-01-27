@@ -118,21 +118,21 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AddItemFailedMsg" xml:space="preserve">
-    <value>Add failed, monitor item already exists!</value>
+    <value>添加失败，监控项目已存在！</value>
   </data>
   <data name="AddToMonitorItem" xml:space="preserve">
-    <value>Add to monitor item</value>
+    <value>添加到监控项目</value>
   </data>
   <data name="HardwareInfo" xml:space="preserve">
-    <value>Hardware info</value>
+    <value>硬件信息</value>
   </data>
   <data name="PluginDescription" xml:space="preserve">
-    <value>Hardware monitor plugin for TrafficMonitor.</value>
+    <value>用于TrafficMonitor的硬件监控插件。</value>
   </data>
   <data name="PluginName" xml:space="preserve">
-    <value>Hardware monitor plugin</value>
+    <value>硬件监控插件</value>
   </data>
   <data name="RemoveMonitorItemInquery" xml:space="preserve">
-    <value>Are you sure you want to remove the selected item?</value>
+    <value>确实要删除选中项吗？</value>
   </data>
 </root>

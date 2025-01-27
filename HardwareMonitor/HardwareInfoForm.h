@@ -59,31 +59,21 @@ namespace HardwareMonitor {
 		/// </summary>
 		void InitializeComponent(void)
 		{
+            System::ComponentModel::ComponentResourceManager^ resources = (gcnew System::ComponentModel::ComponentResourceManager(HardwareInfoForm::typeid));
             this->treeView1 = (gcnew System::Windows::Forms::TreeView());
             this->SuspendLayout();
             // 
             // treeView1
             // 
-            this->treeView1->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Bottom)
-                | System::Windows::Forms::AnchorStyles::Left)
-                | System::Windows::Forms::AnchorStyles::Right));
-            this->treeView1->Location = System::Drawing::Point(14, 16);
-            this->treeView1->Margin = System::Windows::Forms::Padding(3, 4, 3, 4);
+            resources->ApplyResources(this->treeView1, L"treeView1");
             this->treeView1->Name = L"treeView1";
-            this->treeView1->Size = System::Drawing::Size(419, 463);
-            this->treeView1->TabIndex = 0;
             // 
             // HardwareInfoForm
             // 
-            this->AutoScaleDimensions = System::Drawing::SizeF(9, 20);
+            resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->ClientSize = System::Drawing::Size(447, 496);
             this->Controls->Add(this->treeView1);
-            this->Font = (gcnew System::Drawing::Font(L"Î¢ÈíÑÅºÚ", 9, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-                static_cast<System::Byte>(134)));
-            this->Margin = System::Windows::Forms::Padding(3, 4, 3, 4);
             this->Name = L"HardwareInfoForm";
-            this->Text = L"HardwareInfoForm";
             this->ResumeLayout(false);
 
         }

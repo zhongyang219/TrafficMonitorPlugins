@@ -117,22 +117,44 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AddItemFailedMsg" xml:space="preserve">
-    <value>Add failed, monitor item already exists!</value>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>260, 224</value>
   </data>
-  <data name="AddToMonitorItem" xml:space="preserve">
-    <value>Add to monitor item</value>
+  <data name="removeSelectBtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>280, 36</value>
   </data>
-  <data name="HardwareInfo" xml:space="preserve">
-    <value>Hardware info</value>
+  <data name="removeSelectBtn.Size" type="System.Drawing.Size, System.Drawing">
+    <value>124, 31</value>
   </data>
-  <data name="PluginDescription" xml:space="preserve">
-    <value>Hardware monitor plugin for TrafficMonitor.</value>
+  <data name="removeSelectBtn.Text" xml:space="preserve">
+    <value>移除选中项</value>
   </data>
-  <data name="PluginName" xml:space="preserve">
-    <value>Hardware monitor plugin</value>
+  <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>114, 20</value>
   </data>
-  <data name="RemoveMonitorItemInquery" xml:space="preserve">
-    <value>Are you sure you want to remove the selected item?</value>
+  <data name="label1.Text" xml:space="preserve">
+    <value>已添加监控项：</value>
+  </data>
+  <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>329, 286</value>
+  </data>
+  <data name="cancelBtn.Text" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="addItemBtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>280, 75</value>
+  </data>
+  <data name="addItemBtn.Size" type="System.Drawing.Size, System.Drawing">
+    <value>124, 31</value>
+  </data>
+  <data name="addItemBtn.Text" xml:space="preserve">
+    <value>添加监控项</value>
+  </data>
+  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
+    <value>416, 327</value>
+  </data>
+  <data name="$this.Text" xml:space="preserve">
+    <value>硬件监控插件设置</value>
   </data>
 </root>

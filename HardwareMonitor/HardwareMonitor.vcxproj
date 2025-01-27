@@ -248,9 +248,20 @@
   <ItemGroup>
     <EmbeddedResource Include="HardwareInfoForm.resx">
       <DependentUpon>HardwareInfoForm.h</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="resource.resx" />
+    <EmbeddedResource Include="HardwareInfoForm.zh-CN.resx">
+      <DependentUpon>HardwareInfoForm.h</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="resource.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="resource.zh-CN.resx" />
     <EmbeddedResource Include="SettingsForm.resx">
+      <DependentUpon>SettingsForm.h</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SettingsForm.zh-CN.resx">
       <DependentUpon>SettingsForm.h</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>

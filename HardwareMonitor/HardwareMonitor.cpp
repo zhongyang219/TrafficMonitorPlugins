@@ -222,10 +222,7 @@ namespace HardwareMonitor
     {
         if (command_index == 0)
         {
-            HardwareInfoForm^ form = gcnew HardwareInfoForm();
-            MonitorGlobal::Instance()->monitor_form = form;
-            form->ShowDialog();
-            MonitorGlobal::Instance()->monitor_form = nullptr;
+            MonitorGlobal::Instance()->ShowHardwareInfoDialog();
         }
     }
 
@@ -282,6 +279,14 @@ namespace HardwareMonitor
     std::wstring MonitorGlobal::GetStdWString(const wchar_t* name)
     {
         return ClrStringToStdWstring(GetString(name));
+    }
+
+    void MonitorGlobal::ShowHardwareInfoDialog()
+    {
+        HardwareInfoForm^ form = gcnew HardwareInfoForm();
+        monitor_form = form;
+        form->ShowDialog();
+        monitor_form = nullptr;
     }
 
 }

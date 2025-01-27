@@ -117,22 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AddItemFailedMsg" xml:space="preserve">
-    <value>Add failed, monitor item already exists!</value>
-  </data>
-  <data name="AddToMonitorItem" xml:space="preserve">
-    <value>Add to monitor item</value>
-  </data>
-  <data name="HardwareInfo" xml:space="preserve">
-    <value>Hardware info</value>
-  </data>
-  <data name="PluginDescription" xml:space="preserve">
-    <value>Hardware monitor plugin for TrafficMonitor.</value>
-  </data>
-  <data name="PluginName" xml:space="preserve">
-    <value>Hardware monitor plugin</value>
-  </data>
-  <data name="RemoveMonitorItemInquery" xml:space="preserve">
-    <value>Are you sure you want to remove the selected item?</value>
+  <data name="$this.Text" xml:space="preserve">
+    <value>硬件信息</value>
   </data>
 </root>

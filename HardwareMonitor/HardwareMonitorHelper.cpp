@@ -109,10 +109,10 @@ namespace HardwareMonitor
         String^ name;
         IHardware^ hardware = sensor->Hardware;
         name = hardware->Name;
-        name += " ";
-        name += sensor->Name;
-        name += " ";
+        name += "|";
         name += gcnew String(GetSensorTypeName(sensor->SensorType));
+        name += "|";
+        name += sensor->Name;
         return name;
     }
 }

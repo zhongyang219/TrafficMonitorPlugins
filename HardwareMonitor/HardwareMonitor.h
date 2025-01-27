@@ -90,6 +90,8 @@ namespace HardwareMonitor
         String^ GetString(const wchar_t* name);
         std::wstring GetStdWString(const wchar_t* name);
 
+        void ShowHardwareInfoDialog();
+
     public:
         Computer^ computer;
         UpdateVisitor^ updateVisitor{};
