@@ -119,6 +119,7 @@ namespace HardwareMonitor
                 m_items.emplace_back(identifyer, item_name);
             }
         }
+        m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -133,6 +134,7 @@ namespace HardwareMonitor
             ini.WriteString(app_name.c_str(), L"identifier", item.c_str());
             index++;
         }
+        ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
         ini.Save();
     }
 
@@ -150,7 +152,7 @@ namespace HardwareMonitor
         //重新获取数据
         MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
         //更新“硬件信息”树节点
-        if (MonitorGlobal::Instance()->monitor_form != nullptr)
+        if (MonitorGlobal::Instance()->monitor_form != nullptr && m_settings.hardware_info_auto_refresh)
             MonitorGlobal::Instance()->monitor_form->UpdateData();
         //更新所有显示项目
         for (auto& item : m_items)

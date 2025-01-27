@@ -102,6 +102,8 @@ namespace HardwareMonitor
         treeView1->DrawMode = TreeViewDrawMode::OwnerDrawText; // 设置为自定义绘制模式
         // 添加 DrawNode 事件处理程序
         treeView1->DrawNode += gcnew DrawTreeNodeEventHandler(this, &HardwareInfoForm::TreeView_DrawNode);
+
+        autoRefreshCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh;
     }
 
     void HardwareInfoForm::AddItem_Click(System::Object^ sender, System::EventArgs^ e)
@@ -180,5 +182,10 @@ namespace HardwareMonitor
         // 绘制第一部分文本（左对齐）
         String^ leftText = parts[0];
         TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
+    }
+
+    System::Void HardwareInfoForm::autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh = autoRefreshCheck->Checked;
     }
 }
