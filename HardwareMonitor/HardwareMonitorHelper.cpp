@@ -48,13 +48,13 @@ namespace HardwareMonitor
         case SensorType::Fan: return L"RPM";
         case SensorType::Flow: return L"";
         case SensorType::Control: return L"%";
-        case SensorType::Level: return L"";
+        case SensorType::Level: return L"%";
         case SensorType::Factor: return L"";
         case SensorType::Data: return L"GB";
         case SensorType::SmallData: return L"MB";
         case SensorType::Throughput: return L"KB/s";
         case SensorType::TimeSpan: return L"";
-        case SensorType::Energy: return L"";
+        case SensorType::Energy: return L"mWh";
         case SensorType::Noise: return L"";
         case SensorType::Conductivity: return L"";
         case SensorType::Humidity: return L"";

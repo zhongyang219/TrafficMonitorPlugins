@@ -171,7 +171,7 @@ namespace HardwareMonitor
 
         // 计算两个矩形区域
         SizeF rightTextSize = e->Graphics->MeasureString(parts[1], treeView1->Font);
-        int rightWidth = (int)rightTextSize.Width;
+        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + 4);
         Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
         Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
 
