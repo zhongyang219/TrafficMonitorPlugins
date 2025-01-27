@@ -15,8 +15,20 @@ namespace HardwareMonitor
         //“移除”按钮初始为禁用状态
         removeSelectBtn->Enabled = false;
 
+        //初始化要监控的硬件选项
+        Computer^ computer = MonitorGlobal::Instance()->computer;
+        cpuCheck->Checked = computer->IsCpuEnabled;
+        gpuCheck->Checked = computer->IsGpuEnabled;
+        motherBoardCheck->Checked = computer->IsMotherboardEnabled;
+        storageCheck->Checked = computer->IsStorageEnabled;
+        batteryCheck->Checked = computer->IsBatteryEnabled;
+        networkCheck->Checked = computer->IsNetworkEnabled;
+
         // 为ListBox的SelectedIndexChanged事件添加处理程序
         monitorItemListBox->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::listBox_SelectedIndexChanged);
+
+        // 为FormClosing事件添加处理程序
+        this->FormClosing += gcnew FormClosingEventHandler(this, &SettingsForm::OnFormClosing);
     }
 
     void SettingsForm::UpdateItemList()
@@ -37,6 +49,21 @@ namespace HardwareMonitor
     {
         // 根据是否有选中项启用或禁用按钮
         removeSelectBtn->Enabled = monitorItemListBox->SelectedIndex >= 0;
+    }
+
+    void SettingsForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
+    {
+        //更新要监控的硬件设置
+        Computer^ computer = MonitorGlobal::Instance()->computer;
+        computer->IsCpuEnabled = cpuCheck->Checked;
+        computer->IsGpuEnabled = gpuCheck->Checked;
+        computer->IsMotherboardEnabled = storageCheck->Checked;
+        computer->IsStorageEnabled = storageCheck->Checked;
+        computer->IsBatteryEnabled = batteryCheck->Checked;
+        computer->IsNetworkEnabled = networkCheck->Checked;
+
+        //保存设置
+        CHardwareMonitor::GetInstance()->SaveConfig();
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)

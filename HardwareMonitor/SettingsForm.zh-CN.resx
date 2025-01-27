@@ -118,17 +118,23 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="monitorItemListBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>9, 148</value>
+  </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>260, 224</value>
+    <value>284, 204</value>
   </data>
   <data name="removeSelectBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>280, 36</value>
+    <value>304, 148</value>
   </data>
   <data name="removeSelectBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
   </data>
   <data name="removeSelectBtn.Text" xml:space="preserve">
     <value>移除选中项</value>
+  </data>
+  <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>9, 118</value>
   </data>
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
     <value>114, 20</value>
@@ -137,13 +143,13 @@
     <value>已添加监控项：</value>
   </data>
   <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>329, 286</value>
+    <value>353, 355</value>
   </data>
   <data name="cancelBtn.Text" xml:space="preserve">
     <value>关闭</value>
   </data>
   <data name="addItemBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>280, 75</value>
+    <value>304, 187</value>
   </data>
   <data name="addItemBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
@@ -151,8 +157,50 @@
   <data name="addItemBtn.Text" xml:space="preserve">
     <value>添加监控项</value>
   </data>
+  <data name="networkCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>73, 56</value>
+  </data>
+  <data name="networkCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="networkCheck.Text" xml:space="preserve">
+    <value>网络</value>
+  </data>
+  <data name="batteryCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="batteryCheck.Text" xml:space="preserve">
+    <value>电池</value>
+  </data>
+  <data name="storageCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>208, 26</value>
+  </data>
+  <data name="storageCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="storageCheck.Text" xml:space="preserve">
+    <value>硬盘</value>
+  </data>
+  <data name="motherBoardCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="motherBoardCheck.Text" xml:space="preserve">
+    <value>主板</value>
+  </data>
+  <data name="gpuCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="gpuCheck.Text" xml:space="preserve">
+    <value>显卡</value>
+  </data>
+  <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>415, 93</value>
+  </data>
+  <data name="groupBox1.Text" xml:space="preserve">
+    <value>选择要监控的硬件</value>
+  </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>416, 327</value>
+    <value>440, 396</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>硬件监控插件设置</value>

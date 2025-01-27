@@ -34,11 +34,19 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::Button^ removeSelectBtn;
     private: System::Windows::Forms::Label^ label1;
     private: System::Windows::Forms::Button^ cancelBtn;
+    private: System::Windows::Forms::GroupBox^ groupBox1;
+    private: System::Windows::Forms::CheckBox^ gpuCheck;
+    private: System::Windows::Forms::CheckBox^ cpuCheck;
+    private: System::Windows::Forms::CheckBox^ networkCheck;
+    private: System::Windows::Forms::CheckBox^ batteryCheck;
+    private: System::Windows::Forms::CheckBox^ storageCheck;
+    private: System::Windows::Forms::CheckBox^ motherBoardCheck;
     private: System::Windows::Forms::Button^ addItemBtn;
 
 
     protected:
         void listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
+        void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
 
 	private:
 		/// <summary>
@@ -59,6 +67,14 @@ namespace HardwareMonitor {
             this->label1 = (gcnew System::Windows::Forms::Label());
             this->cancelBtn = (gcnew System::Windows::Forms::Button());
             this->addItemBtn = (gcnew System::Windows::Forms::Button());
+            this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+            this->networkCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->batteryCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->storageCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->motherBoardCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->gpuCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->cpuCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->groupBox1->SuspendLayout();
             this->SuspendLayout();
             // 
             // monitorItemListBox
@@ -93,16 +109,67 @@ namespace HardwareMonitor {
             this->addItemBtn->UseVisualStyleBackColor = true;
             this->addItemBtn->Click += gcnew System::EventHandler(this, &SettingsForm::addItemBtn_Click);
             // 
+            // groupBox1
+            // 
+            resources->ApplyResources(this->groupBox1, L"groupBox1");
+            this->groupBox1->Controls->Add(this->networkCheck);
+            this->groupBox1->Controls->Add(this->batteryCheck);
+            this->groupBox1->Controls->Add(this->storageCheck);
+            this->groupBox1->Controls->Add(this->motherBoardCheck);
+            this->groupBox1->Controls->Add(this->gpuCheck);
+            this->groupBox1->Controls->Add(this->cpuCheck);
+            this->groupBox1->Name = L"groupBox1";
+            this->groupBox1->TabStop = false;
+            // 
+            // networkCheck
+            // 
+            resources->ApplyResources(this->networkCheck, L"networkCheck");
+            this->networkCheck->Name = L"networkCheck";
+            this->networkCheck->UseVisualStyleBackColor = true;
+            // 
+            // batteryCheck
+            // 
+            resources->ApplyResources(this->batteryCheck, L"batteryCheck");
+            this->batteryCheck->Name = L"batteryCheck";
+            this->batteryCheck->UseVisualStyleBackColor = true;
+            // 
+            // storageCheck
+            // 
+            resources->ApplyResources(this->storageCheck, L"storageCheck");
+            this->storageCheck->Name = L"storageCheck";
+            this->storageCheck->UseVisualStyleBackColor = true;
+            // 
+            // motherBoardCheck
+            // 
+            resources->ApplyResources(this->motherBoardCheck, L"motherBoardCheck");
+            this->motherBoardCheck->Name = L"motherBoardCheck";
+            this->motherBoardCheck->UseVisualStyleBackColor = true;
+            // 
+            // gpuCheck
+            // 
+            resources->ApplyResources(this->gpuCheck, L"gpuCheck");
+            this->gpuCheck->Name = L"gpuCheck";
+            this->gpuCheck->UseVisualStyleBackColor = true;
+            // 
+            // cpuCheck
+            // 
+            resources->ApplyResources(this->cpuCheck, L"cpuCheck");
+            this->cpuCheck->Name = L"cpuCheck";
+            this->cpuCheck->UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+            this->Controls->Add(this->groupBox1);
             this->Controls->Add(this->cancelBtn);
             this->Controls->Add(this->label1);
             this->Controls->Add(this->addItemBtn);
             this->Controls->Add(this->removeSelectBtn);
             this->Controls->Add(this->monitorItemListBox);
             this->Name = L"SettingsForm";
+            this->groupBox1->ResumeLayout(false);
+            this->groupBox1->PerformLayout();
             this->ResumeLayout(false);
             this->PerformLayout();
 

@@ -120,6 +120,15 @@ namespace HardwareMonitor
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
+
+        //载入要监控的硬件
+        Computer^ computer = MonitorGlobal::Instance()->computer;
+        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);
+        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);
+        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);
+        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);
+        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);
+        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -135,6 +144,16 @@ namespace HardwareMonitor
             index++;
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
+
+        //保存要监控的硬件
+        Computer^ computer = MonitorGlobal::Instance()->computer;
+        ini.WriteBool(L"hardware", L"IsCpuEnabled", computer->IsCpuEnabled);
+        ini.WriteBool(L"hardware", L"IsGpuEnabled", computer->IsGpuEnabled);
+        ini.WriteBool(L"hardware", L"IsMotherboardEnabled", computer->IsMotherboardEnabled);
+        ini.WriteBool(L"hardware", L"IsStorageEnabled", computer->IsStorageEnabled);
+        ini.WriteBool(L"hardware", L"IsBatteryEnabled", computer->IsBatteryEnabled);
+        ini.WriteBool(L"hardware", L"IsNetworkEnabled", computer->IsNetworkEnabled);
+
         ini.Save();
     }
 
@@ -250,10 +269,6 @@ namespace HardwareMonitor
         updateVisitor = gcnew UpdateVisitor();
         computer = gcnew Computer();
         computer->Open();
-        computer->IsCpuEnabled = true;
-        computer->IsGpuEnabled = true;
-        computer->IsMotherboardEnabled = true;
-        computer->IsStorageEnabled = true;
 
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
         app_icon = dynamic_cast<Icon^>(resourceManager->GetObject("logo"));

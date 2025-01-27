@@ -42,10 +42,12 @@ namespace HardwareMonitor
 
     const wchar_t* CHardwareMonitorItem::GetItemValueSampleText() const
     {
+        static std::wstring sample_text;
         if (item_value.empty())
-            return L"99.99 °„C";
+            sample_text = L"99.99 °„C";
         else
-            return item_value.c_str();
+            sample_text = item_value + L' ';
+        return sample_text.c_str();
     }
 
     void CHardwareMonitorItem::UpdateValue()
