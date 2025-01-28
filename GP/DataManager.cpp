@@ -117,11 +117,11 @@ HICON CDataManager::GetIcon(UINT id)
     }
 }
 
-std::wstring GupiaoInfo::ToString() const
+CString GupiaoInfo::ToString() const
 {
-    std::wstringstream wss;
-    wss << p << ' ' << pc;
-    return wss.str();
+    if (g_data.m_setting_data.show_space)
+        return p + L" ¥ " + pc + L" %";
+    return p + L"¥ " + pc + L"%";
 }
 
 GupiaoInfo& CDataManager::GetGPInfo(CString key)

@@ -32,7 +32,7 @@
 #define IDS_MAY                         126
 #define IDS_JUN                         127
 #define IDS_JUL                         128
-#define IDS_AUT                         129
+#define IDS_AUG                         129
 #define IDS_SEP                         130
 #define IDS_OCT                         131
 #define IDS_NOV                         132
