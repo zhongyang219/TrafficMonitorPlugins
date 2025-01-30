@@ -134,7 +134,7 @@ namespace HardwareMonitor
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
-        m_settings.show_mouse_tooltip = ini.GetBool(L"config", L"show_mouse_tooltip");
+        m_settings.show_mouse_tooltip = ini.GetBool(L"config", L"show_mouse_tooltip", true);
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -222,8 +222,11 @@ namespace HardwareMonitor
         {
             static std::wstring tooltip_info;
             tooltip_info.clear();
-            for (const auto& item : m_items)
+            for (size_t i{}; i < m_items.size(); i++)
             {
+                const auto& item = m_items[i];
+                if (i > 0)
+                    tooltip_info += L"\r\n";
                 tooltip_info += item.GetItemName();
                 tooltip_info += L": ";
                 tooltip_info += item.GetItemValueText();
