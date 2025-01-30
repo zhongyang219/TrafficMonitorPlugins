@@ -24,6 +24,8 @@ namespace HardwareMonitor
         batteryCheck->Checked = computer->IsBatteryEnabled;
         networkCheck->Checked = computer->IsNetworkEnabled;
 
+        showTooltipCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip;
+
         // 为ListBox的SelectedIndexChanged事件添加处理程序
         monitorItemListBox->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::listBox_SelectedIndexChanged);
 
@@ -61,6 +63,8 @@ namespace HardwareMonitor
         computer->IsStorageEnabled = storageCheck->Checked;
         computer->IsBatteryEnabled = batteryCheck->Checked;
         computer->IsNetworkEnabled = networkCheck->Checked;
+
+        CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;
 
         //保存设置
         CHardwareMonitor::GetInstance()->SaveConfig();

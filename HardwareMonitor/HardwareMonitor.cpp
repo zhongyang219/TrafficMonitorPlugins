@@ -130,6 +130,7 @@ namespace HardwareMonitor
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
+        m_settings.show_mouse_tooltip = ini.GetBool(L"config", L"show_mouse_tooltip");
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -155,6 +156,7 @@ namespace HardwareMonitor
             index++;
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
+        ini.WriteBool(L"config", L"show_mouse_tooltip", m_settings.show_mouse_tooltip);
 
         ini.Save();
     }
@@ -204,6 +206,26 @@ namespace HardwareMonitor
             break;
         }
         return L"";
+    }
+
+    const wchar_t* CHardwareMonitor::GetTooltipInfo()
+    {
+        if (m_settings.show_mouse_tooltip)
+        {
+            static std::wstring tooltip_info;
+            tooltip_info.clear();
+            for (const auto& item : m_items)
+            {
+                tooltip_info += item.GetItemName();
+                tooltip_info += L": ";
+                tooltip_info += item.GetItemValueText();
+            }
+            return tooltip_info.c_str();
+        }
+        else
+        {
+            return L"";
+        }
     }
 
     ITMPlugin::OptionReturn CHardwareMonitor::ShowOptionsDialog(void* hParent)

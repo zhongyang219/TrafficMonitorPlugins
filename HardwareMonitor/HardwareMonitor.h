@@ -19,6 +19,7 @@ namespace HardwareMonitor
     {
         std::vector<std::wstring> item_identifyers;     //所有监控项目
         bool hardware_info_auto_refresh{};              //监控信息界面是否自动刷新
+        bool show_mouse_tooltip{};
     };
 
     public class CHardwareMonitor : public ITMPlugin
@@ -60,6 +61,7 @@ namespace HardwareMonitor
         IPluginItem* GetItem(int index) override;
         void DataRequired() override;
         const wchar_t* GetInfo(PluginInfoIndex index) override;
+        virtual const wchar_t* GetTooltipInfo() override;
         virtual OptionReturn ShowOptionsDialog(void* hParent) override;
         virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
         virtual void* GetPluginIcon() override;
