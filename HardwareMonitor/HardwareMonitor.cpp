@@ -341,6 +341,11 @@ namespace HardwareMonitor
         return app_icon;
     }
 
+    Resources::ResourceManager^ MonitorGlobal::GetResourceManager()
+    {
+        return resourceManager;
+    }
+
     void MonitorGlobal::ShowHardwareInfoDialog()
     {
         HardwareInfoForm^ form = gcnew HardwareInfoForm();

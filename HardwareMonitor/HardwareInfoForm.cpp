@@ -6,6 +6,11 @@
 
 namespace HardwareMonitor
 {
+    static int DPI(int pixel, Graphics^ graphics)
+    {
+        float dpi = graphics->DpiX;
+        return pixel * dpi / 96;
+    }
 
     HardwareInfoForm::HardwareInfoForm(void)
     {
@@ -22,6 +27,19 @@ namespace HardwareMonitor
             //添加Hardware节点
             auto hardware = computer->Hardware[i];
             auto hardware_node = treeView1->Nodes->Add(hardware->Name);
+            switch (hardware->HardwareType)
+            {
+            case HardwareType::Motherboard: hardware_node->ImageIndex = 0; break;
+            case HardwareType::Battery: hardware_node->ImageIndex = 1; break;
+            case HardwareType::Cpu: hardware_node->ImageIndex = 2; break;
+            case HardwareType::EmbeddedController: hardware_node->ImageIndex = 3; break;
+            case HardwareType::Network: hardware_node->ImageIndex = 4; break;
+            case HardwareType::Memory: hardware_node->ImageIndex = 5; break;
+            case HardwareType::Storage: hardware_node->ImageIndex = 6; break;
+            case HardwareType::GpuAmd: hardware_node->ImageIndex = 7; break;
+            case HardwareType::GpuIntel: hardware_node->ImageIndex = 8; break;
+            case HardwareType::GpuNvidia: hardware_node->ImageIndex = 9; break;
+            }
             //添加Sensor节点
             typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
             TypeNodeMap sensor_type_nodes;       //保存所有Sensor类型的节点
@@ -36,6 +54,7 @@ namespace HardwareMonitor
                     //创建类型节点，并保存到map中
                     type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
                     sensor_type_nodes.insert(TypeNodeMap::make_value(sensor->SensorType, type_node));
+
                 }
                 else
                 {
@@ -82,6 +101,26 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::InitUserComponent()
     {
+        // 初始化 ImageList
+        imageList1 = gcnew ImageList();
+        Graphics^ graphics = CreateGraphics();
+        int icon_size = DPI(16, graphics);
+        imageList1->ImageSize = System::Drawing::Size(icon_size, icon_size); // 设置图标大小
+
+        // 添加图标到 ImageList
+        Resources::ResourceManager^ resourceManager = MonitorGlobal::Instance()->GetResourceManager();
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("MotherBoard")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("batteries")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("CPU")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("FanColtroller")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Network")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("RAM")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Storage")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("AMD")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("intel")));
+        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Nvidia")));
+
+        // 初始化 ContextMenuStrip
         contextMenuStrip = gcnew System::Windows::Forms::ContextMenuStrip();
 
         // 添加菜单项
@@ -167,6 +206,17 @@ namespace HardwareMonitor
                 textColor = SystemColors::Highlight;
             else
                 textColor = treeView1->ForeColor;
+        }
+
+        // 为根节点绘制图标
+        if (e->Node->ImageIndex != -1 && e->Node->Parent == nullptr)
+        {
+            Point start_pos = bounds.Location;
+            int offset = (bounds.Height - imageList1->ImageSize.Width) / 2;
+            start_pos.Offset(offset, offset);
+            imageList1->Draw(e->Graphics, start_pos, e->Node->ImageIndex);
+            bounds.Offset(bounds.Height, 0);
+            bounds.Width -= bounds.Height;
         }
 
         // 获取节点的文本

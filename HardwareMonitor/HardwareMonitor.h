@@ -91,6 +91,7 @@ namespace HardwareMonitor
         String^ GetString(const wchar_t* name);
         std::wstring GetStdWString(const wchar_t* name);
         Icon^ GetAppIcon();
+        Resources::ResourceManager^ GetResourceManager();
 
         void ShowHardwareInfoDialog();
 
