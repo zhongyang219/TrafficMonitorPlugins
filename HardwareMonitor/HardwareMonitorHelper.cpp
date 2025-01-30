@@ -80,12 +80,13 @@ namespace HardwareMonitor
         return nullptr;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor)
+    System::String^ HardwareMonitorHelper::GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, int decimal_place)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
         {
-            sensor_str += sensor->Value.Value.ToString("F2");
+            String^ formatString = String::Format("F{0}", decimal_place);
+            sensor_str += sensor->Value.Value.ToString(formatString);
         }
         else
         {

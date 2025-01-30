@@ -54,7 +54,7 @@ namespace HardwareMonitor
             //检查监控项目是否存在
             if (!IsDisplayItemExist(identifyer))
             {
-                m_settings.item_identifyers.push_back(identifyer);
+                m_settings.items_info.push_back(identifyer);
                 return true;
             }
         }
@@ -63,9 +63,9 @@ namespace HardwareMonitor
 
     bool CHardwareMonitor::IsDisplayItemExist(const std::wstring& identifyer)
     {
-        for (const auto& item : m_settings.item_identifyers)
+        for (const auto& item : m_settings.items_info)
         {
-            if (item == identifyer)
+            if (item.identifyer == identifyer)
                 return true;
         }
         return false;
@@ -73,10 +73,10 @@ namespace HardwareMonitor
 
     bool CHardwareMonitor::RemoveDisplayItem(int index)
     {
-        if (index >= 0 && index < static_cast<int>(m_settings.item_identifyers.size()))
+        if (index >= 0 && index < static_cast<int>(m_settings.items_info.size()))
         {
-            auto iter = m_settings.item_identifyers.begin() + index;
-            m_settings.item_identifyers.erase(iter);
+            auto iter = m_settings.items_info.begin() + index;
+            m_settings.items_info.erase(iter);
             return true;
         }
         return false;
@@ -120,7 +120,8 @@ namespace HardwareMonitor
         {
             std::wstring app_name = L"item" + std::to_wstring(i);
             std::wstring identifyer = ini.GetString(app_name.c_str(), L"identifier");
-            m_settings.item_identifyers.push_back(identifyer);
+            int decimal_places = ini.GetInt(app_name.c_str(), L"decimal_places", 2);
+            m_settings.items_info.emplace_back(identifyer, decimal_places);
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifyer.c_str()));
             if (sensor != nullptr)
             {
@@ -147,12 +148,13 @@ namespace HardwareMonitor
         ini.WriteBool(L"hardware", L"IsNetworkEnabled", computer->IsNetworkEnabled);
 
         //保存监控的项目
-        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.item_identifyers.size()));
+        ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.items_info.size()));
         int index = 0;
-        for (const auto& item : m_settings.item_identifyers)
+        for (const auto& item : m_settings.items_info)
         {
             std::wstring app_name = L"item" + std::to_wstring(index);
-            ini.WriteString(app_name.c_str(), L"identifier", item.c_str());
+            ini.WriteString(app_name.c_str(), L"identifier", item.identifyer.c_str());
+            ini.WriteInt(app_name.c_str(), L"decimal_places", item.decimal_places);
             index++;
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);

@@ -43,11 +43,15 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::CheckBox^ motherBoardCheck;
     private: System::Windows::Forms::Label^ label2;
     private: System::Windows::Forms::CheckBox^ showTooltipCheck;
+    private: System::Windows::Forms::Label^ label3;
+    private: System::Windows::Forms::ComboBox^ decimalPlaceCombo;
+
     private: System::Windows::Forms::Button^ addItemBtn;
 
 
     protected:
         void listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
+        void OnDecimalPlaceComboBoxSelectedIndexChanged(Object^ sender, EventArgs^ e);
         void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
 
 	private:
@@ -78,6 +82,8 @@ namespace HardwareMonitor {
             this->cpuCheck = (gcnew System::Windows::Forms::CheckBox());
             this->label2 = (gcnew System::Windows::Forms::Label());
             this->showTooltipCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->label3 = (gcnew System::Windows::Forms::Label());
+            this->decimalPlaceCombo = (gcnew System::Windows::Forms::ComboBox());
             this->groupBox1->SuspendLayout();
             this->SuspendLayout();
             // 
@@ -172,10 +178,23 @@ namespace HardwareMonitor {
             this->showTooltipCheck->Name = L"showTooltipCheck";
             this->showTooltipCheck->UseVisualStyleBackColor = true;
             // 
+            // label3
+            // 
+            resources->ApplyResources(this->label3, L"label3");
+            this->label3->Name = L"label3";
+            // 
+            // decimalPlaceCombo
+            // 
+            resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
+            this->decimalPlaceCombo->FormattingEnabled = true;
+            this->decimalPlaceCombo->Name = L"decimalPlaceCombo";
+            // 
             // SettingsForm
             // 
             resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+            this->Controls->Add(this->decimalPlaceCombo);
+            this->Controls->Add(this->label3);
             this->Controls->Add(this->showTooltipCheck);
             this->Controls->Add(this->label2);
             this->Controls->Add(this->groupBox1);

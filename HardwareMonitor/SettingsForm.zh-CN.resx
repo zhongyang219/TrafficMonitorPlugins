@@ -229,6 +229,18 @@
   <data name="showTooltipCheck.Text" xml:space="preserve">
     <value>显示鼠标提示</value>
   </data>
+  <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
+    <value>308, 294</value>
+  </data>
+  <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
+    <value>84, 20</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>小数位数：</value>
+  </data>
+  <data name="decimalPlaceCombo.Location" type="System.Drawing.Point, System.Drawing">
+    <value>308, 317</value>
+  </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>440, 474</value>
   </data>

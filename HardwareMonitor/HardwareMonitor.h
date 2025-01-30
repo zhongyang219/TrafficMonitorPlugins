@@ -9,19 +9,13 @@
 #include "HardwareMonitorItem.h"
 #include <vector>
 #include <map>
+#include "CommonData.h"
 
 using namespace System;
 using namespace LibreHardwareMonitor::Hardware;
 
 namespace HardwareMonitor
 {
-    struct OptionSettings
-    {
-        std::vector<std::wstring> item_identifyers;     //所有监控项目
-        bool hardware_info_auto_refresh{};              //监控信息界面是否自动刷新
-        bool show_mouse_tooltip{};
-    };
-
     public class CHardwareMonitor : public ITMPlugin
 	{
     private:

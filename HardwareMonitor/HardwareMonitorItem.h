@@ -1,6 +1,7 @@
 #pragma once
 #include "PluginInterface.h"
 #include <string>
+#include "CommonData.h"
 
 namespace HardwareMonitor
 {

@@ -25,6 +25,9 @@
     <Filter Include="Forms">
       <UniqueIdentifier>{b24c6d18-c318-4142-86a3-30dfa80a75f1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CommonData">
+      <UniqueIdentifier>{8cc6edd5-00d8-4ec3-a1e7-e4f8e2e532ef}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Stdafx.h">
@@ -51,6 +54,9 @@
     <ClInclude Include="SettingsForm.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CommonData.h">
+      <Filter>CommonData</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Stdafx.cpp">
@@ -73,6 +79,9 @@
     </ClCompile>
     <ClCompile Include="SettingsForm.cpp">
       <Filter>Forms</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonData.cpp">
+      <Filter>CommonData</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

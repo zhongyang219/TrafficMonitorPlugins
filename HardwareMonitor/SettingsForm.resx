@@ -127,8 +127,8 @@
   <data name="&gt;&gt;label2.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>4</value>
+  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="removeSelectBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
@@ -136,6 +136,9 @@
   </data>
   <data name="removeSelectBtn.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>3, 4, 3, 4</value>
+  </data>
+  <data name="&gt;&gt;decimalPlaceCombo.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="networkCheck.Size" type="System.Drawing.Size, System.Drawing">
@@ -161,6 +164,9 @@
   </data>
   <data name="cancelBtn.Text" xml:space="preserve">
     <value>Close</value>
+  </data>
+  <data name="&gt;&gt;decimalPlaceCombo.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <data name="networkCheck.Location" type="System.Drawing.Point, System.Drawing">
     <value>100, 56</value>
@@ -207,6 +213,9 @@
   <data name="cpuCheck.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
   </data>
+  <data name="groupBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
   <data name="showTooltipCheck.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -225,6 +234,9 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Monitoring items have been added:</value>
   </data>
+  <data name="&gt;&gt;gpuCheck.Name" xml:space="preserve">
+    <value>gpuCheck</value>
+  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>SettingsForm</value>
   </data>
@@ -237,14 +249,20 @@
   <data name="networkCheck.Text" xml:space="preserve">
     <value>Network</value>
   </data>
+  <data name="&gt;&gt;cancelBtn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;decimalPlaceCombo.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="cpuCheck.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="&gt;&gt;groupBox1.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>4</value>
   </data>
   <data name="&gt;&gt;showTooltipCheck.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>2</value>
   </data>
   <data name="removeSelectBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>192, 31</value>
@@ -252,8 +270,8 @@
   <data name="storageCheck.Location" type="System.Drawing.Point, System.Drawing">
     <value>282, 26</value>
   </data>
-  <data name="&gt;&gt;gpuCheck.Name" xml:space="preserve">
-    <value>gpuCheck</value>
+  <data name="label3.Text" xml:space="preserve">
+    <value>number of decimal places:</value>
   </data>
   <data name="motherBoardCheck.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -270,8 +288,11 @@
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
     <value>270, 20</value>
   </data>
-  <data name="&gt;&gt;cancelBtn.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label3.Name" xml:space="preserve">
+    <value>label3</value>
   </data>
   <data name="&gt;&gt;label2.Name" xml:space="preserve">
     <value>label2</value>
@@ -288,7 +309,7 @@
   <data name="&gt;&gt;addItemBtn.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="gpuCheck.AutoSize" type="System.Boolean, mscorlib">
+  <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="&gt;&gt;groupBox1.Parent" xml:space="preserve">
@@ -300,6 +321,9 @@
   <data name="&gt;&gt;networkCheck.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
+  <data name="label3.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
   <data name="&gt;&gt;gpuCheck.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -310,7 +334,7 @@
     <value>Top, Right</value>
   </data>
   <data name="&gt;&gt;addItemBtn.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>7</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>微软雅黑, 9pt</value>
@@ -323,6 +347,9 @@
   </data>
   <data name="&gt;&gt;label2.Parent" xml:space="preserve">
     <value>$this</value>
+  </data>
+  <data name="decimalPlaceCombo.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
   </data>
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
     <value>9, 20</value>
@@ -354,11 +381,17 @@
   <data name="batteryCheck.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
+  <data name="decimalPlaceCombo.Location" type="System.Drawing.Point, System.Drawing">
+    <value>295, 317</value>
+  </data>
+  <data name="&gt;&gt;decimalPlaceCombo.Name" xml:space="preserve">
+    <value>decimalPlaceCombo</value>
+  </data>
   <data name="addItemBtn.Text" xml:space="preserve">
     <value>Add monitoring items</value>
   </data>
   <data name="&gt;&gt;removeSelectBtn.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>8</value>
   </data>
   <data name="groupBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>13, 13</value>
@@ -371,6 +404,9 @@
   </data>
   <data name="gpuCheck.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
+  </data>
+  <data name="decimalPlaceCombo.Size" type="System.Drawing.Size, System.Drawing">
+    <value>60, 28</value>
   </data>
   <data name="label1.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -387,8 +423,8 @@
   <data name="&gt;&gt;showTooltipCheck.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="groupBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
+  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
+    <value>6</value>
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>469, 93</value>
@@ -406,7 +442,10 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;cancelBtn.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>5</value>
+  </data>
+  <data name="gpuCheck.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>394, 53</value>
@@ -444,8 +483,14 @@
   <data name="cancelBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 29</value>
   </data>
+  <data name="&gt;&gt;label3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="batteryCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>83, 24</value>
+  </data>
+  <data name="decimalPlaceCombo.TabIndex" type="System.Int32, mscorlib">
+    <value>8</value>
   </data>
   <data name="&gt;&gt;networkCheck.Type" xml:space="preserve">
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -458,6 +503,9 @@
   </data>
   <data name="showTooltipCheck.Text" xml:space="preserve">
     <value>Show mouse tool tip</value>
+  </data>
+  <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
+    <value>291, 294</value>
   </data>
   <data name="&gt;&gt;removeSelectBtn.Name" xml:space="preserve">
     <value>removeSelectBtn</value>
@@ -481,13 +529,13 @@
     <value>NoControl</value>
   </data>
   <data name="&gt;&gt;monitorItemListBox.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>9</value>
   </data>
   <data name="&gt;&gt;cpuCheck.Name" xml:space="preserve">
     <value>cpuCheck</value>
   </data>
-  <data name="&gt;&gt;storageCheck.ZOrder" xml:space="preserve">
-    <value>2</value>
+  <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
+    <value>200, 20</value>
   </data>
   <data name="showTooltipCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>182, 24</value>
@@ -505,13 +553,16 @@
     <value>409, 463</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>3</value>
   </data>
   <data name="&gt;&gt;showTooltipCheck.Name" xml:space="preserve">
     <value>showTooltipCheck</value>
   </data>
   <data name="&gt;&gt;batteryCheck.Parent" xml:space="preserve">
     <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;storageCheck.ZOrder" xml:space="preserve">
+    <value>2</value>
   </data>
   <data name="networkCheck.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -530,6 +581,9 @@
   </data>
   <data name="addItemBtn.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
+  </data>
+  <data name="label3.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
   </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>272, 244</value>
@@ -551,8 +605,5 @@
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
-  </metadata>
-  <metadata name="$this.Language" type="System.Globalization.CultureInfo, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>zh-CN</value>
   </metadata>
 </root>

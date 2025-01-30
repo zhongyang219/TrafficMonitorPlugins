@@ -65,7 +65,8 @@ namespace HardwareMonitor
         ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
         if (sensor != nullptr)
         {
-            item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor));
+            const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
+            item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, item_info.decimal_places));
             item_value_num = sensor->Value.Value;
             sensor_type = static_cast<int>(sensor->SensorType);
         }

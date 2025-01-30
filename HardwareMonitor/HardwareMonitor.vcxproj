@@ -149,6 +149,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CommonData.h" />
     <ClInclude Include="HardwareMonitorHelper.h" />
     <ClInclude Include="HardwareInfoForm.h">
       <FileType>CppForm</FileType>
@@ -163,6 +164,7 @@
     <ClInclude Include="UpdateVisitor.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CommonData.cpp" />
     <ClCompile Include="HardwareMonitorHelper.cpp" />
     <ClCompile Include="HardwareInfoForm.cpp" />
     <ClCompile Include="HardwareMonitor.cpp" />
