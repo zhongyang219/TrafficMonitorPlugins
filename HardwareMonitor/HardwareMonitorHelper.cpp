@@ -85,8 +85,11 @@ namespace HardwareMonitor
         String^ sensor_str;
         if (sensor->Value.HasValue)
         {
+            float value = sensor->Value.Value;
+            if (sensor->SensorType == SensorType::Throughput)   //网速除以1000转换为KB
+                value /= 1000.0;
             String^ formatString = String::Format("F{0}", decimal_place);
-            sensor_str += sensor->Value.Value.ToString(formatString);
+            sensor_str += value.ToString(formatString);
         }
         else
         {
