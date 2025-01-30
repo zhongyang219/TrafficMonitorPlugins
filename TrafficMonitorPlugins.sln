@@ -12,7 +12,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Battery", "Battery\Battery.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginTemplate", "PluginTemplate\PluginTemplate.vcxproj", "{1C2173CA-593F-45D3-9725-B3FEC66F2D46}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GP", "GP\GP.vcxproj", "{3C3BA2AD-1053-4283-8805-5D392E3E7D38}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stock", "Stock\Stock.vcxproj", "{3C3BA2AD-1053-4283-8805-5D392E3E7D38}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection

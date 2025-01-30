@@ -15,7 +15,7 @@ public:
     static void RemoveTypeFromCode(CString& code);      //从股票代码中移除类型
     static CString GetCodeType(const CString& code);    //获取股票代码的类型
 
-    CString m_gp_code;
+    CString m_Stock_code;
 
     // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -30,10 +30,10 @@ protected:
 
     DECLARE_MESSAGE_MAP()
 public:
-    int m_radio_gp_types;
+    int m_radio_Stock_types;
     virtual BOOL OnInitDialog();
     afx_msg void OnChangeCodeEdit();
     afx_msg void OnBnClickedOk();
     afx_msg void OnBnClickedCancel();
-    afx_msg void OnRadioClickedGpTypes();
+    afx_msg void OnRadioClickedStockTypes();
 };

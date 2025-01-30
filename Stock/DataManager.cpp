@@ -41,14 +41,14 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
     m_config_dir = config_dir;
-    m_config_path = config_dir + L"GP.ini";
-    m_log_path = config_dir + L"GP.log";
+    m_config_path = config_dir + L"Stock.ini";
+    m_log_path = config_dir + L"Stock.log";
 
     //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
     CString codeStr{};
-    ::GetPrivateProfileString(L"config", L"gp_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
+    ::GetPrivateProfileString(L"config", L"Stock_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
     m_setting_data.setupByCodeStr(codeStr);
-    //Log2("LoadConfig: %s -> %d\n", m_setting_data.m_all_gp_code_str, m_setting_data.m_gp_codes.size());
+    //Log2("LoadConfig: %s -> %d\n", m_setting_data.m_all_Stock_code_str, m_setting_data.m_Stock_codes.size());
     //::GetPrivateProfileString(L"config", L"licence", L"", m_setting_data.m_licence.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
     m_setting_data.m_full_day = (GetPrivateProfileInt(L"config", L"full_day", 1, m_config_path.c_str()) != 0);
 }
@@ -58,7 +58,7 @@ void CDataManager::SaveConfig()
     if (!m_config_path.empty())
     {
         m_setting_data.updateAllCodeStr();
-        ::WritePrivateProfileString(L"config", L"gp_code", m_setting_data.m_all_gp_code_str, m_config_path.c_str());
+        ::WritePrivateProfileString(L"config", L"Stock_code", m_setting_data.m_all_Stock_code_str, m_config_path.c_str());
         //::WritePrivateProfileString(L"config", L"licence", m_setting_data.m_licence, m_config_path.c_str());
         ::WritePrivateProfileInt(L"config", L"full_day", m_setting_data.m_full_day, m_config_path.c_str());
     }
@@ -124,21 +124,21 @@ std::wstring GupiaoInfo::ToString() const
     return wss.str();
 }
 
-GupiaoInfo& CDataManager::GetGPInfo(CString key)
+GupiaoInfo& CDataManager::GetStockInfo(CString key)
 {
     return m_gupiao_info_map[key];
 }
 
 void SettingData::updateAllCodeStr()
 {
-    if (m_gp_codes.empty())
+    if (m_Stock_codes.empty())
     {
-        m_all_gp_code_str.ReleaseBuffer();
-        int len = m_all_gp_code_str.GetLength();
-        m_all_gp_code_str.Delete(0, len);
+        m_all_Stock_code_str.ReleaseBuffer();
+        int len = m_all_Stock_code_str.GetLength();
+        m_all_Stock_code_str.Delete(0, len);
         return;
     }
-    m_all_gp_code_str = CCommon::vectorJoinString(m_gp_codes, ",");
+    m_all_Stock_code_str = CCommon::vectorJoinString(m_Stock_codes, ",");
 }
 
 void SettingData::setupByCodeStr(CString codeStr)
@@ -146,11 +146,11 @@ void SettingData::setupByCodeStr(CString codeStr)
     vector<string> codes = CCommon::split(CCommon::UnicodeToStr(codeStr), ',');
     if (codes.size() > 0)
     {
-        m_all_gp_code_str = codeStr;
-        m_gp_codes.clear();
+        m_all_Stock_code_str = codeStr;
+        m_Stock_codes.clear();
         for (string item : codes)
         {
-            m_gp_codes.push_back(item.c_str());
+            m_Stock_codes.push_back(item.c_str());
         }
     }
 }

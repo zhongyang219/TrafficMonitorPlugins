@@ -8,15 +8,15 @@
 
 struct SettingData
 {
-    CString m_all_gp_code_str{};
-    vector<CString> m_gp_codes; // 代码
+    CString m_all_Stock_code_str{};
+    vector<CString> m_Stock_codes; // 代码
     bool m_full_day{}; // 全天更新
 
     void setupByCodeStr(CString codeStr);
     void updateAllCodeStr();
 };
 
-// GP显示数据
+// Stock显示数据
 struct GupiaoInfo
 {
     std::wstring pc = L"--%";
@@ -46,7 +46,7 @@ public:
     void ResetText();
     SettingData m_setting_data;
 
-    GupiaoInfo& GetGPInfo(CString key);
+    GupiaoInfo& GetStockInfo(CString key);
 
     std::map<CString, GupiaoInfo> m_gupiao_info_map;
 

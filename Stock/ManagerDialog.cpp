@@ -2,7 +2,7 @@
 //
 
 #include "pch.h"
-#include "GP.h"
+#include "Stock.h"
 #include "afxdialogex.h"
 #include "ManagerDialog.h"
 #include "Common.h"
@@ -25,7 +25,7 @@ CManagerDialog::~CManagerDialog()
 void CManagerDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_MGR_LIST, m_gp_listbox);
+	DDX_Control(pDX, IDC_MGR_LIST, m_Stock_listbox);
 }
 
 
@@ -46,14 +46,14 @@ BOOL CManagerDialog::OnInitDialog()
 {
     CDialog::OnInitDialog();
 
-    for (CString gpCode : m_data.m_gp_codes)
+    for (CString StockCode : m_data.m_Stock_codes)
     {
-        m_gp_listbox.AddString(gpCode);
+        m_Stock_listbox.AddString(StockCode);
     }
 
-    for (int i = 0; i < m_gp_listbox.GetCount(); i++)
+    for (int i = 0; i < m_Stock_listbox.GetCount(); i++)
     {
-        m_gp_listbox.SetItemHeight(i, g_data.DPI(22));
+        m_Stock_listbox.SetItemHeight(i, g_data.DPI(22));
     }
 
     CheckDlgButton(IDC_FULL_DAY_CHECK, m_data.m_full_day);
@@ -68,29 +68,29 @@ void CManagerDialog::OnListItemClick()
     CString curSelTxt;
     int curSelPos;
 
-    curSelPos = m_gp_listbox.GetCurSel();
-    m_gp_listbox.GetText(curSelPos, curSelTxt);
-    Log1("OnListItemClick: %s\n", curSelTxt);
+    curSelPos = m_Stock_listbox.GetCurSel();
+    m_Stock_listbox.GetText(curSelPos, curSelTxt);
+    Log1("OnListItemClick: %s\n", curSelTxt.GetString());
 }
 
 
 void CManagerDialog::OnDelBtnClick()
 {
-    int curSelPos = m_gp_listbox.GetCurSel();
+    int curSelPos = m_Stock_listbox.GetCurSel();
     Log1("OnDelBtnClick: %d\n", curSelPos);
-    if (curSelPos < 0 || curSelPos > m_data.m_gp_codes.size())
+    if (curSelPos < 0 || curSelPos > m_data.m_Stock_codes.size())
     {
         return;
     }
-    m_gp_listbox.DeleteString(curSelPos);
-    m_data.m_gp_codes.erase(m_data.m_gp_codes.begin() + curSelPos);
+    m_Stock_listbox.DeleteString(curSelPos);
+    m_data.m_Stock_codes.erase(m_data.m_Stock_codes.begin() + curSelPos);
     m_data.updateAllCodeStr();
 }
 
 
 void CManagerDialog::OnAddBtnClick()
 {
-    if (m_data.m_gp_codes.size() >= GP_ITEM_MAX)
+    if (m_data.m_Stock_codes.size() >= Stock_ITEM_MAX)
     {
         MessageBox(TEXT("由于TrafficMonitor无法动态创建Item，已达到设定上限"), TEXT(""), MB_ICONWARNING | MB_OK);
         return;
@@ -99,18 +99,18 @@ void CManagerDialog::OnAddBtnClick()
     auto rtn = dlg.DoModal();
     if (rtn == IDOK)
     {
-        CString newGpCode = dlg.m_gp_code;
-        if (!newGpCode.IsEmpty())
+        CString newStockCode = dlg.m_Stock_code;
+        if (!newStockCode.IsEmpty())
         {
-            if (count(m_data.m_gp_codes.begin(), m_data.m_gp_codes.end(), newGpCode))
+            if (count(m_data.m_Stock_codes.begin(), m_data.m_Stock_codes.end(), newStockCode))
             {
-                Log1("OnAddBtnClick: ignore %s\n", newGpCode);
+                Log1("OnAddBtnClick: ignore %s\n", newStockCode.GetString());
                 return;
             }
-            Log1("OnAddBtnClick: %s\n", newGpCode);
-            m_data.m_gp_codes.push_back(newGpCode);
+            Log1("OnAddBtnClick: %s\n", newStockCode.GetString());
+            m_data.m_Stock_codes.push_back(newStockCode);
             m_data.updateAllCodeStr();
-            m_gp_listbox.AddString(newGpCode);
+            m_Stock_listbox.AddString(newStockCode);
         }
     }
 }
@@ -122,12 +122,12 @@ void CManagerDialog::OnClickedFullDayCheck()
 
 void CManagerDialog::OnBnClickedOk()
 {
-    bool gp_code_changed{ g_data.m_setting_data.m_all_gp_code_str != m_data.m_all_gp_code_str };
-    if (gp_code_changed)
+    bool Stock_code_changed{ g_data.m_setting_data.m_all_Stock_code_str != m_data.m_all_Stock_code_str };
+    if (Stock_code_changed)
     {
         g_data.m_setting_data = m_data;
         g_data.SaveConfig();
-        GP::Instance().SendGPInfoQequest();
+        Stock::Instance().SendStockInfoQequest();
         MessageBox(TEXT("如果界面未刷新请重启TrafficMonitor"), TEXT(""), MB_ICONWARNING | MB_OK);
     }
     CDialog::OnOK();
@@ -141,19 +141,19 @@ void CManagerDialog::OnBnClickedCancel()
 
 void CManagerDialog::OnLbnDblclkMgrList()
 {
-    int index = m_gp_listbox.GetCurSel();
-    if (index >= 0 && index < m_data.m_gp_codes.size())
+    int index = m_Stock_listbox.GetCurSel();
+    if (index >= 0 && index < m_data.m_Stock_codes.size())
     {
-        COptionsDlg dlg(m_data.m_gp_codes[index].GetString());
+        COptionsDlg dlg(m_data.m_Stock_codes[index].GetString());
         auto rtn = dlg.DoModal();
         if (rtn == IDOK)
         {
-            if (!dlg.m_gp_code.IsEmpty())
+            if (!dlg.m_Stock_code.IsEmpty())
             {
-                m_data.m_gp_codes[index] = dlg.m_gp_code;
+                m_data.m_Stock_codes[index] = dlg.m_Stock_code;
                 m_data.updateAllCodeStr();
-                m_gp_listbox.DeleteString(index);
-                m_gp_listbox.InsertString(index, dlg.m_gp_code);
+                m_Stock_listbox.DeleteString(index);
+                m_Stock_listbox.InsertString(index, dlg.m_Stock_code);
             }
         }
     }

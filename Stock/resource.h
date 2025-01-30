@@ -1,6 +1,6 @@
 ﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ 生成的包含文件。
-// 供 GP.rc 使用
+// 供 Stock.rc 使用
 //
 #define IDD_OPTIONS_DIALOG              102
 #define IDS_PLUGIN_NAME                 103

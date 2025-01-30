@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "PluginInterface.h"
 
-class GPItem : public IPluginItem
+class StockItem : public IPluginItem
 {
 public:
     virtual const wchar_t* GetItemName() const override;
@@ -15,6 +15,6 @@ public:
     virtual int OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag) override;
 
     int index;
-    CString gp_id;
+    CString Stock_id;
     bool enable;
 };

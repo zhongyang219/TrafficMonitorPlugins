@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "GP.h"
-#include "GPItem.h"
+#include "Stock.h"
+#include "StockItem.h"
 #include <string>
 #include "PluginInterface.h"
 #include "ManagerDialog.h"
@@ -13,17 +13,17 @@
 #define kMG "gb" // 美国
 #define kBJ "bj" // 北京
 
-const std::vector<CString> GPTypeSet{ kSH, kSZ, kHK, kMG, kBJ };
+const std::vector<CString> StockTypeSet{ kSH, kSZ, kHK, kMG, kBJ };
 
-#define GP_ITEM_MAX 10
+#define Stock_ITEM_MAX 10
 
-class GP : public ITMPlugin
+class Stock : public ITMPlugin
 {
 private:
-    GP();
+    Stock();
 
 public:
-    static GP& Instance();
+    static Stock& Instance();
 
     virtual IPluginItem* GetItem(int index) override;
     virtual const wchar_t* GetTooltipInfo() override;
@@ -31,7 +31,7 @@ public:
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
-    void SendGPInfoQequest();
+    void SendStockInfoQequest();
     void ShowContextMenu(CWnd* pWnd);
     void DisableUpdateCommand();
     void EnableUpdateCommand();
@@ -43,9 +43,9 @@ private:
     void updateItems();
 
 private:
-    static GP m_instance;
-    vector<GPItem> m_items;
-    //GPItem m_item;
+    static Stock m_instance;
+    vector<StockItem> m_items;
+    //StockItem m_item;
     bool m_is_thread_runing{};
     std::wstring m_tooltop_info;
     CManagerDialog* m_option_dlg{};      //保存选项设置对话框的句柄

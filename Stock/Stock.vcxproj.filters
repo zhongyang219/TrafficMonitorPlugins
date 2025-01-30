@@ -19,10 +19,10 @@
     <Filter Include="对话框">
       <UniqueIdentifier>{6c31e635-2c3b-4a9d-b8da-3497016dae84}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GP">
+    <Filter Include="Stock">
       <UniqueIdentifier>{b1276a30-5a2e-4c44-a72b-a85f342a1e8e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GPItem">
+    <Filter Include="StockItem">
       <UniqueIdentifier>{dea0bd8c-eff4-48bb-913e-262140be1154}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -33,11 +33,11 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="GP.h">
-      <Filter>GP</Filter>
+    <ClInclude Include="Stock.h">
+      <Filter>Stock</Filter>
     </ClInclude>
-    <ClInclude Include="GPItem.h">
-      <Filter>GPItem</Filter>
+    <ClInclude Include="StockItem.h">
+      <Filter>StockItem</Filter>
     </ClInclude>
     <ClInclude Include="DataManager.h">
       <Filter>DataManager</Filter>
@@ -59,11 +59,11 @@
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="GP.cpp">
-      <Filter>GP</Filter>
+    <ClCompile Include="Stock.cpp">
+      <Filter>Stock</Filter>
     </ClCompile>
-    <ClCompile Include="GPItem.cpp">
-      <Filter>GPItem</Filter>
+    <ClCompile Include="StockItem.cpp">
+      <Filter>StockItem</Filter>
     </ClCompile>
     <ClCompile Include="DataManager.cpp">
       <Filter>DataManager</Filter>
@@ -79,7 +79,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GP.rc">
+    <ResourceCompile Include="Stock.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
   </ItemGroup>

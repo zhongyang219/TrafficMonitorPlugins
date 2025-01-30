@@ -168,12 +168,12 @@ BEGIN
         BLOCK "080404b0"
         BEGIN
             VALUE "CompanyName", "By CListery"
-            VALUE "FileDescription", "GP Plugin for TrafficMonitor"
+            VALUE "FileDescription", "Stock Plugin for TrafficMonitor"
             VALUE "FileVersion", "1.1.2.0"
-            VALUE "InternalName", "GP.dll"
+            VALUE "InternalName", "Stock.dll"
             VALUE "LegalCopyright", "Copyright (C) 2022 By CListery"
-            VALUE "OriginalFilename", "GP.dll"
-            VALUE "ProductName", "GP Plugin for TrafficMonitor"
+            VALUE "OriginalFilename", "Stock.dll"
+            VALUE "ProductName", "Stock Plugin for TrafficMonitor"
             VALUE "ProductVersion", "1.1.2.0"
         END
     END
@@ -208,7 +208,7 @@ STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "股票插件"
     IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件。"
-    IDS_PLUGIN_ITEM_NAME    "GP"
+    IDS_PLUGIN_ITEM_NAME    "Stock"
 END
 
 #endif    // 中文(简体，中国) resources
