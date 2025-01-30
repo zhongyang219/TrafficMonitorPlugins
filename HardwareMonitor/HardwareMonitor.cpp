@@ -106,12 +106,15 @@ namespace HardwareMonitor
 
         //载入要监控的硬件
         Computer^ computer = MonitorGlobal::Instance()->computer;
-        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);
-        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);
-        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);
-        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);
-        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);
-        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);
+        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);                   //CPU
+        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);                   //显卡
+        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);   //主板
+        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);           //硬盘
+        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);          //电池
+        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);          //网络
+        computer->IsMemoryEnabled = ini.GetBool(L"hardware", L"IsMemoryEnabled", false);            //内存
+        computer->IsControllerEnabled = ini.GetBool(L"hardware", L"IsControllerEnabled", false);    //风扇控制器
+        computer->IsPsuEnabled = ini.GetBool(L"hardware", L"IsPsuEnabled", false);                  //电源
 
         //载入要监控的项目
         int item_count = ini.GetInt(L"config", L"item_count");
@@ -146,6 +149,9 @@ namespace HardwareMonitor
         ini.WriteBool(L"hardware", L"IsStorageEnabled", computer->IsStorageEnabled);
         ini.WriteBool(L"hardware", L"IsBatteryEnabled", computer->IsBatteryEnabled);
         ini.WriteBool(L"hardware", L"IsNetworkEnabled", computer->IsNetworkEnabled);
+        ini.WriteBool(L"hardware", L"IsMemoryEnabled", computer->IsMemoryEnabled);
+        ini.WriteBool(L"hardware", L"IsControllerEnabled", computer->IsControllerEnabled);
+        ini.WriteBool(L"hardware", L"IsPsuEnabled", computer->IsPsuEnabled);
 
         //保存监控的项目
         ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.items_info.size()));

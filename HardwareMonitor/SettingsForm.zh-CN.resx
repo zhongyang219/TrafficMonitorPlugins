@@ -122,10 +122,10 @@
     <value>13, 184</value>
   </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>284, 224</value>
+    <value>303, 224</value>
   </data>
   <data name="removeSelectBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>308, 184</value>
+    <value>327, 184</value>
   </data>
   <data name="removeSelectBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
@@ -143,13 +143,13 @@
     <value>已添加监控项：</value>
   </data>
   <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>353, 433</value>
+    <value>372, 433</value>
   </data>
   <data name="cancelBtn.Text" xml:space="preserve">
     <value>关闭</value>
   </data>
   <data name="addItemBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>308, 223</value>
+    <value>327, 223</value>
   </data>
   <data name="addItemBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
@@ -157,14 +157,35 @@
   <data name="addItemBtn.Text" xml:space="preserve">
     <value>添加监控项</value>
   </data>
-  <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>415, 93</value>
+  <data name="psuCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>145, 56</value>
   </data>
-  <data name="groupBox1.Text" xml:space="preserve">
-    <value>选择要监控的硬件</value>
+  <data name="psuCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="psuCheck.Text" xml:space="preserve">
+    <value>电源</value>
+  </data>
+  <data name="controllerCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>212, 56</value>
+  </data>
+  <data name="controllerCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>106, 24</value>
+  </data>
+  <data name="controllerCheck.Text" xml:space="preserve">
+    <value>风扇控制器</value>
+  </data>
+  <data name="memoryCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>77, 56</value>
+  </data>
+  <data name="memoryCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>61, 24</value>
+  </data>
+  <data name="memoryCheck.Text" xml:space="preserve">
+    <value>内存</value>
   </data>
   <data name="networkCheck.Location" type="System.Drawing.Point, System.Drawing">
-    <value>77, 56</value>
+    <value>10, 56</value>
   </data>
   <data name="networkCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>61, 24</value>
@@ -173,7 +194,7 @@
     <value>网络</value>
   </data>
   <data name="batteryCheck.Location" type="System.Drawing.Point, System.Drawing">
-    <value>10, 56</value>
+    <value>279, 26</value>
   </data>
   <data name="batteryCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>61, 24</value>
@@ -211,11 +232,17 @@
   <data name="cpuCheck.Location" type="System.Drawing.Point, System.Drawing">
     <value>10, 26</value>
   </data>
+  <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>434, 93</value>
+  </data>
+  <data name="groupBox1.Text" xml:space="preserve">
+    <value>选择要监控的硬件</value>
+  </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
     <value>9, 412</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>330, 53</value>
+    <value>349, 53</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>注意：添加或移除监控项目后需要重新启动TrafficMonitor才能生效。</value>
@@ -230,7 +257,7 @@
     <value>显示鼠标提示</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>308, 294</value>
+    <value>327, 294</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>84, 20</value>
@@ -239,10 +266,10 @@
     <value>小数位数：</value>
   </data>
   <data name="decimalPlaceCombo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>308, 317</value>
+    <value>327, 317</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>440, 474</value>
+    <value>459, 474</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>硬件监控插件设置</value>

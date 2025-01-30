@@ -23,6 +23,9 @@ namespace HardwareMonitor
         storageCheck->Checked = computer->IsStorageEnabled;
         batteryCheck->Checked = computer->IsBatteryEnabled;
         networkCheck->Checked = computer->IsNetworkEnabled;
+        memoryCheck->Checked = computer->IsMemoryEnabled;
+        controllerCheck->Checked = computer->IsControllerEnabled;
+        psuCheck->Checked = computer->IsPsuEnabled;
 
         showTooltipCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip;
 
@@ -93,12 +96,20 @@ namespace HardwareMonitor
     {
         //更新要监控的硬件设置
         Computer^ computer = MonitorGlobal::Instance()->computer;
-        computer->IsCpuEnabled = cpuCheck->Checked;
-        computer->IsGpuEnabled = gpuCheck->Checked;
-        computer->IsMotherboardEnabled = storageCheck->Checked;
-        computer->IsStorageEnabled = storageCheck->Checked;
-        computer->IsBatteryEnabled = batteryCheck->Checked;
-        computer->IsNetworkEnabled = networkCheck->Checked;
+        try
+        {
+            computer->IsCpuEnabled = cpuCheck->Checked;
+            computer->IsGpuEnabled = gpuCheck->Checked;
+            computer->IsMotherboardEnabled = storageCheck->Checked;
+            computer->IsStorageEnabled = storageCheck->Checked;
+            computer->IsBatteryEnabled = batteryCheck->Checked;
+            computer->IsNetworkEnabled = networkCheck->Checked;
+            computer->IsMemoryEnabled = memoryCheck->Checked;
+            computer->IsControllerEnabled = controllerCheck->Checked;
+            computer->IsPsuEnabled = psuCheck->Checked;
+        }
+        catch(System::Exception^ e)
+        {}
 
         CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;
 

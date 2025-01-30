@@ -45,6 +45,10 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::CheckBox^ showTooltipCheck;
     private: System::Windows::Forms::Label^ label3;
     private: System::Windows::Forms::ComboBox^ decimalPlaceCombo;
+    private: System::Windows::Forms::CheckBox^ memoryCheck;
+    private: System::Windows::Forms::CheckBox^ controllerCheck;
+    private: System::Windows::Forms::CheckBox^ psuCheck;
+
 
     private: System::Windows::Forms::Button^ addItemBtn;
 
@@ -74,6 +78,9 @@ namespace HardwareMonitor {
             this->cancelBtn = (gcnew System::Windows::Forms::Button());
             this->addItemBtn = (gcnew System::Windows::Forms::Button());
             this->groupBox1 = (gcnew System::Windows::Forms::GroupBox());
+            this->psuCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->controllerCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->memoryCheck = (gcnew System::Windows::Forms::CheckBox());
             this->networkCheck = (gcnew System::Windows::Forms::CheckBox());
             this->batteryCheck = (gcnew System::Windows::Forms::CheckBox());
             this->storageCheck = (gcnew System::Windows::Forms::CheckBox());
@@ -122,6 +129,9 @@ namespace HardwareMonitor {
             // groupBox1
             // 
             resources->ApplyResources(this->groupBox1, L"groupBox1");
+            this->groupBox1->Controls->Add(this->psuCheck);
+            this->groupBox1->Controls->Add(this->controllerCheck);
+            this->groupBox1->Controls->Add(this->memoryCheck);
             this->groupBox1->Controls->Add(this->networkCheck);
             this->groupBox1->Controls->Add(this->batteryCheck);
             this->groupBox1->Controls->Add(this->storageCheck);
@@ -130,6 +140,24 @@ namespace HardwareMonitor {
             this->groupBox1->Controls->Add(this->cpuCheck);
             this->groupBox1->Name = L"groupBox1";
             this->groupBox1->TabStop = false;
+            // 
+            // psuCheck
+            // 
+            resources->ApplyResources(this->psuCheck, L"psuCheck");
+            this->psuCheck->Name = L"psuCheck";
+            this->psuCheck->UseVisualStyleBackColor = true;
+            // 
+            // controllerCheck
+            // 
+            resources->ApplyResources(this->controllerCheck, L"controllerCheck");
+            this->controllerCheck->Name = L"controllerCheck";
+            this->controllerCheck->UseVisualStyleBackColor = true;
+            // 
+            // memoryCheck
+            // 
+            resources->ApplyResources(this->memoryCheck, L"memoryCheck");
+            this->memoryCheck->Name = L"memoryCheck";
+            this->memoryCheck->UseVisualStyleBackColor = true;
             // 
             // networkCheck
             // 
