@@ -88,6 +88,10 @@ namespace HardwareMonitor
             float value = sensor->Value.Value;
             if (sensor->SensorType == SensorType::Throughput)   //网速除以1000转换为KB
                 value /= 1000.0;
+            if (sensor->SensorType == SensorType::Power && sensor->Name == L"Discharge Rate")   //放电功率显示为负数
+                value = -value;
+            if (sensor->SensorType == SensorType::Current && sensor->Name == L"Discharge Current")   //放电电流显示为负数
+                value = -value;
             String^ formatString = String::Format("F{0}", decimal_place);
             sensor_str += value.ToString(formatString);
         }
@@ -108,6 +112,7 @@ namespace HardwareMonitor
         sensor_str += GetSensorValueText(sensor);
         return sensor_str;
     }
+
     String^ HardwareMonitorHelper::GetSensorDisplayName(LibreHardwareMonitor::Hardware::ISensor^ sensor)
     {
         String^ name;
