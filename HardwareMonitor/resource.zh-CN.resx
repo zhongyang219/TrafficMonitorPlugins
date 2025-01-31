@@ -130,7 +130,7 @@
     <value>Conductivity</value>
   </data>
   <data name="Control" xml:space="preserve">
-    <value>Controls</value>
+    <value>风扇控制器</value>
   </data>
   <data name="Current" xml:space="preserve">
     <value>电流</value>
@@ -188,7 +188,7 @@
     <value>温度</value>
   </data>
   <data name="Throughput" xml:space="preserve">
-    <value>Throughput</value>
+    <value>速率</value>
   </data>
   <data name="TimeSpan" xml:space="preserve">
     <value>TimeSpan</value>
