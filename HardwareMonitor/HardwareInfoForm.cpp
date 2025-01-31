@@ -12,6 +12,51 @@ namespace HardwareMonitor
         return pixel * dpi / 96;
     }
 
+    static TreeNode^ AddHardwareNode(TreeNodeCollection^ nodes, IHardware^ hardware)
+    {
+        auto hardware_node = nodes->Add(hardware->Name);
+        switch (hardware->HardwareType)
+        {
+        case HardwareType::Motherboard: hardware_node->ImageIndex = 0; break;
+        case HardwareType::Battery: hardware_node->ImageIndex = 1; break;
+        case HardwareType::Cpu: hardware_node->ImageIndex = 2; break;
+        case HardwareType::EmbeddedController: hardware_node->ImageIndex = 3; break;
+        case HardwareType::Network: hardware_node->ImageIndex = 4; break;
+        case HardwareType::Memory: hardware_node->ImageIndex = 5; break;
+        case HardwareType::Storage: hardware_node->ImageIndex = 6; break;
+        case HardwareType::GpuAmd: hardware_node->ImageIndex = 7; break;
+        case HardwareType::GpuIntel: hardware_node->ImageIndex = 8; break;
+        case HardwareType::GpuNvidia: hardware_node->ImageIndex = 9; break;
+        }
+        //添加Sensor节点
+        typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
+        TypeNodeMap sensor_type_nodes;       //保存所有Sensor类型的节点
+        for (int j = 0; j < hardware->Sensors->Length; j++)
+        {
+            auto sensor = hardware->Sensors[j];
+            //根据Sensor的类型创建父节点
+            TreeNode^ type_node;
+            TypeNodeMap::iterator iter = sensor_type_nodes.find(sensor->SensorType);
+            if (iter == sensor_type_nodes.end())
+            {
+                //创建类型节点，并保存到map中
+                type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
+                sensor_type_nodes.insert(TypeNodeMap::make_value(sensor->SensorType, type_node));
+
+            }
+            else
+            {
+                //已存在的节点
+                type_node = iter->second;
+            }
+
+            String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
+            auto sensor_node = type_node->Nodes->Add(sensor_str);
+            sensor_node->Tag = sensor->Identifier->ToString();
+        }
+        return hardware_node;
+    }
+
     HardwareInfoForm::HardwareInfoForm(void)
     {
         this->StartPosition = FormStartPosition::CenterParent;
@@ -26,50 +71,45 @@ namespace HardwareMonitor
         {
             //添加Hardware节点
             auto hardware = computer->Hardware[i];
-            auto hardware_node = treeView1->Nodes->Add(hardware->Name);
-            switch (hardware->HardwareType)
+            auto hardware_node = AddHardwareNode(treeView1->Nodes, hardware);
+            //遍历SubHardware
+            for (int j = 0; j < hardware->SubHardware->Length; j++)
             {
-            case HardwareType::Motherboard: hardware_node->ImageIndex = 0; break;
-            case HardwareType::Battery: hardware_node->ImageIndex = 1; break;
-            case HardwareType::Cpu: hardware_node->ImageIndex = 2; break;
-            case HardwareType::EmbeddedController: hardware_node->ImageIndex = 3; break;
-            case HardwareType::Network: hardware_node->ImageIndex = 4; break;
-            case HardwareType::Memory: hardware_node->ImageIndex = 5; break;
-            case HardwareType::Storage: hardware_node->ImageIndex = 6; break;
-            case HardwareType::GpuAmd: hardware_node->ImageIndex = 7; break;
-            case HardwareType::GpuIntel: hardware_node->ImageIndex = 8; break;
-            case HardwareType::GpuNvidia: hardware_node->ImageIndex = 9; break;
-            }
-            //添加Sensor节点
-            typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
-            TypeNodeMap sensor_type_nodes;       //保存所有Sensor类型的节点
-            for (int j = 0; j < hardware->Sensors->Length; j++)
-            {
-                auto sensor = hardware->Sensors[j];
-                //根据Sensor的类型创建父节点
-                TreeNode^ type_node;
-                TypeNodeMap::iterator iter = sensor_type_nodes.find(sensor->SensorType);
-                if (iter == sensor_type_nodes.end())
-                {
-                    //创建类型节点，并保存到map中
-                    type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
-                    sensor_type_nodes.insert(TypeNodeMap::make_value(sensor->SensorType, type_node));
-
-                }
-                else
-                {
-                    //已存在的节点
-                    type_node = iter->second;
-                }
-
-                String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
-                auto sensor_node = type_node->Nodes->Add(sensor_str);
-                sensor_node->Tag = sensor->Identifier->ToString();
+                auto sub_hardware = hardware->SubHardware[j];
+                AddHardwareNode(hardware_node->Nodes, sub_hardware);
             }
         }
 
         //展开所有节点
         treeView1->ExpandAll();
+    }
+
+    //更新一个树节点的值
+    static void UpdateNodeValue(TreeNode^ node)
+    {
+        //有子节点则递归调用
+        if (node->Nodes->Count != 0)
+        {
+            for each (TreeNode ^ sub_node in node->Nodes)
+            {
+                UpdateNodeValue(sub_node);
+            }
+        }
+        //叶子节点，更新值
+        else
+        {
+            if (node->Tag != nullptr)
+            {
+                String^ identifyer = node->Tag->ToString();
+                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(identifyer);
+                if (sensor != nullptr)
+                {
+                    String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
+                    if (sensor_str != node->Text)
+                        node->Text = sensor_str;
+                }
+            }
+        }
     }
 
     void HardwareMonitor::HardwareInfoForm::UpdateData()
@@ -79,22 +119,7 @@ namespace HardwareMonitor
         //遍历Hardware节点
         for each (TreeNode ^ hardware_node in treeView1->Nodes)
         {
-            //遍历SensorType节点
-            for each (TreeNode ^ sensor_type_node in hardware_node->Nodes)
-            {
-                //遍历Sensor节点
-                for each (TreeNode ^ sensor_node in sensor_type_node->Nodes)
-                {
-                    String^ identifyer = sensor_node->Tag->ToString();
-                    ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(identifyer);
-                    if (sensor != nullptr)
-                    {
-                        String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
-                        if (sensor_str != sensor_node->Text)
-                            sensor_node->Text = sensor_str;
-                    }
-                }
-            }
+            UpdateNodeValue(hardware_node);
         }
         treeView1->EndUpdate();
     }
@@ -163,11 +188,8 @@ namespace HardwareMonitor
     void HardwareInfoForm::ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e)
     {
         TreeNode^ selectedNode = treeView1->SelectedNode;
-        // 检查是否为第 3 级节点（仅第3级节点允许添加监控项目）
-        if (selectedNode != nullptr && selectedNode->Parent != nullptr && selectedNode->Parent->Parent != nullptr)
-            addItem->Enabled = true;
-        else
-            addItem->Enabled = false;
+        // 检查是否为叶子节点（仅第叶子允许添加监控项目）
+        addItem->Enabled = (selectedNode != nullptr && selectedNode->Nodes->Count == 0);
     }
 
     void HardwareInfoForm::TreeView_MouseClick(Object^ sender, MouseEventArgs^ e)
