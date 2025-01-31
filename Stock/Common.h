@@ -73,7 +73,7 @@ public:
     // 字符串拆分
     static std::vector<std::string> split(const std::string& str, const char pattern);
     static std::vector<std::string> split(std::string str, std::string pattern);
-    static CString vectorJoinString(const std::vector<CString> data, const CString pattern);
+    static std::wstring vectorJoinString(const std::vector<std::wstring> data, const std::wstring& pattern);
 };
 
 

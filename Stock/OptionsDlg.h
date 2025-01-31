@@ -15,7 +15,7 @@ public:
     static void RemoveTypeFromCode(CString& code);      //从股票代码中移除类型
     static CString GetCodeType(const CString& code);    //获取股票代码的类型
 
-    CString m_Stock_code;
+    CString m_stock_code;
 
     // 对话框数据
 #ifdef AFX_DESIGN_TIME

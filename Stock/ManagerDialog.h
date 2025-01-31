@@ -26,7 +26,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	virtual BOOL OnInitDialog();
-	CListBox m_Stock_listbox;
+	CListBox m_stock_listbox;
 	afx_msg void OnListItemClick();
 	afx_msg void OnDelBtnClick();
 	afx_msg void OnAddBtnClick();

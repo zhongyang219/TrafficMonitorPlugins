@@ -208,7 +208,7 @@ STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "股票插件"
     IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件。"
-    IDS_PLUGIN_ITEM_NAME    "Stock"
+    IDS_PLUGIN_ITEM_NAME    "股票"
 END
 
 #endif    // 中文(简体，中国) resources

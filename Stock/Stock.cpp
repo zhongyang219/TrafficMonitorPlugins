@@ -34,7 +34,7 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CFlagLocker flag_locker(m_instance.m_is_thread_runing);
 
-    if (g_data.m_setting_data.m_Stock_codes.empty()) {
+    if (g_data.m_setting_data.m_stock_codes.empty()) {
         //CCommon::WriteLog(L"Stock_code not setting!", g_data.m_log_path.c_str());
         g_data.ResetText();
         return 0;
@@ -61,13 +61,13 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
         m_instance.DisableUpdateCommand();
 
         //std::wstring url{ L"http://ig507.com/data/time/real/" };
-        //url += g_data.m_setting_data.m_Stock_code;
+        //url += g_data.m_setting_data.m_stock_code;
         //url += L"?licence=";
         //url += g_data.m_setting_data.m_licence;
 
         // https://hq.sinajs.cn/list=sz002497
         std::wstring url{ L"https://hq.sinajs.cn/list=" };
-        url += g_data.m_setting_data.m_all_Stock_code_str;
+        url += CCommon::vectorJoinString(g_data.m_setting_data.m_stock_codes, L",");
         CString strHeaders = _T("Referer: https://finance.sina.com.cn");
         CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
 
@@ -116,7 +116,7 @@ void Stock::ParseJsonData(std::string json_data)
         std::string data = item_arr[1];
         std::vector<std::string> data_arr = CCommon::split(data, ',');
 
-        GupiaoInfo& StockInfo = g_data.GetStockInfo(key.c_str());
+        StockInfo& StockInfo = g_data.GetStockInfo(CCommon::StrToUnicode(key.c_str()));
 
         int data_size = data_arr.size();
 
@@ -187,8 +187,8 @@ void Stock::LoadContextMenu()
 IPluginItem* Stock::GetItem(int index)
 {
     size_t item_size = m_items.size();
-    if (g_data.m_setting_data.m_Stock_codes.size() < item_size)
-        item_size = g_data.m_setting_data.m_Stock_codes.size();
+    if (g_data.m_setting_data.m_stock_codes.size() < item_size)
+        item_size = g_data.m_setting_data.m_stock_codes.size();
     if (item_size == 0)
         item_size = 1;
     if (index >= item_size)
@@ -268,15 +268,15 @@ void Stock::updateItems()
     {
         item.enable = FALSE;
     }
-    for (int index = 0; index < g_data.m_setting_data.m_Stock_codes.size(); index++)
+    for (int index = 0; index < g_data.m_setting_data.m_stock_codes.size(); index++)
     {
-        CString key = g_data.m_setting_data.m_Stock_codes[index];
+        std::wstring key = g_data.m_setting_data.m_stock_codes[index];
         if (index > m_items.size() - 1)
         {
             break;
         }
         m_items[index].enable = TRUE;
-        m_items[index].Stock_id = key;
+        m_items[index].stock_id = key;
     }
 }
 

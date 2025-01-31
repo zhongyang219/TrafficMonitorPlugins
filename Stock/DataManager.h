@@ -8,16 +8,12 @@
 
 struct SettingData
 {
-    CString m_all_Stock_code_str{};
-    vector<CString> m_Stock_codes; // 代码
+    vector<std::wstring> m_stock_codes; // 代码
     bool m_full_day{}; // 全天更新
-
-    void setupByCodeStr(CString codeStr);
-    void updateAllCodeStr();
 };
 
 // Stock显示数据
-struct GupiaoInfo
+struct StockInfo
 {
     std::wstring pc = L"--%";
     std::wstring p = L"--";
@@ -42,18 +38,17 @@ public:
     float DPIF(float pixel);
     int RDPI(int pixel);
     HICON GetIcon(UINT id);
-
     void ResetText();
+    StockInfo& GetStockInfo(const std::wstring& key);
+
     SettingData m_setting_data;
-
-    GupiaoInfo& GetStockInfo(CString key);
-
-    std::map<CString, GupiaoInfo> m_gupiao_info_map;
-
     std::wstring m_log_path;
-    std::wstring m_config_dir;
 
 private:
+    std::map<std::wstring, StockInfo> m_stock_info_map;
+
+    std::wstring m_config_dir;
+
     static CDataManager m_instance;
     std::wstring m_config_path;
     std::map<UINT, CString> m_string_table;

@@ -14,7 +14,7 @@ IMPLEMENT_DYNAMIC(COptionsDlg, CDialog)
 
 COptionsDlg::COptionsDlg(const std::wstring& code, CWnd* pParent /*=nullptr*/)
     : CDialog(IDD_OPTIONS_DIALOG, pParent)
-    , m_Stock_code(code.c_str())
+    , m_stock_code(code.c_str())
     , m_radio_Stock_types(0)
 {
 }
@@ -59,13 +59,13 @@ BOOL COptionsDlg::OnInitDialog()
 
     // TODO:  在此添加额外的初始化
 
-    CString code{ m_Stock_code };
+    CString code{ m_stock_code };
     RemoveTypeFromCode(code);
     SetDlgItemText(IDC_CODE_EDIT, code);
 
-    if (!m_Stock_code.IsEmpty())
+    if (!m_stock_code.IsEmpty())
     {
-        CString type = GetCodeType(m_Stock_code);
+        CString type = GetCodeType(m_stock_code);
         if (type == kSZ)
             m_radio_Stock_types = 0;
         else if (type == kHK)
@@ -149,7 +149,7 @@ void COptionsDlg::OnBnClickedOk()
         break;
     }
     RemoveTypeFromCode(code);
-    m_Stock_code = type + code;
+    m_stock_code = type + code;
     CDialog::OnOK();
 }
 

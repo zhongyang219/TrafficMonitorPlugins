@@ -183,16 +183,14 @@ std::vector<std::string> CCommon::split(std::string str, std::string pattern)
     return result;
 }
 
-CString CCommon::vectorJoinString(const std::vector<CString> data, const CString pattern)
+std::wstring CCommon::vectorJoinString(const std::vector<std::wstring> data, const std::wstring& pattern)
 {
     std::wstring str{};
-    for (int index = 0; index < data.size(); index++)
+    for (size_t index = 0; index < data.size(); index++)
     {
-        str.append(data[index]);
-        if (index != data.size() - 1)
-        {
+        if (index > 0)
             str.append(pattern);
-        }
+        str.append(data[index]);
     }
-    return CCommon::UnicodeToStr(str.c_str(), true).c_str();
+    return str;
 }

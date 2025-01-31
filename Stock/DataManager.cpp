@@ -3,6 +3,7 @@
 #include "Common.h"
 #include <vector>
 #include <sstream>
+#include "../utilities/IniHelper.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -27,8 +28,8 @@ CDataManager& CDataManager::Instance()
 
 void CDataManager::ResetText()
 {
-    //m_gupiao_info_arr = GupiaoInfo();
-    m_gupiao_info_map.clear();
+    //m_gupiao_info_arr = StockInfo();
+    m_stock_info_map.clear();
 }
 
 static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_name, int value, const wchar_t* file_path)
@@ -44,23 +45,19 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_config_path = config_dir + L"Stock.ini";
     m_log_path = config_dir + L"Stock.log";
 
-    //CCommon::WriteLog(m_config_path.c_str(), g_data.m_log_path.c_str());
-    CString codeStr{};
-    ::GetPrivateProfileString(L"config", L"Stock_code", L"", codeStr.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
-    m_setting_data.setupByCodeStr(codeStr);
-    //Log2("LoadConfig: %s -> %d\n", m_setting_data.m_all_Stock_code_str, m_setting_data.m_Stock_codes.size());
-    //::GetPrivateProfileString(L"config", L"licence", L"", m_setting_data.m_licence.GetBuffer(MAX_PATH), MAX_PATH, m_config_path.c_str());
-    m_setting_data.m_full_day = (GetPrivateProfileInt(L"config", L"full_day", 1, m_config_path.c_str()) != 0);
+    utilities::CIniHelper ini(m_config_path);
+    ini.GetStringList(L"config", L"stock_code", m_setting_data.m_stock_codes, std::vector<std::wstring>{});
+    m_setting_data.m_full_day = ini.GetBool(L"config", L"full_day", true);
 }
 
 void CDataManager::SaveConfig()
 {
     if (!m_config_path.empty())
     {
-        m_setting_data.updateAllCodeStr();
-        ::WritePrivateProfileString(L"config", L"Stock_code", m_setting_data.m_all_Stock_code_str, m_config_path.c_str());
-        //::WritePrivateProfileString(L"config", L"licence", m_setting_data.m_licence, m_config_path.c_str());
-        ::WritePrivateProfileInt(L"config", L"full_day", m_setting_data.m_full_day, m_config_path.c_str());
+        utilities::CIniHelper ini(m_config_path);
+        ini.WriteStringList(L"config", L"stock_code", m_setting_data.m_stock_codes);
+        ini.WriteBool(L"config", L"full_day", m_setting_data.m_full_day);
+        ini.Save();
     }
 }
 
@@ -117,40 +114,14 @@ HICON CDataManager::GetIcon(UINT id)
     }
 }
 
-std::wstring GupiaoInfo::ToString() const
+std::wstring StockInfo::ToString() const
 {
     std::wstringstream wss;
-    wss << p << ' ' << pc;
+    wss << name << ": " << p << ' ' << pc;
     return wss.str();
 }
 
-GupiaoInfo& CDataManager::GetStockInfo(CString key)
+StockInfo& CDataManager::GetStockInfo(const std::wstring& key)
 {
-    return m_gupiao_info_map[key];
-}
-
-void SettingData::updateAllCodeStr()
-{
-    if (m_Stock_codes.empty())
-    {
-        m_all_Stock_code_str.ReleaseBuffer();
-        int len = m_all_Stock_code_str.GetLength();
-        m_all_Stock_code_str.Delete(0, len);
-        return;
-    }
-    m_all_Stock_code_str = CCommon::vectorJoinString(m_Stock_codes, ",");
-}
-
-void SettingData::setupByCodeStr(CString codeStr)
-{
-    vector<string> codes = CCommon::split(CCommon::UnicodeToStr(codeStr), ',');
-    if (codes.size() > 0)
-    {
-        m_all_Stock_code_str = codeStr;
-        m_Stock_codes.clear();
-        for (string item : codes)
-        {
-            m_Stock_codes.push_back(item.c_str());
-        }
-    }
+    return m_stock_info_map[key];
 }
