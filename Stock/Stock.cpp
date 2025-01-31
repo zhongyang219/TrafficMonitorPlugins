@@ -215,11 +215,8 @@ ITMPlugin::OptionReturn Stock::ShowOptionsDialog(void* hParent)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CWnd* pParent = CWnd::FromHandle((HWND)hParent);
-    CManagerDialog dlg(pParent);
-    dlg.m_data = g_data.m_setting_data;
-    if (dlg.DoModal() == IDOK)
+    if (ShowStockManageDlg(pParent) == IDOK)
     {
-        g_data.m_setting_data = dlg.m_data;
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;
@@ -262,6 +259,30 @@ void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     }
 }
 
+int Stock::GetCommandCount()
+{
+    return 1;
+}
+
+const wchar_t* Stock::GetCommandName(int command_index)
+{
+    switch (command_index)
+    {
+    case 0: return g_data.StringRes(IDS_MENU_UPDATE_STOCK).GetString();
+    }
+    return nullptr;
+}
+
+void Stock::OnPluginCommand(int command_index, void* hWnd, void* para)
+{
+    switch (command_index)
+    {
+    case 0:
+        SendStockInfoQequest();
+        break;
+    }
+}
+
 void Stock::updateItems()
 {
     for (StockItem item : m_items)
@@ -278,6 +299,22 @@ void Stock::updateItems()
         m_items[index].enable = TRUE;
         m_items[index].stock_id = key;
     }
+}
+
+INT_PTR Stock::ShowStockManageDlg(CWnd* pWnd)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    CManagerDialog dlg(pWnd);
+    dlg.m_data = g_data.m_setting_data;
+    m_option_dlg = &dlg;
+    INT_PTR rtn = dlg.DoModal();
+    m_option_dlg = nullptr;
+    if (rtn == IDOK)
+    {
+        g_data.m_setting_data = dlg.m_data;
+        updateItems();
+    }
+    return rtn;
 }
 
 void Stock::SendStockInfoQequest()
@@ -298,16 +335,7 @@ void Stock::ShowContextMenu(CWnd* pWnd)
         //点击了“管理”
         if (id == ID_OPTIONS)
         {
-            AFX_MANAGE_STATE(AfxGetStaticModuleState());
-            CManagerDialog dlg;
-            dlg.m_data = g_data.m_setting_data;
-            m_option_dlg = &dlg;
-            auto rtn = dlg.DoModal();
-            m_option_dlg = nullptr;
-            if (rtn == IDOK)
-            {
-                updateItems();
-            }
+            ShowStockManageDlg(pWnd);
         }
         //点击了“更新”
         else if (id == ID_UPDATE)

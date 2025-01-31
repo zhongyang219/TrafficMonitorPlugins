@@ -7,7 +7,13 @@
 #define IDS_PLUGIN_DESCRIPTION          104
 #define IDR_MENU1                       104
 #define IDS_PLUGIN_ITEM_NAME            105
+#define IDS_MENU_STOCK_MANAGE           106
+#define IDS_MENU_UPDATE_STOCK           107
 #define IDD_MANAGER_DIALOG              108
+#define IDS_ADD_STOCK                   108
+#define IDS_EDIT_STOCK                  109
+#define IDS_RESTART_TRAFFICMONITOR_INFO 110
+#define IDS_STOCK_NUM_LIMIT_WARNING     111
 #define IDC_CODE_EDIT                   1003
 #define IDC_UPDATE_BUTTON               1004
 #define IDC_FULL_DAY_CHECK              1005
@@ -35,7 +41,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40007
 #define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           103

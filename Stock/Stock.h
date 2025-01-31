@@ -31,6 +31,11 @@ public:
     virtual OptionReturn ShowOptionsDialog(void* hParent) override;
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
+    virtual int GetCommandCount() override;
+    virtual const wchar_t* GetCommandName(int command_index) override;
+    virtual void OnPluginCommand(int command_index, void* hWnd, void* para) override;
+
+    INT_PTR ShowStockManageDlg(CWnd* pWnd);
     void SendStockInfoQequest();
     void ShowContextMenu(CWnd* pWnd);
     void DisableUpdateCommand();

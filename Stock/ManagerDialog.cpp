@@ -91,10 +91,10 @@ void CManagerDialog::OnAddBtnClick()
 {
     if (m_data.m_stock_codes.size() >= Stock_ITEM_MAX)
     {
-        MessageBox(TEXT("由于TrafficMonitor无法动态创建Item，已达到设定上限"), TEXT(""), MB_ICONWARNING | MB_OK);
+        MessageBox(g_data.StringRes(IDS_STOCK_NUM_LIMIT_WARNING), g_data.StringRes(IDS_PLUGIN_NAME), MB_ICONWARNING | MB_OK);
         return;
     }
-    COptionsDlg dlg;
+    COptionsDlg dlg(std::wstring(), this);
     auto rtn = dlg.DoModal();
     if (rtn == IDOK)
     {
@@ -126,7 +126,7 @@ void CManagerDialog::OnBnClickedOk()
         g_data.m_setting_data = m_data;
         g_data.SaveConfig();
         Stock::Instance().SendStockInfoQequest();
-        MessageBox(TEXT("如果界面未刷新请重启TrafficMonitor"), TEXT(""), MB_ICONWARNING | MB_OK);
+        MessageBox(g_data.StringRes(IDS_RESTART_TRAFFICMONITOR_INFO), g_data.StringRes(IDS_PLUGIN_NAME), MB_ICONINFORMATION | MB_OK);
     }
     CDialog::OnOK();
 }
@@ -142,7 +142,7 @@ void CManagerDialog::OnLbnDblclkMgrList()
     int index = m_stock_listbox.GetCurSel();
     if (index >= 0 && index < m_data.m_stock_codes.size())
     {
-        COptionsDlg dlg(m_data.m_stock_codes[index]);
+        COptionsDlg dlg(m_data.m_stock_codes[index], this);
         auto rtn = dlg.DoModal();
         if (rtn == IDOK)
         {

@@ -113,26 +113,26 @@ void CCommon::WriteLog(const WORD w, LPCTSTR file_path)
 
 void CCommon::WriteLog(const char* str_text, LPCTSTR file_path)
 {
-    SYSTEMTIME cur_time;
-    GetLocalTime(&cur_time);
-    char buff[32];
-    sprintf_s(buff, "%d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d: ", cur_time.wYear, cur_time.wMonth, cur_time.wDay,
-        cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-    std::ofstream file{ file_path, std::ios::app };  //以追加的方式打开日志文件
-    file << buff;
-    file << str_text << std::endl;
+    static std::string last_text;
+    //过滤相同内容的日志
+    if (last_text != str_text)
+    {
+        SYSTEMTIME cur_time;
+        GetLocalTime(&cur_time);
+        char buff[32];
+        sprintf_s(buff, "%d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d: ", cur_time.wYear, cur_time.wMonth, cur_time.wDay,
+            cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
+        std::ofstream file{ file_path, std::ios::app };  //以追加的方式打开日志文件
+        file << buff;
+        file << str_text << std::endl;
+
+        last_text = str_text;
+    }
 }
 
 void CCommon::WriteLog(const wchar_t* str_text, LPCTSTR file_path)
 {
-    SYSTEMTIME cur_time;
-    GetLocalTime(&cur_time);
-    char buff[32];
-    sprintf_s(buff, "%d/%.2d/%.2d %.2d:%.2d:%.2d.%.3d: ", cur_time.wYear, cur_time.wMonth, cur_time.wDay,
-        cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
-    std::ofstream file{ file_path, std::ios::app };  //以追加的方式打开日志文件
-    file << buff;
-    file << UnicodeToStr(str_text).c_str() << std::endl;
+    WriteLog(UnicodeToStr(str_text, true).c_str(), file_path);
 }
 
 std::vector<std::string> CCommon::split(const std::string& str, const char pattern)

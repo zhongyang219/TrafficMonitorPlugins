@@ -209,6 +209,12 @@ BEGIN
     IDS_PLUGIN_NAME         "股票插件"
     IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件。"
     IDS_PLUGIN_ITEM_NAME    "股票"
+    IDS_MENU_STOCK_MANAGE   "管理股票列表(&O)..."
+    IDS_MENU_UPDATE_STOCK   "更新股票信息(&U)"
+    IDS_ADD_STOCK           "添加股票"
+    IDS_EDIT_STOCK          "编辑股票"
+    IDS_RESTART_TRAFFICMONITOR_INFO "更新股票列表后需要重新启动TrafficMonitor才能生效。"
+    IDS_STOCK_NUM_LIMIT_WARNING "股票数量已达到上限！"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -224,6 +230,112 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Dialog
+//
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 237, 155
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Stock Manage"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,123,134,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,180,134,50,14
+    LISTBOX         IDC_MGR_LIST,7,7,223,94,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add",IDC_MGR_ADD_BTN,63,105,50,14
+    PUSHBUTTON      "Remove",IDC_MGR_DEL_BTN,120,105,50,14
+    CONTROL         "All day updates",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,123,71,10
+END
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 213, 90
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Stock"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,101,69,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,156,69,50,14
+    LTEXT           "Code:",IDC_CODE_LABEL,7,9,28,8
+    EDITTEXT        IDC_CODE_EDIT,54,7,152,12,ES_AUTOHSCROLL
+    GROUPBOX        "Stock type",IDC_STATIC,7,23,199,42
+    CONTROL         "Shenzheng",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,35,52,10
+    CONTROL         "Ganggu",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,68,35,41,10
+    CONTROL         "Beijiaosuo",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,111,35,50,10
+    CONTROL         "Shangzheng",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,50,58,10
+    CONTROL         "Meigu",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,164,35,32,10
+    CONTROL         "Other (prefix required)",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,50,96,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_MANAGER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 230
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 148
+    END
+
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 206
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_MANAGER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "Stock List &Manage...",       ID_OPTIONS
+        MENUITEM "&Update Stock Info",          ID_UPDATE
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -232,6 +344,13 @@ BEGIN
     IDS_PLUGIN_NAME         "Stock Plugin"
     IDS_PLUGIN_DESCRIPTION  "Stock plugin for TrafficMonitor."
     IDS_PLUGIN_ITEM_NAME    "Stock"
+    IDS_MENU_STOCK_MANAGE   "Stock List &Manage..."
+    IDS_MENU_UPDATE_STOCK   "&Update Stock Info"
+    IDS_ADD_STOCK           "Add Stock"
+    IDS_EDIT_STOCK          "Edit Stock"
+    IDS_RESTART_TRAFFICMONITOR_INFO 
+                            "It is required to restart TrafficMonitor to take effect after the stock list is updated."
+    IDS_STOCK_NUM_LIMIT_WARNING "The number of stocks has reached limit!"
 END
 
 #endif    // 英语(美国) resources

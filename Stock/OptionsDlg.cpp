@@ -57,11 +57,14 @@ BOOL COptionsDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
 
-    // TODO:  在此添加额外的初始化
+    //设置标题
+    if (m_stock_code.IsEmpty())
+        SetWindowText(g_data.StringRes(IDS_ADD_STOCK));
+    else
+        SetWindowText(g_data.StringRes(IDS_EDIT_STOCK));
 
-    CString code{ m_stock_code };
-    RemoveTypeFromCode(code);
-    SetDlgItemText(IDC_CODE_EDIT, code);
+    RemoveTypeFromCode(m_stock_code);
+    SetDlgItemText(IDC_CODE_EDIT, m_stock_code);
 
     if (!m_stock_code.IsEmpty())
     {
