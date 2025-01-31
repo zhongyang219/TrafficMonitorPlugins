@@ -209,16 +209,13 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="app_icon.ico" />
     <Image Include="logo1.ico" />
     <Image Include="res\AMD.png" />
     <Image Include="res\batteries.png" />
     <Image Include="res\CPU.png" />
     <Image Include="res\FanColtroller.png" />
-    <Image Include="res\GPU.png" />
     <Image Include="res\intel.png" />
     <Image Include="res\logo.ico" />
-    <Image Include="res\Logo.png" />
     <Image Include="res\MotherBoard.png" />
     <Image Include="res\Network.png" />
     <Image Include="res\Nvidia.png" />

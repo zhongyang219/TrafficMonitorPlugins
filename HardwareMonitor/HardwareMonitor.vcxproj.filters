@@ -28,6 +28,9 @@
     <Filter Include="CommonData">
       <UniqueIdentifier>{8cc6edd5-00d8-4ec3-a1e7-e4f8e2e532ef}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\icons">
+      <UniqueIdentifier>{6680ede1-0334-4f05-8605-cc8d1e61c338}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Stdafx.h">
@@ -101,50 +104,41 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="app_icon.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\logo.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="logo1.ico">
-      <Filter>资源文件</Filter>
+    <Image Include="res\AMD.png">
+      <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\batteries.png">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\CPU.png">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\FanColtroller.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\GPU.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Logo.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\MotherBoard.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Network.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\RAM.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Storage.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\AMD.png">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\intel.png">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\logo.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="logo1.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\MotherBoard.png">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Network.png">
+      <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\Nvidia.png">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\RAM.png">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Storage.png">
+      <Filter>资源文件\icons</Filter>
     </Image>
   </ItemGroup>
 </Project>
