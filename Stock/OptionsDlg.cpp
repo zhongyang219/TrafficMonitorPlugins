@@ -15,7 +15,7 @@ IMPLEMENT_DYNAMIC(COptionsDlg, CDialog)
 COptionsDlg::COptionsDlg(const std::wstring& code, CWnd* pParent /*=nullptr*/)
     : CDialog(IDD_OPTIONS_DIALOG, pParent)
     , m_stock_code(code.c_str())
-    , m_radio_Stock_types(0)
+    , m_radio_stock_types(0)
 {
 }
 
@@ -32,8 +32,8 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
     DDX_Control(pDX, IDC_CODE_EDIT, m_code_edit);
-    DDX_Radio(pDX, IDC_RADIO_SZ, m_radio_Stock_types);
-	DDV_MinMaxInt(pDX, m_radio_Stock_types, 0, 5);
+    DDX_Radio(pDX, IDC_RADIO_SZ, m_radio_stock_types);
+    DDV_MinMaxInt(pDX, m_radio_stock_types, 0, 5);
 }
 
 
@@ -63,26 +63,26 @@ BOOL COptionsDlg::OnInitDialog()
     else
         SetWindowText(g_data.StringRes(IDS_EDIT_STOCK));
 
-    RemoveTypeFromCode(m_stock_code);
-    SetDlgItemText(IDC_CODE_EDIT, m_stock_code);
-
     if (!m_stock_code.IsEmpty())
     {
         CString type = GetCodeType(m_stock_code);
         if (type == kSZ)
-            m_radio_Stock_types = 0;
+            m_radio_stock_types = 0;
         else if (type == kHK)
-            m_radio_Stock_types = 1;
+            m_radio_stock_types = 1;
         else if (type == kBJ)
-            m_radio_Stock_types = 2;
+            m_radio_stock_types = 2;
         else if (type == kSH)
-            m_radio_Stock_types = 3;
+            m_radio_stock_types = 3;
         else if (type == kMG)
-            m_radio_Stock_types = 4;
+            m_radio_stock_types = 4;
         else
-            m_radio_Stock_types = 5;
+            m_radio_stock_types = 5;
         UpdateData(FALSE);
     }
+
+    RemoveTypeFromCode(m_stock_code);
+    SetDlgItemText(IDC_CODE_EDIT, m_stock_code);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -91,12 +91,12 @@ BOOL COptionsDlg::OnInitDialog()
 
 void COptionsDlg::OnChangeCodeEdit()
 {
-	// TODO:  如果该控件是 RICHEDIT 控件，它将不
-	// 发送此通知，除非重写 CDialog::OnInitDialog()
-	// 函数并调用 CRichEditCtrl().SetEventMask()，
-	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
+    // TODO:  如果该控件是 RICHEDIT 控件，它将不
+    // 发送此通知，除非重写 CDialog::OnInitDialog()
+    // 函数并调用 CRichEditCtrl().SetEventMask()，
+    // 同时将 ENM_CHANGE 标志“或”运算到掩码中。
 
-	// TODO:  在此添加控件通知处理程序代码
+    // TODO:  在此添加控件通知处理程序代码
 }
 
 void COptionsDlg::RemoveTypeFromCode(CString& code)
@@ -133,7 +133,7 @@ void COptionsDlg::OnBnClickedOk()
         return;
     }
     CString type = "";
-    switch (m_radio_Stock_types)
+    switch (m_radio_stock_types)
     {
     case 0:
         type = kSZ;
@@ -167,5 +167,5 @@ void COptionsDlg::OnBnClickedCancel()
 void COptionsDlg::OnRadioClickedStockTypes()
 {
     UpdateData(TRUE);
-    Log1("OnRadioClickedStockTypes: %d\n", m_radio_Stock_types);
+    Log1("OnRadioClickedStockTypes: %d\n", m_radio_stock_types);
 }

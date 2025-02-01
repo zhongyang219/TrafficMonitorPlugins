@@ -24,13 +24,13 @@ public:
 
 private:
     CEdit m_code_edit;
+    int m_radio_stock_types;
 
 protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
     DECLARE_MESSAGE_MAP()
 public:
-    int m_radio_Stock_types;
     virtual BOOL OnInitDialog();
     afx_msg void OnChangeCodeEdit();
     afx_msg void OnBnClickedOk();
