@@ -15,6 +15,9 @@ namespace HardwareMonitor
 
     CHardwareMonitor::CHardwareMonitor()
     {
+        //获取当前屏幕DPI值
+        Graphics^ graphics = Graphics::FromHwnd(IntPtr::Zero);
+        m_dpi = static_cast<int>(graphics->DpiX);
     }
 
     CHardwareMonitor::~CHardwareMonitor()
@@ -25,8 +28,8 @@ namespace HardwareMonitor
     {
         if (m_pIns == nullptr)
         {
-            MonitorGlobal::Instance()->Init();
             m_pIns = new CHardwareMonitor();
+            MonitorGlobal::Instance()->Init();
         }
         return m_pIns;
     }
@@ -169,6 +172,11 @@ namespace HardwareMonitor
         ini.Save();
     }
 
+    int CHardwareMonitor::DPI(int pixel) const
+    {
+        return pixel * m_dpi / 96;
+    }
+
     IPluginItem* CHardwareMonitor::GetItem(int index)
     {
         if (index >= 0 && index < static_cast<int>(m_items.size()))
@@ -306,7 +314,7 @@ namespace HardwareMonitor
         computer->Open();
 
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
-        app_icon = dynamic_cast<Icon^>(resourceManager->GetObject("logo"));
+        app_icon = LoadIcon("logo", CHardwareMonitor::GetInstance()->DPI(16));
     }
 
     void MonitorGlobal::UnInit()
@@ -357,6 +365,13 @@ namespace HardwareMonitor
         monitor_form = nullptr;
     }
 
+    Icon^ MonitorGlobal::LoadIcon(String^ name, int icon_size)
+    {
+        //载入图标
+        Icon^ tmp = dynamic_cast<Icon^>(resourceManager->GetObject(name));
+        //转换为新的尺寸
+        return gcnew Icon(tmp, Size(icon_size, icon_size));
+    }
 }
 
 

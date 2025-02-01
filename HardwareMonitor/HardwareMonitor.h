@@ -43,6 +43,8 @@ namespace HardwareMonitor
         void LoadConfig(const std::wstring& config_dir);
         void SaveConfig();
 
+        int DPI(int pixel) const;
+
         OptionSettings m_settings;
 
     private:
@@ -66,6 +68,7 @@ namespace HardwareMonitor
 
     private:
         std::map<const wchar_t*, std::wstring> string_table;
+        int m_dpi{ 96 };
     };
 
     public ref class MonitorGlobal
@@ -94,6 +97,10 @@ namespace HardwareMonitor
         Resources::ResourceManager^ GetResourceManager();
 
         void ShowHardwareInfoDialog();
+
+    private:
+        //从resx资源文件载入一个图标，并指定图标大小
+        Icon^ LoadIcon(String^ name, int icon_size);
 
     public:
         Computer^ computer;

@@ -6,12 +6,6 @@
 
 namespace HardwareMonitor
 {
-    static int DPI(int pixel, Graphics^ graphics)
-    {
-        float dpi = graphics->DpiX;
-        return pixel * dpi / 96;
-    }
-
     static TreeNode^ AddHardwareNode(TreeNodeCollection^ nodes, IHardware^ hardware)
     {
         auto hardware_node = nodes->Add(hardware->Name);
@@ -128,8 +122,7 @@ namespace HardwareMonitor
     {
         // 初始化 ImageList
         imageList1 = gcnew ImageList();
-        Graphics^ graphics = CreateGraphics();
-        int icon_size = DPI(16, graphics);
+        int icon_size = CHardwareMonitor::GetInstance()->DPI(16);
         imageList1->ImageSize = System::Drawing::Size(icon_size, icon_size); // 设置图标大小
 
         // 添加图标到 ImageList
