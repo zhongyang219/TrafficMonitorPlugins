@@ -37,10 +37,26 @@ namespace HardwareMonitor
     const wchar_t* CHardwareMonitorItem::GetItemValueSampleText() const
     {
         static std::wstring sample_text;
-        if (item_value.empty())
-            sample_text = L"99.99 ¡ãC";
+        const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
+        if (item_info.specify_value_width)
+        {
+            sample_text = std::wstring(item_info.value_width, L'0');
+            if (item_info.decimal_places > 0)
+            {
+                sample_text += L'.';
+                sample_text += std::wstring(item_info.decimal_places, L'0');
+            }
+            sample_text += L' ';
+            SensorType type = static_cast<SensorType>(sensor_type);
+            sample_text += HardwareMonitorHelper::GetSensorTypeUnit(type);
+        }
         else
-            sample_text = L'0' + item_value;
+        {
+            if (item_value.empty())
+                sample_text = L"0000.00";
+            else
+                sample_text = L'0' + item_value;
+        }
         return sample_text.c_str();
     }
 

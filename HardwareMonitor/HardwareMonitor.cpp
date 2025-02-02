@@ -127,15 +127,18 @@ namespace HardwareMonitor
         for (int i = 0; i < item_count; i++)
         {
             std::wstring app_name = L"item" + std::to_wstring(i);
-            std::wstring identifyer = ini.GetString(app_name.c_str(), L"identifier");
-            int decimal_places = ini.GetInt(app_name.c_str(), L"decimal_places", 2);
-            m_settings.items_info.emplace_back(identifyer, decimal_places);
-            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifyer.c_str()));
+            ItemInfo item_info;
+            item_info.identifyer = ini.GetString(app_name.c_str(), L"identifier");
+            item_info.decimal_places = ini.GetInt(app_name.c_str(), L"decimal_places", 2);
+            item_info.specify_value_width = ini.GetBool(app_name.c_str(), L"specify_value_width", false);
+            item_info.value_width = ini.GetInt(app_name.c_str(), L"value_width", 4);
+            m_settings.items_info.push_back(item_info);
+            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
             if (sensor != nullptr)
             {
                 std::wstring item_name = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
-                m_item_names[identifyer] = item_name;
-                m_items.emplace_back(identifyer, item_name);
+                m_item_names[item_info.identifyer] = item_name;
+                m_items.emplace_back(item_info.identifyer, item_name);
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
@@ -166,6 +169,8 @@ namespace HardwareMonitor
             std::wstring app_name = L"item" + std::to_wstring(index);
             ini.WriteString(app_name.c_str(), L"identifier", item.identifyer.c_str());
             ini.WriteInt(app_name.c_str(), L"decimal_places", item.decimal_places);
+            ini.WriteBool(app_name.c_str(), L"specify_value_width", item.specify_value_width);
+            ini.WriteInt(app_name.c_str(), L"value_width", item.value_width);
             index++;
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);

@@ -7,14 +7,15 @@ namespace HardwareMonitor
     struct ItemInfo
     {
         std::wstring identifyer;    //唯一标识符
-        int decimal_places;         //小数位数
+        int decimal_places{ 2 };         //小数位数
+        bool specify_value_width{ false };  //指定数值宽度（不含小数和单位）
+        int value_width{ 4 };       //数值宽度
 
         ItemInfo()
-            : decimal_places(2)
         {}
 
         ItemInfo(const std::wstring& _identifyer)
-            : identifyer(_identifyer), decimal_places(2)
+            : identifyer(_identifyer)
         {}
 
         ItemInfo(const std::wstring& _identifyer, int _decimal_places)

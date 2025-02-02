@@ -48,12 +48,15 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::CheckBox^ memoryCheck;
     private: System::Windows::Forms::CheckBox^ controllerCheck;
     private: System::Windows::Forms::CheckBox^ psuCheck;
-
-
+    private: System::Windows::Forms::CheckBox^ specifyValueWidthCheck;
+    private: System::Windows::Forms::NumericUpDown^ valueWidthEdit;
+    private: System::Windows::Forms::Label^ label4;
     private: System::Windows::Forms::Button^ addItemBtn;
 
-
     protected:
+        bool IsSelectionValid();
+        void EnableControls();
+
         void listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
         void OnDecimalPlaceComboBoxSelectedIndexChanged(Object^ sender, EventArgs^ e);
         void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
@@ -91,7 +94,11 @@ namespace HardwareMonitor {
             this->showTooltipCheck = (gcnew System::Windows::Forms::CheckBox());
             this->label3 = (gcnew System::Windows::Forms::Label());
             this->decimalPlaceCombo = (gcnew System::Windows::Forms::ComboBox());
+            this->specifyValueWidthCheck = (gcnew System::Windows::Forms::CheckBox());
+            this->valueWidthEdit = (gcnew System::Windows::Forms::NumericUpDown());
+            this->label4 = (gcnew System::Windows::Forms::Label());
             this->groupBox1->SuspendLayout();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->BeginInit();
             this->SuspendLayout();
             // 
             // monitorItemListBox
@@ -217,10 +224,34 @@ namespace HardwareMonitor {
             this->decimalPlaceCombo->FormattingEnabled = true;
             this->decimalPlaceCombo->Name = L"decimalPlaceCombo";
             // 
+            // specifyValueWidthCheck
+            // 
+            resources->ApplyResources(this->specifyValueWidthCheck, L"specifyValueWidthCheck");
+            this->specifyValueWidthCheck->Name = L"specifyValueWidthCheck";
+            this->specifyValueWidthCheck->UseVisualStyleBackColor = true;
+            this->specifyValueWidthCheck->CheckedChanged += gcnew System::EventHandler(this, &SettingsForm::specifyValueWidthCheck_CheckedChanged);
+            // 
+            // valueWidthEdit
+            // 
+            resources->ApplyResources(this->valueWidthEdit, L"valueWidthEdit");
+            this->valueWidthEdit->Maximum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 20, 0, 0, 0 });
+            this->valueWidthEdit->Minimum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1, 0, 0, 0 });
+            this->valueWidthEdit->Name = L"valueWidthEdit";
+            this->valueWidthEdit->Value = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1, 0, 0, 0 });
+            this->valueWidthEdit->ValueChanged += gcnew System::EventHandler(this, &SettingsForm::valueWidthEdit_ValueChanged);
+            // 
+            // label4
+            // 
+            resources->ApplyResources(this->label4, L"label4");
+            this->label4->Name = L"label4";
+            // 
             // SettingsForm
             // 
             resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+            this->Controls->Add(this->label4);
+            this->Controls->Add(this->valueWidthEdit);
+            this->Controls->Add(this->specifyValueWidthCheck);
             this->Controls->Add(this->decimalPlaceCombo);
             this->Controls->Add(this->label3);
             this->Controls->Add(this->showTooltipCheck);
@@ -234,6 +265,7 @@ namespace HardwareMonitor {
             this->Name = L"SettingsForm";
             this->groupBox1->ResumeLayout(false);
             this->groupBox1->PerformLayout();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->EndInit();
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -241,5 +273,7 @@ namespace HardwareMonitor {
 #pragma endregion
     private: System::Void removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void addItemBtn_Click(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void specifyValueWidthCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void valueWidthEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e);
 };
 }

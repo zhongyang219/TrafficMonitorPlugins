@@ -12,8 +12,7 @@ namespace HardwareMonitor
         InitializeComponent();
         UpdateItemList();
 
-        //“移除”按钮初始为禁用状态
-        removeSelectBtn->Enabled = false;
+        EnableControls();
 
         //初始化要监控的硬件选项
         Computer^ computer = MonitorGlobal::Instance()->computer;
@@ -30,7 +29,6 @@ namespace HardwareMonitor
         showTooltipCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip;
 
         decimalPlaceCombo->DropDownStyle = ComboBoxStyle::DropDownList;
-        decimalPlaceCombo->Enabled = false;
         decimalPlaceCombo->Items->Add("0");
         decimalPlaceCombo->Items->Add("1");
         decimalPlaceCombo->Items->Add("2");
@@ -58,15 +56,28 @@ namespace HardwareMonitor
         }
     }
 
+    bool SettingsForm::IsSelectionValid()
+    {
+        return (monitorItemListBox->SelectedIndex >= 0 && monitorItemListBox->SelectedIndex < static_cast<int>(CHardwareMonitor::GetInstance()->m_settings.items_info.size()));
+    }
+
+    void SettingsForm::EnableControls()
+    {
+        bool selection_enabled = IsSelectionValid();
+        removeSelectBtn->Enabled = selection_enabled;
+        decimalPlaceCombo->Enabled = selection_enabled;
+        specifyValueWidthCheck->Enabled = selection_enabled;
+        valueWidthEdit->Enabled = selection_enabled && specifyValueWidthCheck->Checked;
+    }
+
     void SettingsForm::listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e)
     {
         // 根据是否有选中项启用或禁用按钮
-        removeSelectBtn->Enabled = monitorItemListBox->SelectedIndex >= 0;
+        EnableControls();
 
         //设置选中项对应的设置控件
-        if (monitorItemListBox->SelectedIndex >= 0 && monitorItemListBox->SelectedIndex < static_cast<int>(CHardwareMonitor::GetInstance()->m_settings.items_info.size()))
+        if (IsSelectionValid())
         {
-            decimalPlaceCombo->Enabled = true;
             ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
             if (item_info.decimal_places >= 0 && item_info.decimal_places < decimalPlaceCombo->Items->Count)
             {
@@ -76,16 +87,15 @@ namespace HardwareMonitor
             {
                 decimalPlaceCombo->SelectedIndex = -1;
             }
-        }
-        else
-        {
-            decimalPlaceCombo->Enabled = false;
+
+            specifyValueWidthCheck->Checked = item_info.specify_value_width;
+            valueWidthEdit->Value = item_info.value_width;
         }
     }
 
     void SettingsForm::OnDecimalPlaceComboBoxSelectedIndexChanged(Object^ sender, EventArgs^ e)
     {
-        if (monitorItemListBox->SelectedIndex >= 0 && monitorItemListBox->SelectedIndex < static_cast<int>(CHardwareMonitor::GetInstance()->m_settings.items_info.size()))
+        if (IsSelectionValid())
         {
             ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
             item_info.decimal_places = decimalPlaceCombo->SelectedIndex;
@@ -142,6 +152,25 @@ namespace HardwareMonitor
     {
         MonitorGlobal::Instance()->ShowHardwareInfoDialog();
         UpdateItemList();
+    }
+
+    System::Void SettingsForm::specifyValueWidthCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            item_info.specify_value_width = specifyValueWidthCheck->Checked;
+        }
+        EnableControls();
+    }
+
+    System::Void SettingsForm::valueWidthEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            item_info.value_width = static_cast<int>(valueWidthEdit->Value);
+        }
     }
 
 }
