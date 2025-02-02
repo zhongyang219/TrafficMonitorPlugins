@@ -100,7 +100,7 @@ namespace HardwareMonitor
         {
             computer->IsCpuEnabled = cpuCheck->Checked;
             computer->IsGpuEnabled = gpuCheck->Checked;
-            computer->IsMotherboardEnabled = storageCheck->Checked;
+            computer->IsMotherboardEnabled = motherBoardCheck->Checked;
             computer->IsStorageEnabled = storageCheck->Checked;
             computer->IsBatteryEnabled = batteryCheck->Checked;
             computer->IsNetworkEnabled = networkCheck->Checked;
