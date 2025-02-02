@@ -119,6 +119,8 @@ namespace HardwareMonitor
         computer->IsControllerEnabled = ini.GetBool(L"hardware", L"IsControllerEnabled", false);    //风扇控制器
         computer->IsPsuEnabled = ini.GetBool(L"hardware", L"IsPsuEnabled", false);                  //电源
 
+        MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
+
         //载入要监控的项目
         int item_count = ini.GetInt(L"config", L"item_count");
         //添加监控的项目
