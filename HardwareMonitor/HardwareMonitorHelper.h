@@ -4,12 +4,26 @@ namespace HardwareMonitor
     class HardwareMonitorHelper
     {
     public:
+        //获取传感器类型名称
         static System::String^ GetSensorTypeName(LibreHardwareMonitor::Hardware::SensorType type);
+
+        //根据传感器类型获取数据的单位
         static const wchar_t* GetSensorTypeUnit(LibreHardwareMonitor::Hardware::SensorType type);
+
+        //根据一个传感器的唯一标识符查找一个传感器
         static LibreHardwareMonitor::Hardware::ISensor^ FindSensorByIdentifyer(System::String^ identifyer);
+
+        //获取一个传感器数值的文本，并指定小数位数
         static System::String^ GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, int decimal_place = 2);
+
+        //获取一个传感器的名称和数值文本（使用4个空格分隔）
         static System::String^ GetSensorNameValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor);
+
+        //获取一个传感器的显示名称（由硬件、传感器类型、传感器组成，使用“|”分隔
         static System::String^ GetSensorDisplayName(LibreHardwareMonitor::Hardware::ISensor^ sensor);
+
+        //获取一个传感器的唯一标识符
+        static System::String^ GetSensorIdentifyer(LibreHardwareMonitor::Hardware::ISensor^ sensor);
     };
 }
 

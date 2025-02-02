@@ -53,7 +53,7 @@ namespace HardwareMonitor
     {
         if (sensor != nullptr)
         {
-            std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(sensor->Identifier->ToString());
+            std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorIdentifyer(sensor));
             //检查监控项目是否存在
             if (!IsDisplayItemExist(identifyer))
             {

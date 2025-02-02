@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "HardwareMonitorHelper.h"
 #include "HardwareMonitor.h"
+#include <gcroot.h>
 
 using namespace LibreHardwareMonitor::Hardware;
 
@@ -62,25 +63,44 @@ namespace HardwareMonitor
         return L"";
     }
 
-    LibreHardwareMonitor::Hardware::ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(System::String^ identifyer)
+    //查找一个硬件下的传感器
+    //func为一个lambda表达式，原型为 bool(ISensor^)
+    template<class Func>
+    static ISensor^ FindSensorInHardware(IHardware^ hardware, Func func)
+    {
+        //遍历传感器
+        for each (ISensor ^ sensor in hardware->Sensors)
+        {
+            if (func(sensor))
+                return sensor;
+        }
+        //遍历子硬件
+        for each (IHardware ^ sub_hardware in hardware->SubHardware)
+        {
+            ISensor^ sensor = FindSensorInHardware(sub_hardware, func);
+            if (sensor != nullptr)
+                return sensor;
+        }
+        return nullptr;
+
+    }
+
+    ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(System::String^ identifyer)
     {
         auto computer = MonitorGlobal::Instance()->computer;
-        for (int i = 0; i < computer->Hardware->Count; i++)
+        gcroot<String^> _identifyer = identifyer;       //使用gcroot包装托管类指针，以便被lambda捕获
+        for each (IHardware^ hardware in computer->Hardware)
         {
-            auto hardware = computer->Hardware[i];
-            for (int j = 0; j < hardware->Sensors->Length; j++)
-            {
-                auto sensor = hardware->Sensors[j];
-                if (sensor->Identifier->ToString() == identifyer)
-                {
-                    return sensor;
-                }
-            }
+            ISensor^ sensor = FindSensorInHardware(hardware, [&](ISensor^ _sensor) {
+                return GetSensorIdentifyer(_sensor) == _identifyer;
+            });
+            if (sensor != nullptr)
+                return sensor;
         }
         return nullptr;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, int decimal_place)
+    System::String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, int decimal_place)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
@@ -104,7 +124,7 @@ namespace HardwareMonitor
         return sensor_str;
     }
 
-    String^ HardwareMonitorHelper::GetSensorNameValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor)
+    String^ HardwareMonitorHelper::GetSensorNameValueText(ISensor^ sensor)
     {
         String^ sensor_str;
         sensor_str = sensor->Name;
@@ -113,7 +133,7 @@ namespace HardwareMonitor
         return sensor_str;
     }
 
-    String^ HardwareMonitorHelper::GetSensorDisplayName(LibreHardwareMonitor::Hardware::ISensor^ sensor)
+    String^ HardwareMonitorHelper::GetSensorDisplayName(ISensor^ sensor)
     {
         String^ name;
         IHardware^ hardware = sensor->Hardware;
@@ -123,5 +143,25 @@ namespace HardwareMonitor
         name += "|";
         name += sensor->Name;
         return name;
+    }
+
+    System::String^ HardwareMonitorHelper::GetSensorIdentifyer(ISensor^ sensor)
+    {
+        //不使用sensor->Identifier，因为sensor->Identifier代表的传感器并不总是固定的
+        //return sensor->Identifier->ToString();
+
+        String^ path;
+        IHardware^ hardware = sensor->Hardware;
+        while (hardware != nullptr)
+        {
+            //Hardware部分仍然使用它自己的Identifier
+            path = hardware->Identifier + "/" + path;
+            hardware = hardware->Parent;
+        }
+        //Sensor部分使用“类型+名称”
+        path += sensor->SensorType.ToString();
+        path += "/";
+        path += sensor->Name;
+        return path;
     }
 }

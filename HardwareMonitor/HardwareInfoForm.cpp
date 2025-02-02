@@ -46,7 +46,7 @@ namespace HardwareMonitor
 
             String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
             auto sensor_node = type_node->Nodes->Add(sensor_str);
-            sensor_node->Tag = sensor->Identifier->ToString();
+            sensor_node->Tag = HardwareMonitorHelper::GetSensorIdentifyer(sensor);
         }
         return hardware_node;
     }
