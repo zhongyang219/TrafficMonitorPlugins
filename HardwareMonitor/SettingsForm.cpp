@@ -10,6 +10,7 @@ namespace HardwareMonitor
         this->StartPosition = FormStartPosition::CenterParent;
         this->Icon = MonitorGlobal::Instance()->GetAppIcon();
         InitializeComponent();
+        this->MinimumSize = this->Size;
         UpdateItemList();
 
         EnableControls();
