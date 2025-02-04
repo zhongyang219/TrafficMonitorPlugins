@@ -9,6 +9,8 @@ namespace HardwareMonitor {
 	using namespace System::Data;
 	using namespace System::Drawing;
 
+    struct ItemInfo;
+
 	/// <summary>
 	/// SettingsForm 摘要
 	/// </summary>
@@ -30,6 +32,11 @@ namespace HardwareMonitor {
 				delete components;
 			}
 		}
+
+    private:
+        //列表中每个项目的标识符
+        System::Collections::Generic::List<String^>^ identifyerList = gcnew System::Collections::Generic::List<String^>();
+
     private: System::Windows::Forms::ListBox^ monitorItemListBox;
     private: System::Windows::Forms::Button^ removeSelectBtn;
     private: System::Windows::Forms::Label^ label1;
@@ -55,6 +62,7 @@ namespace HardwareMonitor {
 
     protected:
         bool IsSelectionValid();
+        ItemInfo& GetSelectedItemInfo();
         void EnableControls();
 
         void listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);

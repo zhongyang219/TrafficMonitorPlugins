@@ -47,19 +47,35 @@ namespace HardwareMonitor
     {
         //清除列表
         monitorItemListBox->Items->Clear();
+        identifyerList->Clear();
 
         //填充数据
         for (const auto& item : CHardwareMonitor::GetInstance()->m_settings.items_info)
         {
             String^ item_name = gcnew String(CHardwareMonitor::GetInstance()->GetItemName(item.identifyer).c_str());
             if (item_name->Length > 0)
+            {
                 monitorItemListBox->Items->Add(item_name);
+                identifyerList->Add(gcnew String(item.identifyer.c_str()));
+            }
         }
     }
 
     bool SettingsForm::IsSelectionValid()
     {
-        return (monitorItemListBox->SelectedIndex >= 0 && monitorItemListBox->SelectedIndex < static_cast<int>(CHardwareMonitor::GetInstance()->m_settings.items_info.size()));
+        return (monitorItemListBox->SelectedIndex >= 0 && monitorItemListBox->SelectedIndex < monitorItemListBox->Items->Count);
+    }
+
+    ItemInfo& SettingsForm::GetSelectedItemInfo()
+    {
+        int index = monitorItemListBox->SelectedIndex;
+        if (index >= 0 && index < identifyerList->Count)
+        {
+            std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(identifyerList[index]);
+            return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifyer);
+        }
+        static ItemInfo emptyInfo;
+        return emptyInfo;
     }
 
     void SettingsForm::EnableControls()
@@ -79,7 +95,7 @@ namespace HardwareMonitor
         //设置选中项对应的设置控件
         if (IsSelectionValid())
         {
-            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            ItemInfo& item_info = GetSelectedItemInfo();
             if (item_info.decimal_places >= 0 && item_info.decimal_places < decimalPlaceCombo->Items->Count)
             {
                 decimalPlaceCombo->SelectedIndex = item_info.decimal_places;
@@ -98,7 +114,7 @@ namespace HardwareMonitor
     {
         if (IsSelectionValid())
         {
-            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            ItemInfo& item_info = GetSelectedItemInfo();
             item_info.decimal_places = decimalPlaceCombo->SelectedIndex;
         }
     }
@@ -159,7 +175,7 @@ namespace HardwareMonitor
     {
         if (IsSelectionValid())
         {
-            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            ItemInfo& item_info = GetSelectedItemInfo();
             item_info.specify_value_width = specifyValueWidthCheck->Checked;
         }
         EnableControls();
@@ -169,7 +185,7 @@ namespace HardwareMonitor
     {
         if (IsSelectionValid())
         {
-            ItemInfo& item_info = CHardwareMonitor::GetInstance()->m_settings.items_info[monitorItemListBox->SelectedIndex];
+            ItemInfo& item_info = GetSelectedItemInfo();
             item_info.value_width = static_cast<int>(valueWidthEdit->Value);
         }
     }
