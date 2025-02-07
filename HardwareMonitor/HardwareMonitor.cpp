@@ -225,7 +225,7 @@ namespace HardwareMonitor
         }
         catch (System::Exception^ e)
         {
-            ShowErrorMessage(e);
+            //ShowErrorMessage(e);
         }
     }
 
