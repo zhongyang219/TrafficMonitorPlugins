@@ -28,8 +28,15 @@ namespace HardwareMonitor
     {
         if (m_pIns == nullptr)
         {
-            m_pIns = new CHardwareMonitor();
-            MonitorGlobal::Instance()->Init();
+            try
+            {
+                m_pIns = new CHardwareMonitor();
+                MonitorGlobal::Instance()->Init();
+            }
+            catch (System::Exception^ e)
+            {
+                ShowErrorMessage(e);
+            }
         }
         return m_pIns;
     }
@@ -184,6 +191,14 @@ namespace HardwareMonitor
         return pixel * m_dpi / 96;
     }
 
+    void CHardwareMonitor::ShowErrorMessage(System::Exception^ e)
+    {
+        String^ str = e->Message;
+        str += "\r\n";
+        str += e->StackTrace;
+        MessageBox::Show(str, "TrafficMonitor HardwareMonitor plugin", MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+
     IPluginItem* CHardwareMonitor::GetItem(int index)
     {
         if (index >= 0 && index < static_cast<int>(m_items.size()))
@@ -195,15 +210,22 @@ namespace HardwareMonitor
 
     void CHardwareMonitor::DataRequired()
     {
-        //重新获取数据
-        MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
-        //更新“硬件信息”树节点
-        if (MonitorGlobal::Instance()->monitor_form != nullptr && m_settings.hardware_info_auto_refresh)
-            MonitorGlobal::Instance()->monitor_form->UpdateData();
-        //更新所有显示项目
-        for (auto& item : m_items)
+        try
         {
-            item.UpdateValue();
+            //重新获取数据
+            MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
+            //更新“硬件信息”树节点
+            if (MonitorGlobal::Instance()->monitor_form != nullptr && m_settings.hardware_info_auto_refresh)
+                MonitorGlobal::Instance()->monitor_form->UpdateData();
+            //更新所有显示项目
+            for (auto& item : m_items)
+            {
+                item.UpdateValue();
+            }
+        }
+        catch (System::Exception^ e)
+        {
+            ShowErrorMessage(e);
         }
     }
 
@@ -256,11 +278,18 @@ namespace HardwareMonitor
 
     ITMPlugin::OptionReturn CHardwareMonitor::ShowOptionsDialog(void* hParent)
     {
-        SettingsForm^ form = gcnew SettingsForm();
-        if (form->ShowDialog() == DialogResult::OK)
+        try
         {
-            SaveConfig();
-            return ITMPlugin::OR_OPTION_CHANGED;
+            SettingsForm^ form = gcnew SettingsForm();
+            if (form->ShowDialog() == DialogResult::OK)
+            {
+                SaveConfig();
+                return ITMPlugin::OR_OPTION_CHANGED;
+            }
+        }
+        catch (System::Exception^ e)
+        {
+            ShowErrorMessage(e);
         }
         return ITMPlugin::OR_OPTION_UNCHANGED;
     }
@@ -270,8 +299,15 @@ namespace HardwareMonitor
         switch (index)
         {
         case ITMPlugin::EI_CONFIG_DIR:
-            //从配置文件读取配置
-            LoadConfig(std::wstring(data));
+            try
+            {
+                //从配置文件读取配置
+                LoadConfig(std::wstring(data));
+            }
+            catch (System::Exception^ e)
+            {
+                ShowErrorMessage(e);
+            }
             break;
         default:
             break;
@@ -366,10 +402,17 @@ namespace HardwareMonitor
 
     void MonitorGlobal::ShowHardwareInfoDialog()
     {
-        HardwareInfoForm^ form = gcnew HardwareInfoForm();
-        monitor_form = form;
-        form->ShowDialog();
-        monitor_form = nullptr;
+        try
+        {
+            HardwareInfoForm^ form = gcnew HardwareInfoForm();
+            monitor_form = form;
+            form->ShowDialog();
+            monitor_form = nullptr;
+        }
+        catch (System::Exception^ e)
+        {
+            CHardwareMonitor::ShowErrorMessage(e);
+        }
     }
 
     Icon^ MonitorGlobal::LoadIcon(String^ name, int icon_size)

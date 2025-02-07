@@ -47,6 +47,8 @@ namespace HardwareMonitor
 
         OptionSettings m_settings;
 
+        static void ShowErrorMessage(System::Exception^ e);
+
     private:
         static CHardwareMonitor* m_pIns;
         std::vector<CHardwareMonitorItem> m_items;
