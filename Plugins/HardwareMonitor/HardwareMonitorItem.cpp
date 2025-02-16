@@ -83,7 +83,14 @@ namespace HardwareMonitor
         {
             const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
             item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, item_info.decimal_places));
-            item_value_num = sensor->Value.Value;
+            try
+            {
+                item_value_num = sensor->Value.Value;
+            }
+            catch (System::Exception^)
+            {
+                item_value_num = 0;
+            }
             sensor_type = static_cast<int>(sensor->SensorType);
         }
     }
