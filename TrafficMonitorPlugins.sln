@@ -3,25 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32414.318
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Weather", "Weather\Weather.vcxproj", "{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Weather", "Plugins\Weather\Weather.vcxproj", "{8B13549B-65D4-424A-BC2F-F9CD1441AC5F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Battery", "Battery\Battery.vcxproj", "{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Battery", "Plugins\Battery\Battery.vcxproj", "{FFBC517B-2C51-41ED-9B27-F03B9CB0DB18}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginTemplate", "PluginTemplate\PluginTemplate.vcxproj", "{1C2173CA-593F-45D3-9725-B3FEC66F2D46}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginTemplate", "Plugins\PluginTemplate\PluginTemplate.vcxproj", "{1C2173CA-593F-45D3-9725-B3FEC66F2D46}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stock", "Stock\Stock.vcxproj", "{3C3BA2AD-1053-4283-8805-5D392E3E7D38}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stock", "Plugins\Stock\Stock.vcxproj", "{3C3BA2AD-1053-4283-8805-5D392E3E7D38}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utilities", "utilities\utilities.vcxproj", "{FC324049-5EF6-4561-ABC6-D2FDD68A8768}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DateTime", "DateTime\DateTime.vcxproj", "{D1CA3ECC-DC32-445A-B734-C4DB08D4BA34}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DateTime", "Plugins\DateTime\DateTime.vcxproj", "{D1CA3ECC-DC32-445A-B734-C4DB08D4BA34}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TextReader", "TextReader\TextReader.vcxproj", "{36227C43-3372-4EAA-B6C0-716AABFC98B1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TextReader", "Plugins\TextReader\TextReader.vcxproj", "{36227C43-3372-4EAA-B6C0-716AABFC98B1}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection
@@ -31,12 +31,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginTester", "PluginTeste
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IpAddress", "IpAddress\IpAddress.vcxproj", "{8391DD45-0C43-4418-9C36-4335FF8777FC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IpAddress", "Plugins\IpAddress\IpAddress.vcxproj", "{8391DD45-0C43-4418-9C36-4335FF8777FC}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HardwareMonitor", "HardwareMonitor\HardwareMonitor.vcxproj", "{C0A42F4A-ABB3-4575-B4D5-CEDD8379AC26}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HardwareMonitor", "Plugins\HardwareMonitor\HardwareMonitor.vcxproj", "{C0A42F4A-ABB3-4575-B4D5-CEDD8379AC26}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FC324049-5EF6-4561-ABC6-D2FDD68A8768} = {FC324049-5EF6-4561-ABC6-D2FDD68A8768}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoudnessMeter", "Plugins\LoudnessMeter\LoudnessMeter.vcxproj", "{9BA952EB-9048-478C-810D-06E3D9B4994E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -126,6 +131,14 @@ Global
 		{C0A42F4A-ABB3-4575-B4D5-CEDD8379AC26}.Release|x64.Build.0 = Release|x64
 		{C0A42F4A-ABB3-4575-B4D5-CEDD8379AC26}.Release|x86.ActiveCfg = Release|Win32
 		{C0A42F4A-ABB3-4575-B4D5-CEDD8379AC26}.Release|x86.Build.0 = Release|Win32
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Debug|x64.ActiveCfg = Debug|x64
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Debug|x64.Build.0 = Debug|x64
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Debug|x86.ActiveCfg = Debug|Win32
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Debug|x86.Build.0 = Debug|Win32
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Release|x64.ActiveCfg = Release|x64
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Release|x64.Build.0 = Release|x64
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Release|x86.ActiveCfg = Release|Win32
+		{9BA952EB-9048-478C-810D-06E3D9B4994E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
