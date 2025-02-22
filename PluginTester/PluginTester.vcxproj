@@ -209,6 +209,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\PluginInterface.h" />
     <ClInclude Include="CommonData.h" />
     <ClInclude Include="DrawCommon.h" />
     <ClInclude Include="PluginInfoDlg.h" />
