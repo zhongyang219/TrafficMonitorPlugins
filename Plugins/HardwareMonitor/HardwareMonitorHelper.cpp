@@ -45,7 +45,7 @@ namespace HardwareMonitor
         case SensorType::Current: unitList->Add("A"); unitList->Add("mA"); break;
         case SensorType::Power: unitList->Add("W"); unitList->Add("mW"); break;
         case SensorType::Clock: unitList->Add("MHz"); unitList->Add("GHz"); break;
-        case SensorType::Temperature: unitList->Add("°C"); break;
+        case SensorType::Temperature: unitList->Add("°C"); unitList->Add("°F"); break;
         case SensorType::Load: unitList->Add("%"); break;
         case SensorType::Frequency: unitList->Add(""); break;
         case SensorType::Fan: unitList->Add("RPM"); break;
@@ -141,6 +141,13 @@ namespace HardwareMonitor
                 if (unit->Equals("GHz"))
                     value /= 1024.0f;
             }
+            //温度
+            else if (sensor->SensorType == SensorType::Temperature)
+            {
+                if (unit->Equals("°F"))
+                    value = (value * 9.0f / 5.0f) + 32.0f;
+            }
+
             //数据（默认GB）
             else if (sensor->SensorType == SensorType::Data)
             {
