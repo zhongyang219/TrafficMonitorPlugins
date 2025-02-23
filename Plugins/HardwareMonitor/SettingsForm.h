@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 namespace HardwareMonitor {
 
@@ -12,7 +12,7 @@ namespace HardwareMonitor {
     struct ItemInfo;
 
 	/// <summary>
-	/// SettingsForm ÕªÒª
+	/// SettingsForm æ‘˜è¦
 	/// </summary>
 	public ref class SettingsForm : public System::Windows::Forms::Form
 	{
@@ -23,7 +23,7 @@ namespace HardwareMonitor {
 
 	protected:
 		/// <summary>
-		/// ÇåÀíËùÓĞÕıÔÚÊ¹ÓÃµÄ×ÊÔ´¡£
+		/// æ¸…ç†æ‰€æœ‰æ­£åœ¨ä½¿ç”¨çš„èµ„æºã€‚
 		/// </summary>
 		~SettingsForm()
 		{
@@ -34,7 +34,7 @@ namespace HardwareMonitor {
 		}
 
     private:
-        //ÁĞ±íÖĞÃ¿¸öÏîÄ¿µÄ±êÊ¶·û
+        //åˆ—è¡¨ä¸­æ¯ä¸ªé¡¹ç›®çš„æ ‡è¯†ç¬¦
         System::Collections::Generic::List<String^>^ identifyerList = gcnew System::Collections::Generic::List<String^>();
 
     private: System::Windows::Forms::ListBox^ monitorItemListBox;
@@ -58,6 +58,10 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::CheckBox^ specifyValueWidthCheck;
     private: System::Windows::Forms::NumericUpDown^ valueWidthEdit;
     private: System::Windows::Forms::Label^ label4;
+    private: System::Windows::Forms::GroupBox^ groupBox2;
+    private: System::Windows::Forms::Label^ label5;
+    private: System::Windows::Forms::ComboBox^ unitCombo;
+
     private: System::Windows::Forms::Button^ addItemBtn;
 
     protected:
@@ -71,14 +75,14 @@ namespace HardwareMonitor {
 
 	private:
 		/// <summary>
-		/// ±ØĞèµÄÉè¼ÆÆ÷±äÁ¿¡£
+		/// å¿…éœ€çš„è®¾è®¡å™¨å˜é‡ã€‚
 		/// </summary>
 		System::ComponentModel::Container ^components;
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Éè¼ÆÆ÷Ö§³ÖËùĞèµÄ·½·¨ - ²»ÒªĞŞ¸Ä
-		/// Ê¹ÓÃ´úÂë±à¼­Æ÷ĞŞ¸Ä´Ë·½·¨µÄÄÚÈİ¡£
+		/// è®¾è®¡å™¨æ”¯æŒæ‰€éœ€çš„æ–¹æ³• - ä¸è¦ä¿®æ”¹
+		/// ä½¿ç”¨ä»£ç ç¼–è¾‘å™¨ä¿®æ”¹æ­¤æ–¹æ³•çš„å†…å®¹ã€‚
 		/// </summary>
 		void InitializeComponent(void)
 		{
@@ -105,8 +109,12 @@ namespace HardwareMonitor {
             this->specifyValueWidthCheck = (gcnew System::Windows::Forms::CheckBox());
             this->valueWidthEdit = (gcnew System::Windows::Forms::NumericUpDown());
             this->label4 = (gcnew System::Windows::Forms::Label());
+            this->groupBox2 = (gcnew System::Windows::Forms::GroupBox());
+            this->label5 = (gcnew System::Windows::Forms::Label());
+            this->unitCombo = (gcnew System::Windows::Forms::ComboBox());
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->BeginInit();
+            this->groupBox2->SuspendLayout();
             this->SuspendLayout();
             // 
             // monitorItemListBox
@@ -253,15 +261,37 @@ namespace HardwareMonitor {
             resources->ApplyResources(this->label4, L"label4");
             this->label4->Name = L"label4";
             // 
+            // groupBox2
+            // 
+            resources->ApplyResources(this->groupBox2, L"groupBox2");
+            this->groupBox2->Controls->Add(this->label5);
+            this->groupBox2->Controls->Add(this->label3);
+            this->groupBox2->Controls->Add(this->label4);
+            this->groupBox2->Controls->Add(this->unitCombo);
+            this->groupBox2->Controls->Add(this->decimalPlaceCombo);
+            this->groupBox2->Controls->Add(this->valueWidthEdit);
+            this->groupBox2->Controls->Add(this->specifyValueWidthCheck);
+            this->groupBox2->Name = L"groupBox2";
+            this->groupBox2->TabStop = false;
+            // 
+            // label5
+            // 
+            resources->ApplyResources(this->label5, L"label5");
+            this->label5->Name = L"label5";
+            // 
+            // unitCombo
+            // 
+            resources->ApplyResources(this->unitCombo, L"unitCombo");
+            this->unitCombo->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+            this->unitCombo->FormattingEnabled = true;
+            this->unitCombo->Name = L"unitCombo";
+            this->unitCombo->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::unitCombo_SelectedIndexChanged);
+            // 
             // SettingsForm
             // 
             resources->ApplyResources(this, L"$this");
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->Controls->Add(this->label4);
-            this->Controls->Add(this->valueWidthEdit);
-            this->Controls->Add(this->specifyValueWidthCheck);
-            this->Controls->Add(this->decimalPlaceCombo);
-            this->Controls->Add(this->label3);
+            this->Controls->Add(this->groupBox2);
             this->Controls->Add(this->showTooltipCheck);
             this->Controls->Add(this->label2);
             this->Controls->Add(this->groupBox1);
@@ -274,6 +304,8 @@ namespace HardwareMonitor {
             this->groupBox1->ResumeLayout(false);
             this->groupBox1->PerformLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->EndInit();
+            this->groupBox2->ResumeLayout(false);
+            this->groupBox2->PerformLayout();
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -283,5 +315,6 @@ namespace HardwareMonitor {
     private: System::Void addItemBtn_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void specifyValueWidthCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
     private: System::Void valueWidthEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void unitCombo_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
 };
 }

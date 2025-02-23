@@ -1,9 +1,10 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "HardwareMonitorHelper.h"
 #include "HardwareMonitor.h"
 #include <gcroot.h>
 
 using namespace LibreHardwareMonitor::Hardware;
+using namespace System::Collections::Generic;
 
 namespace HardwareMonitor
 {
@@ -35,46 +36,56 @@ namespace HardwareMonitor
         return L"";
     }
 
-    const wchar_t* HardwareMonitorHelper::GetSensorTypeUnit(SensorType type)
+    List<String^>^ HardwareMonitorHelper::GetSensorTypeUnit(SensorType type)
     {
+        List<String^>^ unitList = gcnew List<String^>();
         switch (type)
         {
-        case SensorType::Voltage: return L"V";
-        case SensorType::Current: return L"A";
-        case SensorType::Power: return L"W";
-        case SensorType::Clock: return L"MHz";
-        case SensorType::Temperature: return L"¡ãC";
-        case SensorType::Load: return L"%";
-        case SensorType::Frequency: return L"";
-        case SensorType::Fan: return L"RPM";
-        case SensorType::Flow: return L"";
-        case SensorType::Control: return L"%";
-        case SensorType::Level: return L"%";
-        case SensorType::Factor: return L"";
-        case SensorType::Data: return L"GB";
-        case SensorType::SmallData: return L"MB";
-        case SensorType::Throughput: return L"KB/s";
-        case SensorType::TimeSpan: return L"";
-        case SensorType::Energy: return L"mWh";
-        case SensorType::Noise: return L"";
-        case SensorType::Conductivity: return L"";
-        case SensorType::Humidity: return L"";
+        case SensorType::Voltage: unitList->Add("V"); unitList->Add("mV"); break;
+        case SensorType::Current: unitList->Add("A"); unitList->Add("mA"); break;
+        case SensorType::Power: unitList->Add("W"); unitList->Add("mW"); break;
+        case SensorType::Clock: unitList->Add("MHz"); unitList->Add("GHz"); break;
+        case SensorType::Temperature: unitList->Add("Â°C"); break;
+        case SensorType::Load: unitList->Add("%"); break;
+        case SensorType::Frequency: unitList->Add(""); break;
+        case SensorType::Fan: unitList->Add("RPM"); break;
+        case SensorType::Flow: unitList->Add(""); break;
+        case SensorType::Control: unitList->Add("%"); break;
+        case SensorType::Level: unitList->Add("%"); break;
+        case SensorType::Factor: unitList->Add(""); break;
+        case SensorType::Data: unitList->Add("GB"); unitList->Add("MB"); break;
+        case SensorType::SmallData: unitList->Add("MB"); unitList->Add("GB"); break;
+        case SensorType::Throughput: unitList->Add("KB/s"); unitList->Add("MB/s"); break;
+        case SensorType::TimeSpan: unitList->Add(""); break;
+        case SensorType::Energy: unitList->Add("mWh"); unitList->Add("Wh"); break;
+        case SensorType::Noise: unitList->Add(""); break;
+        case SensorType::Conductivity: unitList->Add(""); break;
+        case SensorType::Humidity: unitList->Add(""); break;
+        default: unitList->Add(""); break;
         }
-        return L"";
+        return unitList;
     }
 
-    //²éÕÒÒ»¸öÓ²¼şÏÂµÄ´«¸ĞÆ÷
-    //funcÎªÒ»¸ölambda±í´ïÊ½£¬Ô­ĞÍÎª bool(ISensor^)
+    System::String^ HardwareMonitorHelper::GetSensorTypeDefaultUnit(LibreHardwareMonitor::Hardware::SensorType type)
+    {
+        List<String^>^ unitList = GetSensorTypeUnit(type);
+        if (unitList->Count > 0)
+            return unitList[0];
+        return gcnew String("");
+    }
+
+    //æŸ¥æ‰¾ä¸€ä¸ªç¡¬ä»¶ä¸‹çš„ä¼ æ„Ÿå™¨
+    //funcä¸ºä¸€ä¸ªlambdaè¡¨è¾¾å¼ï¼ŒåŸå‹ä¸º bool(ISensor^)
     template<class Func>
     static ISensor^ FindSensorInHardware(IHardware^ hardware, Func func)
     {
-        //±éÀú´«¸ĞÆ÷
+        //éå†ä¼ æ„Ÿå™¨
         for each (ISensor ^ sensor in hardware->Sensors)
         {
             if (func(sensor))
                 return sensor;
         }
-        //±éÀú×ÓÓ²¼ş
+        //éå†å­ç¡¬ä»¶
         for each (IHardware ^ sub_hardware in hardware->SubHardware)
         {
             ISensor^ sensor = FindSensorInHardware(sub_hardware, func);
@@ -88,7 +99,7 @@ namespace HardwareMonitor
     ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(System::String^ identifyer)
     {
         auto computer = MonitorGlobal::Instance()->computer;
-        gcroot<String^> _identifyer = identifyer;       //Ê¹ÓÃgcroot°ü×°ÍĞ¹ÜÀàÖ¸Õë£¬ÒÔ±ã±»lambda²¶»ñ
+        gcroot<String^> _identifyer = identifyer;       //ä½¿ç”¨gcrootåŒ…è£…æ‰˜ç®¡ç±»æŒ‡é’ˆï¼Œä»¥ä¾¿è¢«lambdaæ•è·
         for each (IHardware^ hardware in computer->Hardware)
         {
             ISensor^ sensor = FindSensorInHardware(hardware, [&](ISensor^ _sensor) {
@@ -100,17 +111,65 @@ namespace HardwareMonitor
         return nullptr;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, int decimal_place)
+    System::String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, System::String^ unit, int decimal_place)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
         {
             float value = sensor->Value.Value;
-            if (sensor->SensorType == SensorType::Throughput)   //ÍøËÙ³ıÒÔ1000×ª»»ÎªKB
-                value /= 1000.0;
-            if (sensor->SensorType == SensorType::Power && sensor->Name == L"Discharge Rate")   //·Åµç¹¦ÂÊÏÔÊ¾Îª¸ºÊı
+            //ç”µå‹
+            if (sensor->SensorType == SensorType::Voltage)
+            {
+                if (unit->Equals("mV"))
+                    value *= 1000.0f;
+            }
+            //ç”µæµ
+            else if (sensor->SensorType == SensorType::Current)
+            {
+                if (unit->Equals("mA"))
+                    value *= 1000.0f;
+            }
+            //åŠŸç‡
+            else if (sensor->SensorType == SensorType::Power)
+            {
+                if (unit->Equals("mW"))
+                    value *= 1000.0f;
+            }
+            //æ—¶é’Ÿé¢‘ç‡
+            else if (sensor->SensorType == SensorType::Clock)
+            {
+                if (unit->Equals("GHz"))
+                    value /= 1024.0f;
+            }
+            //æ•°æ®ï¼ˆé»˜è®¤GBï¼‰
+            else if (sensor->SensorType == SensorType::Data)
+            {
+                if (unit->Equals("MB"))
+                    value *= 1024.0f;
+            }
+            //æ•°æ®ï¼ˆé»˜è®¤MBï¼‰
+            else if (sensor->SensorType == SensorType::SmallData)
+            {
+                if (unit->Equals("GB"))
+                    value /= 1024.0f;
+            }
+            //ç½‘é€Ÿ
+            else if (sensor->SensorType == SensorType::Throughput)
+            {
+                if (unit->Equals("MB")) //MB
+                    value /= (1024.0f * 1024.0f);
+                else                    //KB
+                    value /= 1024.0f;
+            }
+            //ç”µé‡
+            else if (sensor->SensorType == SensorType::Energy)
+            {
+                if (unit->Equals("Wh"))
+                    value /= 1024.0f;
+            }
+            if (sensor->SensorType == SensorType::Power && sensor->Name == L"Discharge Rate")   //æ”¾ç”µåŠŸç‡æ˜¾ç¤ºä¸ºè´Ÿæ•°
                 value = -value;
-            if (sensor->SensorType == SensorType::Current && sensor->Name == L"Discharge Current")   //·ÅµçµçÁ÷ÏÔÊ¾Îª¸ºÊı
+            if (sensor->SensorType == SensorType::Current && sensor->Name == L"Discharge Current")   //æ”¾ç”µç”µæµæ˜¾ç¤ºä¸ºè´Ÿæ•°
                 value = -value;
             String^ formatString = String::Format("F{0}", decimal_place);
             sensor_str += value.ToString(formatString);
@@ -120,7 +179,7 @@ namespace HardwareMonitor
             sensor_str += "--";
         }
         sensor_str += " ";
-        sensor_str += gcnew String(GetSensorTypeUnit(sensor->SensorType));
+        sensor_str += unit;
         return sensor_str;
     }
 
@@ -129,7 +188,8 @@ namespace HardwareMonitor
         String^ sensor_str;
         sensor_str = sensor->Name;
         sensor_str += L"    ";
-        sensor_str += GetSensorValueText(sensor);
+        String^ defaultUnit = GetSensorTypeDefaultUnit(sensor->SensorType);
+        sensor_str += GetSensorValueText(sensor, defaultUnit);
         return sensor_str;
     }
 
@@ -147,18 +207,18 @@ namespace HardwareMonitor
 
     System::String^ HardwareMonitorHelper::GetSensorIdentifyer(ISensor^ sensor)
     {
-        //²»Ê¹ÓÃsensor->Identifier£¬ÒòÎªsensor->Identifier´ú±íµÄ´«¸ĞÆ÷²¢²»×ÜÊÇ¹Ì¶¨µÄ
+        //ä¸ä½¿ç”¨sensor->Identifierï¼Œå› ä¸ºsensor->Identifierä»£è¡¨çš„ä¼ æ„Ÿå™¨å¹¶ä¸æ€»æ˜¯å›ºå®šçš„
         //return sensor->Identifier->ToString();
 
         String^ path;
         IHardware^ hardware = sensor->Hardware;
         while (hardware != nullptr)
         {
-            //Hardware²¿·ÖÈÔÈ»Ê¹ÓÃËü×Ô¼ºµÄIdentifier
+            //Hardwareéƒ¨åˆ†ä»ç„¶ä½¿ç”¨å®ƒè‡ªå·±çš„Identifier
             path = hardware->Identifier + "/" + path;
             hardware = hardware->Parent;
         }
-        //Sensor²¿·ÖÊ¹ÓÃ¡°ÀàĞÍ+Ãû³Æ¡±
+        //Sensoréƒ¨åˆ†ä½¿ç”¨â€œç±»å‹+åç§°â€
         path += sensor->SensorType.ToString();
         path += "/";
         path += sensor->Name;

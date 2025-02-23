@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <vector>
 
@@ -6,10 +6,11 @@ namespace HardwareMonitor
 {
     struct ItemInfo
     {
-        std::wstring identifyer;    //Î¨Ò»±êÊ¶·û
-        int decimal_places{ 2 };         //Ğ¡ÊıÎ»Êı
-        bool specify_value_width{ false };  //Ö¸¶¨ÊıÖµ¿í¶È£¨²»º¬Ğ¡ÊıºÍµ¥Î»£©
-        int value_width{ 4 };       //ÊıÖµ¿í¶È
+        std::wstring identifyer;    //å”¯ä¸€æ ‡è¯†ç¬¦
+        int decimal_places{ 2 };         //å°æ•°ä½æ•°
+        bool specify_value_width{ false };  //æŒ‡å®šæ•°å€¼å®½åº¦ï¼ˆä¸å«å°æ•°å’Œå•ä½ï¼‰
+        int value_width{ 4 };       //æ•°å€¼å®½åº¦
+        std::wstring unit;          //å•ä½
 
         ItemInfo()
         {}
@@ -25,10 +26,10 @@ namespace HardwareMonitor
 
     struct OptionSettings
     {
-        std::vector<ItemInfo> items_info;     //ËùÓĞ¼à¿ØÏîÄ¿
-        ItemInfo& FindItemInfo(const std::wstring& identifyer);     //¸ù¾İidentifyer£¬ÔÚitems_infoÕÒµ½ItemInfo¶ÔÏó
+        std::vector<ItemInfo> items_info;     //æ‰€æœ‰ç›‘æ§é¡¹ç›®
+        ItemInfo& FindItemInfo(const std::wstring& identifyer);     //æ ¹æ®identifyerï¼Œåœ¨items_infoæ‰¾åˆ°ItemInfoå¯¹è±¡
 
-        bool hardware_info_auto_refresh{};              //¼à¿ØĞÅÏ¢½çÃæÊÇ·ñ×Ô¶¯Ë¢ĞÂ
+        bool hardware_info_auto_refresh{};              //ç›‘æ§ä¿¡æ¯ç•Œé¢æ˜¯å¦è‡ªåŠ¨åˆ·æ–°
         bool show_mouse_tooltip{};
     };
 

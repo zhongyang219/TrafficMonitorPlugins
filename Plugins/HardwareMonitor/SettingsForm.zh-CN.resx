@@ -122,10 +122,10 @@
     <value>13, 184</value>
   </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>300, 224</value>
+    <value>297, 284</value>
   </data>
   <data name="removeSelectBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 184</value>
+    <value>328, 184</value>
   </data>
   <data name="removeSelectBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
@@ -143,13 +143,13 @@
     <value>已添加监控项：</value>
   </data>
   <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>386, 433</value>
+    <value>459, 511</value>
   </data>
   <data name="cancelBtn.Text" xml:space="preserve">
     <value>关闭</value>
   </data>
   <data name="addItemBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 223</value>
+    <value>328, 223</value>
   </data>
   <data name="addItemBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 31</value>
@@ -158,7 +158,7 @@
     <value>添加监控项</value>
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>448, 93</value>
+    <value>521, 93</value>
   </data>
   <data name="groupBox1.Text" xml:space="preserve">
     <value>选择要监控的硬件</value>
@@ -173,7 +173,7 @@
     <value>电源</value>
   </data>
   <data name="controllerCheck.Location" type="System.Drawing.Point, System.Drawing">
-    <value>212, 56</value>
+    <value>234, 63</value>
   </data>
   <data name="controllerCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>106, 24</value>
@@ -239,10 +239,10 @@
     <value>10, 26</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 412</value>
+    <value>9, 490</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>363, 53</value>
+    <value>436, 53</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>注意：添加或移除监控项目后需要重新启动TrafficMonitor才能生效。</value>
@@ -257,7 +257,7 @@
     <value>显示鼠标提示</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 268</value>
+    <value>13, 32</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>84, 20</value>
@@ -266,22 +266,22 @@
     <value>小数位数：</value>
   </data>
   <data name="decimalPlaceCombo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 291</value>
+    <value>103, 29</value>
   </data>
   <data name="specifyValueWidthCheck.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 325</value>
+    <value>13, 63</value>
   </data>
   <data name="specifyValueWidthCheck.Size" type="System.Drawing.Size, System.Drawing">
-    <value>153, 52</value>
+    <value>183, 52</value>
   </data>
   <data name="specifyValueWidthCheck.Text" xml:space="preserve">
     <value>指定数值宽度 (不含小数和单位)</value>
   </data>
   <data name="valueWidthEdit.Location" type="System.Drawing.Point, System.Drawing">
-    <value>327, 380</value>
+    <value>13, 118</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>406, 383</value>
+    <value>86, 120</value>
   </data>
   <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
     <value>39, 20</value>
@@ -289,8 +289,32 @@
   <data name="label4.Text" xml:space="preserve">
     <value>字符</value>
   </data>
+  <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
+    <value>13, 158</value>
+  </data>
+  <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
+    <value>84, 20</value>
+  </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>单位设置：</value>
+  </data>
+  <data name="unitCombo.Location" type="System.Drawing.Point, System.Drawing">
+    <value>103, 155</value>
+  </data>
+  <data name="unitCombo.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 28</value>
+  </data>
+  <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>328, 273</value>
+  </data>
+  <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>206, 195</value>
+  </data>
+  <data name="groupBox2.Text" xml:space="preserve">
+    <value>监控项设置</value>
+  </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>473, 474</value>
+    <value>546, 552</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>硬件监控插件设置</value>

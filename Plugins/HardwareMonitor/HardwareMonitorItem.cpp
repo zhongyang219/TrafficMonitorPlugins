@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "HardwareMonitorItem.h"
 #include "HardwareMonitor.h"
 #include "HardwareMonitorHelper.h"
@@ -48,7 +48,12 @@ namespace HardwareMonitor
             }
             sample_text += L' ';
             SensorType type = static_cast<SensorType>(sensor_type);
-            sample_text += HardwareMonitorHelper::GetSensorTypeUnit(type);
+            std::wstring unit;
+            if (!item_info.unit.empty())
+                unit = item_info.unit;
+            else
+                unit = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(type));
+            sample_text += unit;
         }
         else
         {
@@ -82,7 +87,12 @@ namespace HardwareMonitor
         if (sensor != nullptr)
         {
             const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
-            item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, item_info.decimal_places));
+            std::wstring unit;
+            if (!item_info.unit.empty())
+                unit = item_info.unit;
+            else
+                unit = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
+            item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places));
             try
             {
                 item_value_num = sensor->Value.Value;

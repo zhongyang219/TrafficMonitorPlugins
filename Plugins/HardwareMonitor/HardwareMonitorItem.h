@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "PluginInterface.h"
 #include <string>
 #include "CommonData.h"
@@ -10,7 +10,7 @@ namespace HardwareMonitor
     public:
         CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name);
 
-        // Í¨¹ý IPluginItem ¼Ì³Ð
+        // é€šè¿‡ IPluginItem ç»§æ‰¿
         const wchar_t* GetItemName() const override;
         const wchar_t* GetItemId() const override;
         const wchar_t* GetItemLableText() const override;

@@ -1,7 +1,8 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "SettingsForm.h"
 #include "HardwareMonitor.h"
 #include "HardwareMonitorHelper.h"
+using namespace System::Collections::Generic;
 
 namespace HardwareMonitor
 {
@@ -15,7 +16,7 @@ namespace HardwareMonitor
 
         EnableControls();
 
-        //³õÊ¼»¯Òª¼à¿ØµÄÓ²¼þÑ¡Ïî
+        //åˆå§‹åŒ–è¦ç›‘æŽ§çš„ç¡¬ä»¶é€‰é¡¹
         Computer^ computer = MonitorGlobal::Instance()->computer;
         cpuCheck->Checked = computer->IsCpuEnabled;
         gpuCheck->Checked = computer->IsGpuEnabled;
@@ -35,21 +36,21 @@ namespace HardwareMonitor
         decimalPlaceCombo->Items->Add("2");
         decimalPlaceCombo->Items->Add("3");
 
-        // ÎªListBoxµÄSelectedIndexChangedÊÂ¼þÌí¼Ó´¦Àí³ÌÐò
+        // ä¸ºListBoxçš„SelectedIndexChangedäº‹ä»¶æ·»åŠ å¤„ç†ç¨‹åº
         monitorItemListBox->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::listBox_SelectedIndexChanged);
         decimalPlaceCombo->SelectedIndexChanged += gcnew EventHandler(this, &SettingsForm::OnDecimalPlaceComboBoxSelectedIndexChanged);
 
-        // ÎªFormClosingÊÂ¼þÌí¼Ó´¦Àí³ÌÐò
+        // ä¸ºFormClosingäº‹ä»¶æ·»åŠ å¤„ç†ç¨‹åº
         this->FormClosing += gcnew FormClosingEventHandler(this, &SettingsForm::OnFormClosing);
     }
 
     void SettingsForm::UpdateItemList()
     {
-        //Çå³ýÁÐ±í
+        //æ¸…é™¤åˆ—è¡¨
         monitorItemListBox->Items->Clear();
         identifyerList->Clear();
 
-        //Ìî³äÊý¾Ý
+        //å¡«å……æ•°æ®
         for (const auto& item : CHardwareMonitor::GetInstance()->m_settings.items_info)
         {
             String^ item_name = gcnew String(CHardwareMonitor::GetInstance()->GetItemName(item.identifyer).c_str());
@@ -85,14 +86,15 @@ namespace HardwareMonitor
         decimalPlaceCombo->Enabled = selection_enabled;
         specifyValueWidthCheck->Enabled = selection_enabled;
         valueWidthEdit->Enabled = selection_enabled && specifyValueWidthCheck->Checked;
+        unitCombo->Enabled = selection_enabled;
     }
 
     void SettingsForm::listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e)
     {
-        // ¸ù¾ÝÊÇ·ñÓÐÑ¡ÖÐÏîÆôÓÃ»ò½ûÓÃ°´Å¥
+        // æ ¹æ®æ˜¯å¦æœ‰é€‰ä¸­é¡¹å¯ç”¨æˆ–ç¦ç”¨æŒ‰é’®
         EnableControls();
 
-        //ÉèÖÃÑ¡ÖÐÏî¶ÔÓ¦µÄÉèÖÃ¿Ø¼þ
+        //è®¾ç½®é€‰ä¸­é¡¹å¯¹åº”çš„è®¾ç½®æŽ§ä»¶
         if (IsSelectionValid())
         {
             ItemInfo& item_info = GetSelectedItemInfo();
@@ -107,6 +109,23 @@ namespace HardwareMonitor
 
             specifyValueWidthCheck->Checked = item_info.specify_value_width;
             valueWidthEdit->Value = item_info.value_width;
+
+            //å¡«å……â€œå•ä½é€‰æ‹©â€ä¸‹æ‹‰åˆ—è¡¨
+            unitCombo->Items->Clear();
+            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
+            if (sensor != nullptr)
+            {
+                List<String^>^ unitList = HardwareMonitorHelper::GetSensorTypeUnit(sensor->SensorType);
+                for each (String ^ unit in unitList)
+                {
+                    unitCombo->Items->Add(unit);
+                }
+            }
+            int index = unitCombo->FindString(gcnew String(item_info.unit.c_str()));
+            if (index >= 0)
+                unitCombo->SelectedIndex = index;
+            else
+                unitCombo->SelectedIndex = 0;
         }
     }
 
@@ -121,7 +140,7 @@ namespace HardwareMonitor
 
     void SettingsForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
     {
-        //¸üÐÂÒª¼à¿ØµÄÓ²¼þÉèÖÃ
+        //æ›´æ–°è¦ç›‘æŽ§çš„ç¡¬ä»¶è®¾ç½®
         Computer^ computer = MonitorGlobal::Instance()->computer;
         try
         {
@@ -140,23 +159,23 @@ namespace HardwareMonitor
 
         CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;
 
-        //±£´æÉèÖÃ
+        //ä¿å­˜è®¾ç½®
         CHardwareMonitor::GetInstance()->SaveConfig();
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)
     {
         int selectedIndex = monitorItemListBox->SelectedIndex;
-        // É¾³ýListBoxÖÐµÄÑ¡ÖÐÏî
+        // åˆ é™¤ListBoxä¸­çš„é€‰ä¸­é¡¹
         if (selectedIndex >= 0)
         {
-            // µ¯³öMessageBoxÑ¯ÎÊÓÃ»§ÊÇ·ñÒªÉ¾³ý
+            // å¼¹å‡ºMessageBoxè¯¢é—®ç”¨æˆ·æ˜¯å¦è¦åˆ é™¤
             System::Windows::Forms::DialogResult result = System::Windows::Forms::MessageBox::Show(
                 MonitorGlobal::Instance()->GetString(L"RemoveMonitorItemInquery"),
                 MonitorGlobal::Instance()->GetString(L"PluginName"),
                 System::Windows::Forms::MessageBoxButtons::OKCancel, 
                 System::Windows::Forms::MessageBoxIcon::Question);
-            // Èç¹ûÓÃ»§µã»÷¡°È·¶¨¡±£¬ÔòÉ¾³ýÑ¡ÖÐÏî
+            // å¦‚æžœç”¨æˆ·ç‚¹å‡»â€œç¡®å®šâ€ï¼Œåˆ™åˆ é™¤é€‰ä¸­é¡¹
             if (result == System::Windows::Forms::DialogResult::OK)
             {
                 monitorItemListBox->Items->RemoveAt(selectedIndex);
@@ -187,6 +206,20 @@ namespace HardwareMonitor
         {
             ItemInfo& item_info = GetSelectedItemInfo();
             item_info.value_width = static_cast<int>(valueWidthEdit->Value);
+        }
+    }
+
+    System::Void SettingsForm::unitCombo_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = GetSelectedItemInfo();
+            int index = unitCombo->SelectedIndex;
+            if (index >= 0 && index < unitCombo->Items->Count)
+            {
+                String^ unit = unitCombo->Items[index]->ToString();
+                item_info.unit = MonitorGlobal::ClrStringToStdWstring(unit);
+            }
         }
     }
 

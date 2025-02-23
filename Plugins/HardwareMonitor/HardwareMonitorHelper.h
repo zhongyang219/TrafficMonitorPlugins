@@ -1,28 +1,33 @@
-#pragma once
+ï»¿#pragma once
+
 namespace HardwareMonitor
 {
     class HardwareMonitorHelper
     {
     public:
-        //»ñÈ¡´«¸ĞÆ÷ÀàĞÍÃû³Æ
+        //è·å–ä¼ æ„Ÿå™¨ç±»å‹åç§°
         static System::String^ GetSensorTypeName(LibreHardwareMonitor::Hardware::SensorType type);
 
-        //¸ù¾İ´«¸ĞÆ÷ÀàĞÍ»ñÈ¡Êı¾İµÄµ¥Î»
-        static const wchar_t* GetSensorTypeUnit(LibreHardwareMonitor::Hardware::SensorType type);
+        //æ ¹æ®ä¼ æ„Ÿå™¨ç±»å‹è·å–æ•°æ®çš„å•ä½åˆ—è¡¨
+        //å¯èƒ½ä¼šæœ‰å¤šä¸ªå¯ç”¨å•ä½ï¼Œé»˜è®¤çš„å•ä½æ€»æ˜¯ä¸ºåˆ—è¡¨çš„ç¬¬ä¸€ä¸ªå…ƒç´ 
+        static System::Collections::Generic::List<System::String^>^ GetSensorTypeUnit(LibreHardwareMonitor::Hardware::SensorType type);
 
-        //¸ù¾İÒ»¸ö´«¸ĞÆ÷µÄÎ¨Ò»±êÊ¶·û²éÕÒÒ»¸ö´«¸ĞÆ÷
+        //æ ¹æ®ä¼ æ„Ÿå™¨ç±»å‹è·å–æ•°æ®çš„é»˜è®¤å•ä½
+        static System::String^ GetSensorTypeDefaultUnit(LibreHardwareMonitor::Hardware::SensorType type);
+
+        //æ ¹æ®ä¸€ä¸ªä¼ æ„Ÿå™¨çš„å”¯ä¸€æ ‡è¯†ç¬¦æŸ¥æ‰¾ä¸€ä¸ªä¼ æ„Ÿå™¨
         static LibreHardwareMonitor::Hardware::ISensor^ FindSensorByIdentifyer(System::String^ identifyer);
 
-        //»ñÈ¡Ò»¸ö´«¸ĞÆ÷ÊıÖµµÄÎÄ±¾£¬²¢Ö¸¶¨Ğ¡ÊıÎ»Êı
-        static System::String^ GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, int decimal_place = 2);
+        //è·å–ä¸€ä¸ªä¼ æ„Ÿå™¨æ•°å€¼çš„æ–‡æœ¬ï¼Œå¹¶æŒ‡å®šå°æ•°ä½æ•°
+        static System::String^ GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, System::String^ unit, int decimal_place = 2);
 
-        //»ñÈ¡Ò»¸ö´«¸ĞÆ÷µÄÃû³ÆºÍÊıÖµÎÄ±¾£¨Ê¹ÓÃ4¸ö¿Õ¸ñ·Ö¸ô£©
+        //è·å–ä¸€ä¸ªä¼ æ„Ÿå™¨çš„åç§°å’Œæ•°å€¼æ–‡æœ¬ï¼ˆä½¿ç”¨4ä¸ªç©ºæ ¼åˆ†éš”ï¼‰
         static System::String^ GetSensorNameValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor);
 
-        //»ñÈ¡Ò»¸ö´«¸ĞÆ÷µÄÏÔÊ¾Ãû³Æ£¨ÓÉÓ²¼ş¡¢´«¸ĞÆ÷ÀàĞÍ¡¢´«¸ĞÆ÷×é³É£¬Ê¹ÓÃ¡°|¡±·Ö¸ô
+        //è·å–ä¸€ä¸ªä¼ æ„Ÿå™¨çš„æ˜¾ç¤ºåç§°ï¼ˆç”±ç¡¬ä»¶ã€ä¼ æ„Ÿå™¨ç±»å‹ã€ä¼ æ„Ÿå™¨ç»„æˆï¼Œä½¿ç”¨â€œ|â€åˆ†éš”
         static System::String^ GetSensorDisplayName(LibreHardwareMonitor::Hardware::ISensor^ sensor);
 
-        //»ñÈ¡Ò»¸ö´«¸ĞÆ÷µÄÎ¨Ò»±êÊ¶·û
+        //è·å–ä¸€ä¸ªä¼ æ„Ÿå™¨çš„å”¯ä¸€æ ‡è¯†ç¬¦
         static System::String^ GetSensorIdentifyer(LibreHardwareMonitor::Hardware::ISensor^ sensor);
     };
 }
