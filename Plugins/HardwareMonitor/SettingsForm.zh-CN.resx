@@ -173,7 +173,7 @@
     <value>电源</value>
   </data>
   <data name="controllerCheck.Location" type="System.Drawing.Point, System.Drawing">
-    <value>234, 63</value>
+    <value>212, 56</value>
   </data>
   <data name="controllerCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>106, 24</value>
@@ -289,6 +289,15 @@
   <data name="label4.Text" xml:space="preserve">
     <value>字符</value>
   </data>
+  <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>328, 273</value>
+  </data>
+  <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>206, 195</value>
+  </data>
+  <data name="groupBox2.Text" xml:space="preserve">
+    <value>监控项设置</value>
+  </data>
   <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
     <value>13, 158</value>
   </data>
@@ -303,15 +312,6 @@
   </data>
   <data name="unitCombo.Size" type="System.Drawing.Size, System.Drawing">
     <value>93, 28</value>
-  </data>
-  <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>328, 273</value>
-  </data>
-  <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>206, 195</value>
-  </data>
-  <data name="groupBox2.Text" xml:space="preserve">
-    <value>监控项设置</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>546, 552</value>

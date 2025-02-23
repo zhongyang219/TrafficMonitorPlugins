@@ -236,8 +236,8 @@ namespace HardwareMonitor {
             // 
             // decimalPlaceCombo
             // 
-            resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
             this->decimalPlaceCombo->FormattingEnabled = true;
+            resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
             this->decimalPlaceCombo->Name = L"decimalPlaceCombo";
             // 
             // specifyValueWidthCheck
@@ -281,9 +281,9 @@ namespace HardwareMonitor {
             // 
             // unitCombo
             // 
-            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
             this->unitCombo->FormattingEnabled = true;
+            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->Name = L"unitCombo";
             this->unitCombo->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::unitCombo_SelectedIndexChanged);
             // 
