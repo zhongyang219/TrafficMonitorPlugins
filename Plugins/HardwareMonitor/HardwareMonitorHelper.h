@@ -24,7 +24,7 @@ namespace HardwareMonitor
         //获取一个传感器的名称和数值文本（使用4个空格分隔）
         static System::String^ GetSensorNameValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor);
 
-        //获取一个传感器的显示名称（由硬件、传感器类型、传感器组成，使用“|”分隔
+        //获取一个传感器的显示名称（由硬件、传感器类型、传感器组成）
         static System::String^ GetSensorDisplayName(LibreHardwareMonitor::Hardware::ISensor^ sensor);
 
         //获取一个传感器的唯一标识符

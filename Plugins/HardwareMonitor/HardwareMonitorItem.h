@@ -26,6 +26,7 @@ namespace HardwareMonitor
         std::wstring identifier;
         std::wstring item_name;
         std::wstring item_value;
+        std::wstring label_text;
         int sensor_type{};
         float item_value_num{};
     };

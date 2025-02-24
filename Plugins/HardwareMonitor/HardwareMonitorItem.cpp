@@ -10,6 +10,11 @@ namespace HardwareMonitor
     CHardwareMonitorItem::CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name)
         : identifier(_identifier), item_name(_item_name)
     {
+        size_t index = item_name.find_last_of(L"/\\|");
+        if (index != std::wstring::npos && index < item_name.size() - 1)
+            label_text = item_name.substr(index + 1);
+        else
+            label_text = item_name;
     }
 
     const wchar_t* CHardwareMonitorItem::GetItemName() const
@@ -26,7 +31,7 @@ namespace HardwareMonitor
 
     const wchar_t* CHardwareMonitorItem::GetItemLableText() const
     {
-        return item_name.c_str();
+        return label_text.c_str();
     }
 
     const wchar_t* CHardwareMonitorItem::GetItemValueText() const
