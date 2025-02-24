@@ -7,6 +7,7 @@
 #include "HardwareMonitorHelper.h"
 #include "../utilities/IniHelper.h"
 #include "SettingsForm.h"
+#include "Common.h"
 
 namespace HardwareMonitor
 {
@@ -60,7 +61,7 @@ namespace HardwareMonitor
     {
         if (sensor != nullptr)
         {
-            std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorIdentifyer(sensor));
+            std::wstring identifyer = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorIdentifyer(sensor));
             //检查监控项目是否存在
             if (!IsDisplayItemExist(identifyer))
             {
@@ -103,7 +104,7 @@ namespace HardwareMonitor
         {
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
             if (sensor != nullptr)
-                return MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+                return Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
         }
 
         return std::wstring();
@@ -144,7 +145,7 @@ namespace HardwareMonitor
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
             if (sensor != nullptr)
             {
-                std::wstring item_name = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+                std::wstring item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
                 m_item_names[item_info.identifyer] = item_name;
                 m_items.emplace_back(item_info.identifyer, item_name);
             }
@@ -366,21 +367,6 @@ namespace HardwareMonitor
         computer->Close();
     }
 
-    std::wstring MonitorGlobal::ClrStringToStdWstring(System::String^ str)
-    {
-        if (str == nullptr)
-        {
-            return std::wstring();
-        }
-        else
-        {
-            const wchar_t* chars = (const wchar_t*)(Runtime::InteropServices::Marshal::StringToHGlobalUni(str)).ToPointer();
-            std::wstring os = chars;
-            Runtime::InteropServices::Marshal::FreeHGlobal(IntPtr((void*)chars));
-            return os;
-        }
-    }
-
     String^ MonitorGlobal::GetString(const wchar_t* name)
     {
         return resourceManager->GetString(gcnew String(name));
@@ -388,7 +374,7 @@ namespace HardwareMonitor
 
     std::wstring MonitorGlobal::GetStdWString(const wchar_t* name)
     {
-        return ClrStringToStdWstring(GetString(name));
+        return Common::StringToStdWstring(GetString(name));
     }
 
     Icon^ MonitorGlobal::GetAppIcon()

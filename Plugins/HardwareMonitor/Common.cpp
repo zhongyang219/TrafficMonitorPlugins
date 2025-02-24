@@ -4,6 +4,21 @@
 
 namespace HardwareMonitor
 {
+    std::wstring Common::StringToStdWstring(System::String^ str)
+    {
+        if (str == nullptr)
+        {
+            return std::wstring();
+        }
+        else
+        {
+            const wchar_t* chars = (const wchar_t*)(Runtime::InteropServices::Marshal::StringToHGlobalUni(str)).ToPointer();
+            std::wstring os = chars;
+            Runtime::InteropServices::Marshal::FreeHGlobal(IntPtr((void*)chars));
+            return os;
+        }
+    }
+
     void Common::SetButtonIcon(Button^ button, String^ resName)
     {
         Icon^ icon = MonitorGlobal::Instance()->GetIcon(resName);

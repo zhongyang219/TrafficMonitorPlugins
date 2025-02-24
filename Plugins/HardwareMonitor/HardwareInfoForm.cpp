@@ -1,8 +1,9 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "HardwareInfoForm.h"
 #include "HardwareMonitor.h"
 #include <cliext/map>
 #include "HardwareMonitorHelper.h"
+#include "Common.h"
 
 namespace HardwareMonitor
 {
@@ -22,25 +23,25 @@ namespace HardwareMonitor
         case HardwareType::GpuIntel: hardware_node->ImageIndex = 8; break;
         case HardwareType::GpuNvidia: hardware_node->ImageIndex = 9; break;
         }
-        //Ìí¼ÓSensor½Úµã
+        //æ·»åŠ SensorèŠ‚ç‚¹
         typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
-        TypeNodeMap sensor_type_nodes;       //±£´æËùÓĞSensorÀàĞÍµÄ½Úµã
+        TypeNodeMap sensor_type_nodes;       //ä¿å­˜æ‰€æœ‰Sensorç±»å‹çš„èŠ‚ç‚¹
         for (int j = 0; j < hardware->Sensors->Length; j++)
         {
             auto sensor = hardware->Sensors[j];
-            //¸ù¾İSensorµÄÀàĞÍ´´½¨¸¸½Úµã
+            //æ ¹æ®Sensorçš„ç±»å‹åˆ›å»ºçˆ¶èŠ‚ç‚¹
             TreeNode^ type_node;
             TypeNodeMap::iterator iter = sensor_type_nodes.find(sensor->SensorType);
             if (iter == sensor_type_nodes.end())
             {
-                //´´½¨ÀàĞÍ½Úµã£¬²¢±£´æµ½mapÖĞ
+                //åˆ›å»ºç±»å‹èŠ‚ç‚¹ï¼Œå¹¶ä¿å­˜åˆ°mapä¸­
                 type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
                 sensor_type_nodes.insert(TypeNodeMap::make_value(sensor->SensorType, type_node));
 
             }
             else
             {
-                //ÒÑ´æÔÚµÄ½Úµã
+                //å·²å­˜åœ¨çš„èŠ‚ç‚¹
                 type_node = iter->second;
             }
 
@@ -59,14 +60,14 @@ namespace HardwareMonitor
         InitializeComponent();
         InitUserComponent();
 
-        //Ìî³äÊı¾İ
+        //å¡«å……æ•°æ®
         auto computer = MonitorGlobal::Instance()->computer;
         for (int i = 0; i < computer->Hardware->Count; i++)
         {
-            //Ìí¼ÓHardware½Úµã
+            //æ·»åŠ HardwareèŠ‚ç‚¹
             auto hardware = computer->Hardware[i];
             auto hardware_node = AddHardwareNode(treeView1->Nodes, hardware);
-            //±éÀúSubHardware
+            //éå†SubHardware
             for (int j = 0; j < hardware->SubHardware->Length; j++)
             {
                 auto sub_hardware = hardware->SubHardware[j];
@@ -74,14 +75,14 @@ namespace HardwareMonitor
             }
         }
 
-        //Õ¹¿ªËùÓĞ½Úµã
+        //å±•å¼€æ‰€æœ‰èŠ‚ç‚¹
         treeView1->ExpandAll();
     }
 
-    //¸üĞÂÒ»¸öÊ÷½ÚµãµÄÖµ
+    //æ›´æ–°ä¸€ä¸ªæ ‘èŠ‚ç‚¹çš„å€¼
     static void UpdateNodeValue(TreeNode^ node)
     {
-        //ÓĞ×Ó½ÚµãÔòµİ¹éµ÷ÓÃ
+        //æœ‰å­èŠ‚ç‚¹åˆ™é€’å½’è°ƒç”¨
         if (node->Nodes->Count != 0)
         {
             for each (TreeNode ^ sub_node in node->Nodes)
@@ -89,7 +90,7 @@ namespace HardwareMonitor
                 UpdateNodeValue(sub_node);
             }
         }
-        //Ò¶×Ó½Úµã£¬¸üĞÂÖµ
+        //å¶å­èŠ‚ç‚¹ï¼Œæ›´æ–°å€¼
         else
         {
             if (node->Tag != nullptr)
@@ -109,8 +110,8 @@ namespace HardwareMonitor
     void HardwareMonitor::HardwareInfoForm::UpdateData()
     {
         treeView1->BeginUpdate();
-        //¸üĞÂÊ÷½ÚµãµÄÊı¾İ
-        //±éÀúHardware½Úµã
+        //æ›´æ–°æ ‘èŠ‚ç‚¹çš„æ•°æ®
+        //éå†HardwareèŠ‚ç‚¹
         for each (TreeNode ^ hardware_node in treeView1->Nodes)
         {
             UpdateNodeValue(hardware_node);
@@ -120,12 +121,12 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::InitUserComponent()
     {
-        // ³õÊ¼»¯ ImageList
+        // åˆå§‹åŒ– ImageList
         imageList1 = gcnew ImageList();
         int icon_size = CHardwareMonitor::GetInstance()->DPI(16);
-        imageList1->ImageSize = System::Drawing::Size(icon_size, icon_size); // ÉèÖÃÍ¼±ê´óĞ¡
+        imageList1->ImageSize = System::Drawing::Size(icon_size, icon_size); // è®¾ç½®å›¾æ ‡å¤§å°
 
-        // Ìí¼ÓÍ¼±êµ½ ImageList
+        // æ·»åŠ å›¾æ ‡åˆ° ImageList
         Resources::ResourceManager^ resourceManager = MonitorGlobal::Instance()->GetResourceManager();
         imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("MotherBoard")));
         imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("batteries")));
@@ -138,26 +139,26 @@ namespace HardwareMonitor
         imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("intel")));
         imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Nvidia")));
 
-        // ³õÊ¼»¯ ContextMenuStrip
+        // åˆå§‹åŒ– ContextMenuStrip
         contextMenuStrip = gcnew System::Windows::Forms::ContextMenuStrip();
 
-        // Ìí¼Ó²Ëµ¥Ïî
+        // æ·»åŠ èœå•é¡¹
         addItem = gcnew ToolStripMenuItem();
         addItem->Text = MonitorGlobal::Instance()->GetString(L"AddToMonitorItem");
         addItem->Click += gcnew EventHandler(this, &HardwareInfoForm::AddItem_Click);
         contextMenuStrip->Opening += gcnew CancelEventHandler(this, &HardwareInfoForm::ContextMenuStrip_Opening);
 
-        // ½«²Ëµ¥ÏîÌí¼Óµ½ ContextMenuStrip
+        // å°†èœå•é¡¹æ·»åŠ åˆ° ContextMenuStrip
         contextMenuStrip->Items->Add(addItem);
 
-        // ½« ContextMenuStrip °ó¶¨µ½ TreeView
+        // å°† ContextMenuStrip ç»‘å®šåˆ° TreeView
         treeView1->ContextMenuStrip = contextMenuStrip;
 
-        // Ìí¼Ó MouseClick ÊÂ¼ş´¦Àí³ÌĞò
+        // æ·»åŠ  MouseClick äº‹ä»¶å¤„ç†ç¨‹åº
         treeView1->MouseClick += gcnew MouseEventHandler(this, &HardwareInfoForm::TreeView_MouseClick);
 
-        treeView1->DrawMode = TreeViewDrawMode::OwnerDrawText; // ÉèÖÃÎª×Ô¶¨Òå»æÖÆÄ£Ê½
-        // Ìí¼Ó DrawNode ÊÂ¼ş´¦Àí³ÌĞò
+        treeView1->DrawMode = TreeViewDrawMode::OwnerDrawText; // è®¾ç½®ä¸ºè‡ªå®šä¹‰ç»˜åˆ¶æ¨¡å¼
+        // æ·»åŠ  DrawNode äº‹ä»¶å¤„ç†ç¨‹åº
         treeView1->DrawNode += gcnew DrawTreeNodeEventHandler(this, &HardwareInfoForm::TreeView_DrawNode);
 
         autoRefreshCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh;
@@ -165,7 +166,7 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::AddItem_Click(System::Object^ sender, System::EventArgs^ e)
     {
-        // »ñÈ¡Ñ¡ÖĞµÄ½Úµã
+        // è·å–é€‰ä¸­çš„èŠ‚ç‚¹
         TreeNode^ selectedNode = treeView1->SelectedNode;
         if (selectedNode != nullptr && selectedNode->Tag != nullptr)
         {
@@ -181,49 +182,49 @@ namespace HardwareMonitor
     void HardwareInfoForm::ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e)
     {
         TreeNode^ selectedNode = treeView1->SelectedNode;
-        // ¼ì²éÊÇ·ñÎªÒ¶×Ó½Úµã£¨½öµÚÒ¶×ÓÔÊĞíÌí¼Ó¼à¿ØÏîÄ¿£©
+        // æ£€æŸ¥æ˜¯å¦ä¸ºå¶å­èŠ‚ç‚¹ï¼ˆä»…ç¬¬å¶å­å…è®¸æ·»åŠ ç›‘æ§é¡¹ç›®ï¼‰
         addItem->Enabled = (selectedNode != nullptr && selectedNode->Nodes->Count == 0);
     }
 
     void HardwareInfoForm::TreeView_MouseClick(Object^ sender, MouseEventArgs^ e)
     {
-        // »ñÈ¡µã»÷Î»ÖÃµÄ½Úµã
+        // è·å–ç‚¹å‡»ä½ç½®çš„èŠ‚ç‚¹
         TreeNode^ clickedNode = treeView1->GetNodeAt(e->X, e->Y);
         if (clickedNode != nullptr)
         {
-            // Ñ¡ÖĞµã»÷µÄ½Úµã
+            // é€‰ä¸­ç‚¹å‡»çš„èŠ‚ç‚¹
             treeView1->SelectedNode = clickedNode;
         }
     }
     void HardwareInfoForm::TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e)
     {
-        // »ñÈ¡½ÚµãµÄ¾ØĞÎÇøÓò
+        // è·å–èŠ‚ç‚¹çš„çŸ©å½¢åŒºåŸŸ
         Rectangle bounds = e->Bounds;
-        // À©Õ¹ bounds µÄ¿í¶Èµ½Õû¸ö¿Ø¼şµÄ¿í¶È
-        bounds.Width = treeView1->ClientSize.Width - bounds.Left - 1; // ¼õÈ¥1ÒÔ±ÜÃâ»æÖÆ³¬³ö¿Ø¼ş±ß½ç
+        // æ‰©å±• bounds çš„å®½åº¦åˆ°æ•´ä¸ªæ§ä»¶çš„å®½åº¦
+        bounds.Width = treeView1->ClientSize.Width - bounds.Left - 1; // å‡å»1ä»¥é¿å…ç»˜åˆ¶è¶…å‡ºæ§ä»¶è¾¹ç•Œ
         System::Drawing::Color textColor;
-        // Èç¹û½Úµã±»Ñ¡ÖĞ£¬»æÖÆÑ¡ÖĞ±³¾°
+        // å¦‚æœèŠ‚ç‚¹è¢«é€‰ä¸­ï¼Œç»˜åˆ¶é€‰ä¸­èƒŒæ™¯
         if (e->Node == treeView1->SelectedNode)
         {
-            // »æÖÆÑ¡ÖĞ±³¾°
+            // ç»˜åˆ¶é€‰ä¸­èƒŒæ™¯
             e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Highlight), bounds);
             textColor = SystemColors::HighlightText;
         }
         else
         {
             e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Window), bounds);
-            //ÅĞ¶Ïµ±Ç°ÏîÊÇ·ñÒÑÌí¼Óµ½¼à¿Ø
+            //åˆ¤æ–­å½“å‰é¡¹æ˜¯å¦å·²æ·»åŠ åˆ°ç›‘æ§
             String^ identifyer{};
             if (e->Node->Tag != nullptr)
                 identifyer = e->Node->Tag->ToString();
-            //ÒÑÌí¼Óµ½¼à¿ØÏîÄ¿µÄÎÄ±¾ÑÕÉ«ÏÔÊ¾Îª¸ßÁÁÑÕÉ«
-            if (identifyer != nullptr && CHardwareMonitor::GetInstance()->IsDisplayItemExist(MonitorGlobal::ClrStringToStdWstring(identifyer)))
+            //å·²æ·»åŠ åˆ°ç›‘æ§é¡¹ç›®çš„æ–‡æœ¬é¢œè‰²æ˜¾ç¤ºä¸ºé«˜äº®é¢œè‰²
+            if (identifyer != nullptr && CHardwareMonitor::GetInstance()->IsDisplayItemExist(Common::StringToStdWstring(identifyer)))
                 textColor = SystemColors::Highlight;
             else
                 textColor = treeView1->ForeColor;
         }
 
-        // Îª¸ù½Úµã»æÖÆÍ¼±ê
+        // ä¸ºæ ¹èŠ‚ç‚¹ç»˜åˆ¶å›¾æ ‡
         if (e->Node->ImageIndex != -1 && e->Node->Parent == nullptr)
         {
             Point start_pos = bounds.Location;
@@ -234,25 +235,25 @@ namespace HardwareMonitor
             bounds.Width -= bounds.Height;
         }
 
-        // »ñÈ¡½ÚµãµÄÎÄ±¾
+        // è·å–èŠ‚ç‚¹çš„æ–‡æœ¬
         String^ text = e->Node->Text;
 
-        // ²ğ·ÖÎÄ±¾
+        // æ‹†åˆ†æ–‡æœ¬
         array<String^>^ parts = System::Text::RegularExpressions::Regex::Split(text, "\\s{4}");
         if (parts->Length < 2)
             parts = gcnew array<String^>{text, ""};
 
-        // ¼ÆËãÁ½¸ö¾ØĞÎÇøÓò
+        // è®¡ç®—ä¸¤ä¸ªçŸ©å½¢åŒºåŸŸ
         SizeF rightTextSize = e->Graphics->MeasureString(parts[1], treeView1->Font);
         int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + 4);
         Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
         Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
 
-        // »æÖÆµÚ¶ş²¿·ÖÎÄ±¾£¨ÓÒ¶ÔÆë£©
+        // ç»˜åˆ¶ç¬¬äºŒéƒ¨åˆ†æ–‡æœ¬ï¼ˆå³å¯¹é½ï¼‰
         String^ rightText = parts[1];
         TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right);
 
-        // »æÖÆµÚÒ»²¿·ÖÎÄ±¾£¨×ó¶ÔÆë£©
+        // ç»˜åˆ¶ç¬¬ä¸€éƒ¨åˆ†æ–‡æœ¬ï¼ˆå·¦å¯¹é½ï¼‰
         String^ leftText = parts[0];
         TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
     }

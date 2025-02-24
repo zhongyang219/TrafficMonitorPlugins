@@ -79,7 +79,7 @@ namespace HardwareMonitor
         int index = monitorItemListBox->SelectedIndex;
         if (index >= 0 && index < identifyerList->Count)
         {
-            std::wstring identifyer = MonitorGlobal::ClrStringToStdWstring(identifyerList[index]);
+            std::wstring identifyer = Common::StringToStdWstring(identifyerList[index]);
             return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifyer);
         }
         static ItemInfo emptyInfo;
@@ -228,7 +228,7 @@ namespace HardwareMonitor
             if (index >= 0 && index < unitCombo->Items->Count)
             {
                 String^ unit = unitCombo->Items[index]->ToString();
-                item_info.unit = MonitorGlobal::ClrStringToStdWstring(unit);
+                item_info.unit = Common::StringToStdWstring(unit);
             }
         }
     }
@@ -260,7 +260,7 @@ namespace HardwareMonitor
             if (index >= 0 && index < static_cast<int>(items_info.size()) - 1)
             {
                 //交换列表中当前项和后一项的文本
-                SwapListBoxItems(monitorItemListBox, index, index + 1);
+                Common::SwapListBoxItems(monitorItemListBox, index, index + 1);
                 //交换ItemInfo
                 std::swap(items_info[index], items_info[index + 1]);
                 //更改选中项

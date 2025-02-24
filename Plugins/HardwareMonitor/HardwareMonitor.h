@@ -91,9 +91,6 @@ namespace HardwareMonitor
         void Init();
         void UnInit();
 
-        //将CRL的String类型转换成C++的std::wstring类型
-        static std::wstring ClrStringToStdWstring(System::String^ str);
-
         String^ GetString(const wchar_t* name);
         std::wstring GetStdWString(const wchar_t* name);
         Icon^ GetAppIcon();

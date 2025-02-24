@@ -2,6 +2,7 @@
 #include "HardwareMonitorItem.h"
 #include "HardwareMonitor.h"
 #include "HardwareMonitorHelper.h"
+#include "Common.h"
 
 using namespace LibreHardwareMonitor::Hardware;
 
@@ -57,7 +58,7 @@ namespace HardwareMonitor
             if (!item_info.unit.empty())
                 unit = item_info.unit;
             else
-                unit = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(type));
+                unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(type));
             sample_text += unit;
         }
         else
@@ -96,8 +97,8 @@ namespace HardwareMonitor
             if (!item_info.unit.empty())
                 unit = item_info.unit;
             else
-                unit = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
-            item_value = MonitorGlobal::ClrStringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places));
+                unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
+            item_value = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places));
             try
             {
                 item_value_num = sensor->Value.Value;
