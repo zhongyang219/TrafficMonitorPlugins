@@ -87,6 +87,9 @@ namespace HardwareMonitor
         specifyValueWidthCheck->Enabled = selection_enabled;
         valueWidthEdit->Enabled = selection_enabled && specifyValueWidthCheck->Checked;
         unitCombo->Enabled = selection_enabled;
+        int index = monitorItemListBox->SelectedIndex;
+        moveUpButton->Enabled = selection_enabled && index > 0;
+        moveDownButton->Enabled = selection_enabled && index < monitorItemListBox->Items->Count - 1;
     }
 
     void SettingsForm::listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e)
@@ -219,6 +222,61 @@ namespace HardwareMonitor
             {
                 String^ unit = unitCombo->Items[index]->ToString();
                 item_info.unit = MonitorGlobal::ClrStringToStdWstring(unit);
+            }
+        }
+    }
+
+    //交换ListBox的两个项
+    static void SwapListBoxItems(ListBox^ listBox, int index1, int index2)
+    {
+        // 检查索引是否有效
+        if (index1 < 0 || index1 >= listBox->Items->Count ||
+            index2 < 0 || index2 >= listBox->Items->Count)
+        {
+            return;
+        }
+
+        // 获取两个项的值
+        Object^ item1 = listBox->Items[index1];
+        Object^ item2 = listBox->Items[index2];
+
+        // 交换两个项的值
+        listBox->Items[index1] = item2;
+        listBox->Items[index2] = item1;
+    }
+
+    System::Void SettingsForm::moveUpButton_Click(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            int index = monitorItemListBox->SelectedIndex;
+            auto& items_info{ CHardwareMonitor::GetInstance()->m_settings.items_info };
+            if (index > 0 && index < static_cast<int>(items_info.size()))
+            {
+                //交换列表中当前项和前一项的文本
+                SwapListBoxItems(monitorItemListBox, index, index - 1);
+                //交换ItemInfo
+                std::swap(items_info[index], items_info[index - 1]);
+                //更改选中项
+                monitorItemListBox->SelectedIndex--;
+            }
+        }
+    }
+
+    System::Void SettingsForm::moveDownButton_Click(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            int index = monitorItemListBox->SelectedIndex;
+            auto& items_info{ CHardwareMonitor::GetInstance()->m_settings.items_info };
+            if (index >= 0 && index < static_cast<int>(items_info.size()) - 1)
+            {
+                //交换列表中当前项和后一项的文本
+                SwapListBoxItems(monitorItemListBox, index, index + 1);
+                //交换ItemInfo
+                std::swap(items_info[index], items_info[index + 1]);
+                //更改选中项
+                monitorItemListBox->SelectedIndex++;
             }
         }
     }

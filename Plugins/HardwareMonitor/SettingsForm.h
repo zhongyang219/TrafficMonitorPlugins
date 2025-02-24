@@ -61,6 +61,8 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::GroupBox^ groupBox2;
     private: System::Windows::Forms::Label^ label5;
     private: System::Windows::Forms::ComboBox^ unitCombo;
+    private: System::Windows::Forms::Button^ moveUpButton;
+    private: System::Windows::Forms::Button^ moveDownButton;
 
     private: System::Windows::Forms::Button^ addItemBtn;
 
@@ -112,6 +114,8 @@ namespace HardwareMonitor {
             this->groupBox2 = (gcnew System::Windows::Forms::GroupBox());
             this->label5 = (gcnew System::Windows::Forms::Label());
             this->unitCombo = (gcnew System::Windows::Forms::ComboBox());
+            this->moveUpButton = (gcnew System::Windows::Forms::Button());
+            this->moveDownButton = (gcnew System::Windows::Forms::Button());
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->BeginInit();
             this->groupBox2->SuspendLayout();
@@ -236,8 +240,8 @@ namespace HardwareMonitor {
             // 
             // decimalPlaceCombo
             // 
-            this->decimalPlaceCombo->FormattingEnabled = true;
             resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
+            this->decimalPlaceCombo->FormattingEnabled = true;
             this->decimalPlaceCombo->Name = L"decimalPlaceCombo";
             // 
             // specifyValueWidthCheck
@@ -281,11 +285,25 @@ namespace HardwareMonitor {
             // 
             // unitCombo
             // 
+            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
             this->unitCombo->FormattingEnabled = true;
-            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->Name = L"unitCombo";
             this->unitCombo->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::unitCombo_SelectedIndexChanged);
+            // 
+            // moveUpButton
+            // 
+            resources->ApplyResources(this->moveUpButton, L"moveUpButton");
+            this->moveUpButton->Name = L"moveUpButton";
+            this->moveUpButton->UseVisualStyleBackColor = true;
+            this->moveUpButton->Click += gcnew System::EventHandler(this, &SettingsForm::moveUpButton_Click);
+            // 
+            // moveDownButton
+            // 
+            resources->ApplyResources(this->moveDownButton, L"moveDownButton");
+            this->moveDownButton->Name = L"moveDownButton";
+            this->moveDownButton->UseVisualStyleBackColor = true;
+            this->moveDownButton->Click += gcnew System::EventHandler(this, &SettingsForm::moveDownButton_Click);
             // 
             // SettingsForm
             // 
@@ -298,6 +316,8 @@ namespace HardwareMonitor {
             this->Controls->Add(this->cancelBtn);
             this->Controls->Add(this->label1);
             this->Controls->Add(this->addItemBtn);
+            this->Controls->Add(this->moveDownButton);
+            this->Controls->Add(this->moveUpButton);
             this->Controls->Add(this->removeSelectBtn);
             this->Controls->Add(this->monitorItemListBox);
             this->Name = L"SettingsForm";
@@ -316,5 +336,7 @@ namespace HardwareMonitor {
     private: System::Void specifyValueWidthCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
     private: System::Void valueWidthEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e);
     private: System::Void unitCombo_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void moveUpButton_Click(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void moveDownButton_Click(System::Object^ sender, System::EventArgs^ e);
 };
 }
