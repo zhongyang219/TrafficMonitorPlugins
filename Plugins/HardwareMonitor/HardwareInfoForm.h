@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 namespace HardwareMonitor {
 
@@ -10,7 +10,7 @@ namespace HardwareMonitor {
 	using namespace System::Drawing;
 
 	/// <summary>
-	/// HardwareInfoForm ÕªÒª
+	/// HardwareInfoForm æ‘˜è¦
 	/// </summary>
 	public ref class HardwareInfoForm : public System::Windows::Forms::Form
 	{
@@ -21,7 +21,7 @@ namespace HardwareMonitor {
 
 	protected:
 		/// <summary>
-		/// ÇåÀíËùÓĞÕıÔÚÊ¹ÓÃµÄ×ÊÔ´¡£
+		/// æ¸…ç†æ‰€æœ‰æ­£åœ¨ä½¿ç”¨çš„èµ„æºã€‚
 		/// </summary>
 		~HardwareInfoForm()
 		{
@@ -49,18 +49,17 @@ namespace HardwareMonitor {
 
     private:
         ToolStripMenuItem^ addItem;
-        ImageList^ imageList1;
 
 	private:
 		/// <summary>
-		/// ±ØĞèµÄÉè¼ÆÆ÷±äÁ¿¡£
+		/// å¿…éœ€çš„è®¾è®¡å™¨å˜é‡ã€‚
 		/// </summary>
 
 
 #pragma region Windows Form Designer generated code
 		/// <summary>
-		/// Éè¼ÆÆ÷Ö§³ÖËùĞèµÄ·½·¨ - ²»ÒªĞŞ¸Ä
-		/// Ê¹ÓÃ´úÂë±à¼­Æ÷ĞŞ¸Ä´Ë·½·¨µÄÄÚÈİ¡£
+		/// è®¾è®¡å™¨æ”¯æŒæ‰€éœ€çš„æ–¹æ³• - ä¸è¦ä¿®æ”¹
+		/// ä½¿ç”¨ä»£ç ç¼–è¾‘å™¨ä¿®æ”¹æ­¤æ–¹æ³•çš„å†…å®¹ã€‚
 		/// </summary>
 		void InitializeComponent(void)
 		{

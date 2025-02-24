@@ -12,16 +12,16 @@ namespace HardwareMonitor
         auto hardware_node = nodes->Add(hardware->Name);
         switch (hardware->HardwareType)
         {
-        case HardwareType::Motherboard: hardware_node->ImageIndex = 0; break;
-        case HardwareType::Battery: hardware_node->ImageIndex = 1; break;
-        case HardwareType::Cpu: hardware_node->ImageIndex = 2; break;
-        case HardwareType::EmbeddedController: hardware_node->ImageIndex = 3; break;
-        case HardwareType::Network: hardware_node->ImageIndex = 4; break;
-        case HardwareType::Memory: hardware_node->ImageIndex = 5; break;
-        case HardwareType::Storage: hardware_node->ImageIndex = 6; break;
-        case HardwareType::GpuAmd: hardware_node->ImageIndex = 7; break;
-        case HardwareType::GpuIntel: hardware_node->ImageIndex = 8; break;
-        case HardwareType::GpuNvidia: hardware_node->ImageIndex = 9; break;
+        case HardwareType::Motherboard: hardware_node->ImageKey = "MotherBoard"; break;
+        case HardwareType::Battery: hardware_node->ImageKey = "batteries"; break;
+        case HardwareType::Cpu: hardware_node->ImageKey = "CPU"; break;
+        case HardwareType::EmbeddedController: hardware_node->ImageKey = "FanColtroller"; break;
+        case HardwareType::Network: hardware_node->ImageKey = "Network"; break;
+        case HardwareType::Memory: hardware_node->ImageKey = "RAM"; break;
+        case HardwareType::Storage: hardware_node->ImageKey = "Storage"; break;
+        case HardwareType::GpuAmd: hardware_node->ImageKey = "AMD"; break;
+        case HardwareType::GpuIntel: hardware_node->ImageKey = "intel"; break;
+        case HardwareType::GpuNvidia: hardware_node->ImageKey = "Nvidia"; break;
         }
         //添加Sensor节点
         typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
@@ -121,24 +121,6 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::InitUserComponent()
     {
-        // 初始化 ImageList
-        imageList1 = gcnew ImageList();
-        int icon_size = CHardwareMonitor::GetInstance()->DPI(16);
-        imageList1->ImageSize = System::Drawing::Size(icon_size, icon_size); // 设置图标大小
-
-        // 添加图标到 ImageList
-        Resources::ResourceManager^ resourceManager = MonitorGlobal::Instance()->GetResourceManager();
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("MotherBoard")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("batteries")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("CPU")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("FanColtroller")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Network")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("RAM")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Storage")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("AMD")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("intel")));
-        imageList1->Images->Add(static_cast<Image^>(resourceManager->GetObject("Nvidia")));
-
         // 初始化 ContextMenuStrip
         contextMenuStrip = gcnew System::Windows::Forms::ContextMenuStrip();
 
@@ -225,12 +207,14 @@ namespace HardwareMonitor
         }
 
         // 为根节点绘制图标
-        if (e->Node->ImageIndex != -1 && e->Node->Parent == nullptr)
+        if (e->Node->Parent == nullptr && e->Node->ImageKey->Length > 0)
         {
             Point start_pos = bounds.Location;
-            int offset = (bounds.Height - imageList1->ImageSize.Width) / 2;
+            int offset = (bounds.Height - CHardwareMonitor::GetInstance()->DPI(16)) / 2;
             start_pos.Offset(offset, offset);
-            imageList1->Draw(e->Graphics, start_pos, e->Node->ImageIndex);
+            System::Drawing::Icon^ icon = MonitorGlobal::Instance()->GetIcon(e->Node->ImageKey);
+            if (icon != nullptr)
+                e->Graphics->DrawIcon(icon, start_pos.X, start_pos.Y);
             bounds.Offset(bounds.Height, 0);
             bounds.Width -= bounds.Height;
         }

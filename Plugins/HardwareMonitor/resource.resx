@@ -128,10 +128,10 @@
     <value>Add to monitor item</value>
   </data>
   <data name="AMD" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\AMD.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\AMD.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="batteries" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\batteries.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\batteries.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Clock" xml:space="preserve">
     <value>Clock</value>
@@ -143,7 +143,7 @@
     <value>Controls</value>
   </data>
   <data name="CPU" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\CPU.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\CPU.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Current" xml:space="preserve">
     <value>Current</value>
@@ -164,7 +164,7 @@
     <value>Fan</value>
   </data>
   <data name="FanColtroller" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\FanColtroller.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\FanColtroller.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Flow" xml:space="preserve">
     <value>Flow</value>
@@ -179,7 +179,7 @@
     <value>Humidity</value>
   </data>
   <data name="intel" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\intel.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\intel.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Level" xml:space="preserve">
     <value>Level</value>
@@ -191,7 +191,7 @@
     <value>res\logo.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="MotherBoard" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\MotherBoard.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\MotherBoard.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="MoveDown" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>res\MoveDown.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -200,13 +200,13 @@
     <value>res\MoveUp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Network" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\Network.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\Network.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Noise" xml:space="preserve">
     <value>Noise</value>
   </data>
   <data name="Nvidia" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\Nvidia.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\Nvidia.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="PluginDescription" xml:space="preserve">
     <value>Hardware monitor plugin for TrafficMonitor.</value>
@@ -218,13 +218,13 @@
     <value>Power</value>
   </data>
   <data name="RAM" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\RAM.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\RAM.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="RemoveMonitorItemInquery" xml:space="preserve">
     <value>Are you sure you want to remove the selected item?</value>
   </data>
   <data name="Storage" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>res\Storage.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>res\Storage.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Temperature" xml:space="preserve">
     <value>Temperature</value>

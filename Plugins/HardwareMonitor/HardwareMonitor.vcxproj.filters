@@ -113,40 +113,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\AMD.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\batteries.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\CPU.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\FanColtroller.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\intel.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
     <Image Include="res\logo.ico">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="logo1.ico">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\MotherBoard.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\Network.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\Nvidia.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\RAM.png">
-      <Filter>资源文件\icons</Filter>
-    </Image>
-    <Image Include="res\Storage.png">
       <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\Add.ico">
@@ -159,6 +126,36 @@
       <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\MoveUp.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\AMD.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\batteries.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\CPU.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\FanColtroller.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\intel.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\MotherBoard.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Network.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Nvidia.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\RAM.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Storage.ico">
       <Filter>资源文件\icons</Filter>
     </Image>
   </ItemGroup>

@@ -211,22 +211,21 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="logo1.ico" />
     <Image Include="res\Add.ico" />
-    <Image Include="res\AMD.png" />
-    <Image Include="res\batteries.png" />
-    <Image Include="res\CPU.png" />
+    <Image Include="res\AMD.ico" />
+    <Image Include="res\batteries.ico" />
+    <Image Include="res\CPU.ico" />
     <Image Include="res\Delete.ico" />
-    <Image Include="res\FanColtroller.png" />
-    <Image Include="res\intel.png" />
+    <Image Include="res\FanColtroller.ico" />
+    <Image Include="res\intel.ico" />
     <Image Include="res\logo.ico" />
-    <Image Include="res\MotherBoard.png" />
+    <Image Include="res\MotherBoard.ico" />
     <Image Include="res\MoveDown.ico" />
     <Image Include="res\MoveUp.ico" />
-    <Image Include="res\Network.png" />
-    <Image Include="res\Nvidia.png" />
-    <Image Include="res\RAM.png" />
-    <Image Include="res\Storage.png" />
+    <Image Include="res\Network.ico" />
+    <Image Include="res\Nvidia.ico" />
+    <Image Include="res\RAM.ico" />
+    <Image Include="res\Storage.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
