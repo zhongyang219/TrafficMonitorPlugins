@@ -12,6 +12,7 @@
 #include "CommonData.h"
 
 using namespace System;
+using namespace System::Collections::Generic;
 using namespace LibreHardwareMonitor::Hardware;
 
 namespace HardwareMonitor
@@ -96,6 +97,7 @@ namespace HardwareMonitor
         String^ GetString(const wchar_t* name);
         std::wstring GetStdWString(const wchar_t* name);
         Icon^ GetAppIcon();
+        Icon^ GetIcon(String^ name);
         Resources::ResourceManager^ GetResourceManager();
 
         void ShowHardwareInfoDialog();
@@ -112,7 +114,8 @@ namespace HardwareMonitor
 
     private:
         Resources::ResourceManager^ resourceManager{};
-        Icon^ app_icon{};
+        //保存所有图标
+        Dictionary<String^, Icon^>^ iconsMap{};
 
     private:
         static MonitorGlobal^ m_instance{};

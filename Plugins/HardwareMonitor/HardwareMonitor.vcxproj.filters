@@ -31,6 +31,9 @@
     <Filter Include="资源文件\icons">
       <UniqueIdentifier>{6680ede1-0334-4f05-8605-cc8d1e61c338}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{32e852f0-4e47-4acc-9b08-46e1918a1bcf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Stdafx.h">
@@ -60,6 +63,9 @@
     <ClInclude Include="CommonData.h">
       <Filter>CommonData</Filter>
     </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Stdafx.cpp">
@@ -85,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="CommonData.cpp">
       <Filter>CommonData</Filter>
+    </ClCompile>
+    <ClCompile Include="Common.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -138,6 +147,18 @@
       <Filter>资源文件\icons</Filter>
     </Image>
     <Image Include="res\Storage.png">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Add.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\Delete.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\MoveDown.ico">
+      <Filter>资源文件\icons</Filter>
+    </Image>
+    <Image Include="res\MoveUp.ico">
       <Filter>资源文件\icons</Filter>
     </Image>
   </ItemGroup>

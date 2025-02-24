@@ -344,7 +344,7 @@ namespace HardwareMonitor
     ////////////////////////////////////////////////////////////////////////////////////
     MonitorGlobal::MonitorGlobal()
     {
-
+        iconsMap = gcnew Dictionary<String^, Icon^>();
     }
 
     MonitorGlobal::~MonitorGlobal()
@@ -359,7 +359,6 @@ namespace HardwareMonitor
         computer->Open();
 
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
-        app_icon = LoadIcon("logo", CHardwareMonitor::GetInstance()->DPI(16));
     }
 
     void MonitorGlobal::UnInit()
@@ -394,7 +393,18 @@ namespace HardwareMonitor
 
     Icon^ MonitorGlobal::GetAppIcon()
     {
-        return app_icon;
+        return GetIcon("logo");
+    }
+
+    Icon^ MonitorGlobal::GetIcon(String^ name)
+    {
+        Icon^ icon;
+        if (!iconsMap->TryGetValue(name, icon))
+        {
+            icon = LoadIcon(name, CHardwareMonitor::GetInstance()->DPI(16));
+            iconsMap->Add(name, icon);
+        }
+        return icon;
     }
 
     Resources::ResourceManager^ MonitorGlobal::GetResourceManager()

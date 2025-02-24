@@ -2,6 +2,7 @@
 #include "SettingsForm.h"
 #include "HardwareMonitor.h"
 #include "HardwareMonitorHelper.h"
+#include "Common.h"
 using namespace System::Collections::Generic;
 
 namespace HardwareMonitor
@@ -12,8 +13,14 @@ namespace HardwareMonitor
         this->Icon = MonitorGlobal::Instance()->GetAppIcon();
         InitializeComponent();
         this->MinimumSize = this->Size;
-        UpdateItemList();
 
+        //添加图标
+        Common::SetButtonIcon(addItemBtn, "Add");
+        Common::SetButtonIcon(removeSelectBtn, "Delete");
+        Common::SetButtonIcon(moveUpButton, "MoveUp");
+        Common::SetButtonIcon(moveDownButton, "MoveDown");
+
+        UpdateItemList();
         EnableControls();
 
         //初始化要监控的硬件选项
@@ -226,25 +233,6 @@ namespace HardwareMonitor
         }
     }
 
-    //交换ListBox的两个项
-    static void SwapListBoxItems(ListBox^ listBox, int index1, int index2)
-    {
-        // 检查索引是否有效
-        if (index1 < 0 || index1 >= listBox->Items->Count ||
-            index2 < 0 || index2 >= listBox->Items->Count)
-        {
-            return;
-        }
-
-        // 获取两个项的值
-        Object^ item1 = listBox->Items[index1];
-        Object^ item2 = listBox->Items[index2];
-
-        // 交换两个项的值
-        listBox->Items[index1] = item2;
-        listBox->Items[index2] = item1;
-    }
-
     System::Void SettingsForm::moveUpButton_Click(System::Object^ sender, System::EventArgs^ e)
     {
         if (IsSelectionValid())
@@ -254,7 +242,7 @@ namespace HardwareMonitor
             if (index > 0 && index < static_cast<int>(items_info.size()))
             {
                 //交换列表中当前项和前一项的文本
-                SwapListBoxItems(monitorItemListBox, index, index - 1);
+                Common::SwapListBoxItems(monitorItemListBox, index, index - 1);
                 //交换ItemInfo
                 std::swap(items_info[index], items_info[index - 1]);
                 //更改选中项
