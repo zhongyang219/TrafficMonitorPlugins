@@ -58,9 +58,9 @@ namespace HardwareMonitor
         else
         {
             if (item_value.empty())
-                sample_text = L"0000.00";
+                sample_text = L"0.00";
             else
-                sample_text = L'0' + item_value;
+                sample_text = item_value;
         }
         return sample_text.c_str();
     }
