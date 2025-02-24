@@ -1,9 +1,10 @@
 ﻿#include "stdafx.h"
 #include "HardwareInfoForm.h"
 #include "HardwareMonitor.h"
-#include <cliext/map>
 #include "HardwareMonitorHelper.h"
 #include "Common.h"
+
+using namespace System::Collections::Generic;
 
 namespace HardwareMonitor
 {
@@ -24,25 +25,17 @@ namespace HardwareMonitor
         case HardwareType::GpuNvidia: hardware_node->ImageKey = "Nvidia"; break;
         }
         //添加Sensor节点
-        typedef cliext::map<SensorType, TreeNode^> TypeNodeMap;
-        TypeNodeMap sensor_type_nodes;       //保存所有Sensor类型的节点
+        Dictionary<SensorType, TreeNode^>^ sensor_type_nodes = gcnew Dictionary<SensorType, TreeNode^>();       //保存所有Sensor类型的节点
         for (int j = 0; j < hardware->Sensors->Length; j++)
         {
             auto sensor = hardware->Sensors[j];
             //根据Sensor的类型创建父节点
             TreeNode^ type_node;
-            TypeNodeMap::iterator iter = sensor_type_nodes.find(sensor->SensorType);
-            if (iter == sensor_type_nodes.end())
+            if (!sensor_type_nodes->TryGetValue(sensor->SensorType, type_node))
             {
                 //创建类型节点，并保存到map中
                 type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
-                sensor_type_nodes.insert(TypeNodeMap::make_value(sensor->SensorType, type_node));
-
-            }
-            else
-            {
-                //已存在的节点
-                type_node = iter->second;
+                sensor_type_nodes->Add(sensor->SensorType, type_node);
             }
 
             String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
