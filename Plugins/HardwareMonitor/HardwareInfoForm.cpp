@@ -53,6 +53,8 @@ namespace HardwareMonitor
         InitializeComponent();
         InitUserComponent();
 
+        Common::LoadFormSize(this, L"hardware_info");
+
         //填充数据
         auto computer = MonitorGlobal::Instance()->computer;
         for (int i = 0; i < computer->Hardware->Count; i++)
@@ -137,6 +139,9 @@ namespace HardwareMonitor
         treeView1->DrawNode += gcnew DrawTreeNodeEventHandler(this, &HardwareInfoForm::TreeView_DrawNode);
 
         autoRefreshCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh;
+
+        // 为FormClosing事件添加处理程序
+        this->FormClosing += gcnew FormClosingEventHandler(this, &HardwareInfoForm::OnFormClosing);
     }
 
     void HardwareInfoForm::AddItem_Click(System::Object^ sender, System::EventArgs^ e)
@@ -233,6 +238,12 @@ namespace HardwareMonitor
         // 绘制第一部分文本（左对齐）
         String^ leftText = parts[0];
         TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
+    }
+
+    void HardwareInfoForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
+    {
+        Common::SaveFormSize(this, L"hardware_info");
+
     }
 
     System::Void HardwareInfoForm::autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)

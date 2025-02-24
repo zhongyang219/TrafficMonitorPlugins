@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "Common.h"
 #include "HardwareMonitor.h"
+#include "../utilities/IniHelper.h"
 
 namespace HardwareMonitor
 {
@@ -46,5 +47,30 @@ namespace HardwareMonitor
         // 交换两个项的值
         listBox->Items[index1] = item2;
         listBox->Items[index2] = item1;
+    }
+
+    void Common::SaveFormSize(Form^ form, const std::wstring& name)
+    {
+        if (form != nullptr)
+        {
+            utilities::CIniHelper ini(CHardwareMonitor::GetInstance()->GetConfigPath());
+            ini.WriteInt(L"form_size", (name + L"_width").c_str(), form->Size.Width);
+            ini.WriteInt(L"form_size", (name + L"_height").c_str(), form->Size.Height);
+            ini.Save();
+        }
+    }
+
+    void Common::LoadFormSize(Form^ form, const std::wstring& name)
+    {
+        if (form != nullptr)
+        {
+            utilities::CIniHelper ini(CHardwareMonitor::GetInstance()->GetConfigPath());
+            int width = ini.GetInt(L"form_size", (name + L"_width").c_str());
+            int height = ini.GetInt(L"form_size", (name + L"_height").c_str());
+            if (width > 0 && height > 0)
+            {
+                form->Size = Size(width, height);
+            }
+        }
     }
 }

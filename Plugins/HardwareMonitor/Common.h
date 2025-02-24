@@ -18,6 +18,12 @@ namespace HardwareMonitor
 
         //交换ListBox的两个项
         static void SwapListBoxItems(ListBox^ listBox, int index1, int index2);
+
+        //将一个窗口的大小保存到配置文件
+        static void SaveFormSize(Form^ form, const std::wstring& name);
+
+        //从配置文件恢复窗口的大小
+        static void LoadFormSize(Form^ form, const std::wstring& name);
     };
 }
 

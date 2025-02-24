@@ -110,6 +110,11 @@ namespace HardwareMonitor
         return std::wstring();
     }
 
+    const std::wstring& CHardwareMonitor::GetConfigPath() const
+    {
+        return m_config_path;
+    }
+
     void CHardwareMonitor::LoadConfig(const std::wstring& config_dir)
     {
         m_config_path = config_dir + L"HardwareMonitor.ini";

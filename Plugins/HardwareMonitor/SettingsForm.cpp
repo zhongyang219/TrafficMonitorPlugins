@@ -14,6 +14,8 @@ namespace HardwareMonitor
         InitializeComponent();
         this->MinimumSize = this->Size;
 
+        Common::LoadFormSize(this, L"settings");
+
         //添加图标
         Common::SetButtonIcon(addItemBtn, "Add");
         Common::SetButtonIcon(removeSelectBtn, "Delete");
@@ -171,6 +173,8 @@ namespace HardwareMonitor
 
         //保存设置
         CHardwareMonitor::GetInstance()->SaveConfig();
+
+        Common::SaveFormSize(this, L"settings");
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)

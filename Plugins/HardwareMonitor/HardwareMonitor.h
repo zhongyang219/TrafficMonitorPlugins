@@ -41,6 +41,8 @@ namespace HardwareMonitor
 
         std::wstring GetItemName(const std::wstring& identifier);
 
+        const std::wstring& GetConfigPath() const;
+
         void LoadConfig(const std::wstring& config_dir);
         void SaveConfig();
 
