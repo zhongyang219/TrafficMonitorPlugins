@@ -1,4 +1,4 @@
-// DrawScrollView.cpp : ÊµÏÖÎÄ¼ş
+ï»¿// DrawScrollView.cpp : å®ç°æ–‡ä»¶
 //
 
 #include "stdafx.h"
@@ -30,15 +30,15 @@ BEGIN_MESSAGE_MAP(CDrawScrollView, CScrollView)
 END_MESSAGE_MAP()
 
 
-// DrawScrollView »æÍ¼
+// DrawScrollView ç»˜å›¾
 
 void CDrawScrollView::OnInitialUpdate()
 {
 	CScrollView::OnInitialUpdate();
 
-    //³õÊ¼»¯Êó±êÌáÊ¾
+    //åˆå§‹åŒ–é¼ æ ‡æç¤º
     m_tool_tips.Create(this, TTS_ALWAYSTIP | TTS_NOPREFIX);
-    m_tool_tips.SetMaxTipWidth(800);		//ÎªÊó±êÌáÊ¾ÉèÖÃÒ»¸ö×î´ó¿í¶È£¬ÒÔÔÊĞíÆä»»ĞĞ
+    m_tool_tips.SetMaxTipWidth(800);		//ä¸ºé¼ æ ‡æç¤ºè®¾ç½®ä¸€ä¸ªæœ€å¤§å®½åº¦ï¼Œä»¥å…è®¸å…¶æ¢è¡Œ
     m_tool_tips.AddTool(this, _T(""));
 
     m_size.cx = 0;	
@@ -49,12 +49,12 @@ void CDrawScrollView::OnInitialUpdate()
 void CDrawScrollView::OnDraw(CDC* pDC)
 {
 	CDocument* pDoc = GetDocument();
-	// TODO: ÔÚ´ËÌí¼Ó»æÖÆ´úÂë
+	// TODO: åœ¨æ­¤æ·»åŠ ç»˜åˆ¶ä»£ç 
 
 	CRect draw_rect(CPoint(0, 0), m_size);
     pDC->FillSolidRect(draw_rect, RGB(222, 238, 255));
 
-    //Ë«»º³å»æÍ¼
+    //åŒç¼“å†²ç»˜å›¾
     CDrawDoubleBuffer draw_double_buffer(pDC, draw_rect);
     //m_draw_rect = draw_rect;
 
@@ -65,7 +65,7 @@ void CDrawScrollView::OnDraw(CDC* pDC)
     drawer.FillRect(draw_rect, GetSysColor(COLOR_WINDOW));
     drawer.SetFont(theApp.m_pMainWnd->GetFont());
 
-    //»æÖÆ²å¼şµÄÏÔÊ¾ÏîÄ¿
+    //ç»˜åˆ¶æ’ä»¶çš„æ˜¾ç¤ºé¡¹ç›®
     int index = 0;
 
     CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
@@ -83,15 +83,15 @@ void CDrawScrollView::OnDraw(CDC* pDC)
 
             bool double_line = dlg->IsDoubleLineChecked();
 
-            //»æÖÆÎÄ±¾
+            //ç»˜åˆ¶æ–‡æœ¬
             CRect rc_text;
             rc_text.left = theApp.DPI(16);
             rc_text.top = theApp.DPI(8) + index * (double_line ? theApp.DPI(64) : theApp.DPI(56));
             rc_text.bottom = rc_text.top + theApp.DPI(24);
-            rc_text.right = rc_text.left + theApp.DPI(120);
+            rc_text.right = draw_rect.right;
             drawer.DrawWindowText(rc_text, item->GetItemName(), RGB(0, 0, 0));
 
-            //»æÖÆÏÔÊ¾ÏîÄ¿
+            //ç»˜åˆ¶æ˜¾ç¤ºé¡¹ç›®
             CRect rc_item = rc_text;
             if (double_line)
                 rc_item.bottom += theApp.DPI(10);
@@ -101,17 +101,17 @@ void CDrawScrollView::OnDraw(CDC* pDC)
                 rc_item.right = rc_item.left + item_width;
             drawer.FillRect(rc_item, back_color);
 
-            //±£´æÏÔÊ¾ÏîÄ¿Î»ÖÃ
+            //ä¿å­˜æ˜¾ç¤ºé¡¹ç›®ä½ç½®
             m_plugin_item_rect[item->GetItemId()] = rc_item;
 
-            //Èç¹ûµ±Ç°ÊÓÍ¼µÄ¿í¶ÈĞ¡ÓÚÏÔÊ¾ÏîÄ¿µÄ¿í¶È£¬ÔòĞŞÕıÊÓÍ¼µÄ¿í¶È
+            //å¦‚æœå½“å‰è§†å›¾çš„å®½åº¦å°äºæ˜¾ç¤ºé¡¹ç›®çš„å®½åº¦ï¼Œåˆ™ä¿®æ­£è§†å›¾çš„å®½åº¦
             if (m_size.cx < rc_item.Width() + theApp.DPI(32))
             {
                 m_size.cx = rc_item.Width() + theApp.DPI(32);
                 SetScrollSizes(MM_TEXT, m_size);
             }
 
-            //±£´æÏÔÊ¾ÏîÄ¿µÄÎ»ÖÃ
+            //ä¿å­˜æ˜¾ç¤ºé¡¹ç›®çš„ä½ç½®
             //SavePluginItemRect(item, rc_item);
 
             if (item->IsCustomDraw())
@@ -144,7 +144,7 @@ void CDrawScrollView::OnDraw(CDC* pDC)
 }
 
 
-// DrawScrollView Õï¶Ï
+// DrawScrollView è¯Šæ–­
 #ifdef _DEBUG
 void CDrawScrollView::AssertValid() const
 {
@@ -225,7 +225,7 @@ IPluginItem* CDrawScrollView::GetPluginItemByPoint(CPoint point)
 
 BOOL CDrawScrollView::OnEraseBkgnd(CDC* pDC)
 {
-	// TODO: ÔÚ´ËÌí¼ÓÏûÏ¢´¦Àí³ÌĞò´úÂëºÍ/»òµ÷ÓÃÄ¬ÈÏÖµ
+	// TODO: åœ¨æ­¤æ·»åŠ æ¶ˆæ¯å¤„ç†ç¨‹åºä»£ç å’Œ/æˆ–è°ƒç”¨é»˜è®¤å€¼
 	CRect rect;
 	CBrush brush;
 	brush.CreateSolidBrush(RGB(235,235,235));
@@ -290,7 +290,7 @@ void CDrawScrollView::OnRButtonUp(UINT nFlags, CPoint point)
 
 BOOL CDrawScrollView::PreTranslateMessage(MSG* pMsg)
 {
-    // TODO: ÔÚ´ËÌí¼Ó×¨ÓÃ´úÂëºÍ/»òµ÷ÓÃ»ùÀà
+    // TODO: åœ¨æ­¤æ·»åŠ ä¸“ç”¨ä»£ç å’Œ/æˆ–è°ƒç”¨åŸºç±»
     if (pMsg->message == WM_KEYDOWN)
     {
         CPluginTesterDlg* dlg = dynamic_cast<CPluginTesterDlg*>(theApp.m_pMainWnd);
@@ -325,7 +325,7 @@ BOOL CDrawScrollView::PreTranslateMessage(MSG* pMsg)
 
 void CDrawScrollView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-    // TODO: ÔÚ´ËÌí¼ÓÏûÏ¢´¦Àí³ÌĞò´úÂëºÍ/»òµ÷ÓÃÄ¬ÈÏÖµ
+    // TODO: åœ¨æ­¤æ·»åŠ æ¶ˆæ¯å¤„ç†ç¨‹åºä»£ç å’Œ/æˆ–è°ƒç”¨é»˜è®¤å€¼
 
     CScrollView::OnKeyUp(nChar, nRepCnt, nFlags);
 }
