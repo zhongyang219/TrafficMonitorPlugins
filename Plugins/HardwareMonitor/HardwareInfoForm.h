@@ -51,6 +51,7 @@ namespace HardwareMonitor {
 
     private:
         ToolStripMenuItem^ addItem;
+        bool updating = false;
 
 	private:
 		/// <summary>

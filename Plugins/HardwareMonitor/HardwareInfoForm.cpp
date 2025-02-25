@@ -93,6 +93,7 @@ namespace HardwareMonitor
 
     void HardwareMonitor::HardwareInfoForm::UpdateData()
     {
+        updating = true;
         treeView1->BeginUpdate();
         //更新树节点的数据
         //遍历Hardware节点
@@ -101,6 +102,7 @@ namespace HardwareMonitor
             UpdateNodeValue(hardware_node);
         }
         treeView1->EndUpdate();
+        updating = false;
     }
 
     void HardwareInfoForm::InitUserComponent()
@@ -177,6 +179,8 @@ namespace HardwareMonitor
     }
     void HardwareInfoForm::TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e)
     {
+        if (updating)
+            return;
         // 获取节点的矩形区域
         Rectangle bounds = e->Bounds;
         // 由于通过ImageList设置了图标，但是并不通过ImageList显示图标，因此矩形区域向左扩展图标大小的距离
