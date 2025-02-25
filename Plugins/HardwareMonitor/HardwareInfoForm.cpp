@@ -116,6 +116,13 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::InitUserComponent()
     {
+        //使用ImageList设置树控件的行高（实际不添加图标，图标由TreeView_DrawNode函数自绘）
+        ImageList^ imageList = gcnew ImageList();
+        int iconWidth = CHardwareMonitor::GetInstance()->DPI(16);
+        int iconHeight = CHardwareMonitor::GetInstance()->DPI(19);
+        imageList->ImageSize = System::Drawing::Size(iconWidth, iconHeight);
+        treeView1->ImageList = imageList;
+
         // 初始化 ContextMenuStrip
         contextMenuStrip = gcnew System::Windows::Forms::ContextMenuStrip();
 
@@ -180,6 +187,13 @@ namespace HardwareMonitor
     {
         // 获取节点的矩形区域
         Rectangle bounds = e->Bounds;
+        // 由于通过ImageList设置了图标，但是并不通过ImageList显示图标，因此矩形区域向左扩展图标大小的距离
+        if (treeView1->ImageList != nullptr)
+        {
+            int imageWidth = treeView1->ImageList->ImageSize.Width;
+            bounds.Offset(-imageWidth - CHardwareMonitor::GetInstance()->DPI(2), 0);
+        }
+
         // 扩展 bounds 的宽度到整个控件的宽度
         bounds.Width = treeView1->ClientSize.Width - bounds.Left - 1; // 减去1以避免绘制超出控件边界
         System::Drawing::Color textColor;
@@ -207,14 +221,16 @@ namespace HardwareMonitor
         // 为根节点绘制图标
         if (e->Node->Parent == nullptr && e->Node->ImageKey->Length > 0)
         {
-            Point start_pos = bounds.Location;
-            int offset = (bounds.Height - CHardwareMonitor::GetInstance()->DPI(16)) / 2;
-            start_pos.Offset(offset, offset);
             System::Drawing::Icon^ icon = MonitorGlobal::Instance()->GetIcon(e->Node->ImageKey);
             if (icon != nullptr)
+            {
+                Point start_pos = bounds.Location;
+                int offset = (bounds.Height - icon->Size.Height) / 2;
+                start_pos.Offset(offset, offset);
                 e->Graphics->DrawIcon(icon, start_pos.X, start_pos.Y);
-            bounds.Offset(bounds.Height, 0);
-            bounds.Width -= bounds.Height;
+                bounds.Offset(bounds.Height, 0);
+                bounds.Width -= bounds.Height;
+            }
         }
 
         // 获取节点的文本
@@ -233,11 +249,11 @@ namespace HardwareMonitor
 
         // 绘制第二部分文本（右对齐）
         String^ rightText = parts[1];
-        TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right);
+        TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right | TextFormatFlags::VerticalCenter);
 
         // 绘制第一部分文本（左对齐）
         String^ leftText = parts[0];
-        TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
+        TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::VerticalCenter | TextFormatFlags::WordEllipsis);
     }
 
     void HardwareInfoForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
