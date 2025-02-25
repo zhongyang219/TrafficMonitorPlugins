@@ -8,6 +8,7 @@ namespace HardwareMonitor {
 	using namespace System::Windows::Forms;
 	using namespace System::Data;
 	using namespace System::Drawing;
+	using namespace System::Collections::Generic;
 
     struct ItemInfo;
 
@@ -35,7 +36,9 @@ namespace HardwareMonitor {
 
     private:
         //列表中每个项目的标识符
-        System::Collections::Generic::List<String^>^ identifyerList = gcnew System::Collections::Generic::List<String^>();
+        List<String^>^ identifyerList = gcnew List<String^>();
+        //列表中每个项目的图标
+        Dictionary<String^, System::Drawing::Icon^>^ iconMap = gcnew Dictionary<String^, System::Drawing::Icon^>();
 
     private: System::Windows::Forms::ListBox^ monitorItemListBox;
     private: System::Windows::Forms::Button^ removeSelectBtn;

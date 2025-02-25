@@ -62,6 +62,7 @@ namespace HardwareMonitor
         //清除列表
         monitorItemListBox->Items->Clear();
         identifyerList->Clear();
+        EnableControls();
 
         //填充数据
         for (const auto& item : CHardwareMonitor::GetInstance()->m_settings.items_info)
@@ -71,6 +72,14 @@ namespace HardwareMonitor
             {
                 monitorItemListBox->Items->Add(item_name);
                 identifyerList->Add(gcnew String(item.identifyer.c_str()));
+                //根据监控项类型获取图标
+                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item.identifyer.c_str()));
+                if (sensor != nullptr)
+                {
+                    auto resName = HardwareMonitorHelper::GetHardwareIconResName(sensor->Hardware->HardwareType);
+                    if (resName->Length > 0)
+                        iconMap[item_name] = MonitorGlobal::Instance()->GetIcon(resName);
+                }
             }
         }
     }
@@ -183,6 +192,8 @@ namespace HardwareMonitor
 
     void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)
     {
+        // 获取节点的矩形区域
+        Rectangle bounds = e->Bounds;
         // 获取当前项的文本
         String^ text = monitorItemListBox->Items[e->Index]->ToString();
 
@@ -205,8 +216,23 @@ namespace HardwareMonitor
         // 绘制背景
         e->Graphics->FillRectangle(gcnew SolidBrush(backColor), e->Bounds);
 
+        //绘制图标
+        System::Drawing::Icon^ icon;
+        if (iconMap->TryGetValue(text, icon))
+        {
+            if (icon != nullptr)
+            {
+                Point start_pos = bounds.Location;
+                int offset = (bounds.Height - icon->Size.Height) / 2;
+                start_pos.Offset(offset, offset);
+                e->Graphics->DrawIcon(icon, start_pos.X, start_pos.Y);
+                bounds.Offset(bounds.Height, 0);
+                bounds.Width -= bounds.Height;
+            }
+        }
+
         // 绘制文本，垂直居中对齐
-        TextRenderer::DrawText(e->Graphics, text, monitorItemListBox->Font, e->Bounds, textColor, TextFormatFlags::VerticalCenter | TextFormatFlags::Left);
+        TextRenderer::DrawText(e->Graphics, text, monitorItemListBox->Font, bounds, textColor, TextFormatFlags::VerticalCenter | TextFormatFlags::Left);
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)

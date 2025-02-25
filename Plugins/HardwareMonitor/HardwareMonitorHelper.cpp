@@ -36,6 +36,24 @@ namespace HardwareMonitor
         return L"";
     }
 
+    System::String^ HardwareMonitorHelper::GetHardwareIconResName(LibreHardwareMonitor::Hardware::HardwareType type)
+    {
+        switch (type)
+        {
+        case HardwareType::Motherboard: return L"MotherBoard";
+        case HardwareType::Battery: return L"batteries";
+        case HardwareType::Cpu: return L"CPU";
+        case HardwareType::EmbeddedController: return L"FanColtroller";
+        case HardwareType::Network: return L"Network";
+        case HardwareType::Memory: return L"RAM";
+        case HardwareType::Storage: return L"Storage";
+        case HardwareType::GpuAmd: return L"AMD";
+        case HardwareType::GpuIntel: return L"intel";
+        case HardwareType::GpuNvidia: return L"Nvidia";
+        }
+        return L"";
+    }
+
     List<String^>^ HardwareMonitorHelper::GetSensorTypeUnit(SensorType type)
     {
         List<String^>^ unitList = gcnew List<String^>();

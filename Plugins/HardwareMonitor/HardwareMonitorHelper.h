@@ -8,6 +8,9 @@ namespace HardwareMonitor
         //获取传感器类型名称
         static System::String^ GetSensorTypeName(LibreHardwareMonitor::Hardware::SensorType type);
 
+        //根据硬件类型获取图标资源名称
+        static System::String^ GetHardwareIconResName(LibreHardwareMonitor::Hardware::HardwareType type);
+
         //根据传感器类型获取数据的单位列表
         //可能会有多个可用单位，默认的单位总是为列表的第一个元素
         static System::Collections::Generic::List<System::String^>^ GetSensorTypeUnit(LibreHardwareMonitor::Hardware::SensorType type);

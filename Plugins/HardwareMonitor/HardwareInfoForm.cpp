@@ -11,19 +11,8 @@ namespace HardwareMonitor
     static TreeNode^ AddHardwareNode(TreeNodeCollection^ nodes, IHardware^ hardware)
     {
         auto hardware_node = nodes->Add(hardware->Name);
-        switch (hardware->HardwareType)
-        {
-        case HardwareType::Motherboard: hardware_node->ImageKey = "MotherBoard"; break;
-        case HardwareType::Battery: hardware_node->ImageKey = "batteries"; break;
-        case HardwareType::Cpu: hardware_node->ImageKey = "CPU"; break;
-        case HardwareType::EmbeddedController: hardware_node->ImageKey = "FanColtroller"; break;
-        case HardwareType::Network: hardware_node->ImageKey = "Network"; break;
-        case HardwareType::Memory: hardware_node->ImageKey = "RAM"; break;
-        case HardwareType::Storage: hardware_node->ImageKey = "Storage"; break;
-        case HardwareType::GpuAmd: hardware_node->ImageKey = "AMD"; break;
-        case HardwareType::GpuIntel: hardware_node->ImageKey = "intel"; break;
-        case HardwareType::GpuNvidia: hardware_node->ImageKey = "Nvidia"; break;
-        }
+        //保存图标资源名称
+        hardware_node->ImageKey = HardwareMonitorHelper::GetHardwareIconResName(hardware->HardwareType);
         //添加Sensor节点
         Dictionary<SensorType, TreeNode^>^ sensor_type_nodes = gcnew Dictionary<SensorType, TreeNode^>();       //保存所有Sensor类型的节点
         for (int j = 0; j < hardware->Sensors->Length; j++)
