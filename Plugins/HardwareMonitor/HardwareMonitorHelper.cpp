@@ -226,7 +226,7 @@ namespace HardwareMonitor
         IHardware^ hardware = sensor->Hardware;
         name = hardware->Name;
         name += "/";
-        name += gcnew String(GetSensorTypeName(sensor->SensorType));
+        name += GetSensorTypeName(sensor->SensorType);
         name += "/";
         name += Common::GetTranslatedString(sensor->Name);
         return name;
