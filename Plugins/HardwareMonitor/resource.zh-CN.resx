@@ -127,7 +127,7 @@
     <value>时钟频率</value>
   </data>
   <data name="Conductivity" xml:space="preserve">
-    <value>Conductivity</value>
+    <value>电导率</value>
   </data>
   <data name="Control" xml:space="preserve">
     <value>风扇控制器</value>
@@ -138,8 +138,12 @@
   <data name="Data" xml:space="preserve">
     <value>数据</value>
   </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Delete" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
   <data name="Energy" xml:space="preserve">
-    <value>Energy</value>
+    <value>电量</value>
   </data>
   <data name="Factor" xml:space="preserve">
     <value>Factor</value>
@@ -148,7 +152,7 @@
     <value>风扇</value>
   </data>
   <data name="Flow" xml:space="preserve">
-    <value>Flow</value>
+    <value>流量</value>
   </data>
   <data name="Frequency" xml:space="preserve">
     <value>频率</value>
@@ -157,7 +161,10 @@
     <value>硬件信息</value>
   </data>
   <data name="Humidity" xml:space="preserve">
-    <value>Humidity</value>
+    <value>湿度</value>
+  </data>
+  <data name="intel" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
   <data name="Level" xml:space="preserve">
     <value>Level</value>
@@ -166,7 +173,7 @@
     <value>负载</value>
   </data>
   <data name="Noise" xml:space="preserve">
-    <value>Noise</value>
+    <value>噪声</value>
   </data>
   <data name="PluginDescription" xml:space="preserve">
     <value>用于TrafficMonitor的硬件监控插件。</value>
@@ -187,9 +194,135 @@
     <value>速率</value>
   </data>
   <data name="TimeSpan" xml:space="preserve">
-    <value>TimeSpan</value>
+    <value>时间</value>
   </data>
   <data name="Voltage" xml:space="preserve">
     <value>电压</value>
+  </data>
+  <data name="Designed Capacity" xml:space="preserve">
+    <value>设计容量</value>
+  </data>
+  <data name="Fully-Charged Capacity" xml:space="preserve">
+    <value>充满电量</value>
+  </data>
+  <data name="Degradation Level" xml:space="preserve">
+    <value>电池损耗</value>
+  </data>
+  <data name="Charge Level" xml:space="preserve">
+    <value>电量</value>
+  </data>
+  <data name="Remaining Capacity" xml:space="preserve">
+    <value>可用电量</value>
+  </data>
+  <data name="Charge/Discharge Current" xml:space="preserve">
+    <value>充电/放电电流</value>
+  </data>
+  <data name="Charge/Discharge Rate" xml:space="preserve">
+    <value>充电/放电功率</value>
+  </data>
+  <data name="Remaining Time (Estimated)" xml:space="preserve">
+    <value>剩余时间（估计值）</value>
+  </data>
+  <data name="Battery Temperature" xml:space="preserve">
+    <value>电池温度</value>
+  </data>
+  <data name="Bus Speed" xml:space="preserve">
+    <value>总线频率</value>
+  </data>
+  <data name="GPU Memory Total" xml:space="preserve">
+    <value>GPU 内存总量</value>
+  </data>
+  <data name="D3D Dedicated Memory Used" xml:space="preserve">
+    <value>D3D 专用内存已使用</value>
+  </data>
+  <data name="D3D Dedicated Memory Free" xml:space="preserve">
+    <value>D3D 专用内存可用</value>
+  </data>
+  <data name="D3D Dedicated Memory Total" xml:space="preserve">
+    <value>D3D 专用内存总量</value>
+  </data>
+  <data name="D3D Shared Memory Used" xml:space="preserve">
+    <value>D3D 共享内存已使用</value>
+  </data>
+  <data name="D3D Shared Memory Free" xml:space="preserve">
+    <value>D3D 共享内存可用</value>
+  </data>
+  <data name="D3D Shared Memory Total" xml:space="preserve">
+    <value>D3D 共享内存总量</value>
+  </data>
+  <data name="GPU Memory Used" xml:space="preserve">
+    <value>GPU 内存已使用</value>
+  </data>
+  <data name="GPU Memory Free" xml:space="preserve">
+    <value>GPU 内存可用</value>
+  </data>
+  <data name="GPU Memory" xml:space="preserve">
+    <value>GPU 内存</value>
+  </data>
+  <data name="Memory Used" xml:space="preserve">
+    <value>内存已使用</value>
+  </data>
+  <data name="Memory Available" xml:space="preserve">
+    <value>内存可用</value>
+  </data>
+  <data name="Memory" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="Virtual Memory Used" xml:space="preserve">
+    <value>虚拟内存已使用</value>
+  </data>
+  <data name="Virtual Memory Available" xml:space="preserve">
+    <value>虚拟内存可用</value>
+  </data>
+  <data name="Virtual Memory" xml:space="preserve">
+    <value>虚拟内存</value>
+  </data>
+  <data name="Data Uploaded" xml:space="preserve">
+    <value>已上传数据</value>
+  </data>
+  <data name="Data Downloaded" xml:space="preserve">
+    <value>已下载数据</value>
+  </data>
+  <data name="Upload Speed" xml:space="preserve">
+    <value>上传速度</value>
+  </data>
+  <data name="Download Speed" xml:space="preserve">
+    <value>下载速度</value>
+  </data>
+  <data name="Network Utilization" xml:space="preserve">
+    <value>网络利用率</value>
+  </data>
+  <data name="Used Space" xml:space="preserve">
+    <value>已使用空间</value>
+  </data>
+  <data name="Read Activity" xml:space="preserve">
+    <value>读取活动</value>
+  </data>
+  <data name="Write Activity" xml:space="preserve">
+    <value>写入活动</value>
+  </data>
+  <data name="Total Activity" xml:space="preserve">
+    <value>总活动</value>
+  </data>
+  <data name="Read Rate" xml:space="preserve">
+    <value>读取速率</value>
+  </data>
+  <data name="Write Rate" xml:space="preserve">
+    <value>写入速率</value>
+  </data>
+  <data name="Available Spare" xml:space="preserve">
+    <value>可用备用空间</value>
+  </data>
+  <data name="Available Spare Threshold" xml:space="preserve">
+    <value>可用备用空间阈值</value>
+  </data>
+  <data name="Percentage Used" xml:space="preserve">
+    <value>已使用百分比</value>
+  </data>
+  <data name="Data Read" xml:space="preserve">
+    <value>已读取数据量</value>
+  </data>
+  <data name="Data Written" xml:space="preserve">
+    <value>已写入数据量</value>
   </data>
 </root>

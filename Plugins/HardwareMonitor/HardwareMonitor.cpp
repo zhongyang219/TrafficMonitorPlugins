@@ -151,8 +151,9 @@ namespace HardwareMonitor
             if (sensor != nullptr)
             {
                 std::wstring item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+                std::wstring lable_text = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorNameTranslated(sensor));
                 m_item_names[item_info.identifyer] = item_name;
-                m_items.emplace_back(item_info.identifyer, item_name);
+                m_items.emplace_back(item_info.identifyer, item_name, lable_text);
             }
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");

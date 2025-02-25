@@ -8,14 +8,9 @@ using namespace LibreHardwareMonitor::Hardware;
 
 namespace HardwareMonitor
 {
-    CHardwareMonitorItem::CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name)
-        : identifier(_identifier), item_name(_item_name)
+    CHardwareMonitorItem::CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name, const std::wstring& _label_text)
+        : identifier(_identifier), item_name(_item_name), label_text(_label_text)
     {
-        size_t index = item_name.find_last_of(L"/\\|");
-        if (index != std::wstring::npos && index < item_name.size() - 1)
-            label_text = item_name.substr(index + 1);
-        else
-            label_text = item_name;
     }
 
     const wchar_t* CHardwareMonitorItem::GetItemName() const

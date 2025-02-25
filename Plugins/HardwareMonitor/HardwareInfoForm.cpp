@@ -23,7 +23,7 @@ namespace HardwareMonitor
             if (!sensor_type_nodes->TryGetValue(sensor->SensorType, type_node))
             {
                 //创建类型节点，并保存到map中
-                type_node = hardware_node->Nodes->Add(gcnew String(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType)));
+                type_node = hardware_node->Nodes->Add(HardwareMonitorHelper::GetSensorTypeName(sensor->SensorType));
                 sensor_type_nodes->Add(sensor->SensorType, type_node);
             }
 

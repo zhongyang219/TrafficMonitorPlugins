@@ -2,13 +2,15 @@
 #include "HardwareMonitorHelper.h"
 #include "HardwareMonitor.h"
 #include <gcroot.h>
+#include "Common.h"
 
 using namespace LibreHardwareMonitor::Hardware;
 using namespace System::Collections::Generic;
+using namespace System;
 
 namespace HardwareMonitor
 {
-    System::String^ HardwareMonitorHelper::GetSensorTypeName(SensorType type)
+    String^ HardwareMonitorHelper::GetSensorTypeName(SensorType type)
     {
         switch (type)
         {
@@ -36,7 +38,7 @@ namespace HardwareMonitor
         return L"";
     }
 
-    System::String^ HardwareMonitorHelper::GetHardwareIconResName(LibreHardwareMonitor::Hardware::HardwareType type)
+    String^ HardwareMonitorHelper::GetHardwareIconResName(LibreHardwareMonitor::Hardware::HardwareType type)
     {
         switch (type)
         {
@@ -65,26 +67,26 @@ namespace HardwareMonitor
         case SensorType::Clock: unitList->Add("MHz"); unitList->Add("GHz"); break;
         case SensorType::Temperature: unitList->Add("°C"); unitList->Add("°F"); break;
         case SensorType::Load: unitList->Add("%"); break;
-        case SensorType::Frequency: unitList->Add(""); break;
+        case SensorType::Frequency: unitList->Add("Hz"); break;
         case SensorType::Fan: unitList->Add("RPM"); break;
-        case SensorType::Flow: unitList->Add(""); break;
+        case SensorType::Flow: unitList->Add("L/h"); break;
         case SensorType::Control: unitList->Add("%"); break;
         case SensorType::Level: unitList->Add("%"); break;
         case SensorType::Factor: unitList->Add(""); break;
         case SensorType::Data: unitList->Add("GB"); unitList->Add("MB"); break;
         case SensorType::SmallData: unitList->Add("MB"); unitList->Add("GB"); break;
         case SensorType::Throughput: unitList->Add("KB/s"); unitList->Add("MB/s"); break;
-        case SensorType::TimeSpan: unitList->Add(""); break;
+        case SensorType::TimeSpan: unitList->Add("s"); break;
         case SensorType::Energy: unitList->Add("mWh"); unitList->Add("Wh"); break;
-        case SensorType::Noise: unitList->Add(""); break;
-        case SensorType::Conductivity: unitList->Add(""); break;
-        case SensorType::Humidity: unitList->Add(""); break;
+        case SensorType::Noise: unitList->Add("dBA"); break;
+        case SensorType::Conductivity: unitList->Add("µS/cm"); break;
+        case SensorType::Humidity: unitList->Add("%"); break;
         default: unitList->Add(""); break;
         }
         return unitList;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorTypeDefaultUnit(LibreHardwareMonitor::Hardware::SensorType type)
+    String^ HardwareMonitorHelper::GetSensorTypeDefaultUnit(LibreHardwareMonitor::Hardware::SensorType type)
     {
         List<String^>^ unitList = GetSensorTypeUnit(type);
         if (unitList->Count > 0)
@@ -114,7 +116,7 @@ namespace HardwareMonitor
 
     }
 
-    ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(System::String^ identifyer)
+    ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(String^ identifyer)
     {
         auto computer = MonitorGlobal::Instance()->computer;
         gcroot<String^> _identifyer = identifyer;       //使用gcroot包装托管类指针，以便被lambda捕获
@@ -129,7 +131,7 @@ namespace HardwareMonitor
         return nullptr;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, System::String^ unit, int decimal_place)
+    String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, String^ unit, int decimal_place)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
@@ -211,7 +213,7 @@ namespace HardwareMonitor
     String^ HardwareMonitorHelper::GetSensorNameValueText(ISensor^ sensor)
     {
         String^ sensor_str;
-        sensor_str = sensor->Name;
+        sensor_str = GetSensorNameTranslated(sensor);
         sensor_str += L"    ";
         String^ defaultUnit = GetSensorTypeDefaultUnit(sensor->SensorType);
         sensor_str += GetSensorValueText(sensor, defaultUnit);
@@ -226,11 +228,11 @@ namespace HardwareMonitor
         name += "/";
         name += gcnew String(GetSensorTypeName(sensor->SensorType));
         name += "/";
-        name += sensor->Name;
+        name += GetSensorNameTranslated(sensor);
         return name;
     }
 
-    System::String^ HardwareMonitorHelper::GetSensorIdentifyer(ISensor^ sensor)
+    String^ HardwareMonitorHelper::GetSensorIdentifyer(ISensor^ sensor)
     {
         //不使用sensor->Identifier，因为sensor->Identifier代表的传感器并不总是固定的
         //return sensor->Identifier->ToString();
@@ -248,5 +250,14 @@ namespace HardwareMonitor
         path += "/";
         path += sensor->Name;
         return path;
+    }
+
+    String^ HardwareMonitorHelper::GetSensorNameTranslated(ISensor^ sensor)
+    {
+        String^ sensorNameTranslated = MonitorGlobal::Instance()->GetString(Common::StringToStdWstring(sensor->Name).c_str());
+        if (sensorNameTranslated == nullptr || sensorNameTranslated->Length == 0)
+            return sensor->Name;
+        else
+            return sensorNameTranslated;
     }
 }

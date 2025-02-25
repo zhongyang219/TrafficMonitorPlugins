@@ -8,7 +8,7 @@ namespace HardwareMonitor
     class CHardwareMonitorItem : public IPluginItem
     {
     public:
-        CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name);
+        CHardwareMonitorItem(const std::wstring& _identifier, const std::wstring& _item_name, const std::wstring& _label_text);
 
         // 通过 IPluginItem 继承
         const wchar_t* GetItemName() const override;

@@ -238,4 +238,130 @@
   <data name="Voltage" xml:space="preserve">
     <value>Voltage</value>
   </data>
+  <data name="Designed Capacity" xml:space="preserve">
+    <value>Designed Capacity</value>
+  </data>
+  <data name="Fully-Charged Capacity" xml:space="preserve">
+    <value>Fully-Charged Capacity</value>
+  </data>
+  <data name="Degradation Level" xml:space="preserve">
+    <value>Degradation Level</value>
+  </data>
+  <data name="Charge Level" xml:space="preserve">
+    <value>Charge Level</value>
+  </data>
+  <data name="Remaining Capacity" xml:space="preserve">
+    <value>Remaining Capacity</value>
+  </data>
+  <data name="Charge/Discharge Current" xml:space="preserve">
+    <value>Charge/Discharge Current</value>
+  </data>
+  <data name="Charge/Discharge Rate" xml:space="preserve">
+    <value>Charge/Discharge Rate</value>
+  </data>
+  <data name="Remaining Time (Estimated)" xml:space="preserve">
+    <value>Remaining Time (Estimated)</value>
+  </data>
+  <data name="Battery Temperature" xml:space="preserve">
+    <value>Battery Temperature</value>
+  </data>
+  <data name="Bus Speed" xml:space="preserve">
+    <value>Bus Speed</value>
+  </data>
+  <data name="GPU Memory Total" xml:space="preserve">
+    <value>GPU Memory Total</value>
+  </data>
+  <data name="D3D Dedicated Memory Used" xml:space="preserve">
+    <value>D3D Dedicated Memory Used</value>
+  </data>
+  <data name="D3D Dedicated Memory Free" xml:space="preserve">
+    <value>D3D Dedicated Memory Free</value>
+  </data>
+  <data name="D3D Dedicated Memory Total" xml:space="preserve">
+    <value>D3D Dedicated Memory Total</value>
+  </data>
+  <data name="D3D Shared Memory Used" xml:space="preserve">
+    <value>D3D Shared Memory Used</value>
+  </data>
+  <data name="D3D Shared Memory Free" xml:space="preserve">
+    <value>D3D Shared Memory Free</value>
+  </data>
+  <data name="D3D Shared Memory Total" xml:space="preserve">
+    <value>D3D Shared Memory Total</value>
+  </data>
+  <data name="GPU Memory Used" xml:space="preserve">
+    <value>GPU Memory Used</value>
+  </data>
+  <data name="GPU Memory Free" xml:space="preserve">
+    <value>GPU Memory Free</value>
+  </data>
+  <data name="GPU Memory" xml:space="preserve">
+    <value>GPU Memory</value>
+  </data>
+  <data name="Memory Used" xml:space="preserve">
+    <value>Memory Used</value>
+  </data>
+  <data name="Memory Available" xml:space="preserve">
+    <value>Memory Available</value>
+  </data>
+  <data name="Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Virtual Memory Used" xml:space="preserve">
+    <value>Virtual Memory Used</value>
+  </data>
+  <data name="Virtual Memory Available" xml:space="preserve">
+    <value>Virtual Memory Available</value>
+  </data>
+  <data name="Virtual Memory" xml:space="preserve">
+    <value>Virtual Memory</value>
+  </data>
+  <data name="Data Uploaded" xml:space="preserve">
+    <value>Data Uploaded</value>
+  </data>
+  <data name="Data Downloaded" xml:space="preserve">
+    <value>Data Downloaded</value>
+  </data>
+  <data name="Upload Speed" xml:space="preserve">
+    <value>Upload Speed</value>
+  </data>
+  <data name="Download Speed" xml:space="preserve">
+    <value>Download Speed</value>
+  </data>
+  <data name="Network Utilization" xml:space="preserve">
+    <value>Network Utilization</value>
+  </data>
+  <data name="Used Space" xml:space="preserve">
+    <value>Used Space</value>
+  </data>
+  <data name="Read Activity" xml:space="preserve">
+    <value>Read Activity</value>
+  </data>
+  <data name="Write Activity" xml:space="preserve">
+    <value>Write Activity</value>
+  </data>
+  <data name="Total Activity" xml:space="preserve">
+    <value>Total Activity</value>
+  </data>
+  <data name="Read Rate" xml:space="preserve">
+    <value>Read Rate</value>
+  </data>
+  <data name="Write Rate" xml:space="preserve">
+    <value>Write Rate</value>
+  </data>
+  <data name="Available Spare" xml:space="preserve">
+    <value>Available Spare</value>
+  </data>
+  <data name="Available Spare Threshold" xml:space="preserve">
+    <value>Available Spare Threshold</value>
+  </data>
+  <data name="Percentage Used" xml:space="preserve">
+    <value>Percentage Used</value>
+  </data>
+  <data name="Data Read" xml:space="preserve">
+    <value>Data Read</value>
+  </data>
+  <data name="Data Written" xml:space="preserve">
+    <value>Data Written</value>
+  </data>
 </root>
