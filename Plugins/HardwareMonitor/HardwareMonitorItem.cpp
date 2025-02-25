@@ -47,14 +47,17 @@ namespace HardwareMonitor
                 sample_text += L'.';
                 sample_text += std::wstring(item_info.decimal_places, L'0');
             }
-            sample_text += L' ';
-            SensorType type = static_cast<SensorType>(sensor_type);
-            std::wstring unit;
-            if (!item_info.unit.empty())
-                unit = item_info.unit;
-            else
-                unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(type));
-            sample_text += unit;
+            if (item_info.show_unit)
+            {
+                sample_text += L' ';
+                SensorType type = static_cast<SensorType>(sensor_type);
+                std::wstring unit;
+                if (!item_info.unit.empty())
+                    unit = item_info.unit;
+                else
+                    unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(type));
+                sample_text += unit;
+            }
         }
         else
         {
@@ -93,7 +96,7 @@ namespace HardwareMonitor
                 unit = item_info.unit;
             else
                 unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
-            item_value = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places));
+            item_value = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places, item_info.show_unit));
             try
             {
                 item_value_num = sensor->Value.Value;

@@ -133,7 +133,7 @@
     <value>3, 4, 3, 4</value>
   </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>314, 364</value>
+    <value>314, 384</value>
   </data>
   <data name="monitorItemListBox.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -214,7 +214,7 @@
     <value>Bottom, Right</value>
   </data>
   <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>536, 603</value>
+    <value>536, 614</value>
   </data>
   <data name="cancelBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 29</value>
@@ -568,7 +568,7 @@
     <value>Bottom, Left, Right</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 582</value>
+    <value>9, 593</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>521, 53</value>
@@ -643,7 +643,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="decimalPlaceCombo.Location" type="System.Drawing.Point, System.Drawing">
     <value>10, 55</value>
@@ -664,7 +664,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;decimalPlaceCombo.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="specifyValueWidthCheck.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -691,7 +691,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;specifyValueWidthCheck.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>7</value>
   </data>
   <data name="valueWidthEdit.Location" type="System.Drawing.Point, System.Drawing">
     <value>10, 143</value>
@@ -712,7 +712,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;valueWidthEdit.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="label4.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -739,16 +739,43 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="groupBox2.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Right</value>
+  </data>
+  <data name="showUnitCheck.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="showUnitCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>10, 182</value>
+  </data>
+  <data name="showUnitCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>103, 24</value>
+  </data>
+  <data name="showUnitCheck.TabIndex" type="System.Int32, mscorlib">
+    <value>13</value>
+  </data>
+  <data name="showUnitCheck.Text" xml:space="preserve">
+    <value>Show unit</value>
+  </data>
+  <data name="&gt;&gt;showUnitCheck.Name" xml:space="preserve">
+    <value>showUnitCheck</value>
+  </data>
+  <data name="&gt;&gt;showUnitCheck.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;showUnitCheck.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;showUnitCheck.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <data name="label5.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 196</value>
+    <value>6, 218</value>
   </data>
   <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
     <value>98, 20</value>
@@ -769,10 +796,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="unitCombo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 193</value>
+    <value>110, 215</value>
   </data>
   <data name="unitCombo.Size" type="System.Drawing.Size, System.Drawing">
     <value>113, 28</value>
@@ -790,13 +817,13 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;unitCombo.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>344, 320</value>
+    <value>344, 314</value>
   </data>
   <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>272, 237</value>
+    <value>272, 257</value>
   </data>
   <data name="groupBox2.TabIndex" type="System.Int32, mscorlib">
     <value>12</value>
@@ -889,7 +916,7 @@
     <value>9, 20</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>623, 644</value>
+    <value>623, 655</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>微软雅黑, 9pt</value>

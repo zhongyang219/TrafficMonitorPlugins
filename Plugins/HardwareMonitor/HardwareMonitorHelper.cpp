@@ -131,7 +131,7 @@ namespace HardwareMonitor
         return nullptr;
     }
 
-    String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, String^ unit, int decimal_place)
+    String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, String^ unit, int decimal_place, bool show_unit)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
@@ -205,8 +205,11 @@ namespace HardwareMonitor
         {
             sensor_str += "--";
         }
-        sensor_str += " ";
-        sensor_str += unit;
+        if (show_unit)
+        {
+            sensor_str += " ";
+            sensor_str += unit;
+        }
         return sensor_str;
     }
 

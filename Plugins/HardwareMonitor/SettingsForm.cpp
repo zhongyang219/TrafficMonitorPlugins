@@ -111,6 +111,7 @@ namespace HardwareMonitor
         decimalPlaceCombo->Enabled = selection_enabled;
         specifyValueWidthCheck->Enabled = selection_enabled;
         valueWidthEdit->Enabled = selection_enabled && specifyValueWidthCheck->Checked;
+        showUnitCheck->Enabled = selection_enabled;
         unitCombo->Enabled = selection_enabled;
         int index = monitorItemListBox->SelectedIndex;
         moveUpButton->Enabled = selection_enabled && index > 0;
@@ -138,6 +139,7 @@ namespace HardwareMonitor
             specifyValueWidthCheck->Checked = item_info.specify_value_width;
             valueWidthEdit->Value = item_info.value_width;
 
+            showUnitCheck->Checked = item_info.show_unit;
             //填充“单位选择”下拉列表
             unitCombo->Items->Clear();
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
@@ -341,4 +343,12 @@ namespace HardwareMonitor
         monitorItemListBox->Height = listBoxHeight;
     }
 
+    System::Void SettingsForm::showUnitCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = GetSelectedItemInfo();
+            item_info.show_unit = showUnitCheck->Checked;
+        }
+    }
 }

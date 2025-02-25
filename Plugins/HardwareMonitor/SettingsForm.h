@@ -66,6 +66,8 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::ComboBox^ unitCombo;
     private: System::Windows::Forms::Button^ moveUpButton;
     private: System::Windows::Forms::Button^ moveDownButton;
+    private: System::Windows::Forms::CheckBox^ showUnitCheck;
+
 
     private: System::Windows::Forms::Button^ addItemBtn;
 
@@ -116,6 +118,7 @@ namespace HardwareMonitor {
             this->valueWidthEdit = (gcnew System::Windows::Forms::NumericUpDown());
             this->label4 = (gcnew System::Windows::Forms::Label());
             this->groupBox2 = (gcnew System::Windows::Forms::GroupBox());
+            this->showUnitCheck = (gcnew System::Windows::Forms::CheckBox());
             this->label5 = (gcnew System::Windows::Forms::Label());
             this->unitCombo = (gcnew System::Windows::Forms::ComboBox());
             this->moveUpButton = (gcnew System::Windows::Forms::Button());
@@ -272,6 +275,7 @@ namespace HardwareMonitor {
             // groupBox2
             // 
             resources->ApplyResources(this->groupBox2, L"groupBox2");
+            this->groupBox2->Controls->Add(this->showUnitCheck);
             this->groupBox2->Controls->Add(this->label5);
             this->groupBox2->Controls->Add(this->label3);
             this->groupBox2->Controls->Add(this->label4);
@@ -281,6 +285,13 @@ namespace HardwareMonitor {
             this->groupBox2->Controls->Add(this->specifyValueWidthCheck);
             this->groupBox2->Name = L"groupBox2";
             this->groupBox2->TabStop = false;
+            // 
+            // showUnitCheck
+            // 
+            resources->ApplyResources(this->showUnitCheck, L"showUnitCheck");
+            this->showUnitCheck->Name = L"showUnitCheck";
+            this->showUnitCheck->UseVisualStyleBackColor = true;
+            this->showUnitCheck->CheckedChanged += gcnew System::EventHandler(this, &SettingsForm::showUnitCheck_CheckedChanged);
             // 
             // label5
             // 
@@ -344,5 +355,6 @@ namespace HardwareMonitor {
     private: System::Void moveUpButton_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void moveDownButton_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void SettingsForm_Resize(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void showUnitCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
 };
 }

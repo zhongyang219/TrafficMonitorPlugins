@@ -122,7 +122,7 @@
     <value>13, 184</value>
   </data>
   <data name="monitorItemListBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>297, 304</value>
+    <value>297, 344</value>
   </data>
   <data name="removeSelectBtn.Location" type="System.Drawing.Point, System.Drawing">
     <value>328, 184</value>
@@ -143,7 +143,7 @@
     <value>已添加监控项：</value>
   </data>
   <data name="cancelBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>459, 547</value>
+    <value>459, 567</value>
   </data>
   <data name="cancelBtn.Text" xml:space="preserve">
     <value>关闭</value>
@@ -156,6 +156,12 @@
   </data>
   <data name="addItemBtn.Text" xml:space="preserve">
     <value>添加监控项</value>
+  </data>
+  <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>521, 93</value>
+  </data>
+  <data name="groupBox1.Text" xml:space="preserve">
+    <value>选择要监控的硬件</value>
   </data>
   <data name="psuCheck.Location" type="System.Drawing.Point, System.Drawing">
     <value>145, 56</value>
@@ -232,14 +238,8 @@
   <data name="cpuCheck.Location" type="System.Drawing.Point, System.Drawing">
     <value>10, 26</value>
   </data>
-  <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>521, 93</value>
-  </data>
-  <data name="groupBox1.Text" xml:space="preserve">
-    <value>选择要监控的硬件</value>
-  </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 526</value>
+    <value>9, 546</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>436, 53</value>
@@ -289,8 +289,26 @@
   <data name="label4.Text" xml:space="preserve">
     <value>字符</value>
   </data>
+  <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>329, 307</value>
+  </data>
+  <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>206, 223</value>
+  </data>
+  <data name="groupBox2.Text" xml:space="preserve">
+    <value>监控项设置</value>
+  </data>
+  <data name="showUnitCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>13, 154</value>
+  </data>
+  <data name="showUnitCheck.Size" type="System.Drawing.Size, System.Drawing">
+    <value>91, 24</value>
+  </data>
+  <data name="showUnitCheck.Text" xml:space="preserve">
+    <value>显示单位</value>
+  </data>
   <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 158</value>
+    <value>13, 186</value>
   </data>
   <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
     <value>84, 20</value>
@@ -299,19 +317,10 @@
     <value>单位设置：</value>
   </data>
   <data name="unitCombo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>103, 155</value>
+    <value>103, 183</value>
   </data>
   <data name="unitCombo.Size" type="System.Drawing.Size, System.Drawing">
     <value>93, 28</value>
-  </data>
-  <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>328, 309</value>
-  </data>
-  <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>206, 195</value>
-  </data>
-  <data name="groupBox2.Text" xml:space="preserve">
-    <value>监控项设置</value>
   </data>
   <data name="moveUpButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>329, 262</value>
@@ -332,7 +341,7 @@
     <value>下移</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>546, 588</value>
+    <value>546, 608</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>硬件监控插件设置</value>

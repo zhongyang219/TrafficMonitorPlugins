@@ -146,6 +146,7 @@ namespace HardwareMonitor
             item_info.specify_value_width = ini.GetBool(app_name.c_str(), L"specify_value_width", true);
             item_info.value_width = ini.GetInt(app_name.c_str(), L"value_width", 3);
             item_info.unit = ini.GetString(app_name.c_str(), L"unit");
+            item_info.show_unit = ini.GetBool(app_name.c_str(), L"show_unit", true);
             m_settings.items_info.push_back(item_info);
             ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
             if (sensor != nullptr)
@@ -187,6 +188,7 @@ namespace HardwareMonitor
             ini.WriteBool(app_name.c_str(), L"specify_value_width", item.specify_value_width);
             ini.WriteInt(app_name.c_str(), L"value_width", item.value_width);
             ini.WriteString(app_name.c_str(), L"unit", item.unit);
+            ini.WriteBool(app_name.c_str(), L"show_unit", item.show_unit);
             index++;
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
