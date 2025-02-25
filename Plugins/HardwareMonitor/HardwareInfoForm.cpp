@@ -134,6 +134,9 @@ namespace HardwareMonitor
         // 添加 DrawNode 事件处理程序
         treeView1->DrawNode += gcnew DrawTreeNodeEventHandler(this, &HardwareInfoForm::TreeView_DrawNode);
 
+        // 添加 Resize 事件处理程序
+        treeView1->Resize += gcnew EventHandler(this, &HardwareInfoForm::TreeView_Resize);
+
         autoRefreshCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh;
 
         // 为FormClosing事件添加处理程序
@@ -243,6 +246,12 @@ namespace HardwareMonitor
         // 绘制第一部分文本（左对齐）
         String^ leftText = parts[0];
         TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::VerticalCenter | TextFormatFlags::WordEllipsis);
+    }
+
+    void HardwareInfoForm::TreeView_Resize(Object^ sender, EventArgs^ e)
+    {
+        // 强制重绘
+        treeView1->Invalidate();
     }
 
     void HardwareInfoForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)

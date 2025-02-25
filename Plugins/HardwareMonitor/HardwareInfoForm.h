@@ -38,6 +38,7 @@ namespace HardwareMonitor {
         void ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e);
         void TreeView_MouseClick(Object^ sender, MouseEventArgs^ e);
         void TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e);
+        void TreeView_Resize(Object^ sender, EventArgs^ e);
         void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
 
     private: System::Windows::Forms::TreeView^ treeView1;
