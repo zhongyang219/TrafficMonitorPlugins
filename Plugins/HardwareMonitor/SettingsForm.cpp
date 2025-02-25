@@ -45,9 +45,13 @@ namespace HardwareMonitor
         decimalPlaceCombo->Items->Add("2");
         decimalPlaceCombo->Items->Add("3");
 
+        monitorItemListBox->ItemHeight = CHardwareMonitor::GetInstance()->DPI(20);
+        monitorItemListBox->DrawMode = DrawMode::OwnerDrawFixed; // 设置为自定义绘制模式
+
         // 为ListBox的SelectedIndexChanged事件添加处理程序
         monitorItemListBox->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::listBox_SelectedIndexChanged);
         decimalPlaceCombo->SelectedIndexChanged += gcnew EventHandler(this, &SettingsForm::OnDecimalPlaceComboBoxSelectedIndexChanged);
+        monitorItemListBox->DrawItem += gcnew DrawItemEventHandler(this, &SettingsForm::ListBox_DrawItem);
 
         // 为FormClosing事件添加处理程序
         this->FormClosing += gcnew FormClosingEventHandler(this, &SettingsForm::OnFormClosing);
@@ -175,6 +179,34 @@ namespace HardwareMonitor
         CHardwareMonitor::GetInstance()->SaveConfig();
 
         Common::SaveFormSize(this, L"settings");
+    }
+
+    void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)
+    {
+        // 获取当前项的文本
+        String^ text = monitorItemListBox->Items[e->Index]->ToString();
+
+        // 检查是否为选中项
+        bool isSelected = (e->State & DrawItemState::Selected) == DrawItemState::Selected;
+
+        // 设置颜色
+        System::Drawing::Color textColor;
+        System::Drawing::Color backColor;
+        if (isSelected)
+        {
+            textColor = SystemColors::HighlightText;
+            backColor = SystemColors::Highlight;
+        }
+        else
+        {
+            textColor = monitorItemListBox->ForeColor;
+            backColor = SystemColors::Window;
+        }
+        // 绘制背景
+        e->Graphics->FillRectangle(gcnew SolidBrush(backColor), e->Bounds);
+
+        // 绘制文本，垂直居中对齐
+        TextRenderer::DrawText(e->Graphics, text, monitorItemListBox->Font, e->Bounds, textColor, TextFormatFlags::VerticalCenter | TextFormatFlags::Left);
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)

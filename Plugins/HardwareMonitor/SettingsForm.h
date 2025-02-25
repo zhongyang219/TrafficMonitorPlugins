@@ -74,6 +74,7 @@ namespace HardwareMonitor {
         void listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
         void OnDecimalPlaceComboBoxSelectedIndexChanged(Object^ sender, EventArgs^ e);
         void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
+        void ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e);
 
 	private:
 		/// <summary>
