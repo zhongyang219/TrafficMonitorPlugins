@@ -47,6 +47,7 @@ namespace HardwareMonitor
 
         monitorItemListBox->ItemHeight = CHardwareMonitor::GetInstance()->DPI(20);
         monitorItemListBox->DrawMode = DrawMode::OwnerDrawFixed; // 设置为自定义绘制模式
+        monitorItemListBox->IntegralHeight = false; // 允许高度连续变化
 
         // 为ListBox的SelectedIndexChanged事件添加处理程序
         monitorItemListBox->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::listBox_SelectedIndexChanged);
@@ -55,6 +56,8 @@ namespace HardwareMonitor
 
         // 为FormClosing事件添加处理程序
         this->FormClosing += gcnew FormClosingEventHandler(this, &SettingsForm::OnFormClosing);
+    
+        SettingsForm_Resize(nullptr, nullptr);
     }
 
     void SettingsForm::UpdateItemList()
@@ -329,6 +332,13 @@ namespace HardwareMonitor
                 monitorItemListBox->SelectedIndex++;
             }
         }
+    }
+
+    System::Void SettingsForm::SettingsForm_Resize(System::Object^ sender, System::EventArgs^ e)
+    {
+        //这里让monitorItemListBox的下边缘总是和groupBox2的下边缘对齐，以修正在高DPI下ListBox下边缘超出窗口边界的问题
+        int listBoxHeight = groupBox2->Bottom - monitorItemListBox->Top;
+        monitorItemListBox->Height = listBoxHeight;
     }
 
 }

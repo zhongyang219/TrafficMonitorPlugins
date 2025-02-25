@@ -244,8 +244,8 @@ namespace HardwareMonitor {
             // 
             // decimalPlaceCombo
             // 
-            resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
             this->decimalPlaceCombo->FormattingEnabled = true;
+            resources->ApplyResources(this->decimalPlaceCombo, L"decimalPlaceCombo");
             this->decimalPlaceCombo->Name = L"decimalPlaceCombo";
             // 
             // specifyValueWidthCheck
@@ -289,9 +289,9 @@ namespace HardwareMonitor {
             // 
             // unitCombo
             // 
-            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
             this->unitCombo->FormattingEnabled = true;
+            resources->ApplyResources(this->unitCombo, L"unitCombo");
             this->unitCombo->Name = L"unitCombo";
             this->unitCombo->SelectedIndexChanged += gcnew System::EventHandler(this, &SettingsForm::unitCombo_SelectedIndexChanged);
             // 
@@ -325,6 +325,7 @@ namespace HardwareMonitor {
             this->Controls->Add(this->removeSelectBtn);
             this->Controls->Add(this->monitorItemListBox);
             this->Name = L"SettingsForm";
+            this->Resize += gcnew System::EventHandler(this, &SettingsForm::SettingsForm_Resize);
             this->groupBox1->ResumeLayout(false);
             this->groupBox1->PerformLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->EndInit();
@@ -342,5 +343,6 @@ namespace HardwareMonitor {
     private: System::Void unitCombo_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e);
     private: System::Void moveUpButton_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void moveDownButton_Click(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void SettingsForm_Resize(System::Object^ sender, System::EventArgs^ e);
 };
 }
