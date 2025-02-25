@@ -13,6 +13,9 @@ namespace HardwareMonitor
         //将System::String^转换为std::wstring
         static std::wstring StringToStdWstring(String^ str);
 
+        //根据一个字符获取翻译后的字符串，如果没有翻译则返回自身
+        static String^ GetTranslatedString(String^ str);
+
         //为一个按钮设置图标
         static void SetButtonIcon(Button^ button, String^ resName);
 

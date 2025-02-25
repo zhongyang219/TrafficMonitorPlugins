@@ -10,7 +10,7 @@ namespace HardwareMonitor
 {
     static TreeNode^ AddHardwareNode(TreeNodeCollection^ nodes, IHardware^ hardware)
     {
-        auto hardware_node = nodes->Add(hardware->Name);
+        auto hardware_node = nodes->Add(Common::GetTranslatedString(hardware->Name));
         //保存图标资源名称
         hardware_node->ImageKey = HardwareMonitorHelper::GetHardwareIconResName(hardware->HardwareType);
         //添加Sensor节点

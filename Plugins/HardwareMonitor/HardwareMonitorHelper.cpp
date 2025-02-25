@@ -79,7 +79,7 @@ namespace HardwareMonitor
         case SensorType::TimeSpan: unitList->Add("s"); break;
         case SensorType::Energy: unitList->Add("mWh"); unitList->Add("Wh"); break;
         case SensorType::Noise: unitList->Add("dBA"); break;
-        case SensorType::Conductivity: unitList->Add("µS/cm"); break;
+        case SensorType::Conductivity: unitList->Add(L"µS/cm"); break;
         case SensorType::Humidity: unitList->Add("%"); break;
         default: unitList->Add(""); break;
         }
@@ -213,7 +213,7 @@ namespace HardwareMonitor
     String^ HardwareMonitorHelper::GetSensorNameValueText(ISensor^ sensor)
     {
         String^ sensor_str;
-        sensor_str = GetSensorNameTranslated(sensor);
+        sensor_str = Common::GetTranslatedString(sensor->Name);
         sensor_str += L"    ";
         String^ defaultUnit = GetSensorTypeDefaultUnit(sensor->SensorType);
         sensor_str += GetSensorValueText(sensor, defaultUnit);
@@ -228,7 +228,7 @@ namespace HardwareMonitor
         name += "/";
         name += gcnew String(GetSensorTypeName(sensor->SensorType));
         name += "/";
-        name += GetSensorNameTranslated(sensor);
+        name += Common::GetTranslatedString(sensor->Name);
         return name;
     }
 
@@ -250,14 +250,5 @@ namespace HardwareMonitor
         path += "/";
         path += sensor->Name;
         return path;
-    }
-
-    String^ HardwareMonitorHelper::GetSensorNameTranslated(ISensor^ sensor)
-    {
-        String^ sensorNameTranslated = MonitorGlobal::Instance()->GetString(Common::StringToStdWstring(sensor->Name).c_str());
-        if (sensorNameTranslated == nullptr || sensorNameTranslated->Length == 0)
-            return sensor->Name;
-        else
-            return sensorNameTranslated;
     }
 }

@@ -20,6 +20,15 @@ namespace HardwareMonitor
         }
     }
 
+    String^ Common::GetTranslatedString(String^ str)
+    {
+        String^ translated = MonitorGlobal::Instance()->GetString(str);
+        if (translated == nullptr || translated->Length == 0)
+            return str;
+        else
+            return translated;
+    }
+
     void Common::SetButtonIcon(Button^ button, String^ resName)
     {
         Icon^ icon = MonitorGlobal::Instance()->GetIcon(resName);

@@ -325,4 +325,13 @@
   <data name="Data Written" xml:space="preserve">
     <value>已写入数据量</value>
   </data>
+  <data name="Generic Memory" xml:space="preserve">
+    <value>通用内存</value>
+  </data>
+  <data name="GPU Core" xml:space="preserve">
+    <value>GPU 核心</value>
+  </data>
+  <data name="Package" xml:space="preserve">
+    <value>封装</value>
+  </data>
 </root>

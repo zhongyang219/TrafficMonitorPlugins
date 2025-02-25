@@ -93,8 +93,8 @@ namespace HardwareMonitor
         void Init();
         void UnInit();
 
-        String^ GetString(const wchar_t* name);
-        std::wstring GetStdWString(const wchar_t* name);
+        String^ GetString(String^ name);
+        std::wstring GetStdWString(String^ name);
         Icon^ GetAppIcon();
         Icon^ GetIcon(String^ name);
         Resources::ResourceManager^ GetResourceManager();

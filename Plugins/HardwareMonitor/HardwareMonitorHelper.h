@@ -32,9 +32,6 @@ namespace HardwareMonitor
 
         //获取一个传感器的唯一标识符
         static System::String^ GetSensorIdentifyer(LibreHardwareMonitor::Hardware::ISensor^ sensor);
-
-        //获取一个传感器名称翻译后的文本
-        static System::String^ GetSensorNameTranslated(LibreHardwareMonitor::Hardware::ISensor^ sensor);
     };
 }
 

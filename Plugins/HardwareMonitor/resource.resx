@@ -364,4 +364,13 @@
   <data name="Data Written" xml:space="preserve">
     <value>Data Written</value>
   </data>
+  <data name="Generic Memory" xml:space="preserve">
+    <value>Generic Memory</value>
+  </data>
+  <data name="GPU Core" xml:space="preserve">
+    <value>GPU Core</value>
+  </data>
+  <data name="Package" xml:space="preserve">
+    <value>Package</value>
+  </data>
 </root>

@@ -52,7 +52,7 @@ namespace HardwareMonitor
         else
         {
             std::wstring& str = string_table[name];
-            str = MonitorGlobal::Instance()->GetStdWString(name);
+            str = MonitorGlobal::Instance()->GetStdWString(gcnew String(name));
             return str;
         }
     }
@@ -151,7 +151,7 @@ namespace HardwareMonitor
             if (sensor != nullptr)
             {
                 std::wstring item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
-                std::wstring lable_text = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorNameTranslated(sensor));
+                std::wstring lable_text = Common::StringToStdWstring(Common::GetTranslatedString(sensor->Name));
                 m_item_names[item_info.identifyer] = item_name;
                 m_items.emplace_back(item_info.identifyer, item_name, lable_text);
             }
@@ -373,12 +373,12 @@ namespace HardwareMonitor
         computer->Close();
     }
 
-    String^ MonitorGlobal::GetString(const wchar_t* name)
+    String^ MonitorGlobal::GetString(String^ name)
     {
-        return resourceManager->GetString(gcnew String(name));
+        return resourceManager->GetString(name);
     }
 
-    std::wstring MonitorGlobal::GetStdWString(const wchar_t* name)
+    std::wstring MonitorGlobal::GetStdWString(String^ name)
     {
         return Common::StringToStdWstring(GetString(name));
     }
