@@ -87,12 +87,12 @@ namespace HardwareMonitor
     {
         for each (TreeNode ^ node in nodes)
         {
-            // 构建当前节点的路径
-            String^ nodePath = path + "/" + node->Text;
-
             // 只有包含子节点的节点才需要保存展开状态
             if (node->Nodes->Count > 0)
             {
+                // 构建当前节点的路径
+                String^ nodePath = path + "/" + node->Text;
+
                 // 保存当前节点的展开状态
                 treeExpandStatusMap[nodePath] = node->IsExpanded;
 
@@ -115,19 +115,27 @@ namespace HardwareMonitor
     {
         for each (TreeNode ^ node in nodes)
         {
-            // 构建当前节点的路径
-            String^ nodePath = path + "/" + node->Text;
-
             // 只有包含子节点的节点才需要恢复展开状态
             if (node->Nodes->Count > 0)
             {
+                // 构建当前节点的路径
+                String^ nodePath = path + "/" + node->Text;
+
                 // 如果字典中包含当前节点的路径，则恢复其展开状态
                 if (treeExpandStatusMap->ContainsKey(nodePath))
                 {
                     if (treeExpandStatusMap[nodePath])
+                    {
                         node->Expand();
+                    }
                     else
-                        node->Collapse();
+                    {
+                        //node->Collapse();
+                        if (node->IsExpanded)
+                        {
+                            node->Toggle(); // 折叠节点
+                        }
+                    }
                 }
 
                 // 递归处理子节点
