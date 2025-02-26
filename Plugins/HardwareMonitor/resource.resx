@@ -373,4 +373,16 @@
   <data name="Package" xml:space="preserve">
     <value>Package</value>
   </data>
+  <data name="Charge Rate" xml:space="preserve">
+    <value>Charge Rate</value>
+  </data>
+  <data name="Charge Current" xml:space="preserve">
+    <value>Charge Current</value>
+  </data>
+  <data name="Discharge Rate" xml:space="preserve">
+    <value>Discharge Rate</value>
+  </data>
+  <data name="Discharge Current" xml:space="preserve">
+    <value>Discharge Current</value>
+  </data>
 </root>

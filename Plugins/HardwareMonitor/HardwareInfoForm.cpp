@@ -86,6 +86,7 @@ namespace HardwareMonitor
             HardwareInfoForm::SensorNodeInfo^ sensorInfo = dynamic_cast<HardwareInfoForm::SensorNodeInfo^>(node->Tag);
             if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
             {
+                sensorInfo->displayName = Common::GetTranslatedString(sensorInfo->sensor->Name);
                 String^ defaultUnit = HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensorInfo->sensor->SensorType);
                 sensorInfo->displayValue = HardwareMonitorHelper::GetSensorValueText(sensorInfo->sensor, defaultUnit);
             }
@@ -230,7 +231,11 @@ namespace HardwareMonitor
         }
 
         // 获取节点的文本
-        String^ text = e->Node->Text;
+        String^ text;
+        if (sensorInfo != nullptr)
+            text = sensorInfo->displayName;
+        else
+            text = e->Node->Text;
 
         String^ rightText;
         if (sensorInfo != nullptr)

@@ -334,4 +334,16 @@
   <data name="Package" xml:space="preserve">
     <value>封装</value>
   </data>
+  <data name="Charge Rate" xml:space="preserve">
+    <value>充电功率</value>
+  </data>
+  <data name="Charge Current" xml:space="preserve">
+    <value>充电电流</value>
+  </data>
+  <data name="Discharge Rate" xml:space="preserve">
+    <value>放电功率</value>
+  </data>
+  <data name="Discharge Current" xml:space="preserve">
+    <value>放电电流</value>
+  </data>
 </root>
