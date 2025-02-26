@@ -4,6 +4,7 @@
 using namespace System;
 using namespace System::Drawing;
 using namespace System::Windows::Forms;
+using namespace System::Collections::Generic;
 
 namespace HardwareMonitor
 {
@@ -27,6 +28,12 @@ namespace HardwareMonitor
 
         //从配置文件恢复窗口的大小
         static void LoadFormSize(Form^ form, const std::wstring& name);
+
+        //将一个树控件的所有节点的展开状态保存到treeExpandStatusMap
+        static void SaveTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap);
+
+        //从treeExpandStatusMap恢复一个树控件所有节点的展开状态
+        static void RestoreTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap);
     };
 }
 

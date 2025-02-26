@@ -82,4 +82,55 @@ namespace HardwareMonitor
             }
         }
     }
+
+    static void SaveTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, Dictionary<String^, bool>^ treeExpandStatusMap)
+    {
+        for each (TreeNode ^ node in nodes)
+        {
+            // 构建当前节点的路径
+            String^ nodePath = path + "/" + node->Text;
+
+            // 保存当前节点的展开状态
+            treeExpandStatusMap->Add(nodePath, node->IsExpanded);
+
+            // 递归处理子节点
+            SaveTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+        }
+    }
+
+    void Common::SaveTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap)
+    {
+        // 清空字典
+        treeExpandStatusMap->Clear();
+
+        // 递归遍历所有节点
+        SaveTreeNodeExpandStatusRecursive(tree->Nodes, "", treeExpandStatusMap);
+    }
+
+    static void RestoreTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, Dictionary<String^, bool>^ treeExpandStatusMap)
+    {
+        for each (TreeNode ^ node in nodes)
+        {
+            // 构建当前节点的路径
+            String^ nodePath = path + "/" + node->Text;
+
+            // 如果字典中包含当前节点的路径，则恢复其展开状态
+            if (treeExpandStatusMap->ContainsKey(nodePath))
+            {
+                if (treeExpandStatusMap[nodePath])
+                    node->Expand();
+                else
+                    node->Collapse();
+            }
+
+            // 递归处理子节点
+            RestoreTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+        }
+    }
+
+    void Common::RestoreTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap)
+    {
+        // 递归遍历所有节点并恢复展开状态
+        RestoreTreeNodeExpandStatusRecursive(tree->Nodes, "", treeExpandStatusMap);
+    }
 }

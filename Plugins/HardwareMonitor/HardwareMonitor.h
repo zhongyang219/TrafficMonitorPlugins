@@ -112,6 +112,7 @@ namespace HardwareMonitor
 
         HardwareInfoForm^ monitor_form{};
         SettingsForm^ setttings_form{};
+        Dictionary<String^, bool>^ treeExpandStatusMap{ gcnew Dictionary<String^, bool>() };
 
     private:
         Resources::ResourceManager^ resourceManager{};

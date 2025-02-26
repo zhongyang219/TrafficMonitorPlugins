@@ -65,8 +65,12 @@ namespace HardwareMonitor
             }
         }
 
-        //展开所有节点
-        treeView1->ExpandAll();
+        if (MonitorGlobal::Instance()->treeExpandStatusMap->Count == 0)
+            //展开所有节点
+            treeView1->ExpandAll();
+        else
+            //恢复节点的展开状态
+            Common::RestoreTreeNodeExpandStatus(treeView1, MonitorGlobal::Instance()->treeExpandStatusMap);
     }
 
     //更新一个树节点的值
@@ -264,7 +268,7 @@ namespace HardwareMonitor
     void HardwareInfoForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
     {
         Common::SaveFormSize(this, L"hardware_info");
-
+        Common::SaveTreeNodeExpandStatus(treeView1, MonitorGlobal::Instance()->treeExpandStatusMap);
     }
 
     System::Void HardwareInfoForm::autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
