@@ -96,7 +96,11 @@ namespace HardwareMonitor
                 //根据监控项类型获取图标
                 if (sensor != nullptr)
                 {
-                    auto resName = HardwareMonitorHelper::GetHardwareIconResName(sensor->Hardware->HardwareType);
+                    IHardware^ hardware = sensor->Hardware;
+                    //如果是子硬件，则使用它的父硬件
+                    if (hardware->Parent != nullptr)
+                        hardware = hardware->Parent;
+                    auto resName = HardwareMonitorHelper::GetHardwareIconResName(hardware->HardwareType);
                     if (resName->Length > 0)
                         listItem->icon = MonitorGlobal::Instance()->GetIcon(resName);
                 }
