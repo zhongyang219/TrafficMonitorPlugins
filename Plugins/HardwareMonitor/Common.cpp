@@ -90,11 +90,15 @@ namespace HardwareMonitor
             // 构建当前节点的路径
             String^ nodePath = path + "/" + node->Text;
 
-            // 保存当前节点的展开状态
-            treeExpandStatusMap->Add(nodePath, node->IsExpanded);
+            // 只有包含子节点的节点才需要保存展开状态
+            if (node->Nodes->Count > 0)
+            {
+                // 保存当前节点的展开状态
+                treeExpandStatusMap[nodePath] = node->IsExpanded;
 
-            // 递归处理子节点
-            SaveTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+                // 递归处理子节点
+                SaveTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+            }
         }
     }
 
@@ -114,17 +118,21 @@ namespace HardwareMonitor
             // 构建当前节点的路径
             String^ nodePath = path + "/" + node->Text;
 
-            // 如果字典中包含当前节点的路径，则恢复其展开状态
-            if (treeExpandStatusMap->ContainsKey(nodePath))
+            // 只有包含子节点的节点才需要恢复展开状态
+            if (node->Nodes->Count > 0)
             {
-                if (treeExpandStatusMap[nodePath])
-                    node->Expand();
-                else
-                    node->Collapse();
-            }
+                // 如果字典中包含当前节点的路径，则恢复其展开状态
+                if (treeExpandStatusMap->ContainsKey(nodePath))
+                {
+                    if (treeExpandStatusMap[nodePath])
+                        node->Expand();
+                    else
+                        node->Collapse();
+                }
 
-            // 递归处理子节点
-            RestoreTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+                // 递归处理子节点
+                RestoreTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+            }
         }
     }
 
