@@ -33,6 +33,16 @@ namespace HardwareMonitor {
 
         void InitUserComponent();
 
+    public:
+        //用于每个传感器节点（叶子节点）的信息
+        ref class SensorNodeInfo : public Object
+        {
+        public:
+            String^ displayName;        //显示的名称
+            String^ displayValue;       //显示的数值
+            LibreHardwareMonitor::Hardware::ISensor^ sensor;    //传感器对象
+        };
+
     private:
         void AddItem_Click(System::Object^ sender, System::EventArgs^ e);
         void ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e);
@@ -51,7 +61,6 @@ namespace HardwareMonitor {
 
     private:
         ToolStripMenuItem^ addItem;
-        bool updating = false;
 
 	private:
 		/// <summary>

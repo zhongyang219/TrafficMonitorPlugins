@@ -65,15 +65,12 @@ namespace HardwareMonitor
         for each (const auto & obj in monitorItemListBox->Items)
         {
             ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(obj);
-            if (obj != nullptr)
+            if (listItem != nullptr && listItem->sensor != nullptr)
             {
-                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(listItem->identify);
-                if (sensor != nullptr)
-                {
-                    ItemInfo& itemInfo = CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(listItem->identify));
-                    //获取displayValue
-                    listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(itemInfo.unit.c_str()), itemInfo.decimal_places, itemInfo.show_unit);
-                }
+                String^ identifyer = HardwareMonitorHelper::GetSensorIdentifyer(listItem->sensor);
+                ItemInfo& itemInfo = CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(identifyer));
+                //获取displayValue
+                listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(listItem->sensor, gcnew String(itemInfo.unit.c_str()), itemInfo.decimal_places, itemInfo.show_unit);
             }
         }
         monitorItemListBox->Invalidate();
@@ -93,9 +90,10 @@ namespace HardwareMonitor
             {
                 ListItemInfo^ listItem = gcnew ListItemInfo();
                 listItem->displayName = item_name;
-                listItem->identify = gcnew String(item.identifyer.c_str());
-                //根据监控项类型获取图标
                 ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item.identifyer.c_str()));
+                listItem->sensor = sensor;
+                listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(item.unit.c_str()), item.decimal_places, item.show_unit);
+                //根据监控项类型获取图标
                 if (sensor != nullptr)
                 {
                     auto resName = HardwareMonitorHelper::GetHardwareIconResName(sensor->Hardware->HardwareType);
@@ -120,8 +118,8 @@ namespace HardwareMonitor
             ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(monitorItemListBox->Items[index]);
             if (listItem != nullptr)
             {
-                std::wstring identifyer = Common::StringToStdWstring(listItem->identify);
-                return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifyer);
+                String^ identifyer = HardwareMonitorHelper::GetSensorIdentifyer(listItem->sensor);
+                return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(identifyer));
             }
         }
         static ItemInfo emptyInfo;
@@ -265,7 +263,7 @@ namespace HardwareMonitor
 
         //计算右侧数值部分的宽度
         SizeF rightTextSize = e->Graphics->MeasureString(listItem->displayValue, monitorItemListBox->Font);
-        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + CHardwareMonitor::GetInstance()->DPI(2));
+        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + CHardwareMonitor::GetInstance()->DPI(4));
         Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
         Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
 

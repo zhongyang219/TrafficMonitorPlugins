@@ -27,9 +27,15 @@ namespace HardwareMonitor
                 sensor_type_nodes->Add(sensor->SensorType, type_node);
             }
 
-            String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
+            String^ sensor_str = Common::GetTranslatedString(sensor->Name);
             auto sensor_node = type_node->Nodes->Add(sensor_str);
-            sensor_node->Tag = HardwareMonitorHelper::GetSensorIdentifyer(sensor);
+            //保存传感器节点的信息到Tag
+            HardwareInfoForm::SensorNodeInfo^ nodeInfo = gcnew HardwareInfoForm::SensorNodeInfo();
+            nodeInfo->displayName = sensor_str;
+            String^ defaultUnit = HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType);
+            nodeInfo->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, defaultUnit);
+            nodeInfo->sensor = sensor;
+            sensor_node->Tag = nodeInfo;
         }
         return hardware_node;
     }
@@ -77,32 +83,24 @@ namespace HardwareMonitor
         //叶子节点，更新值
         else
         {
-            if (node->Tag != nullptr)
+            HardwareInfoForm::SensorNodeInfo^ sensorInfo = dynamic_cast<HardwareInfoForm::SensorNodeInfo^>(node->Tag);
+            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
             {
-                String^ identifyer = node->Tag->ToString();
-                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(identifyer);
-                if (sensor != nullptr)
-                {
-                    String^ sensor_str = HardwareMonitorHelper::GetSensorNameValueText(sensor);
-                    if (sensor_str != node->Text)
-                        node->Text = sensor_str;
-                }
+                String^ defaultUnit = HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensorInfo->sensor->SensorType);
+                sensorInfo->displayValue = HardwareMonitorHelper::GetSensorValueText(sensorInfo->sensor, defaultUnit);
             }
         }
     }
 
     void HardwareMonitor::HardwareInfoForm::UpdateData()
     {
-        updating = true;
-        treeView1->BeginUpdate();
         //更新树节点的数据
         //遍历Hardware节点
         for each (TreeNode ^ hardware_node in treeView1->Nodes)
         {
             UpdateNodeValue(hardware_node);
         }
-        treeView1->EndUpdate();
-        updating = false;
+        treeView1->Invalidate();
     }
 
     void HardwareInfoForm::InitUserComponent()
@@ -149,14 +147,16 @@ namespace HardwareMonitor
     {
         // 获取选中的节点
         TreeNode^ selectedNode = treeView1->SelectedNode;
-        if (selectedNode != nullptr && selectedNode->Tag != nullptr)
+        if (selectedNode != nullptr)
         {
-            String^ identifyer = selectedNode->Tag->ToString();
-            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(identifyer);
-            if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensor))
-                CHardwareMonitor::GetInstance()->SaveConfig();
-            else
-                MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"));
+            SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
+            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+            {
+                if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor))
+                    CHardwareMonitor::GetInstance()->SaveConfig();
+                else
+                    MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"));
+            }
         }
     }
 
@@ -179,8 +179,8 @@ namespace HardwareMonitor
     }
     void HardwareInfoForm::TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e)
     {
-        if (updating)
-            return;
+        SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(e->Node->Tag);
+
         // 获取节点的矩形区域
         Rectangle bounds = e->Bounds;
         // 由于通过ImageList设置了图标，但是并不通过ImageList显示图标，因此矩形区域向左扩展图标大小的距离
@@ -205,8 +205,8 @@ namespace HardwareMonitor
             e->Graphics->FillRectangle(gcnew SolidBrush(SystemColors::Window), bounds);
             //判断当前项是否已添加到监控
             String^ identifyer{};
-            if (e->Node->Tag != nullptr)
-                identifyer = e->Node->Tag->ToString();
+            if (sensorInfo != nullptr)
+                identifyer = HardwareMonitorHelper::GetSensorIdentifyer(sensorInfo->sensor);
             //已添加到监控项目的文本颜色显示为高亮颜色
             if (identifyer != nullptr && CHardwareMonitor::GetInstance()->IsDisplayItemExist(Common::StringToStdWstring(identifyer)))
                 textColor = SystemColors::Highlight;
@@ -232,24 +232,22 @@ namespace HardwareMonitor
         // 获取节点的文本
         String^ text = e->Node->Text;
 
-        // 拆分文本
-        array<String^>^ parts = System::Text::RegularExpressions::Regex::Split(text, "\\s{4}");
-        if (parts->Length < 2)
-            parts = gcnew array<String^>{text, ""};
+        String^ rightText;
+        if (sensorInfo != nullptr)
+            rightText = sensorInfo->displayValue;
 
         // 计算两个矩形区域
-        SizeF rightTextSize = e->Graphics->MeasureString(parts[1], treeView1->Font);
-        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + CHardwareMonitor::GetInstance()->DPI(2));
+        SizeF rightTextSize = e->Graphics->MeasureString(rightText, treeView1->Font);
+        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + CHardwareMonitor::GetInstance()->DPI(4));
         Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
         Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
 
         // 绘制第二部分文本（右对齐）
-        String^ rightText = parts[1];
-        TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right | TextFormatFlags::VerticalCenter);
+        if (rightText != nullptr && rightText->Length > 0)
+            TextRenderer::DrawText(e->Graphics, rightText, treeView1->Font, rightRect, textColor, TextFormatFlags::Right | TextFormatFlags::VerticalCenter);
 
         // 绘制第一部分文本（左对齐）
-        String^ leftText = parts[0];
-        TextRenderer::DrawText(e->Graphics, leftText, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::VerticalCenter | TextFormatFlags::WordEllipsis);
+        TextRenderer::DrawText(e->Graphics, text, treeView1->Font, leftRect, textColor, TextFormatFlags::Left | TextFormatFlags::VerticalCenter | TextFormatFlags::WordEllipsis);
     }
 
     void HardwareInfoForm::TreeView_Resize(Object^ sender, EventArgs^ e)

@@ -213,16 +213,6 @@ namespace HardwareMonitor
         return sensor_str;
     }
 
-    String^ HardwareMonitorHelper::GetSensorNameValueText(ISensor^ sensor)
-    {
-        String^ sensor_str;
-        sensor_str = Common::GetTranslatedString(sensor->Name);
-        sensor_str += L"    ";
-        String^ defaultUnit = GetSensorTypeDefaultUnit(sensor->SensorType);
-        sensor_str += GetSensorValueText(sensor, defaultUnit);
-        return sensor_str;
-    }
-
     String^ HardwareMonitorHelper::GetSensorDisplayName(ISensor^ sensor)
     {
         String^ name;

@@ -74,10 +74,13 @@ namespace HardwareMonitor
 
     bool CHardwareMonitor::IsDisplayItemExist(const std::wstring& identifyer)
     {
-        for (const auto& item : m_settings.items_info)
+        if (!identifyer.empty())
         {
-            if (item.identifyer == identifyer)
-                return true;
+            for (const auto& item : m_settings.items_info)
+            {
+                if (item.identifyer == identifyer)
+                    return true;
+            }
         }
         return false;
     }
