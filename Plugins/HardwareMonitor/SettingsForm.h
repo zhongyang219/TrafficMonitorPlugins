@@ -19,10 +19,11 @@ namespace HardwareMonitor {
 	{
 	public:
         SettingsForm(void);
-
-        void UpdateItemList();
+        void UpdateItemsValue();
 
 	protected:
+        void UpdateItemList();
+
 		/// <summary>
 		/// 清理所有正在使用的资源。
 		/// </summary>
@@ -35,10 +36,15 @@ namespace HardwareMonitor {
 		}
 
     private:
-        //列表中每个项目的标识符
-        List<String^>^ identifyerList = gcnew List<String^>();
-        //列表中每个项目的图标
-        Dictionary<String^, System::Drawing::Icon^>^ iconMap = gcnew Dictionary<String^, System::Drawing::Icon^>();
+        //用于保存列表中的每一项
+        ref class ListItemInfo : public Object
+        {
+        public:
+            String^ displayName;        //显示的名称
+            String^ displayValue;       //显示的数值
+            String^ identify;           //传感器的唯一标识符
+            System::Drawing::Icon^ icon;    //列表项的图标
+        };
 
     private: System::Windows::Forms::ListBox^ monitorItemListBox;
     private: System::Windows::Forms::Button^ removeSelectBtn;

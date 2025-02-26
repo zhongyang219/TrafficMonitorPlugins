@@ -6,6 +6,7 @@
 #include <map>
 #include "PluginInterface.h"
 #include "HardwareInfoForm.h"
+#include "SettingsForm.h"
 #include "HardwareMonitorItem.h"
 #include <vector>
 #include <map>
@@ -110,6 +111,7 @@ namespace HardwareMonitor
         UpdateVisitor^ updateVisitor{};
 
         HardwareInfoForm^ monitor_form{};
+        SettingsForm^ setttings_form{};
 
     private:
         Resources::ResourceManager^ resourceManager{};

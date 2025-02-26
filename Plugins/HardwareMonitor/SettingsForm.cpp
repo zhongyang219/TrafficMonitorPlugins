@@ -60,11 +60,29 @@ namespace HardwareMonitor
         SettingsForm_Resize(nullptr, nullptr);
     }
 
+    void SettingsForm::UpdateItemsValue()
+    {
+        for each (const auto & obj in monitorItemListBox->Items)
+        {
+            ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(obj);
+            if (obj != nullptr)
+            {
+                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(listItem->identify);
+                if (sensor != nullptr)
+                {
+                    ItemInfo& itemInfo = CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(listItem->identify));
+                    //获取displayValue
+                    listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(itemInfo.unit.c_str()), itemInfo.decimal_places, itemInfo.show_unit);
+                }
+            }
+        }
+        monitorItemListBox->Invalidate();
+    }
+
     void SettingsForm::UpdateItemList()
     {
         //清除列表
         monitorItemListBox->Items->Clear();
-        identifyerList->Clear();
         EnableControls();
 
         //填充数据
@@ -73,16 +91,18 @@ namespace HardwareMonitor
             String^ item_name = gcnew String(CHardwareMonitor::GetInstance()->GetItemName(item.identifyer).c_str());
             if (item_name->Length > 0)
             {
-                monitorItemListBox->Items->Add(item_name);
-                identifyerList->Add(gcnew String(item.identifyer.c_str()));
+                ListItemInfo^ listItem = gcnew ListItemInfo();
+                listItem->displayName = item_name;
+                listItem->identify = gcnew String(item.identifyer.c_str());
                 //根据监控项类型获取图标
                 ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item.identifyer.c_str()));
                 if (sensor != nullptr)
                 {
                     auto resName = HardwareMonitorHelper::GetHardwareIconResName(sensor->Hardware->HardwareType);
                     if (resName->Length > 0)
-                        iconMap[item_name] = MonitorGlobal::Instance()->GetIcon(resName);
+                        listItem->icon = MonitorGlobal::Instance()->GetIcon(resName);
                 }
+                monitorItemListBox->Items->Add(listItem);
             }
         }
     }
@@ -95,10 +115,14 @@ namespace HardwareMonitor
     ItemInfo& SettingsForm::GetSelectedItemInfo()
     {
         int index = monitorItemListBox->SelectedIndex;
-        if (index >= 0 && index < identifyerList->Count)
+        if (index >= 0 && index < monitorItemListBox->Items->Count)
         {
-            std::wstring identifyer = Common::StringToStdWstring(identifyerList[index]);
-            return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifyer);
+            ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(monitorItemListBox->Items[index]);
+            if (listItem != nullptr)
+            {
+                std::wstring identifyer = Common::StringToStdWstring(listItem->identify);
+                return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifyer);
+            }
         }
         static ItemInfo emptyInfo;
         return emptyInfo;
@@ -200,44 +224,56 @@ namespace HardwareMonitor
         // 获取节点的矩形区域
         Rectangle bounds = e->Bounds;
         // 获取当前项的文本
-        String^ text = monitorItemListBox->Items[e->Index]->ToString();
+        ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(monitorItemListBox->Items[e->Index]);
+        if (listItem == nullptr)
+            return;
+        String^ text = listItem->displayName;
 
         // 检查是否为选中项
         bool isSelected = (e->State & DrawItemState::Selected) == DrawItemState::Selected;
 
         // 设置颜色
         System::Drawing::Color textColor;
+        System::Drawing::Color valueColor;
         System::Drawing::Color backColor;
         if (isSelected)
         {
             textColor = SystemColors::HighlightText;
+            valueColor = SystemColors::HighlightText;
             backColor = SystemColors::Highlight;
         }
         else
         {
             textColor = monitorItemListBox->ForeColor;
+            valueColor = SystemColors::Highlight;
             backColor = SystemColors::Window;
         }
         // 绘制背景
         e->Graphics->FillRectangle(gcnew SolidBrush(backColor), e->Bounds);
 
         //绘制图标
-        System::Drawing::Icon^ icon;
-        if (iconMap->TryGetValue(text, icon))
+        System::Drawing::Icon^ icon = listItem->icon;
+        if (icon != nullptr)
         {
-            if (icon != nullptr)
-            {
-                Point start_pos = bounds.Location;
-                int offset = (bounds.Height - icon->Size.Height) / 2;
-                start_pos.Offset(offset, offset);
-                e->Graphics->DrawIcon(icon, start_pos.X, start_pos.Y);
-                bounds.Offset(bounds.Height, 0);
-                bounds.Width -= bounds.Height;
-            }
+            Point start_pos = bounds.Location;
+            int offset = (bounds.Height - icon->Size.Height) / 2;
+            start_pos.Offset(offset, offset);
+            e->Graphics->DrawIcon(icon, start_pos.X, start_pos.Y);
+            bounds.Offset(bounds.Height, 0);
+            bounds.Width -= bounds.Height;
         }
 
-        // 绘制文本，垂直居中对齐
-        TextRenderer::DrawText(e->Graphics, text, monitorItemListBox->Font, bounds, textColor, TextFormatFlags::VerticalCenter | TextFormatFlags::Left);
+        //计算右侧数值部分的宽度
+        SizeF rightTextSize = e->Graphics->MeasureString(listItem->displayValue, monitorItemListBox->Font);
+        int rightWidth = std::min(bounds.Width, (int)rightTextSize.Width + CHardwareMonitor::GetInstance()->DPI(2));
+        Rectangle rightRect = Rectangle(bounds.Right - rightWidth, bounds.Top, rightWidth, bounds.Height);
+        Rectangle leftRect = Rectangle(bounds.Left, bounds.Top, bounds.Width - rightWidth, bounds.Height);
+
+        // 绘制数值部分
+        TextRenderer::DrawText(e->Graphics, listItem->displayValue, monitorItemListBox->Font, rightRect, valueColor, TextFormatFlags::Right | TextFormatFlags::VerticalCenter);
+
+        // 绘制文本
+        TextRenderer::DrawText(e->Graphics, text, monitorItemListBox->Font, leftRect, textColor, TextFormatFlags::VerticalCenter | TextFormatFlags::Left | TextFormatFlags::WordEllipsis);
     }
 
     System::Void SettingsForm::removeSelectBtn_Click(System::Object^ sender, System::EventArgs^ e)
@@ -341,6 +377,8 @@ namespace HardwareMonitor
         //这里让monitorItemListBox的下边缘总是和groupBox2的下边缘对齐，以修正在高DPI下ListBox下边缘超出窗口边界的问题
         int listBoxHeight = groupBox2->Bottom - monitorItemListBox->Top;
         monitorItemListBox->Height = listBoxHeight;
+
+        monitorItemListBox->Invalidate();
     }
 
     System::Void SettingsForm::showUnitCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)

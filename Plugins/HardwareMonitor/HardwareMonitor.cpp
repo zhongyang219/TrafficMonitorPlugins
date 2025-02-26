@@ -228,6 +228,9 @@ namespace HardwareMonitor
             //更新“硬件信息”树节点
             if (MonitorGlobal::Instance()->monitor_form != nullptr && m_settings.hardware_info_auto_refresh)
                 MonitorGlobal::Instance()->monitor_form->UpdateData();
+            //更新“选项设置”中的节点
+            if (MonitorGlobal::Instance()->setttings_form != nullptr)
+                MonitorGlobal::Instance()->setttings_form->UpdateItemsValue();
             //更新所有显示项目
             for (auto& item : m_items)
             {
@@ -292,15 +295,22 @@ namespace HardwareMonitor
         try
         {
             SettingsForm^ form = gcnew SettingsForm();
+            MonitorGlobal::Instance()->setttings_form = form;
             if (form->ShowDialog() == DialogResult::OK)
             {
+                MonitorGlobal::Instance()->setttings_form = nullptr;
                 SaveConfig();
                 return ITMPlugin::OR_OPTION_CHANGED;
             }
         }
         catch (System::Exception^ e)
         {
+            MonitorGlobal::Instance()->setttings_form = nullptr;
             ShowErrorMessage(e);
+        }
+        finally
+        {
+            MonitorGlobal::Instance()->setttings_form = nullptr;
         }
         return ITMPlugin::OR_OPTION_UNCHANGED;
     }
@@ -417,7 +427,12 @@ namespace HardwareMonitor
         }
         catch (System::Exception^ e)
         {
+            monitor_form = nullptr;
             CHardwareMonitor::ShowErrorMessage(e);
+        }
+        finally
+        {
+            monitor_form = nullptr;
         }
     }
 
