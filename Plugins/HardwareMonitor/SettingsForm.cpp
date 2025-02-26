@@ -219,6 +219,10 @@ namespace HardwareMonitor
 
     void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)
     {
+        //确保index有效
+        if (e->Index < 0 || e->Index >= monitorItemListBox->Items->Count)
+            return;
+
         // 获取节点的矩形区域
         Rectangle bounds = e->Bounds;
         // 获取当前项的文本

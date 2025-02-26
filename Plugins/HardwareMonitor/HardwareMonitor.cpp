@@ -409,7 +409,14 @@ namespace HardwareMonitor
 
     String^ MonitorGlobal::GetString(String^ name)
     {
-        return resourceManager->GetString(name);
+        try
+        {
+            return resourceManager->GetString(name);
+        }
+        catch (System::Exception^)
+        {
+            return nullptr;
+        }
     }
 
     std::wstring MonitorGlobal::GetStdWString(String^ name)
@@ -460,10 +467,17 @@ namespace HardwareMonitor
 
     Icon^ MonitorGlobal::LoadIcon(String^ name, int icon_size)
     {
-        //载入图标
-        Icon^ tmp = dynamic_cast<Icon^>(resourceManager->GetObject(name));
-        //转换为新的尺寸
-        return gcnew Icon(tmp, Size(icon_size, icon_size));
+        try
+        {
+            //载入图标
+            Icon^ tmp = dynamic_cast<Icon^>(resourceManager->GetObject(name));
+            //转换为新的尺寸
+            return gcnew Icon(tmp, Size(icon_size, icon_size));
+        }
+        catch (System::Exception^)
+        {
+            return nullptr;
+        }
     }
 }
 
