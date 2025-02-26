@@ -14,6 +14,7 @@ namespace utilities
         CIniHelper(const std::wstring& file_path);
         ~CIniHelper();
 
+        bool IsEmpty() const;
         void SetSaveAsUTF8(bool utf8);
 
         void WriteString(const wchar_t* AppName, const wchar_t* KeyName, const std::wstring& str);

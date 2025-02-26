@@ -244,4 +244,73 @@ namespace HardwareMonitor
         path += sensor->Name;
         return path;
     }
+
+    void HardwareMonitorHelper::GetDefaultMonitorItem(List<ISensor^>^ default_sensors)
+    {
+        auto computer = MonitorGlobal::Instance()->computer;
+        for (int i = 0; i < computer->Hardware->Count; i++)
+        {
+            IHardware^ hardware = computer->Hardware[i];
+            //CPU
+            if (hardware->HardwareType == HardwareType::Cpu)
+            {
+                ISensor^ cpu_temp = nullptr;
+                ISensor^ cpu_temp_default = nullptr;
+                //先查找"Core Average"
+                for (int j = 0; j < hardware->Sensors->Length; j++)
+                {
+                    ISensor^ sensor = hardware->Sensors[j];
+                    if (sensor->SensorType == SensorType::Temperature)
+                    {
+                        if (cpu_temp_default == nullptr)
+                            cpu_temp_default = sensor;
+                        if (sensor->Name->Equals("Core Average"))
+                        {
+                            cpu_temp = sensor;
+                            break;
+                        }
+                    }
+                }
+                //没找到则使用第一个
+                if (cpu_temp == nullptr && cpu_temp_default != nullptr)
+                    cpu_temp = cpu_temp_default;
+                if (cpu_temp != nullptr)
+                    default_sensors->Add(cpu_temp);
+            }
+
+            //GPU
+            if (hardware->HardwareType == HardwareType::GpuNvidia || hardware->HardwareType == HardwareType::GpuAmd
+                || hardware->HardwareType == HardwareType::GpuIntel)
+            {
+                ISensor^ gpu_temp = nullptr;
+                ISensor^ gpu_temp_default = nullptr;
+                for (int j = 0; j < hardware->Sensors->Length; j++)
+                {
+                    ISensor^ sensor = hardware->Sensors[j];
+                    //GPU温度
+                    if (sensor->SensorType == SensorType::Temperature)
+                    {
+                        if (gpu_temp_default == nullptr)
+                            gpu_temp_default = sensor;
+                        if (sensor->Name->Equals("GPU Core"))
+                        {
+                            gpu_temp = sensor;
+                            break;
+                        }
+                    }
+                    //GPU负载
+                    else if (sensor->SensorType == SensorType::Load)
+                    {
+                        if (sensor->Name->Equals("GPU Core") || sensor->Name->Equals("D3D 3D"))
+                            default_sensors->Add(sensor);
+                    }
+                }
+                //没找到则使用第一个
+                if (gpu_temp == nullptr && gpu_temp_default != nullptr)
+                    gpu_temp = gpu_temp_default;
+                if (gpu_temp != nullptr)
+                    default_sensors->Add(gpu_temp);
+            }
+        }
+    }
 }

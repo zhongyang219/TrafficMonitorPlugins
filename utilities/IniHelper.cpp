@@ -43,6 +43,11 @@ namespace utilities
     {
     }
 
+    bool CIniHelper::IsEmpty() const
+    {
+        return m_ini_str.empty();
+    }
+
     void CIniHelper::SetSaveAsUTF8(bool utf8)
     {
         m_save_as_utf8 = utf8;

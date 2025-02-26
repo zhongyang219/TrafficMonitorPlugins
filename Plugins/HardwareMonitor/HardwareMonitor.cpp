@@ -162,6 +162,25 @@ namespace HardwareMonitor
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
         m_settings.show_mouse_tooltip = ini.GetBool(L"config", L"show_mouse_tooltip", true);
+
+        //如果配置文件为空，则认为是首次使用硬件监控插件，添加默认的监控项
+        if (ini.IsEmpty())
+        {
+            List<ISensor^>^ default_sensors = gcnew List<ISensor^>();
+            HardwareMonitorHelper::GetDefaultMonitorItem(default_sensors);
+            for each (auto sensor in default_sensors)
+            {
+                std::wstring identifyer = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorIdentifyer(sensor));
+                std::wstring item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+                std::wstring lable_text = Common::StringToStdWstring(Common::GetTranslatedString(sensor->Name));
+                m_item_names[identifyer] = item_name;
+                m_items.emplace_back(identifyer, item_name, lable_text);
+                ItemInfo item_info;
+                item_info.identifyer = identifyer;
+                item_info.unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
+                m_settings.items_info.push_back(item_info);
+            }
+        }
     }
 
     void CHardwareMonitor::SaveConfig()
