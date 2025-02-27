@@ -2,10 +2,6 @@
 #include "Common.h"
 #include "HardwareMonitor.h"
 #include "../utilities/IniHelper.h"
-using namespace System;
-using namespace System::Collections::Generic;
-using namespace System::IO;
-using namespace System::Runtime::Serialization::Formatters::Binary;
 
 namespace HardwareMonitor
 {
@@ -150,76 +146,5 @@ namespace HardwareMonitor
     {
         // 递归遍历所有节点并恢复展开状态
         RestoreTreeNodeExpandStatusRecursive(tree->Nodes, "", treeCollapseNodes);
-    }
-
-    String^ Common::SerializeToBase64(Object^ obj)
-    {
-        if (obj == nullptr)
-            return "";
-
-        // 创建内存流
-        MemoryStream^ memoryStream = gcnew MemoryStream();
-
-        // 创建二进制格式化器
-        BinaryFormatter^ binaryFormatter = gcnew BinaryFormatter();
-
-        try
-        {
-            // 序列化字典到内存流
-            binaryFormatter->Serialize(memoryStream, obj);
-
-            // 将内存流转换为字节数组
-            array<Byte>^ bytes = memoryStream->ToArray();
-
-            // 将字节数组转换为 Base64 字符串
-            return Convert::ToBase64String(bytes);
-        }
-        catch (Exception^)
-        {
-            return "";
-        }
-    }
-
-    Object^ Common::DeserializeFromBase64(String^ base64String)
-    {
-        if (base64String == nullptr || base64String->Length == 0)
-            return nullptr;
-
-        try
-        {
-            // 将 Base64 字符串转换为字节数组
-            array<Byte>^ bytes = Convert::FromBase64String(base64String);
-
-            // 创建内存流
-            MemoryStream^ memoryStream = gcnew MemoryStream(bytes);
-
-            // 创建二进制格式化器
-            BinaryFormatter^ binaryFormatter = gcnew BinaryFormatter();
-
-            // 反序列化字节数组为字典
-            return binaryFormatter->Deserialize(memoryStream);
-        }
-        catch (Exception^)
-        {
-            return nullptr;
-        }
-    }
-
-
-    String^ Common::SerializeSet(SortedSet<String^>^ setData)
-    {
-        if (setData == nullptr || setData->Count == 0)
-            return "";
-
-        return SerializeToBase64(setData);
-    }
-
-    SortedSet<String^>^ Common::DeserializeSet(String^ base64String)
-    {
-        Object^ obj = DeserializeFromBase64(base64String);
-        if (obj != nullptr && obj->GetType() == SortedSet<String^>::typeid)
-            return (SortedSet<String^>^)obj;
-        else
-            return gcnew SortedSet<String^>();
     }
 }

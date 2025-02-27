@@ -34,18 +34,6 @@ namespace HardwareMonitor
 
         //从treeExpandStatusMap恢复一个树控件所有节点的展开状态
         static void RestoreTreeNodeExpandStatus(TreeView^ tree, SortedSet<String^>^ treeCollapseNodes);
-
-        //将一个对象序列化为base64字符串
-        static String^ SerializeToBase64(Object^ obj);
-
-        //从base64字符串反序列化为一个对象
-        static Object^ DeserializeFromBase64(String^ base64String);
-
-        //将一个Set序列化成base64字符串
-        static String^ SerializeSet(SortedSet<String^>^ setData);
-
-        //从base64字符串反序列化成一个set
-        static SortedSet<String^>^ DeserializeSet(String^ base64String);
     };
 }
 

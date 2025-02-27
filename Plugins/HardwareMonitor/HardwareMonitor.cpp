@@ -183,8 +183,10 @@ namespace HardwareMonitor
         }
 
         //载入树控件的展开折叠状态
-        std::wstring tree_status = ini.GetString(L"other", L"hardware_info_tree_status");
-        MonitorGlobal::Instance()->treeCollapseNodes = Common::DeserializeSet(gcnew String(tree_status.c_str()));
+        std::vector<std::wstring> collapse_nodes;
+        ini.GetStringList(L"other", L"hardware_info_collapsed_nodes", collapse_nodes, std::vector<std::wstring>());
+        for (const auto& node_path : collapse_nodes)
+            MonitorGlobal::Instance()->treeCollapseNodes->Add(gcnew String(node_path.c_str()));
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -221,8 +223,10 @@ namespace HardwareMonitor
         ini.WriteBool(L"config", L"show_mouse_tooltip", m_settings.show_mouse_tooltip);
 
         //保存树控件的展开折叠状态
-        String^ treeStatus = Common::SerializeSet(MonitorGlobal::Instance()->treeCollapseNodes);
-        ini.WriteString(L"other", L"hardware_info_tree_status", Common::StringToStdWstring(treeStatus));
+        std::vector<std::wstring> collapse_nodes;
+        for each (auto str in MonitorGlobal::Instance()->treeCollapseNodes)
+            collapse_nodes.push_back(Common::StringToStdWstring(str));
+        ini.WriteStringList(L"other", L"hardware_info_collapsed_nodes", collapse_nodes);
 
         ini.Save();
     }
