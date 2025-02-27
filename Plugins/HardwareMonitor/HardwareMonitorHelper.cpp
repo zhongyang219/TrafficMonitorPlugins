@@ -118,17 +118,22 @@ namespace HardwareMonitor
 
     ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(String^ identifyer)
     {
-        auto computer = MonitorGlobal::Instance()->computer;
-        gcroot<String^> _identifyer = identifyer;       //使用gcroot包装托管类指针，以便被lambda捕获
-        for each (IHardware^ hardware in computer->Hardware)
+        ISensor^ sensor;
+        if (!MonitorGlobal::Instance()->sensorMap->TryGetValue(identifyer, sensor))
         {
-            ISensor^ sensor = FindSensorInHardware(hardware, [&](ISensor^ _sensor) {
-                return GetSensorIdentifyer(_sensor) == _identifyer;
-            });
-            if (sensor != nullptr)
-                return sensor;
+            auto computer = MonitorGlobal::Instance()->computer;
+            gcroot<String^> _identifyer = identifyer;       //使用gcroot包装托管类指针，以便被lambda捕获
+            for each (IHardware^ hardware in computer->Hardware)
+            {
+                sensor = FindSensorInHardware(hardware, [&](ISensor^ _sensor) {
+                    return GetSensorIdentifyer(_sensor) == _identifyer;
+                });
+                if (sensor != nullptr)
+                    break;
+            }
+            MonitorGlobal::Instance()->sensorMap->Add(identifyer, sensor);
         }
-        return nullptr;
+        return sensor;
     }
 
     String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, String^ unit, int decimal_place, bool show_unit)

@@ -92,10 +92,11 @@ namespace HardwareMonitor
                 listItem->displayName = item_name;
                 ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item.identifyer.c_str()));
                 listItem->sensor = sensor;
-                listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(item.unit.c_str()), item.decimal_places, item.show_unit);
-                //根据监控项类型获取图标
                 if (sensor != nullptr)
                 {
+                    //获取数值文本
+                    listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(item.unit.c_str()), item.decimal_places, item.show_unit);
+                    //根据监控项类型获取图标
                     IHardware^ hardware = sensor->Hardware;
                     //如果是子硬件，则使用它的父硬件
                     if (hardware->Parent != nullptr)
@@ -103,8 +104,8 @@ namespace HardwareMonitor
                     auto resName = HardwareMonitorHelper::GetHardwareIconResName(hardware->HardwareType);
                     if (resName->Length > 0)
                         listItem->icon = MonitorGlobal::Instance()->GetIcon(resName);
+                    monitorItemListBox->Items->Add(listItem);
                 }
-                monitorItemListBox->Items->Add(listItem);
             }
         }
     }
@@ -120,7 +121,7 @@ namespace HardwareMonitor
         if (index >= 0 && index < monitorItemListBox->Items->Count)
         {
             ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(monitorItemListBox->Items[index]);
-            if (listItem != nullptr)
+            if (listItem != nullptr && listItem->sensor != nullptr)
             {
                 String^ identifyer = HardwareMonitorHelper::GetSensorIdentifyer(listItem->sensor);
                 return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(identifyer));
@@ -177,11 +178,14 @@ namespace HardwareMonitor
                     unitCombo->Items->Add(unit);
                 }
             }
-            int index = unitCombo->FindString(gcnew String(item_info.unit.c_str()));
-            if (index >= 0)
-                unitCombo->SelectedIndex = index;
-            else
-                unitCombo->SelectedIndex = 0;
+            if (unitCombo->Items->Count > 0)
+            {
+                int index = unitCombo->FindString(gcnew String(item_info.unit.c_str()));
+                if (index >= 0)
+                    unitCombo->SelectedIndex = index;
+                else
+                    unitCombo->SelectedIndex = 0;
+            }
         }
     }
 
@@ -217,8 +221,10 @@ namespace HardwareMonitor
 
         //保存设置
         CHardwareMonitor::GetInstance()->SaveConfig();
-
         Common::SaveFormSize(this, L"settings");
+
+        //更改了监控的硬件设置后，传感器可能会发生变化，因此这里清空传感器缓存
+        MonitorGlobal::Instance()->sensorMap->Clear();
     }
 
     void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)
