@@ -269,6 +269,7 @@ namespace HardwareMonitor
     {
         Common::SaveFormSize(this, L"hardware_info");
         Common::SaveTreeNodeExpandStatus(treeView1, MonitorGlobal::Instance()->treeExpandStatusMap);
+        CHardwareMonitor::GetInstance()->SaveConfig();
     }
 
     System::Void HardwareInfoForm::autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)

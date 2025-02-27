@@ -181,6 +181,10 @@ namespace HardwareMonitor
                 m_settings.items_info.push_back(item_info);
             }
         }
+
+        //载入树控件的展开折叠状态
+        std::wstring tree_status = ini.GetString(L"other", L"hardware_info_tree_status");
+        MonitorGlobal::Instance()->treeExpandStatusMap = Common::DeserializeDictionary(gcnew String(tree_status.c_str()));
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -215,6 +219,10 @@ namespace HardwareMonitor
         }
         ini.WriteBool(L"config", L"hardware_info_auto_refresh", m_settings.hardware_info_auto_refresh);
         ini.WriteBool(L"config", L"show_mouse_tooltip", m_settings.show_mouse_tooltip);
+
+        //保存树控件的展开折叠状态
+        String^ treeStatus = Common::SerializeDictionary(MonitorGlobal::Instance()->treeExpandStatusMap);
+        ini.WriteString(L"other", L"hardware_info_tree_status", Common::StringToStdWstring(treeStatus));
 
         ini.Save();
     }
