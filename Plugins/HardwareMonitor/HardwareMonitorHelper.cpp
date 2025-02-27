@@ -185,12 +185,12 @@ namespace HardwareMonitor
                 if (unit->Equals("GB"))
                     value /= 1024.0f;
             }
-            //网速
+            //速率
             else if (sensor->SensorType == SensorType::Throughput)
             {
-                if (unit->Equals("MB")) //MB
+                if (unit->Equals("MB/s")) //MB/s
                     value /= (1024.0f * 1024.0f);
-                else                    //KB
+                else                    //KB/s
                     value /= 1024.0f;
             }
             //电量
