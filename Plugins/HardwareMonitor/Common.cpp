@@ -87,7 +87,7 @@ namespace HardwareMonitor
         }
     }
 
-    static void SaveTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, Dictionary<String^, bool>^ treeExpandStatusMap)
+    static void SaveTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, SortedSet<String^>^ treeCollapseNodes)
     {
         for each (TreeNode ^ node in nodes)
         {
@@ -98,24 +98,25 @@ namespace HardwareMonitor
                 String^ nodePath = path + "/" + node->Text;
 
                 // 保存当前节点的展开状态
-                treeExpandStatusMap[nodePath] = node->IsExpanded;
+                if (!node->IsExpanded)
+                    treeCollapseNodes->Add(nodePath);
 
                 // 递归处理子节点
-                SaveTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+                SaveTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeCollapseNodes);
             }
         }
     }
 
-    void Common::SaveTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap)
+    void Common::SaveTreeNodeExpandStatus(TreeView^ tree, SortedSet<String^>^ treeCollapseNodes)
     {
         // 清空字典
-        treeExpandStatusMap->Clear();
+        treeCollapseNodes->Clear();
 
         // 递归遍历所有节点
-        SaveTreeNodeExpandStatusRecursive(tree->Nodes, "", treeExpandStatusMap);
+        SaveTreeNodeExpandStatusRecursive(tree->Nodes, "", treeCollapseNodes);
     }
 
-    static void RestoreTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, Dictionary<String^, bool>^ treeExpandStatusMap)
+    static void RestoreTreeNodeExpandStatusRecursive(TreeNodeCollection^ nodes, String^ path, SortedSet<String^>^ treeCollapseNodes)
     {
         for each (TreeNode ^ node in nodes)
         {
@@ -125,33 +126,30 @@ namespace HardwareMonitor
                 // 构建当前节点的路径
                 String^ nodePath = path + "/" + node->Text;
 
-                // 如果字典中包含当前节点的路径，则恢复其展开状态
-                if (treeExpandStatusMap->ContainsKey(nodePath))
+                // 如果Set中包含当前节点的路径，则将其折叠
+                if (treeCollapseNodes->Contains(nodePath))
                 {
-                    if (treeExpandStatusMap[nodePath])
+                    //node->Collapse();
+                    if (node->IsExpanded)
                     {
-                        node->Expand();
+                        node->Toggle(); // 折叠节点
                     }
-                    else
-                    {
-                        //node->Collapse();
-                        if (node->IsExpanded)
-                        {
-                            node->Toggle(); // 折叠节点
-                        }
-                    }
+                }
+                else
+                {
+                    node->Expand();
                 }
 
                 // 递归处理子节点
-                RestoreTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeExpandStatusMap);
+                RestoreTreeNodeExpandStatusRecursive(node->Nodes, nodePath, treeCollapseNodes);
             }
         }
     }
 
-    void Common::RestoreTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap)
+    void Common::RestoreTreeNodeExpandStatus(TreeView^ tree, SortedSet<String^>^ treeCollapseNodes)
     {
         // 递归遍历所有节点并恢复展开状态
-        RestoreTreeNodeExpandStatusRecursive(tree->Nodes, "", treeExpandStatusMap);
+        RestoreTreeNodeExpandStatusRecursive(tree->Nodes, "", treeCollapseNodes);
     }
 
     String^ Common::SerializeToBase64(Object^ obj)
@@ -208,20 +206,20 @@ namespace HardwareMonitor
     }
 
 
-    String^ Common::SerializeDictionary(Dictionary<String^, bool>^ dictionary)
+    String^ Common::SerializeSet(SortedSet<String^>^ setData)
     {
-        if (dictionary == nullptr || dictionary->Count == 0)
+        if (setData == nullptr || setData->Count == 0)
             return "";
 
-        return SerializeToBase64(dictionary);
+        return SerializeToBase64(setData);
     }
 
-    Dictionary<String^, bool>^ Common::DeserializeDictionary(String^ base64String)
+    SortedSet<String^>^ Common::DeserializeSet(String^ base64String)
     {
         Object^ obj = DeserializeFromBase64(base64String);
-        if (obj != nullptr && obj->GetType() == Dictionary<String^, bool>::typeid)
-            return (Dictionary<String^, bool>^)obj;
+        if (obj != nullptr && obj->GetType() == SortedSet<String^>::typeid)
+            return (SortedSet<String^>^)obj;
         else
-            return gcnew Dictionary<String^, bool>();
+            return gcnew SortedSet<String^>();
     }
 }

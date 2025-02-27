@@ -112,7 +112,7 @@ namespace HardwareMonitor
 
         HardwareInfoForm^ monitor_form{};
         SettingsForm^ setttings_form{};
-        Dictionary<String^, bool>^ treeExpandStatusMap{ gcnew Dictionary<String^, bool>() };    //保存“硬件信息”对话框树控件节点的展开状态
+        SortedSet<String^>^ treeCollapseNodes{ gcnew SortedSet<String^>() };                    //保存“硬件信息”对话框树控件中折叠的节点
         Dictionary<String^, ISensor^>^ sensorMap{ gcnew Dictionary<String^, ISensor^>() };      //保存传感器的identifyer和传感器对象的映射
 
     private:

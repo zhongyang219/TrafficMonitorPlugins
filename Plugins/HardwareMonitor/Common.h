@@ -30,10 +30,10 @@ namespace HardwareMonitor
         static void LoadFormSize(Form^ form, const std::wstring& name);
 
         //将一个树控件的所有节点的展开状态保存到treeExpandStatusMap
-        static void SaveTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap);
+        static void SaveTreeNodeExpandStatus(TreeView^ tree, SortedSet<String^>^ treeCollapseNodes);
 
         //从treeExpandStatusMap恢复一个树控件所有节点的展开状态
-        static void RestoreTreeNodeExpandStatus(TreeView^ tree, Dictionary<String^, bool>^ treeExpandStatusMap);
+        static void RestoreTreeNodeExpandStatus(TreeView^ tree, SortedSet<String^>^ treeCollapseNodes);
 
         //将一个对象序列化为base64字符串
         static String^ SerializeToBase64(Object^ obj);
@@ -41,11 +41,11 @@ namespace HardwareMonitor
         //从base64字符串反序列化为一个对象
         static Object^ DeserializeFromBase64(String^ base64String);
 
-        //将一个Dictonary序列化成base64字符串
-        static String^ SerializeDictionary(Dictionary<String^, bool>^ dictionary);
+        //将一个Set序列化成base64字符串
+        static String^ SerializeSet(SortedSet<String^>^ setData);
 
-        //从base64字符串反序列化成一个Dictonary
-        static Dictionary<String^, bool>^ DeserializeDictionary(String^ base64String);
+        //从base64字符串反序列化成一个set
+        static SortedSet<String^>^ DeserializeSet(String^ base64String);
     };
 }
 
