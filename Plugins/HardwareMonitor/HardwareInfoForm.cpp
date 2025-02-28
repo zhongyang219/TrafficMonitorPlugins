@@ -160,7 +160,9 @@ namespace HardwareMonitor
                 if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor))
                     CHardwareMonitor::GetInstance()->SaveConfig();
                 else
-                    MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"));
+                    MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"),
+                        MonitorGlobal::Instance()->GetString(L"PluginName"),
+                        MessageBoxButtons::OK, MessageBoxIcon::Information);
             }
         }
     }
