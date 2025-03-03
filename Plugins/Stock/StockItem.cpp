@@ -53,19 +53,41 @@ void StockItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 	//矩形区域
 
 	StockInfo& gpInfo = g_data.GetStockInfo(stock_id);
-	size_t _long = gpInfo.name.length();
-
 	CRect rect(CPoint(x, y), CSize(w, h));
-	std::wstring current{ gpInfo.ToString() };
 
-	if (gpInfo.ToString().find('-') != -1) {
-		pDC->SetTextColor(RGB(46, 139, 87));//设置文字的颜色为绿色
-	}
-	else {
-		pDC->SetTextColor(RGB(255, 0, 0));//设置文字的颜色为红色
-	}
+    //文本颜色
+    COLORREF color_default;
+    COLORREF color_red;
+    COLORREF color_green;
+    if (dark_mode)
+    {
+        color_default = RGB(255, 255, 255);
+        color_red = RGB(255, 121, 120);
+        color_green = RGB(111, 215, 149);
+    }
+    else
+    {
+        color_default = RGB(0, 0, 0);
+        color_red = RGB(195, 0, 0);
+        color_green = RGB(46, 139, 87);
+    }
 
-	pDC->DrawText(current.c_str(), rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    //绘制名称
+    pDC->SetTextColor(color_default);
+    CString stock_name{ gpInfo.name.c_str() };
+    stock_name += _T(": ");
+    CRect rect_name{ rect };
+    rect_name.right = rect_name.left + pDC->GetTextExtent(stock_name).cx;
+    pDC->DrawText(stock_name, rect_name, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    //绘制数值
+    if (gpInfo.pc.find('-') != std::wstring::npos)
+        pDC->SetTextColor(color_green);
+    else
+        pDC->SetTextColor(color_red);
+    CRect rect_value{ rect };
+    rect_value.left = rect_name.right;
+	pDC->DrawText(gpInfo.ToString(false).c_str(), rect_value, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 }
 
 const wchar_t* StockItem::GetItemValueSampleText() const

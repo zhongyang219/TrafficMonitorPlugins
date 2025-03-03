@@ -114,11 +114,20 @@ HICON CDataManager::GetIcon(UINT id)
     }
 }
 
-std::wstring StockInfo::ToString() const
+std::wstring StockInfo::ToString(bool include_name) const
 {
     std::wstringstream wss;
-    wss << name << ": " << p << ' ' << pc;
+    if (include_name)
+        wss << name << ": ";
+    wss << p << ' ' << pc;
     return wss.str();
+}
+
+bool StockInfo::IsEmpty() const
+{
+    return (pc.empty() || pc == L"--%")
+        && (p.empty() || p == L"--")
+        && name.empty();
 }
 
 StockInfo& CDataManager::GetStockInfo(const std::wstring& key)

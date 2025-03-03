@@ -18,7 +18,8 @@ struct StockInfo
     std::wstring pc = L"--%";
     std::wstring p = L"--";
     std::wstring name = L"";
-    std::wstring ToString() const;
+    std::wstring ToString(bool include_name = true) const;
+    bool IsEmpty() const;
 };
 
 class CDataManager
