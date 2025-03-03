@@ -37,6 +37,7 @@ BEGIN_MESSAGE_MAP(CManagerDialog, CDialog)
     ON_BN_CLICKED(IDOK, &CManagerDialog::OnBnClickedOk)
     ON_BN_CLICKED(IDCANCEL, &CManagerDialog::OnBnClickedCancel)
     ON_LBN_DBLCLK(IDC_MGR_LIST, &CManagerDialog::OnLbnDblclkMgrList)
+    ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
 
 
@@ -45,6 +46,12 @@ END_MESSAGE_MAP()
 BOOL CManagerDialog::OnInitDialog()
 {
     CDialog::OnInitDialog();
+
+    //获取初始时窗口的大小
+    CRect rect;
+    GetWindowRect(rect);
+    m_min_size.cx = rect.Width();
+    m_min_size.cy = rect.Height();
 
     for (const auto& stock_code : m_data.m_stock_codes)
     {
@@ -154,4 +161,14 @@ void CManagerDialog::OnLbnDblclkMgrList()
             }
         }
     }
+}
+
+
+void CManagerDialog::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
+{
+    //限制窗口最小大小
+    lpMMI->ptMinTrackSize.x = m_min_size.cx;		//设置最小宽度
+    lpMMI->ptMinTrackSize.y = m_min_size.cy;		//设置最小高度
+
+    CDialog::OnGetMinMaxInfo(lpMMI);
 }

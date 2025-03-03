@@ -20,6 +20,9 @@ public:
 	enum { IDD = IDD_MANAGER_DIALOG };
 #endif
 
+private:
+	CSize m_min_size;		//窗口的最小大小
+
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
@@ -34,4 +37,5 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
     afx_msg void OnLbnDblclkMgrList();
+	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 };
