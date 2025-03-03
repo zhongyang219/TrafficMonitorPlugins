@@ -34,6 +34,7 @@ public:
     virtual int GetCommandCount() override;
     virtual const wchar_t* GetCommandName(int command_index) override;
     virtual void OnPluginCommand(int command_index, void* hWnd, void* para) override;
+    virtual void* GetPluginIcon() override;
 
     INT_PTR ShowStockManageDlg(CWnd* pWnd);
     void SendStockInfoQequest();

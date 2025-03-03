@@ -46,6 +46,8 @@ END_MESSAGE_MAP()
 BOOL CManagerDialog::OnInitDialog()
 {
     CDialog::OnInitDialog();
+    HICON hIcon = g_data.GetIcon(IDI_STOCK);
+    SetIcon(hIcon, FALSE);
 
     //获取初始时窗口的大小
     CRect rect;
@@ -60,7 +62,7 @@ BOOL CManagerDialog::OnInitDialog()
 
     for (int i = 0; i < m_stock_listbox.GetCount(); i++)
     {
-        m_stock_listbox.SetItemHeight(i, g_data.DPI(22));
+        m_stock_listbox.SetItemHeight(i, g_data.DPI(20));
     }
 
     CheckDlgButton(IDC_FULL_DAY_CHECK, m_data.m_full_day);

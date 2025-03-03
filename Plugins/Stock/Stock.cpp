@@ -4,13 +4,6 @@
 #include "OptionsDlg.h"
 #include "ManagerDialog.h"
 #include "Common.h"
-#include <fstream>
-#include "DataManager.h"
-#include "OptionsDlg.h"
-#include <sstream>
-#include <iostream>
-#include <algorithm>
-#include <Windows.h>
 
 Stock Stock::m_instance;
 
@@ -281,6 +274,11 @@ void Stock::OnPluginCommand(int command_index, void* hWnd, void* para)
         SendStockInfoQequest();
         break;
     }
+}
+
+void* Stock::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_STOCK);
 }
 
 void Stock::updateItems()

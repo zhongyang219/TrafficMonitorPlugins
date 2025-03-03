@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <cstring>
 #include <string.h>
 #include <atltime.h>

@@ -172,12 +172,12 @@ std::vector<std::string> CCommon::split(std::string str, std::string pattern)
         {
             if (pos == 0)
             {
-                i = pos + pattern.size() - 1;
+                i = static_cast<int>(pos + pattern.size() - 1);
                 continue;
             }
             std::string s = str.substr(i, pos - i);
             result.push_back(s);
-            i = pos + pattern.size() - 1;
+            i = static_cast<int>(pos + pattern.size() - 1);
         }
     }
     return result;
