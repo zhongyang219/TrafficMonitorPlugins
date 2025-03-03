@@ -65,7 +65,10 @@ namespace HardwareMonitor
             //检查监控项目是否存在
             if (!IsDisplayItemExist(identifyer))
             {
-                m_settings.items_info.push_back(identifyer);
+                ItemInfo item_info;
+                item_info.identifyer = identifyer;
+                item_info.unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
+                m_settings.items_info.push_back(item_info);
                 return true;
             }
         }
