@@ -42,7 +42,7 @@ namespace utilities
 
     std::wstring CFilePathHelper::GetFolderName() const
     {
-        size_t index, index1;
+        int index, index1;
         index = m_file_path.find_last_of(L"\\/");
         if (index == std::wstring::npos || index == 0)
             return std::wstring();
