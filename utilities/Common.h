@@ -30,7 +30,7 @@ namespace utilities
         {
             if (str.empty()) return;
 
-            int size = str.size();  //字符串的长度
+            int size = static_cast<int>str.size();  //字符串的长度
             if (size < 0) return;
             int index1 = 0;     //字符串中第1个不是空格或控制字符的位置
             int index2 = size - 1;  //字符串中最后一个不是空格或控制字符的位置

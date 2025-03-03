@@ -118,7 +118,7 @@ void Stock::ParseJsonData(std::string json_data)
 
         StockInfo& StockInfo = g_data.GetStockInfo(CCommon::StrToUnicode(key.c_str()));
 
-        int data_size = data_arr.size();
+        int data_size = static_cast<int> (data_arr.size());
 
         CString name;
         float now = -1;
