@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <vector>
 
@@ -14,13 +14,13 @@ namespace utilities
 
         static std::string UnicodeToStr(const wchar_t* wstr, bool utf8 = false);
 
-        //¶ÁÈ¡ÎÄ¼şÄÚÈİ
+        //è¯»å–æ–‡ä»¶å†…å®¹
         static bool GetFileContent(const wchar_t* file_path, std::string& contents_buff);
 
-        //¶ÁÈ¡ÎÄ¼şÄÚÈİ
-        //file_path: ÎÄ¼şµÄÂ·¾¶
-        //length: ÎÄ¼şµÄ³¤¶È
-        //·µ»ØÖµ: ¶ÁÈ¡³É¹¦·µ»Ø¶ÁÈ¡µ½µÄÎÄ¼şÄÚÈİµÄconst charÀàĞÍµÄÖ¸Õë£¬ÔÚÊ¹ÓÃÍê±ÏºóÕâ¸öÖ¸ÕëĞèÒª×ÔĞĞÊ¹ÓÃdeleteÊÍ·Å¡£¶ÁÈ¡Ê§°Ü·µ»Ønullptr
+        //è¯»å–æ–‡ä»¶å†…å®¹
+        //file_path: æ–‡ä»¶çš„è·¯å¾„
+        //length: æ–‡ä»¶çš„é•¿åº¦
+        //è¿”å›å€¼: è¯»å–æˆåŠŸè¿”å›è¯»å–åˆ°çš„æ–‡ä»¶å†…å®¹çš„const charç±»å‹çš„æŒ‡é’ˆï¼Œåœ¨ä½¿ç”¨å®Œæ¯•åè¿™ä¸ªæŒ‡é’ˆéœ€è¦è‡ªè¡Œä½¿ç”¨deleteé‡Šæ”¾ã€‚è¯»å–å¤±è´¥è¿”å›nullptr
         static const char* GetFileContent(const wchar_t* file_path, size_t& length);
 
         static void GetFiles(const wchar_t* path, std::vector<std::wstring>& files);
@@ -30,26 +30,26 @@ namespace utilities
         {
             if (str.empty()) return;
 
-            int size = static_cast<int>str.size();  //×Ö·û´®µÄ³¤¶È
+            int size = static_cast<int>(str.size());  //å­—ç¬¦ä¸²çš„é•¿åº¦
             if (size < 0) return;
-            int index1 = 0;     //×Ö·û´®ÖĞµÚ1¸ö²»ÊÇ¿Õ¸ñ»ò¿ØÖÆ×Ö·ûµÄÎ»ÖÃ
-            int index2 = size - 1;  //×Ö·û´®ÖĞ×îºóÒ»¸ö²»ÊÇ¿Õ¸ñ»ò¿ØÖÆ×Ö·ûµÄÎ»ÖÃ
+            int index1 = 0;     //å­—ç¬¦ä¸²ä¸­ç¬¬1ä¸ªä¸æ˜¯ç©ºæ ¼æˆ–æ§åˆ¶å­—ç¬¦çš„ä½ç½®
+            int index2 = size - 1;  //å­—ç¬¦ä¸²ä¸­æœ€åä¸€ä¸ªä¸æ˜¯ç©ºæ ¼æˆ–æ§åˆ¶å­—ç¬¦çš„ä½ç½®
             while (index1 < size && str[index1] >= 0 && str[index1] <= 32)
                 index1++;
             while (index2 >= 0 && str[index2] >= 0 && str[index2] <= 32)
                 index2--;
-            if (index1 > index2)    //Èç¹ûindex1 > index2£¬ËµÃ÷×Ö·û´®È«ÊÇ¿Õ¸ñ»ò¿ØÖÆ×Ö·û
+            if (index1 > index2)    //å¦‚æœindex1 > index2ï¼Œè¯´æ˜å­—ç¬¦ä¸²å…¨æ˜¯ç©ºæ ¼æˆ–æ§åˆ¶å­—ç¬¦
                 str.clear();
-            else if (index1 == 0 && index2 == size - 1) //Èç¹ûindex1ºÍindex2µÄÖµ·Ö±ğÎª0ºÍsize - 1£¬ËµÃ÷×Ö·û´®Ç°ºóÃ»ÓĞ¿Õ¸ñ»ò¿ØÖÆ×Ö·û£¬Ö±½Ó·µ»Ø
+            else if (index1 == 0 && index2 == size - 1) //å¦‚æœindex1å’Œindex2çš„å€¼åˆ†åˆ«ä¸º0å’Œsize - 1ï¼Œè¯´æ˜å­—ç¬¦ä¸²å‰åæ²¡æœ‰ç©ºæ ¼æˆ–æ§åˆ¶å­—ç¬¦ï¼Œç›´æ¥è¿”å›
                 return;
             else
                 str = str.substr(index1, index2 - index1 + 1);
         }
 
-        //½«Ò»¸ö×Ö·û´®·Ö¸î³ÉÈô¸É¸ö×Ö·û£¨Ä£°åÀàĞÍÖ»ÄÜÎªstring»òwstring£©
-        //str: Ô­Ê¼×Ö·û´®
-        //div_ch: ÓÃÓÚ·Ö¸îµÄ×Ö·û
-        //result: ½ÓÊÕ·Ö¸îºóµÄ½á¹û
+        //å°†ä¸€ä¸ªå­—ç¬¦ä¸²åˆ†å‰²æˆè‹¥å¹²ä¸ªå­—ç¬¦ï¼ˆæ¨¡æ¿ç±»å‹åªèƒ½ä¸ºstringæˆ–wstringï¼‰
+        //str: åŸå§‹å­—ç¬¦ä¸²
+        //div_ch: ç”¨äºåˆ†å‰²çš„å­—ç¬¦
+        //result: æ¥æ”¶åˆ†å‰²åçš„ç»“æœ
         template<class T>
         static void StringSplit(const T& str, wchar_t div_ch, std::vector<T>& results, bool skip_empty = true, bool trim = true)
         {
