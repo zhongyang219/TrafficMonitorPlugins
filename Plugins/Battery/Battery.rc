@@ -155,6 +155,16 @@ IDI_BATTERY_DARK        ICON                    "res\\battery_dark.ico"
 
 IDI_BATTERY_LIGHT       ICON                    "res\\battery_light.ico"
 
+IDI_BATTERY_DARK_CHARGE ICON                    "res\\battery_dark_charge.ico"
+
+IDI_BATTERY_LIGHT_CHARGE ICON                    "res\\battery_light_charge.ico"
+
+IDI_FILL_HIGH           ICON                    "res\\fill_high.ico"
+
+IDI_FILL_LOW            ICON                    "res\\fill_low.ico"
+
+IDI_FILL_CRITICAL       ICON                    "res\\fill_critical.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

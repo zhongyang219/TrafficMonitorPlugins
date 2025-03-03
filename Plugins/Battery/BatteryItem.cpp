@@ -86,7 +86,11 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     //矩形区域
     CRect rect(CPoint(x, y), CSize(w, h));
     //绘制电池图标
-    HICON hIcon = (dark_mode ? g_data.GetIcon(IDI_BATTERY_LIGHT) : g_data.GetIcon(IDI_BATTERY_DARK));
+    HICON hIcon;
+    if (g_data.IsAcOnline())
+        hIcon = (dark_mode ? g_data.GetIcon(IDI_BATTERY_LIGHT_CHARGE) : g_data.GetIcon(IDI_BATTERY_DARK_CHARGE));
+    else
+        hIcon = (dark_mode ? g_data.GetIcon(IDI_BATTERY_LIGHT) : g_data.GetIcon(IDI_BATTERY_DARK));
     const int icon_size{ g_data.DPI(16) };
     CPoint icon_point{ rect.TopLeft() };
     icon_point.x = rect.left + g_data.DPI(2);
@@ -95,6 +99,7 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     //填充电量指示
     if (g_data.m_sysPowerStatus.BatteryFlag != 128 && g_data.m_sysPowerStatus.BatteryLifePercent > 0 && g_data.m_sysPowerStatus.BatteryLifePercent <= 100)
     {
+        //计算电量指示矩形区域
         Gdiplus::RectF rc_indicater;
         rc_indicater.X = icon_point.x + g_data.DPIF(1);
         rc_indicater.Y = icon_point.y + g_data.DPIF(6);
@@ -107,9 +112,39 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         float indicater_width = g_data.DPIF(11.7) * percent / 100;
         rc_indicater.Width = indicater_width;
         rc_indicater.Height = g_data.DPIF(3.7);
-        CDrawCommon drawer;
-        drawer.Create(pDC);
-        drawer.DrawRoundRect(rc_indicater, CGdiPlusTool::COLORREFToGdiplusColor(g_data.GetBatteryColor()), g_data.DPI(1));
+        //充电状态下的电量指示使用图标
+        if (g_data.IsAcOnline())
+        {
+            HICON hFill;
+            if (g_data.m_sysPowerStatus.BatteryLifePercent < 20)
+                hFill = g_data.GetIcon(IDI_FILL_CRITICAL);
+            else if (g_data.m_sysPowerStatus.BatteryLifePercent < 60)
+                hFill = g_data.GetIcon(IDI_FILL_LOW);
+            else
+                hFill = g_data.GetIcon(IDI_FILL_HIGH);
+            //设置剪辑区域
+            if (g_data.m_sysPowerStatus.BatteryLifePercent < 100)
+            {
+                CRgn rgn;
+                rgn.CreateRectRgn(static_cast<int>(rc_indicater.GetLeft()), static_cast<int>(rc_indicater.GetTop())
+                    , static_cast<int>(rc_indicater.GetRight()), static_cast<int>(rc_indicater.GetBottom()));
+                pDC->SelectClipRgn(&rgn);
+            }
+            //绘制电量指示
+            ::DrawIconEx(pDC->GetSafeHdc(), icon_point.x, icon_point.y, hFill, icon_size, icon_size, 0, NULL, DI_NORMAL);
+            //恢复剪辑区域
+            if (g_data.m_sysPowerStatus.BatteryLifePercent < 100)
+            {
+                pDC->SelectClipRgn(NULL);
+            }
+        }
+        //非充电状态下电量指示使用原来的方式（矩形填充）
+        else
+        {
+            CDrawCommon drawer;
+            drawer.Create(pDC);
+            drawer.DrawRoundRect(rc_indicater, CGdiPlusTool::COLORREFToGdiplusColor(g_data.GetBatteryColor()), g_data.DPI(1));
+        }
     }
     //绘制电池数值
     if (g_data.m_setting_data.battery_type == BatteryType::NUMBER_BESIDE_ICON)

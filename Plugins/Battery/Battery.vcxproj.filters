@@ -99,5 +99,20 @@
     <Image Include="res\battery_light.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\battery_dark_charge.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\battery_light_charge.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\fill_high.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\fill_low.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\fill_critical.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

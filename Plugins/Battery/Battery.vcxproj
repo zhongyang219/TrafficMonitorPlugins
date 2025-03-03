@@ -194,7 +194,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\battery_dark.ico" />
+    <Image Include="res\battery_dark_charge.ico" />
     <Image Include="res\battery_light.ico" />
+    <Image Include="res\battery_light_charge.ico" />
+    <Image Include="res\fill_critical.ico" />
+    <Image Include="res\fill_high.ico" />
+    <Image Include="res\fill_low.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

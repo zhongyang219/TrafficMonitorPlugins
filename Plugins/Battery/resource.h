@@ -9,10 +9,15 @@
 #define IDS_BATTERY                     105
 #define IDI_BATTERY_LIGHT               105
 #define IDS_BATTYER_TYPE_NUMBER         106
+#define IDI_BATTERY_DARK_CHARGE         106
 #define IDS_BATTYER_TYPE_ICON           107
+#define IDI_BATTERY_LIGHT_CHARGE        107
 #define IDS_BATTYER_TYPE_NUMBER_IN_ICON 108
+#define IDI_FILL_HIGH                   108
 #define IDS_BATTYER_TYPE_NUMBER_BESIDE_ICON 109
+#define IDI_FILL_LOW                    109
 #define IDS_CHARGING                    110
+#define IDI_FILL_CRITICAL               110
 #define IDS_BATTERY_LIFE_TIME           111
 #define IDS_BATTERY_FULL_LIFE_TIME      112
 #define IDS_HOUR                        113
@@ -29,7 +34,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           103
