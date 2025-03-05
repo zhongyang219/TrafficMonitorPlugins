@@ -52,7 +52,7 @@ const wchar_t* CDateTime::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"Copyright (C) by Zhong Yang 2021";
     case TMI_VERSION:
-        return L"1.0";
+        return L"1.00";
     case ITMPlugin::TMI_URL:
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;

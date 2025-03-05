@@ -70,12 +70,12 @@ const wchar_t* CTextReader::GetInfo(PluginInfoIndex index)
     case TMI_AUTHOR:
         return L"zhongyang219";
     case TMI_COPYRIGHT:
-        return L"Copyright (C) by Zhong Yang 2022";
+        return L"Copyright (C) by Zhong Yang 2025";
     case ITMPlugin::TMI_URL:
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        return L"1.01";
+        return L"1.02";
     default:
         break;
     }
