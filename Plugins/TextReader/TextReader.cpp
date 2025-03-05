@@ -94,7 +94,11 @@ void CTextReader::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         //设置阅读进度定时保存
         SetTimer(NULL, 1009, 10000, [](HWND, UINT, UINT_PTR, DWORD) {
             g_data.SaveReadPosition();
-            });
+        });
+
+        //启动一个定时器用于检查文件变化
+        SetTimer(NULL, 1542, 1000, CDataManager::TimerFunc);
+
         break;
     default:
         break;

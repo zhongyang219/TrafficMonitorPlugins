@@ -87,3 +87,17 @@ void CCommon::StringSplit(const std::wstring& str, const std::wstring& div_str, 
         last_split_index = split_index;
     }
 }
+
+bool CCommon::GetFileLastModified(const std::wstring& file_path, unsigned __int64& modified_time)
+{
+    WIN32_FILE_ATTRIBUTE_DATA file_attributes{};
+    if (GetFileAttributesEx(file_path.c_str(), GetFileExInfoStandard, &file_attributes))
+    {
+        ULARGE_INTEGER last_modified_time{};
+        last_modified_time.HighPart = file_attributes.ftLastWriteTime.dwHighDateTime;
+        last_modified_time.LowPart = file_attributes.ftLastWriteTime.dwLowDateTime;
+        modified_time = last_modified_time.QuadPart;
+        return true;
+    }
+    return false;
+}

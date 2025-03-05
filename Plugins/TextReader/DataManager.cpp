@@ -65,6 +65,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.auto_decode_base64 = GetPrivateProfileInt(_T("config"), _T("auto_decode_base64"), 1, m_config_path.c_str());
     m_setting_data.use_own_context_menu = GetPrivateProfileInt(_T("config"), _T("use_own_context_menu"), 1, m_config_path.c_str());
     m_setting_data.restart_at_end = GetPrivateProfileInt(_T("config"), _T("restart_at_end"), 0, m_config_path.c_str());
+    m_setting_data.auto_reload_when_file_changed = GetPrivateProfileInt(_T("config"), _T("auto_reload_when_file_changed"), 0, m_config_path.c_str());
 
     //载入书签
     m_bookmark_mgr.LoadFromConfig(m_config_path);
@@ -86,6 +87,7 @@ void CDataManager::SaveConfig() const
         WritePrivateProfileInt(_T("config"), _T("auto_decode_base64"), m_setting_data.auto_decode_base64, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("use_own_context_menu"), m_setting_data.use_own_context_menu, m_config_path.c_str());
         WritePrivateProfileInt(_T("config"), _T("restart_at_end"), m_setting_data.restart_at_end, m_config_path.c_str());
+        WritePrivateProfileInt(_T("config"), _T("auto_reload_when_file_changed"), m_setting_data.auto_reload_when_file_changed, m_config_path.c_str());
 
         //保存书签
         m_bookmark_mgr.SaveToConfig(m_config_path);
@@ -153,6 +155,9 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     {
         return false;
     }
+
+    //保存文件的上次修改时间
+    CCommon::GetFileLastModified(file_path, m_file_last_modified);
 
     //获取文件长度
     file.seekg(0, file.end);
@@ -279,5 +284,23 @@ void CDataManager::SaveReadPosition()
     {
         SaveConfig();
         m_position_modified = false;
+    }
+}
+
+void CDataManager::TimerFunc(HWND, UINT, UINT_PTR, DWORD)
+{
+    if (m_instance.m_setting_data.auto_reload_when_file_changed && !m_instance.m_setting_data.file_path.empty())
+    {
+        //检查文件的最后修改时间
+        unsigned __int64 last_modified{};
+        if (CCommon::GetFileLastModified(m_instance.m_setting_data.file_path, last_modified))
+        {
+            //如果文件的最后修改时间比打开的时候新，则重新打开文件
+            if (last_modified > m_instance.m_file_last_modified)
+            {
+                m_instance.m_file_last_modified = last_modified;
+                m_instance.LoadTextContents(m_instance.m_setting_data.file_path.c_str());
+            }
+        }
     }
 }

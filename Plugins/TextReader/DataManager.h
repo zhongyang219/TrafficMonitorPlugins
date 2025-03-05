@@ -22,6 +22,7 @@ struct SettingData
     bool auto_decode_base64{};  //自动对base64编码的文本文件解码
     bool use_own_context_menu{};    //使用独立的右键菜单
     bool restart_at_end{};      //阅读到结束时自动返回开始
+    bool auto_reload_when_file_changed{};   //文件更改时自动重新加载
 };
 
 class CDataManager
@@ -66,6 +67,11 @@ public:
     int m_draw_width{};
     HWND m_wnd{};
     int m_position_modified{ false };
+
+    static void TimerFunc(HWND, UINT, UINT_PTR, DWORD);
+
+private:
+    unsigned __int64 m_file_last_modified{};    //打开文件的上次修改时间
 
 private:
     static CDataManager m_instance;

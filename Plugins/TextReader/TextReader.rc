@@ -73,8 +73,9 @@ BEGIN
     LTEXT           "自动翻页时间间隔：",IDC_STATIC,60,111,71,8
     EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,130,110,40,12,ES_AUTOHSCROLL
     LTEXT           "毫秒",IDC_STATIC,173,112,35,8
-    CONTROL         "使用独立的右键菜单",IDC_USE_OWN_CONTEXT_MENU_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,124,106,10
+    CONTROL         "使用独立的右键菜单",IDC_USE_OWN_CONTEXT_MENU_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,124,98,10
     CONTROL         "阅读到结束时自动返回开始",IDC_RESTART_AT_END_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,111,97,99,10
+    CONTROL         "文件更改时自动重新加载",IDC_AUTO_RELOAD_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,111,124,91,10
 END
 
 IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 167, 125
@@ -159,6 +160,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -375,9 +377,11 @@ BEGIN
     EDITTEXT        IDC_AUTO_READ_INTERVAL_EDIT,180,118,40,12,ES_AUTOHSCROLL
     LTEXT           "ms",IDC_STATIC,223,120,35,9
     CONTROL         "Use own context menu",IDC_USE_OWN_CONTEXT_MENU_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,132,162,9
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,132,102,9
     CONTROL         "Return to the beginning when reading to the end",IDC_RESTART_AT_END_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,106,229,10
+    CONTROL         "Auto reload when file changed",IDC_AUTO_RELOAD_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,116,132,130,10
 END
 
 IDD_CHAPTER_DIALOG DIALOGEX 0, 0, 191, 125
@@ -447,6 +451,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 100, 0,
     100, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,

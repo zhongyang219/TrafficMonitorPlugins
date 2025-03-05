@@ -13,4 +13,8 @@ public:
     static bool IsUTF8Bytes(const char* data);
 
     static void StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty = true);
+
+    //获取一个文件的最后修改时间
+    static bool GetFileLastModified(const std::wstring& file_path, unsigned __int64& modified_time);
+
 };

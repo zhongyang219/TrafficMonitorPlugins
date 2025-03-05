@@ -49,7 +49,7 @@ BOOL COptionsDlg::OnInitDialog()
     SetDlgItemText(IDC_READ_POSITION_EDIT, str);
     str.Format(_T("%d"), m_data.window_width);
     SetDlgItemText(IDC_WINDOW_WIDTH_EDIT, str);
-    str.Format(_T("%d"), g_data.GetTextContexts().size());
+    str.Format(_T("%d"), static_cast<int>(g_data.GetTextContexts().size()));
     SetDlgItemText(IDC_TOTAL_CHAR_STATIC, str);
     str.Format(_T("(%.2f%%)"), static_cast<double>(m_data.current_position) * 100 / g_data.GetTextContexts().size());
     SetDlgItemText(IDC_PERCENT_STATIC, str);
@@ -64,6 +64,7 @@ BOOL COptionsDlg::OnInitDialog()
     CheckDlgButton(IDC_AUTO_DECODE_CHECK, m_data.auto_decode_base64);
     CheckDlgButton(IDC_USE_OWN_CONTEXT_MENU_CHECK, m_data.use_own_context_menu);
     CheckDlgButton(IDC_RESTART_AT_END_CHECK, m_data.restart_at_end);
+    CheckDlgButton(IDC_AUTO_RELOAD_CHECK, m_data.auto_reload_when_file_changed);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -112,6 +113,7 @@ void COptionsDlg::OnOK()
     m_data.auto_decode_base64 = (IsDlgButtonChecked(IDC_AUTO_DECODE_CHECK) != 0);
     m_data.use_own_context_menu = (IsDlgButtonChecked(IDC_USE_OWN_CONTEXT_MENU_CHECK) != 0);
     m_data.restart_at_end = (IsDlgButtonChecked(IDC_RESTART_AT_END_CHECK) != 0);
+    m_data.auto_reload_when_file_changed = (IsDlgButtonChecked(IDC_AUTO_RELOAD_CHECK) != 0);
 
     CDialogEx::OnOK();
 }
