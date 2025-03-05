@@ -42,7 +42,7 @@ namespace utilities
         //div_ch: 用于分割的字符
         //result: 接收分割后的结果
         static void StringSplit(const std::wstring& str, wchar_t div_ch, std::vector<std::wstring>& results, bool skip_empty = true, bool trim = true);
-        static void StringSplit(const std::string& str, wchar_t div_ch, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);
+        static void StringSplit(const std::string& str, char div_ch, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);
 
         static void StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty = true, bool trim = true);
         static void StringSplit(const std::string& str, const std::string& div_str, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);

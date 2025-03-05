@@ -232,7 +232,7 @@ void CDataManager::PageDown(int step)
         step = m_page_step;
     if (m_boss_key_pressed)
         return;
-    const int MAX_POS = GetTextContexts().size() - 2;
+    const int MAX_POS = static_cast<int>(GetTextContexts().size() - 2);
     if (m_setting_data.current_position < MAX_POS || m_setting_data.restart_at_end)
         m_setting_data.current_position += step;
     if (m_setting_data.current_position > MAX_POS)

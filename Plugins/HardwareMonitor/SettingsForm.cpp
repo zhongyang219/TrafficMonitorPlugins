@@ -214,7 +214,7 @@ namespace HardwareMonitor
             computer->IsControllerEnabled = controllerCheck->Checked;
             computer->IsPsuEnabled = psuCheck->Checked;
         }
-        catch(System::Exception^ e)
+        catch(System::Exception^)
         {}
 
         CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;

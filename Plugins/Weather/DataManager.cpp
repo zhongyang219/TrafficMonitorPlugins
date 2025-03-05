@@ -191,7 +191,7 @@ CString CDataManager::GetUpdateTimeAsString()
 
     // 计算日期差（以天为单位）
     CTimeSpan span = now - m_update_time;
-    int daysDiff = span.GetDays();
+    int daysDiff = static_cast<int>(span.GetDays());
 
     // 格式化日期部分
     CString strDate;

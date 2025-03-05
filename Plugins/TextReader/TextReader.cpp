@@ -167,7 +167,7 @@ void CTextReader::SetAutoReadTimer()
         KillTimer(NULL, m_timer_id);
     if (g_data.m_setting_data.auto_read)
     {
-        m_timer_id = SetTimer(NULL, 1008, g_data.m_setting_data.auto_read_timer_interval, [](HWND, UINT, UINT_PTR, DWORD)
+        m_timer_id = SetTimer(NULL, 1008, static_cast<UINT>(g_data.m_setting_data.auto_read_timer_interval), [](HWND, UINT, UINT_PTR, DWORD)
             {
                 g_data.PageDown();
             });
@@ -284,7 +284,7 @@ int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     COptionsContainerDlg dlg(cur_tab, pParent);
     dlg.m_options_dlg.m_data = g_data.m_setting_data;
-    int rtn = dlg.DoModal();
+    auto rtn = dlg.DoModal();
     if (rtn == IDOK)
     {
         bool auto_read_changed{ g_data.m_setting_data.auto_read != dlg.m_options_dlg.m_data.auto_read || g_data.m_setting_data.auto_read_timer_interval != dlg.m_options_dlg.m_data.auto_read_timer_interval };
@@ -304,7 +304,7 @@ int CTextReader::ShowOptionsDlg(CWnd* pParent, int cur_tab /*= 0*/)
 
         g_data.SaveConfig();
     }
-    return rtn;
+    return static_cast<int>(rtn);
 }
 
 void CTextReader::LoadContextMenu()

@@ -40,10 +40,12 @@ void CGdiPlusTool::CreateRoundRectPath(Gdiplus::GraphicsPath& path, Gdiplus::Rec
 
 CRect CGdiPlusTool::GdiplusRectToCRect(Gdiplus::RectF rect)
 {
-    return CRect(rect.GetLeft(), rect.GetTop(), rect.GetRight(), rect.GetBottom());
+    return CRect(static_cast<int>(rect.GetLeft()), static_cast<int>(rect.GetTop()),
+        static_cast<int>(rect.GetRight()), static_cast<int>(rect.GetBottom()));
 }
 
 Gdiplus::RectF CGdiPlusTool::CRectToGdiplusRect(CRect rect)
 {
-    return Gdiplus::RectF(rect.left, rect.top, rect.Width(), rect.Height());
+    return Gdiplus::RectF(static_cast<Gdiplus::REAL>(rect.left), static_cast<Gdiplus::REAL>(rect.top),
+        static_cast<Gdiplus::REAL>(rect.Width()), static_cast<Gdiplus::REAL>(rect.Height()));
 }

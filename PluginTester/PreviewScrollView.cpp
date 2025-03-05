@@ -305,7 +305,7 @@ BOOL CDrawScrollView::PreTranslateMessage(MSG* pMsg)
                 bool ctrl = (GetKeyState(VK_CONTROL) & 0x80);
                 bool shift = (GetKeyState(VK_SHIFT) & 0x8000);
                 bool alt = (GetKeyState(VK_MENU) & 0x8000);
-                int rtn = plugin_item->OnKeboardEvent(pMsg->wParam, ctrl, shift, alt, (void*)GetSafeHwnd(), IPluginItem::KF_TASKBAR_WND);
+                int rtn = plugin_item->OnKeboardEvent(static_cast<int>(pMsg->wParam), ctrl, shift, alt, (void*)GetSafeHwnd(), IPluginItem::KF_TASKBAR_WND);
                 CRect rc_item = m_plugin_item_rect[plugin_item->GetItemId()];
                 InvalidateRect(rc_item);
                 if (rtn != 0)

@@ -46,7 +46,7 @@ private:
     static CTextReader m_instance;
     CTextReaderItem m_item;
     CMenu m_menu;
-    int m_timer_id{};
+    UINT_PTR m_timer_id{};
 };
 
 #ifdef __cplusplus

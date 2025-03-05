@@ -159,8 +159,8 @@ namespace utilities
     //str: 原始字符串
     //div_ch: 用于分割的字符
     //result: 接收分割后的结果
-    template<class T>
-    static void _StringSplit(const T& str, wchar_t div_ch, std::vector<T>& results, bool skip_empty = true, bool trim = true)
+    template<class T, class value_type>
+    static void _StringSplit(const T& str, value_type div_ch, std::vector<T>& results, bool skip_empty = true, bool trim = true)
     {
         results.clear();
         size_t split_index = -1;
@@ -204,7 +204,7 @@ namespace utilities
         _StringSplit(str, div_ch, results, skip_empty, trim);
     }
 
-    void StringHelper::StringSplit(const std::string& str, wchar_t div_ch, std::vector<std::string>& results, bool skip_empty, bool trim)
+    void StringHelper::StringSplit(const std::string& str, char div_ch, std::vector<std::string>& results, bool skip_empty, bool trim)
     {
         _StringSplit(str, div_ch, results, skip_empty, trim);
     }

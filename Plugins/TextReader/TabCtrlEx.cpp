@@ -23,7 +23,7 @@ void CTabCtrlEx::AddWindow(CWnd* pWnd, LPCTSTR lable_text)
     if (pWnd == nullptr || pWnd->GetSafeHwnd() == NULL)
         return;
 
-    InsertItem(m_tab_list.size(), lable_text, m_tab_list.size());
+    InsertItem(static_cast<int>(m_tab_list.size()), lable_text, static_cast<int>(m_tab_list.size()));
 
     pWnd->SetParent(this);
     pWnd->MoveWindow(m_tab_rect);
@@ -37,7 +37,7 @@ void CTabCtrlEx::SetCurTab(int index)
         index = 0;
     SetCurSel(index);
 
-    int tab_size = m_tab_list.size();
+    int tab_size = static_cast<int>(m_tab_list.size());
     for (int i = 0; i < tab_size; i++)
     {
         if (i == index)

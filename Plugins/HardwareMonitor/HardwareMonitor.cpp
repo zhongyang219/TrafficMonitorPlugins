@@ -274,7 +274,7 @@ namespace HardwareMonitor
                 item.UpdateValue();
             }
         }
-        catch (System::Exception^ e)
+        catch (System::Exception^)
         {
             //ShowErrorMessage(e);
         }

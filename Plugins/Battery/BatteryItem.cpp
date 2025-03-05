@@ -109,9 +109,9 @@ void CBatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
         {
             percent = g_data.m_sysPowerStatus.BatteryLifePercent + (battery_percent / 100 * (100 - g_data.m_sysPowerStatus.BatteryLifePercent));
         }
-        float indicater_width = g_data.DPIF(11.7) * percent / 100;
+        float indicater_width = static_cast<float>(g_data.DPIF(11.7f) * percent / 100);
         rc_indicater.Width = indicater_width;
-        rc_indicater.Height = g_data.DPIF(3.7);
+        rc_indicater.Height = g_data.DPIF(3.7f);
         //充电状态下的电量指示使用图标
         if (g_data.IsAcOnline())
         {

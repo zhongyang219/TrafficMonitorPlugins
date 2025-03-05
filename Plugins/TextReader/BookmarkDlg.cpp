@@ -101,7 +101,7 @@ void CBookmarkDlg::OnOK()
     int cur_selection{ m_list_ctrl.GetSelectionMark() };
     if (cur_selection >= 0 && cur_selection < m_list_ctrl.GetItemCount())
     {
-        m_selected_position = m_list_ctrl.GetItemData(cur_selection);
+        m_selected_position = static_cast<int>(m_list_ctrl.GetItemData(cur_selection));
     }
 
     CDialogEx::OnOK();

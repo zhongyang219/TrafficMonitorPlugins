@@ -31,7 +31,7 @@ void CChapterParser::Parse()
             if (index2 - index1 < 60)
             {
                 std::wstring title = m_contents.substr(index, index2 - index);
-                m_chapter[index] = title;
+                m_chapter[static_cast<int>(index)] = title;
                 index = index2 + 1;
             }
         }
@@ -50,7 +50,7 @@ void CChapterParser::Parse()
             if (index2 - index < 60)
             {
                 std::wstring title = m_contents.substr(index, index2 - index);
-                m_chapter[index] = title;
+                m_chapter[static_cast<int>(index)] = title;
                 index = index2 + 1;
             }
         }

@@ -92,7 +92,7 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
     bar_rect.bottom = bar_rect.top + bar_height;
 
     // 计算填充区域的宽度
-    int fillWidth = bar_rect.Width() * m_percent / 100;
+    int fillWidth = static_cast<int>(bar_rect.Width() * m_percent / 100);
 
     // 定义颜色
     COLORREF color_low;     // 绿色

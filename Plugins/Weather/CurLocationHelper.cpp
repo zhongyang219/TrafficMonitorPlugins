@@ -110,7 +110,7 @@ int CCurLocationHelper::FindCityCodeItem(std::wstring city_name)
                     return city_code_item.name == city_name;
                 });
         }
-        return iter - CityCode.begin();
+        return static_cast<int>(iter - CityCode.begin());
     }
     return -1;
 }

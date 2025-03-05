@@ -407,7 +407,7 @@ CSize CPluginTesterDlg::CalculatePreviewSize()
     size.cx = theApp.DPI(152);
 
     PluginInfo plugin_info = GetCurrentPlugin();
-    int item_num = plugin_info.plugin_items.size();
+    int item_num = static_cast<int>(plugin_info.plugin_items.size());
     size.cy = theApp.DPI(16) + item_num * (IsDoubleLineChecked() ? theApp.DPI(64) : theApp.DPI(56));
     //if (IsDoubleLineChecked())
     //    size.cy += theApp.DPI(8);

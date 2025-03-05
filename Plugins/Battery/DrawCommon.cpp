@@ -38,7 +38,7 @@ void CDrawCommon::DrawRoundRect(Gdiplus::RectF rect, Gdiplus::Color color, int r
 {
     //生成圆角矩形路径
     Gdiplus::GraphicsPath round_rect_path;
-    CGdiPlusTool::CreateRoundRectPath(round_rect_path, rect, radius);
+    CGdiPlusTool::CreateRoundRectPath(round_rect_path, rect, static_cast<float>(radius));
 
     m_pGraphics->SetSmoothingMode(Gdiplus::SmoothingMode::SmoothingModeAntiAlias);      //设置抗锯齿
     Gdiplus::SolidBrush brush(color);

@@ -58,7 +58,7 @@ void CLoudnessMeter::DataRequired()
         pMeterInfo->GetPeakValue(&peakValue);
         if (peakValue > 0.0f)
         {
-            float dB = 20 * log10(peakValue);
+            float dB = static_cast<float>(20 * log10(peakValue));
             m_item.SetValue(dB, peakValue * 100, CLoudnessMeterItem::DB_VALID);
         }
         else

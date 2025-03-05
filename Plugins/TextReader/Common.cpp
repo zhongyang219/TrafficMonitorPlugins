@@ -36,7 +36,7 @@ bool CCommon::IsUTF8Bytes(const char* data)
     int charByteCounter = 1;  //计算当前正分析的字符应还有的字节数
     unsigned char curByte; //当前分析的字节.
     bool ascii = true;
-    int length = strlen(data);
+    int length = static_cast<int>(strlen(data));
     for (int i = 0; i < length; i++)
     {
         curByte = static_cast<unsigned char>(data[i]);
