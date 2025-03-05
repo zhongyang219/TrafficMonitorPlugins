@@ -51,7 +51,10 @@ BOOL COptionsDlg::OnInitDialog()
     SetDlgItemText(IDC_WINDOW_WIDTH_EDIT, str);
     str.Format(_T("%d"), static_cast<int>(g_data.GetTextContexts().size()));
     SetDlgItemText(IDC_TOTAL_CHAR_STATIC, str);
-    str.Format(_T("(%.2f%%)"), static_cast<double>(m_data.current_position) * 100 / g_data.GetTextContexts().size());
+    double percent{};
+    if (g_data.GetTextContexts().size() != 0)
+        percent = static_cast<double>(m_data.current_position) * 100 / g_data.GetTextContexts().size();
+    str.Format(_T("(%.2f%%)"), percent);
     SetDlgItemText(IDC_PERCENT_STATIC, str);
     CheckDlgButton(IDC_SHOT_TOOLTIP_CHECK, m_data.show_in_tooltips);
     CheckDlgButton(IDC_ENABLE_MULTI_LINE_CHECK, m_data.enable_mulit_line);
