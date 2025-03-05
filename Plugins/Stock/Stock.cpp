@@ -247,6 +247,10 @@ void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         g_data.LoadConfig(std::wstring(data));
         updateItems();
         break;
+    case ITMPlugin::EI_TASKBAR_WND_VALUE_RIGHT_ALIGN:
+        //获取TrafficMonitor任务栏窗口中“数值右对齐”设置
+        g_data.m_right_align = (_wtoi(data) != 0);
+        break;
     default:
         break;
     }

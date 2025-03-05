@@ -87,12 +87,15 @@ void StockItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
         pDC->SetTextColor(color_red);
     CRect rect_value{ rect };
     rect_value.left = rect_name.right;
-	pDC->DrawText(gpInfo.ToString(false).c_str(), rect_value, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    UINT flags = DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX;
+    if (g_data.m_right_align)
+        flags |= DT_RIGHT;
+	pDC->DrawText(gpInfo.ToString(false).c_str(), rect_value, flags);
 }
 
 const wchar_t* StockItem::GetItemValueSampleText() const
 {
-    return L"----------: 0000000.00 00.00%";
+    return L"--------: 0000000.00 00.00%";
 }
 
 int StockItem::OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag)

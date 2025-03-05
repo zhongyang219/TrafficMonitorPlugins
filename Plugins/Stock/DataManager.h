@@ -44,6 +44,7 @@ public:
 
     SettingData m_setting_data;
     std::wstring m_log_path;
+    bool m_right_align{};       //数值是否右对齐
 
 private:
     std::map<std::wstring, StockInfo> m_stock_info_map;
