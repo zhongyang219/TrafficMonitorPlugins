@@ -27,6 +27,7 @@ BEGIN_MESSAGE_MAP(CDrawScrollView, CScrollView)
     ON_WM_RBUTTONUP()
     ON_WM_KEYUP()
     ON_WM_MOUSEMOVE()
+    ON_WM_MOUSEWHEEL()
 END_MESSAGE_MAP()
 
 
@@ -328,4 +329,26 @@ void CDrawScrollView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
     // TODO: 在此添加消息处理程序代码和/或调用默认值
 
     CScrollView::OnKeyUp(nChar, nRepCnt, nFlags);
+}
+
+
+BOOL CDrawScrollView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+    CPoint point = pt;
+    ScreenToClient(&point);
+    SetFocus();
+    m_plugin_item_clicked = GetPluginItemByPoint(point);
+    if (m_plugin_item_clicked != nullptr)
+    {
+        IPluginItem::MouseEventType type;
+        if (zDelta > 0)
+            type = IPluginItem::MT_WHEEL_UP;
+        else
+            type = IPluginItem::MT_WHEEL_DOWN;
+        CRect rc_item = m_plugin_item_rect[m_plugin_item_clicked->GetItemId()];
+        m_plugin_item_clicked->OnMouseEvent(type, point.x - rc_item.left, point.y - rc_item.top, GetSafeHwnd(), IPluginItem::MF_TASKBAR_WND);
+        InvalidateRect(rc_item);
+        return TRUE;
+    }
+    return CScrollView::OnMouseWheel(nFlags, zDelta, pt);
 }

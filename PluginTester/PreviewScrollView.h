@@ -47,4 +47,5 @@ public:
     afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
     virtual BOOL PreTranslateMessage(MSG* pMsg);
     afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
+    afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 };

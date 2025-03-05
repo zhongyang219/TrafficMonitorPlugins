@@ -94,6 +94,14 @@ int CTextReaderItem::OnMouseEvent(MouseEventType type, int x, int y, void * hWnd
         CTextReader::Instance().ShowContextMenu(pWnd);
         return 1;
     }
+    else if (type == IPluginItem::MT_WHEEL_UP)
+    {
+        g_data.PageUp();
+    }
+    else if (type == IPluginItem::MT_WHEEL_DOWN)
+    {
+        g_data.PageDown();
+    }
 
     return 0;
 }
