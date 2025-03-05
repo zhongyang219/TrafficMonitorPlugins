@@ -7,6 +7,7 @@
 #include "OptionsDlg.h"
 #include <sstream>
 #include "CurLocationHelper.h"
+#include "utilities/Common.h"
 
 CWeather CWeather::m_instance;
 
@@ -62,8 +63,6 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
             g_data.m_auto_located = true;
             if (g_data.m_auto_locate_succeed)
                 g_data.m_setting_data.m_city_index = auto_located_city;
-            if (m_instance.m_option_dlg != nullptr)
-                m_instance.m_option_dlg->UpdateAutoLocteResult();
         }
 
         //获取天气信息
@@ -77,6 +76,9 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
             std::ofstream stream{ g_data.m_config_dir + L"Weather.json" };
             stream << weather_data;
         }
+
+        if (m_instance.m_option_dlg != nullptr)
+            m_instance.m_option_dlg->UpdateAutoLocteResult();
 
         //启用选项设置中的“更新”按钮
         m_instance.EnableUpdateWeatherCommand();
@@ -254,6 +256,8 @@ void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     case ITMPlugin::EI_CONFIG_DIR:
         //从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
+        //初始化天气
+        Init();
         break;
     default:
         break;
@@ -355,6 +359,17 @@ void CWeather::OnPluginCommand(int command_index, void* hWnd, void* para)
         break;
     default:
         break;
+    }
+}
+
+void CWeather::Init()
+{
+    //从Weather.json获取天气
+    std::wstring json_path{ g_data.m_config_dir + L"Weather.json" };
+    std::string weather_data;
+    if (utilities::CCommon::GetFileContent(json_path.c_str(), weather_data))
+    {
+        ParseJsonData(weather_data);
     }
 }
 

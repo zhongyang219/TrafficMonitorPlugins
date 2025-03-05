@@ -28,6 +28,8 @@ public:
     void* GetCommandIcon(int command_index) override;
     void OnPluginCommand(int command_index, void* hWnd, void* para) override;
 
+    void Init();
+
 private:
     static UINT ThreadCallback(LPVOID dwUser);
     void ParseJsonData(std::string json_data);
