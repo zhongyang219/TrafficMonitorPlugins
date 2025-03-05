@@ -5,12 +5,15 @@ namespace utilities
 {
     std::string JsonHelper::GetJsonString(yyjson_val* obj, const char* key)
     {
-        yyjson_val* value = yyjson_obj_get(obj, key);
-        if (value != nullptr)
+        if (obj != nullptr)
         {
-            const char* str = yyjson_get_str(value);
-            if (str != nullptr)
-                return str;
+            yyjson_val* value = yyjson_obj_get(obj, key);
+            if (value != nullptr)
+            {
+                const char* str = yyjson_get_str(value);
+                if (str != nullptr)
+                    return str;
+            }
         }
         return std::string();
     }
@@ -23,12 +26,15 @@ namespace utilities
 
     float JsonHelper::GetJsonFloat(yyjson_val* obj, const char* key)
     {
-        yyjson_val* value = yyjson_obj_get(obj, key);
-        if (value != nullptr)
+        if (obj != nullptr)
         {
-            if (yyjson_is_real(value))
+            yyjson_val* value = yyjson_obj_get(obj, key);
+            if (value != nullptr)
             {
-                return static_cast<float>(yyjson_get_real(value));
+                if (yyjson_is_real(value))
+                {
+                    return static_cast<float>(yyjson_get_real(value));
+                }
             }
         }
         return 0.0f;
