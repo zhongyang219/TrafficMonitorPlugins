@@ -27,5 +27,8 @@ const wchar_t* CIpAddressItem::GetItemValueText() const
 
 const wchar_t* CIpAddressItem::GetItemValueSampleText() const
 {
+    static std::wstring ipv4_addr;
+    if (g_data.GetLocalIPv4Address(ipv4_addr))
+        return ipv4_addr.c_str();
     return L"000.000.000.000";
 }
