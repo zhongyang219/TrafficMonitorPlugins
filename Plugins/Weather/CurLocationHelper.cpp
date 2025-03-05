@@ -1,7 +1,7 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CurLocationHelper.h"
 #include "Common.h"
-#include "utilities/yyjson/yyjson.h"
+//#include "utilities/yyjson/yyjson.h"
 
 CCurLocationHelper::CCurLocationHelper()
 {
@@ -14,28 +14,29 @@ CCurLocationHelper::~CCurLocationHelper()
 std::wstring CCurLocationHelper::GetCurrentCity()
 {
     std::string city_data;
-    //»ñÈ¡³ÇÊĞĞÅÏ¢
-    if (CCommon::GetURL(L"http://pv.sohu.com/cityjson?ie=utf-8", city_data))
+    //è·å–åŸå¸‚ä¿¡æ¯
+    if (CCommon::GetURL(L"http://whois.pconline.com.cn/ip.jsp", city_data))
     {
-        //½ØÈ¡·µ»Ø½á¹ûÖĞ»¨À¨ºÅÄÚµÄÄÚÈİ
-        size_t index1 = city_data.find(L'{');
-        size_t index2 = city_data.rfind(L'}');
-        if (index1 != std::wstring::npos && index2 != std::wstring::npos)
-            city_data = city_data.substr(index1, index2 - index1 + 1);
+        ////æˆªå–è¿”å›ç»“æœä¸­èŠ±æ‹¬å·å†…çš„å†…å®¹
+        //size_t index1 = city_data.find(L'{');
+        //size_t index2 = city_data.rfind(L'}');
+        //if (index1 != std::wstring::npos && index2 != std::wstring::npos)
+        //    city_data = city_data.substr(index1, index2 - index1 + 1);
 
-        //½âÎöjsonÄÚÈİ
-        yyjson_doc* doc = yyjson_read(city_data.c_str(), city_data.size(), 0);
-        if (doc != nullptr)
-        {
-            //»ñÈ¡Json¸ù½Úµã
-            yyjson_val* root = yyjson_doc_get_root(doc);
+        ////è§£æjsonå†…å®¹
+        //yyjson_doc* doc = yyjson_read(city_data.c_str(), city_data.size(), 0);
+        //if (doc != nullptr)
+        //{
+        //    //è·å–Jsonæ ¹èŠ‚ç‚¹
+        //    yyjson_val* root = yyjson_doc_get_root(doc);
 
-            //»ñÈ¡³ÇÊĞ
-            yyjson_val* city = yyjson_obj_get(root, "cname");
-            std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
+        //    //è·å–åŸå¸‚
+        //    yyjson_val* city = yyjson_obj_get(root, "cname");
+        //    std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
 
-            return str_city;
-        }
+        //    return str_city;
+        //}
+        return CCommon::StrToUnicode(city_data.c_str(), false);
     }
     return std::wstring();
 }
@@ -43,8 +44,8 @@ std::wstring CCurLocationHelper::GetCurrentCity()
 CCurLocationHelper::Location CCurLocationHelper::ParseCityName(std::wstring city_string)
 {
     CCurLocationHelper::Location result;
-    //½âÎöÊ¡
-    size_t index1 = city_string.find(L'Ê¡');
+    //è§£æçœ
+    size_t index1 = city_string.find(L'çœ');
     if (index1 != std::wstring::npos)
     {
         result.province = city_string.substr(0, index1 + 1);
@@ -52,29 +53,29 @@ CCurLocationHelper::Location CCurLocationHelper::ParseCityName(std::wstring city
     }
     else
     {
-        index1 = city_string.find(L"×ÔÖÎÇø");
+        index1 = city_string.find(L"è‡ªæ²»åŒº");
         if (index1 != std::wstring::npos)
         {
             result.province = city_string.substr(0, index1 + 3);
             city_string = city_string.substr(index1 + 3);
         }
     }
-    //½âÎöÊĞ
-    size_t index2 = city_string.find(L'ÊĞ');
+    //è§£æå¸‚
+    size_t index2 = city_string.find(L'å¸‚');
     if (index2 != std::wstring::npos)
     {
         result.city = city_string.substr(0, index2 + 1);
         city_string = city_string.substr(index2 + 1);
     }
-    //½âÎöÏØ
-    size_t index3 = city_string.find(L'ÏØ');
+    //è§£æå¿
+    size_t index3 = city_string.find(L'å¿');
     if (index3 != std::wstring::npos)
     {
         result.conty = city_string.substr(0, index3 + 1);
     }
     else
     {
-        index3 = city_string.find(L'ÊĞ');
+        index3 = city_string.find(L'å¸‚');
         if (index3 != std::wstring::npos)
         {
             result.conty = city_string.substr(0, index3 + 1);
