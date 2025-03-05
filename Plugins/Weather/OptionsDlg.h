@@ -22,6 +22,7 @@ public:
 
 private:
     CComboBox m_weather_type_combo;
+    CSize m_min_size;		//窗口的最小大小
 
 private:
     void EnableControl();
@@ -40,4 +41,5 @@ public:
     afx_msg void OnBnClickedTestButton();
     afx_msg void OnBnClickedAutoLocateCheck();
     afx_msg void OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 };

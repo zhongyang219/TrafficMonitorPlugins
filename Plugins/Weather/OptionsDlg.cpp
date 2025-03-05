@@ -29,17 +29,22 @@ void COptionsDlg::EnableUpdateBtn(bool enable)
 
 void COptionsDlg::UpdateAutoLocteResult()
 {
+    CString str_info;
+    //显示定位结果
     if (g_data.m_setting_data.auto_locate && g_data.m_auto_located)
     {
         if (!g_data.m_auto_locate_succeed)
-            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_LOCATION_FAILED));
+            str_info = g_data.StringRes(IDS_LOCATION_FAILED);
         else
-            SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, g_data.StringRes(IDS_CUR_POSITION) + g_data.CurCity().name.c_str());
+            str_info = g_data.StringRes(IDS_CUR_POSITION) + _T(": ") + g_data.CurCity().name.c_str();
+        str_info += _T(' ');
     }
-    else
-    {
-        SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, _T(""));
-    }
+    //显示更新时间
+    str_info += g_data.StringRes(IDS_UPDATE_TIME);
+    str_info += _T(": ");
+    str_info += g_data.m_update_time.c_str();
+
+    SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, str_info);
 }
 
 void COptionsDlg::EnableControl()
@@ -64,6 +69,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
     ON_BN_CLICKED(IDC_TEST_BUTTON, &COptionsDlg::OnBnClickedTestButton)
     ON_BN_CLICKED(IDC_AUTO_LOCATE_CHECK, &COptionsDlg::OnBnClickedAutoLocateCheck)
     ON_NOTIFY(NM_CLICK, IDC_HELP_SYSLINK, &COptionsDlg::OnNMClickHelpSyslink)
+    ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
 
 
@@ -76,6 +82,13 @@ BOOL COptionsDlg::OnInitDialog()
 
     // TODO:  在此添加额外的初始化
     SetIcon(g_data.GetIcon(IDI_WEATHER), FALSE);
+
+    //获取初始时窗口的大小
+    CRect rect;
+    GetWindowRect(rect);
+    m_min_size.cx = rect.Width();
+    m_min_size.cy = rect.Height();
+
     SetDlgItemText(IDC_CITY_EDIT, g_data.CurCity().name.c_str());
 
     m_weather_type_combo.AddString(g_data.StringRes(IDS_CURRENT_WEATHER));
@@ -165,4 +178,14 @@ void COptionsDlg::OnNMClickHelpSyslink(NMHDR* pNMHDR, LRESULT* pResult)
 {
     ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E5%A4%A9%E6%B0%94%E6%8F%92%E4%BB%B6"), NULL, NULL, SW_SHOW);
     *pResult = 0;
+}
+
+
+void COptionsDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
+{
+    //限制窗口最小大小
+    lpMMI->ptMinTrackSize.x = m_min_size.cx;		//设置最小宽度
+    lpMMI->ptMinTrackSize.y = m_min_size.cy;		//设置最小高度
+
+    CDialog::OnGetMinMaxInfo(lpMMI);
 }

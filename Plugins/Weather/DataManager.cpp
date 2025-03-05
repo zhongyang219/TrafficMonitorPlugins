@@ -3,6 +3,7 @@
 #include "Common.h"
 #include <vector>
 #include <sstream>
+#include "utilities/IniHelper.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -60,46 +61,29 @@ CDataManager& CDataManager::Instance()
     return m_instance;
 }
 
-static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_name, int value, const wchar_t* file_path)
-{
-    wchar_t buff[16];
-    swprintf_s(buff, L"%d", value);
-    WritePrivateProfileString(app_name, key_name, buff, file_path);
-}
-
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
     m_config_dir = config_dir;
-    //获取模块的路径
-    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(hModule, path, MAX_PATH);
-    std::wstring module_path = path;
-    m_config_path = module_path;
-    if (!config_dir.empty())
-    {
-        size_t index = module_path.find_last_of(L"\\/");
-        //模块的文件名
-        std::wstring module_file_name = module_path.substr(index + 1);
-        m_config_path = config_dir + module_file_name;
-    }
-    m_config_path += L".ini";
-    m_setting_data.m_city_index = GetPrivateProfileInt(L"config", L"city", 101, m_config_path.c_str());
-    m_setting_data.m_weather_selected = static_cast<WeahterSelected>(GetPrivateProfileInt(L"config", L"weather_selected", 0, m_config_path.c_str()));
-    m_setting_data.m_show_weather_in_tooltips = (GetPrivateProfileInt(L"config", L"show_weather_in_tooltips", 1, m_config_path.c_str()) != 0);
-    m_setting_data.m_use_weather_icon = (GetPrivateProfileInt(L"config", L"use_weather_icon", 1, m_config_path.c_str()) != 0);
-    m_setting_data.auto_locate = (GetPrivateProfileInt(L"config", L"auto_locate", 0, m_config_path.c_str()) != 0);
+    m_config_path = config_dir + L"Weather.ini";
+    utilities::CIniHelper ini(m_config_path);
+    m_setting_data.m_city_index = ini.GetInt(L"config", L"city", 101);
+    m_setting_data.m_weather_selected = static_cast<WeahterSelected>(ini.GetInt(L"config", L"weather_selected", 0));
+    m_setting_data.m_show_weather_in_tooltips = ini.GetBool(L"config", L"show_weather_in_tooltips", true);
+    m_setting_data.m_use_weather_icon = ini.GetBool(L"config", L"use_weather_icon", true);
+    m_setting_data.auto_locate = ini.GetBool(L"config", L"auto_locate", true);
 }
 
 void CDataManager::SaveConfig() const
 {
     if (!m_config_path.empty())
     {
-        WritePrivateProfileInt(L"config", L"city", m_setting_data.m_city_index, m_config_path.c_str());
-        WritePrivateProfileInt(L"config", L"weather_selected", m_setting_data.m_weather_selected, m_config_path.c_str());
-        WritePrivateProfileInt(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips, m_config_path.c_str());
-        WritePrivateProfileInt(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon, m_config_path.c_str());
-        WritePrivateProfileInt(L"config", L"auto_locate", m_setting_data.auto_locate, m_config_path.c_str());
+        utilities::CIniHelper ini(m_config_path);
+        ini.WriteInt(L"config", L"city", m_setting_data.m_city_index);
+        ini.WriteInt(L"config", L"weather_selected", m_setting_data.m_weather_selected);
+        ini.WriteBool(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips);
+        ini.WriteBool(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon);
+        ini.WriteBool(L"config", L"auto_locate", m_setting_data.auto_locate);
+        ini.Save();
     }
 }
 

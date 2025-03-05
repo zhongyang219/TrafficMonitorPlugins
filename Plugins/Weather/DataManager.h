@@ -58,6 +58,7 @@ public:
     WeatherInfo& GetWeather();
 
     std::map<WeahterSelected, WeatherInfo> m_weather_info;
+    std::wstring m_update_time;         //更新时间
 
     SettingData m_setting_data;
     std::wstring m_config_dir;

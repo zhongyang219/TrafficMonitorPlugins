@@ -73,6 +73,9 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         if (CCommon::GetURL(url, weather_data))
         {
             m_instance.ParseJsonData(weather_data);
+            //将天气信息保存到Weather.json
+            std::ofstream stream{ g_data.m_config_dir + L"Weather.json" };
+            stream << weather_data;
         }
 
         //启用选项设置中的“更新”按钮
@@ -98,9 +101,6 @@ void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forec
 
 void CWeather::ParseJsonData(std::string json_data)
 {
-    std::ofstream stream{ g_data.m_config_dir + L"Weather.dll.log" };
-    stream << json_data;
-
     g_data.ResetText();
 
     yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
@@ -109,10 +109,18 @@ void CWeather::ParseJsonData(std::string json_data)
         //获取Json根节点
         yyjson_val* root = yyjson_doc_get_root(doc);
 
+        //获取日期
+        yyjson_val* date = yyjson_obj_get(root, "date");
+        std::wstring str_date = CCommon::StrToUnicode(yyjson_get_str(date), true);
+
         //获取城市
         yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
         yyjson_val* city = yyjson_obj_get(city_info, "city");
+        yyjson_val* update_time = yyjson_obj_get(city_info, "updateTime");
         std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
+        std::wstring str_time = CCommon::StrToUnicode(yyjson_get_str(update_time), true);
+
+        g_data.m_update_time = str_date + L' ' + str_time;
 
         //获取当前天气
         yyjson_val* data = yyjson_obj_get(root, "data");
@@ -136,6 +144,7 @@ void CWeather::ParseJsonData(std::string json_data)
         const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
         std::wstringstream wss;
         wss << str_city << L' ' << weather_current.ToString()
+            << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.m_update_time
             << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
             << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
             << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
