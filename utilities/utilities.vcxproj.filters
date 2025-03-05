@@ -30,6 +30,9 @@
     <ClInclude Include="IniHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Variant.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="yyjson\yyjson.c">
@@ -45,6 +48,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="IniHelper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Variant.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

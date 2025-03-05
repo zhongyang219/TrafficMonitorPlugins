@@ -25,9 +25,13 @@
 #define IDI_WEATHER                     115
 #define IDS_UPDATE_WEATHER              115
 #define IDI_SNOWSTORM                   116
+#define IDS_YESTERDAY                   116
 #define IDI_RAINSTORM                   117
+#define IDS_DAYS_AGO                    117
 #define IDI_HAIL                        118
+#define IDS_DAYS_LATER                  118
 #define IDI_HEAVY_STORM                 119
+#define IDS_DAYS_AGO2                   119
 #define IDI_HEAVY_SNOW                  120
 #define IDI_HEAVY_RAIN                  121
 #define IDI_CLOUDY2                     122

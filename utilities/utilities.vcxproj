@@ -159,6 +159,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="FilePathHelper.h" />
     <ClInclude Include="IniHelper.h" />
+    <ClInclude Include="Variant.h" />
     <ClInclude Include="yyjson\yyjson.h" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +167,7 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="FilePathHelper.cpp" />
     <ClCompile Include="IniHelper.cpp" />
+    <ClCompile Include="Variant.cpp" />
     <ClCompile Include="yyjson\yyjson.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

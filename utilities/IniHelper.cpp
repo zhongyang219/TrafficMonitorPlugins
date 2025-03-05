@@ -35,7 +35,7 @@ namespace utilities
             is_utf8 = false;
         }
         //转换成Unicode
-        m_ini_str = CCommon::StrToUnicode(ini_str.c_str(), is_utf8);
+        m_ini_str = StringHelper::StrToUnicode(ini_str.c_str(), is_utf8);
     }
 
 
@@ -125,7 +125,7 @@ namespace utilities
         std::wstring str;
         str = _GetString(AppName, KeyName, std::to_wstring(default_value).c_str());
         std::vector<std::wstring> split_result;
-        CCommon::StringSplit(str, L',', split_result);
+        StringHelper::StringSplit(str, L',', split_result);
         for (int i = 0; i < size; i++)
         {
             if (i < split_result.size())
@@ -175,7 +175,7 @@ namespace utilities
         std::ofstream file_stream{ m_file_path };
         if (file_stream.fail())
             return false;
-        std::string ini_str{ CCommon::UnicodeToStr(m_ini_str.c_str(), m_save_as_utf8) };
+        std::string ini_str{ StringHelper::UnicodeToStr(m_ini_str.c_str(), m_save_as_utf8) };
         if (m_save_as_utf8)     //如果以UTF8编码保存，先插入BOM
         {
             std::string utf8_bom;
@@ -282,7 +282,7 @@ namespace utilities
             //获取文本
             std::wstring return_str{ m_ini_str.substr(str_pos, str_end_pos - str_pos) };
             //如果前后有空格，则将其删除
-            CCommon::StringNormalize(return_str);
+            StringHelper::StringNormalize(return_str);
             return return_str;
         }
     }
@@ -306,7 +306,7 @@ namespace utilities
 
     void CIniHelper::SplitStringList(std::vector<std::wstring>& values, std::wstring str_value)
     {
-        CCommon::StringSplit(str_value, std::wstring(L"\",\""), values);
+        StringHelper::StringSplit(str_value, std::wstring(L"\",\""), values);
         if (!values.empty())
         {
             //结果中第一项前面和最后一项的后面各还有一个引号，将它们删除

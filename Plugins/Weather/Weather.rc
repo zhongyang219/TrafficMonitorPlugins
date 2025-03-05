@@ -292,6 +292,9 @@ BEGIN
     IDS_CUR_POSITION        "当前位置"
     IDS_LOCATION_FAILED     "自动定位失败！"
     IDS_UPDATE_WEATHER      "更新天气"
+    IDS_YESTERDAY           "昨天"
+    IDS_DAYS_AGO            "<%1%> 天前"
+    IDS_DAYS_LATER          "<%1%> 天后"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -444,6 +447,9 @@ BEGIN
     IDS_CUR_POSITION        "Current location"
     IDS_LOCATION_FAILED     "Automatic positioning failed!"
     IDS_UPDATE_WEATHER      "Update weather"
+    IDS_YESTERDAY           "yesterday"
+    IDS_DAYS_AGO            "<%1%> days ago"
+    IDS_DAYS_LATER          "<%1%> days later"
 END
 
 #endif    // 英语(美国) resources

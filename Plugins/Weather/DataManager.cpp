@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include "utilities/IniHelper.h"
+#include "utilities/Common.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -181,6 +182,44 @@ HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
 CDataManager::WeatherInfo& CDataManager::GetWeather()
 {
     return m_weather_info[m_setting_data.m_weather_selected];
+}
+
+CString CDataManager::GetUpdateTimeAsString()
+{
+    // 获取当前时间
+    CTime now = CTime::GetCurrentTime();
+
+    // 计算日期差（以天为单位）
+    CTimeSpan span = now - m_update_time;
+    int daysDiff = span.GetDays();
+
+    // 格式化日期部分
+    CString strDate;
+    if (daysDiff == 0)
+    {
+        strDate = StringRes(IDS_TODAY_WEATHER);
+    }
+    else if (daysDiff == 1)
+    {
+        strDate = StringRes(IDS_YESTERDAY);
+    }
+    else if (daysDiff > 1)
+    {
+        strDate = utilities::StringHelper::StringFormat(StringRes(IDS_DAYS_AGO).GetString(), { daysDiff }).c_str();
+    }
+    else if (daysDiff < 0)
+    {
+        strDate = utilities::StringHelper::StringFormat(StringRes(IDS_DAYS_LATER).GetString(), { -daysDiff }).c_str();
+    }
+
+    // 格式化时间部分（固定为 hh:mm）
+    CString strTime = m_update_time.Format(_T("%H:%M"));
+
+    // 组合日期和时间
+    CString strResult;
+    strResult.Format(_T("%s %s"), strDate.GetString(), strTime.GetString());
+
+    return strResult;
 }
 
 std::wstring CDataManager::WeatherInfo::ToString() const

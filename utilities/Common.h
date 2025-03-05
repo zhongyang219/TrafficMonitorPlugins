@@ -1,19 +1,13 @@
 ﻿#pragma once
 #include <string>
 #include <vector>
+#include "Variant.h"
 
 namespace utilities
 {
     class CCommon
     {
     public:
-        CCommon();
-        ~CCommon();
-
-        static std::wstring StrToUnicode(const char* str, bool utf8 = false);
-
-        static std::string UnicodeToStr(const wchar_t* wstr, bool utf8 = false);
-
         //读取文件内容
         static bool GetFileContent(const wchar_t* file_path, std::string& contents_buff);
 
@@ -24,71 +18,34 @@ namespace utilities
         static const char* GetFileContent(const wchar_t* file_path, size_t& length);
 
         static void GetFiles(const wchar_t* path, std::vector<std::wstring>& files);
+    };
 
-        template<class T>
-        static void StringNormalize(T& str)
-        {
-            if (str.empty()) return;
+    /////////////////////////////////////////////////////////////////////////////////////////
+    class StringHelper
+    {
+    public:
+        static std::wstring StrToUnicode(const char* str, bool utf8 = false);
 
-            int size = static_cast<int>(str.size());  //字符串的长度
-            if (size < 0) return;
-            int index1 = 0;     //字符串中第1个不是空格或控制字符的位置
-            int index2 = size - 1;  //字符串中最后一个不是空格或控制字符的位置
-            while (index1 < size && str[index1] >= 0 && str[index1] <= 32)
-                index1++;
-            while (index2 >= 0 && str[index2] >= 0 && str[index2] <= 32)
-                index2--;
-            if (index1 > index2)    //如果index1 > index2，说明字符串全是空格或控制字符
-                str.clear();
-            else if (index1 == 0 && index2 == size - 1) //如果index1和index2的值分别为0和size - 1，说明字符串前后没有空格或控制字符，直接返回
-                return;
-            else
-                str = str.substr(index1, index2 - index1 + 1);
-        }
+        static std::string UnicodeToStr(const wchar_t* wstr, bool utf8 = false);
 
-        //将一个字符串分割成若干个字符（模板类型只能为string或wstring）
+        //字符串替换
+        static bool StringReplace(std::wstring& str, const std::wstring& str_old, const std::wstring& str_new);
+
+        //安全的格式化字符串，将format_str中形如<%序号%>的字符串替换成初始化列表paras中的元素，元素支持int/size_t/double/const wchar_t*/std::wstring格式，序号从1开始
+        static std::wstring StringFormat(const wchar_t* format_str, const std::initializer_list<CVariant>& paras);
+
+        static void StringNormalize(std::wstring& str);
+        static void StringNormalize(std::string& str);
+
+        //将一个字符串分割成若干个字符
         //str: 原始字符串
         //div_ch: 用于分割的字符
         //result: 接收分割后的结果
-        template<class T>
-        static void StringSplit(const T& str, wchar_t div_ch, std::vector<T>& results, bool skip_empty = true, bool trim = true)
-        {
-            results.clear();
-            size_t split_index = -1;
-            size_t last_split_index = -1;
-            while (true)
-            {
-                split_index = str.find(div_ch, split_index + 1);
-                T split_str = str.substr(last_split_index + 1, split_index - last_split_index - 1);
-                if (trim)
-                    StringNormalize(split_str);
-                if (!split_str.empty() || !skip_empty)
-                    results.push_back(split_str);
-                if (split_index == std::wstring::npos)
-                    break;
-                last_split_index = split_index;
-            }
-        }
+        static void StringSplit(const std::wstring& str, wchar_t div_ch, std::vector<std::wstring>& results, bool skip_empty = true, bool trim = true);
+        static void StringSplit(const std::string& str, wchar_t div_ch, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);
 
-        template<class T>
-        static void StringSplit(const T& str, const T& div_str, std::vector<T>& results, bool skip_empty = true, bool trim = true)
-        {
-            results.clear();
-            size_t split_index = 0 - div_str.size();
-            size_t last_split_index = 0 - div_str.size();
-            while (true)
-            {
-                split_index = str.find(div_str, split_index + div_str.size());
-                T split_str = str.substr(last_split_index + div_str.size(), split_index - last_split_index - div_str.size());
-                if (trim)
-                    StringNormalize(split_str);
-                if (!split_str.empty() || !skip_empty)
-                    results.push_back(split_str);
-                if (split_index == std::wstring::npos)
-                    break;
-                last_split_index = split_index;
-            }
-        }
+        static void StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty = true, bool trim = true);
+        static void StringSplit(const std::string& str, const std::string& div_str, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);
 
     };
 }

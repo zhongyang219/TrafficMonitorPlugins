@@ -324,9 +324,9 @@ void CPluginTesterDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
     if (nID == IDM_TEST_CMD)
     {
-        std::string str_base64 = utilities::Base64Encode(utilities::CCommon::UnicodeToStr(L"测试文本abcde", true));
+        std::string str_base64 = utilities::Base64Encode(utilities::StringHelper::UnicodeToStr(L"测试文本abcde", true));
 
-        std::wstring str_ori = utilities::CCommon::StrToUnicode(utilities::Base64Decode(str_base64).c_str(), true);
+        std::wstring str_ori = utilities::StringHelper::StrToUnicode(utilities::Base64Decode(str_base64).c_str(), true);
 
         bool is_base64 = utilities::IsBase64Code(str_base64);
 

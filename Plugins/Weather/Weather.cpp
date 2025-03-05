@@ -20,27 +20,6 @@ CWeather& CWeather::Instance()
     return m_instance;
 }
 
-template<class T>
-static void StringNormalize(T& str)
-{
-    if (str.empty()) return;
-
-    int size = str.size();  //字符串的长度
-    if (size < 0) return;
-    int index1 = 0;     //字符串中第1个不是空格或控制字符的位置
-    int index2 = size - 1;  //字符串中最后一个不是空格或控制字符的位置
-    while (index1 < size && str[index1] >= 0 && str[index1] <= 32)
-        index1++;
-    while (index2 >= 0 && str[index2] >= 0 && str[index2] <= 32)
-        index2--;
-    if (index1 > index2)    //如果index1 > index2，说明字符串全是空格或控制字符
-        str.clear();
-    else if (index1 == 0 && index2 == size - 1) //如果index1和index2的值分别为0和size - 1，说明字符串前后没有空格或控制字符，直接返回
-        return;
-    else
-        str = str.substr(index1, index2 - index1 + 1);
-}
-
 UINT CWeather::ThreadCallback(LPVOID dwUser)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -97,8 +76,8 @@ void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forec
     weather_info.m_low = weather_info.m_low.substr(2);
     //去年低温后面的摄氏度符号
     weather_info.m_low.pop_back();
-    StringNormalize(weather_info.m_high);
-    StringNormalize(weather_info.m_low);
+    utilities::StringHelper::StringNormalize(weather_info.m_high);
+    utilities::StringHelper::StringNormalize(weather_info.m_low);
 }
 
 void CWeather::ParseJsonData(std::string json_data)
@@ -112,17 +91,36 @@ void CWeather::ParseJsonData(std::string json_data)
         yyjson_val* root = yyjson_doc_get_root(doc);
 
         //获取日期
+        int year{};
+        int month{};
+        int day{};
         yyjson_val* date = yyjson_obj_get(root, "date");
-        std::wstring str_date = CCommon::StrToUnicode(yyjson_get_str(date), true);
+        std::string str_date = yyjson_get_str(date);
+        if (str_date.size() >= 4)
+            year = atoi(str_date.substr(0, 4).c_str());
+        if (str_date.size() >= 6)
+            month = atoi(str_date.substr(4, 2).c_str());
+        if (str_date.size() >= 8)
+            day = atoi(str_date.substr(6, 2).c_str());
 
         //获取城市
         yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
         yyjson_val* city = yyjson_obj_get(city_info, "city");
-        yyjson_val* update_time = yyjson_obj_get(city_info, "updateTime");
         std::wstring str_city = CCommon::StrToUnicode(yyjson_get_str(city), true);
-        std::wstring str_time = CCommon::StrToUnicode(yyjson_get_str(update_time), true);
 
-        g_data.m_update_time = str_date + L' ' + str_time;
+        //获取时间
+        yyjson_val* update_time = yyjson_obj_get(city_info, "updateTime");
+        std::string str_time = yyjson_get_str(update_time);
+        std::vector<std::string> time_split;
+        utilities::StringHelper::StringSplit(str_time, ':', time_split);
+        int hour{};
+        int minute{};
+        if (time_split.size() >= 1)
+            hour = atoi(time_split[0].c_str());
+        if (time_split.size() >= 2)
+            minute = atoi(time_split[1].c_str());
+
+        g_data.m_update_time = CTime(year, month, day, hour, minute, 0);
 
         //获取当前天气
         yyjson_val* data = yyjson_obj_get(root, "data");
@@ -146,7 +144,7 @@ void CWeather::ParseJsonData(std::string json_data)
         const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
         std::wstringstream wss;
         wss << str_city << L' ' << weather_current.ToString()
-            << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.m_update_time
+            << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
             << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
             << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
             << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()

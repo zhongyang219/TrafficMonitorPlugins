@@ -42,7 +42,7 @@ void COptionsDlg::UpdateAutoLocteResult()
     //显示更新时间
     str_info += g_data.StringRes(IDS_UPDATE_TIME);
     str_info += _T(": ");
-    str_info += g_data.m_update_time.c_str();
+    str_info += g_data.GetUpdateTimeAsString().GetString();
 
     SetDlgItemText(IDC_AUTO_LOCATE_RESULT_STATIC, str_info);
 }
