@@ -287,19 +287,19 @@ void CDataManager::SaveReadPosition()
     }
 }
 
-void CDataManager::TimerFunc(HWND, UINT, UINT_PTR, DWORD)
+void CDataManager::CheckFileChange()
 {
-    if (m_instance.m_setting_data.auto_reload_when_file_changed && !m_instance.m_setting_data.file_path.empty())
+    if (m_setting_data.auto_reload_when_file_changed && !m_setting_data.file_path.empty())
     {
         //检查文件的最后修改时间
         unsigned __int64 last_modified{};
-        if (CCommon::GetFileLastModified(m_instance.m_setting_data.file_path, last_modified))
+        if (CCommon::GetFileLastModified(m_setting_data.file_path, last_modified))
         {
             //如果文件的最后修改时间比打开的时候新，则重新打开文件
-            if (last_modified > m_instance.m_file_last_modified)
+            if (last_modified > m_file_last_modified)
             {
-                m_instance.m_file_last_modified = last_modified;
-                m_instance.LoadTextContents(m_instance.m_setting_data.file_path.c_str());
+                m_file_last_modified = last_modified;
+                LoadTextContents(m_setting_data.file_path.c_str());
             }
         }
     }

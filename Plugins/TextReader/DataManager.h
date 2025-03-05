@@ -68,7 +68,7 @@ public:
     HWND m_wnd{};
     int m_position_modified{ false };
 
-    static void TimerFunc(HWND, UINT, UINT_PTR, DWORD);
+    void CheckFileChange();
 
 private:
     unsigned __int64 m_file_last_modified{};    //打开文件的上次修改时间

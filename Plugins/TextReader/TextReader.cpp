@@ -97,7 +97,9 @@ void CTextReader::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
         });
 
         //启动一个定时器用于检查文件变化
-        SetTimer(NULL, 1542, 1000, CDataManager::TimerFunc);
+        SetTimer(NULL, 1542, 1000, [](HWND, UINT, UINT_PTR, DWORD) {
+            g_data.CheckFileChange();
+        });
 
         break;
     default:
