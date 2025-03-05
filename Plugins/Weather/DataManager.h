@@ -52,14 +52,19 @@ public:
         std::wstring m_high = L"-℃";        //最高温度
         std::wstring m_low = L"-℃";         //最低温度
         bool is_cur_weather{};                 //是否为当前温度，如果为true，则m_low无效
+        std::wstring m_wind;                //风向和风力
         std::wstring ToString() const;
         std::wstring ToStringTemperature() const;
     };
     WeatherInfo& GetWeather();
 
     std::map<WeahterSelected, WeatherInfo> m_weather_info;
-    CTime m_update_time;         //更新时间
+    CTime m_update_time;        //更新时间
+    float m_pm2_5{};            //PM2.5
+    std::wstring m_quality;     //空气质量
+
     CString GetUpdateTimeAsString();  //获取更新日间的字符串格式
+    CString GetPM25AsString() const;
 
     SettingData m_setting_data;
     std::wstring m_config_dir;

@@ -222,6 +222,13 @@ CString CDataManager::GetUpdateTimeAsString()
     return strResult;
 }
 
+CString CDataManager::GetPM25AsString() const
+{
+    wchar_t buff[32];
+    swprintf_s(buff, L"%g", m_pm2_5);
+    return CString(buff);
+}
+
 std::wstring CDataManager::WeatherInfo::ToString() const
 {
     std::wstringstream wss;
@@ -231,6 +238,7 @@ std::wstring CDataManager::WeatherInfo::ToString() const
         wss << m_type << ' ' << m_low;
     else
         wss << m_type << ' ' << m_low << '~' << m_high;
+    wss << ' ' << m_wind;
     return wss.str();
 }
 

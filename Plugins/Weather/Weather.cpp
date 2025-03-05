@@ -8,6 +8,8 @@
 #include <sstream>
 #include "CurLocationHelper.h"
 #include "utilities/Common.h"
+#include "utilities/JsonHelper.h"
+#include <iomanip>
 
 CWeather CWeather::m_instance;
 
@@ -65,7 +67,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
     return 0;
 }
 
-void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forecast)
+static void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forecast)
 {
     weather_info.m_type = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(forecast, "type")), true);
     weather_info.m_high = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(forecast, "high")), true);
@@ -78,6 +80,11 @@ void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forec
     weather_info.m_low.pop_back();
     utilities::StringHelper::StringNormalize(weather_info.m_high);
     utilities::StringHelper::StringNormalize(weather_info.m_low);
+
+    //风向和风力
+    std::wstring fx = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(forecast, "fx")), true);
+    std::wstring fl = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(forecast, "fl")), true);
+    weather_info.m_wind = fx + L' ' + fl;
 }
 
 void CWeather::ParseJsonData(std::string json_data)
@@ -119,13 +126,16 @@ void CWeather::ParseJsonData(std::string json_data)
             hour = atoi(time_split[0].c_str());
         if (time_split.size() >= 2)
             minute = atoi(time_split[1].c_str());
-
         g_data.m_update_time = CTime(year, month, day, hour, minute, 0);
 
         //获取当前天气
         yyjson_val* data = yyjson_obj_get(root, "data");
         g_data.m_weather_info[WEATHER_CURRENT].m_high = CCommon::StrToUnicode(yyjson_get_str(yyjson_obj_get(data, "wendu")), true) + L"℃";
         g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
+
+        //空气质量
+        g_data.m_pm2_5 = utilities::JsonHelper::GetJsonFloat(data, "pm25");
+        g_data.m_quality = utilities::JsonHelper::GetJsonWString(data, "quality");
 
         //获取3天的天气
         yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
@@ -144,6 +154,7 @@ void CWeather::ParseJsonData(std::string json_data)
         const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
         std::wstringstream wss;
         wss << str_city << L' ' << weather_current.ToString()
+            << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
             << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
             << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
             << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
