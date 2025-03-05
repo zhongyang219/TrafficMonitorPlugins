@@ -49,8 +49,8 @@ void COptionsDlg::UpdateAutoLocteResult()
 
 void COptionsDlg::EnableControl()
 {
-    GetDlgItem(IDC_CITY_EDIT)->EnableWindow(!m_data.auto_locate);
-    GetDlgItem(IDC_SELECT_CITY_BUTTON)->EnableWindow(!m_data.auto_locate);
+    //GetDlgItem(IDC_CITY_EDIT)->EnableWindow(!m_data.auto_locate);
+    //GetDlgItem(IDC_SELECT_CITY_BUTTON)->EnableWindow(!m_data.auto_locate);
 }
 
 void COptionsDlg::DoDataExchange(CDataExchange* pDX)
@@ -126,6 +126,9 @@ void COptionsDlg::OnBnClickedSelectCityButton()
         {
             SetDlgItemText(IDC_CITY_EDIT, CityCode[city_index].name.c_str());
             m_data.m_city_index = city_index;
+            //手动选择了城市后取消“自动定位”的勾选
+            m_data.auto_locate = false;
+            CheckDlgButton(IDC_AUTO_LOCATE_CHECK, FALSE);
         }
     }
 }
