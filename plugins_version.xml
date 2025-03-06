@@ -1,0 +1,10 @@
+<!-- 保存每个插件的版本信息，用于TrafficMonitor检查插件是否有更新 -->
+<plugins>
+    <plugin file_name="Battery.dll" version="1.03"/>
+    <plugin file_name="DateTime.dll" version="1.00"/>
+    <plugin file_name="HardwareMonitor.dll" version="1.00"/>
+    <plugin file_name="IpAddress.dll" version="1.00"/>
+    <plugin file_name="Stock.dll" version="1.13"/>
+    <plugin file_name="TextReader.dll" version="1.02"/>
+    <plugin file_name="Weather.dll" version="1.03"/>
+</plugins>
