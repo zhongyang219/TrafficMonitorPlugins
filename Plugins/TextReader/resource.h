@@ -58,9 +58,11 @@
 #define IDC_SHOT_TOOLTIP_CHECK          1015
 #define IDC_AUTO_DECODE_CHECK           1016
 #define IDC_HELP_SYSLINK1               1017
+#define IDC_WHEEL_CHARACTOR_NUM_EDIT    1017
 #define IDC_USE_OWN_CONTEXT_MENU_CHECK  1018
-#define IDC_CHECK4                      1019
 #define IDC_AUTO_RELOAD_CHECK           1019
+#define IDC_MOUSE_WHEEL_ENABLE_CHECK    1020
+#define IDC_WHEEL_READ_PAGE_CHECK       1021
 #define ID_PREVIOUS                     40001
 #define ID_1_40002                      40002
 #define ID_NEXT                         40003
@@ -80,7 +82,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        120
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif

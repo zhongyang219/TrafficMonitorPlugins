@@ -23,6 +23,9 @@ struct SettingData
     bool use_own_context_menu{};    //使用独立的右键菜单
     bool restart_at_end{};      //阅读到结束时自动返回开始
     bool auto_reload_when_file_changed{};   //文件更改时自动重新加载
+    bool mouse_wheel_read{};    //使用鼠标滚轮阅读
+    int mouse_wheel_charactors{ 1 };    //鼠标滚轮一次阅读字数
+    bool mouse_wheel_read_page{};   //鼠标滚轮一次阅读整页
 };
 
 class CDataManager

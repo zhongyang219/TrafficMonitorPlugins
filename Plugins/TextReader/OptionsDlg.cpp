@@ -19,6 +19,21 @@ COptionsDlg::~COptionsDlg()
 {
 }
 
+void COptionsDlg::EnableDlgControl(UINT id, bool enable)
+{
+    CWnd* pCtrl = GetDlgItem(id);
+    if (pCtrl != nullptr)
+        pCtrl->EnableWindow(enable);
+}
+
+void COptionsDlg::EnableControls()
+{
+    bool mouse_wheel_enable = (IsDlgButtonChecked(IDC_MOUSE_WHEEL_ENABLE_CHECK) != 0);
+    bool read_whole_page = (IsDlgButtonChecked(IDC_WHEEL_READ_PAGE_CHECK) != 0);
+    EnableDlgControl(IDC_WHEEL_CHARACTOR_NUM_EDIT, mouse_wheel_enable && !read_whole_page);
+    EnableDlgControl(IDC_WHEEL_READ_PAGE_CHECK, mouse_wheel_enable);
+}
+
 void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialogEx::DoDataExchange(pDX);
@@ -28,6 +43,8 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(COptionsDlg, CDialogEx)
     ON_BN_CLICKED(IDC_BROWSE_BUTTON, &COptionsDlg::OnBnClickedBrowseButton)
     ON_WM_GETMINMAXINFO()
+    ON_BN_CLICKED(IDC_MOUSE_WHEEL_ENABLE_CHECK, &COptionsDlg::OnBnClickedMouseWheelEnableCheck)
+    ON_BN_CLICKED(IDC_WHEEL_READ_PAGE_CHECK, &COptionsDlg::OnBnClickedWheelReadPageCheck)
 END_MESSAGE_MAP()
 
 
@@ -68,6 +85,9 @@ BOOL COptionsDlg::OnInitDialog()
     CheckDlgButton(IDC_USE_OWN_CONTEXT_MENU_CHECK, m_data.use_own_context_menu);
     CheckDlgButton(IDC_RESTART_AT_END_CHECK, m_data.restart_at_end);
     CheckDlgButton(IDC_AUTO_RELOAD_CHECK, m_data.auto_reload_when_file_changed);
+    CheckDlgButton(IDC_MOUSE_WHEEL_ENABLE_CHECK, m_data.mouse_wheel_read);
+    SetDlgItemText(IDC_WHEEL_CHARACTOR_NUM_EDIT, std::to_wstring(m_data.mouse_wheel_charactors).c_str());
+    CheckDlgButton(IDC_WHEEL_READ_PAGE_CHECK, m_data.mouse_wheel_read_page);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -118,5 +138,23 @@ void COptionsDlg::OnOK()
     m_data.restart_at_end = (IsDlgButtonChecked(IDC_RESTART_AT_END_CHECK) != 0);
     m_data.auto_reload_when_file_changed = (IsDlgButtonChecked(IDC_AUTO_RELOAD_CHECK) != 0);
 
+    m_data.mouse_wheel_read = (IsDlgButtonChecked(IDC_MOUSE_WHEEL_ENABLE_CHECK) != 0);
+    CString mouse_wheel_charactors;
+    GetDlgItemText(IDC_WHEEL_CHARACTOR_NUM_EDIT, mouse_wheel_charactors);
+    m_data.mouse_wheel_charactors = _ttoi(mouse_wheel_charactors);
+    m_data.mouse_wheel_read_page = (IsDlgButtonChecked(IDC_WHEEL_READ_PAGE_CHECK) != 0);
+
     CDialogEx::OnOK();
+}
+
+
+void COptionsDlg::OnBnClickedMouseWheelEnableCheck()
+{
+    EnableControls();
+}
+
+
+void COptionsDlg::OnBnClickedWheelReadPageCheck()
+{
+    EnableControls();
 }

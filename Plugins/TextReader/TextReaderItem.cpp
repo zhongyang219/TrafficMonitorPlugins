@@ -94,13 +94,24 @@ int CTextReaderItem::OnMouseEvent(MouseEventType type, int x, int y, void * hWnd
         CTextReader::Instance().ShowContextMenu(pWnd);
         return 1;
     }
-    else if (type == IPluginItem::MT_WHEEL_UP)
+    if (g_data.m_setting_data.mouse_wheel_read)
     {
-        g_data.PageUp();
-    }
-    else if (type == IPluginItem::MT_WHEEL_DOWN)
-    {
-        g_data.PageDown();
+        int mouse_wheel_step;
+        if (g_data.m_setting_data.mouse_wheel_read_page)
+            mouse_wheel_step = g_data.m_page_step;
+        else
+            mouse_wheel_step = g_data.m_setting_data.mouse_wheel_charactors;
+
+        if (type == IPluginItem::MT_WHEEL_UP)
+        {
+            g_data.PageUp(mouse_wheel_step);
+            return 1;
+        }
+        else if (type == IPluginItem::MT_WHEEL_DOWN)
+        {
+            g_data.PageDown(mouse_wheel_step);
+            return 1;
+        }
     }
 
     return 0;
