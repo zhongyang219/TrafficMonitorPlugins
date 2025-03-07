@@ -179,7 +179,8 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     delete[] buff;
 
     //判断是否是base64编码
-    if (g_data.m_setting_data.auto_decode_base64 && utilities::IsBase64Code(str_contents))
+    const int BASE64_MAX_LENGTH = 1048576;
+    if (g_data.m_setting_data.auto_decode_base64 && utilities::IsBase64Code(str_contents, BASE64_MAX_LENGTH))
     {
         str_contents = utilities::Base64Decode(str_contents);
     }

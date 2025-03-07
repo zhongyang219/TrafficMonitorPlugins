@@ -1,4 +1,4 @@
-#include <string>
+ï»¿#include <string>
 #include "base64.h"
 #include <algorithm>
 #include <cassert>
@@ -27,7 +27,7 @@ static const char base64DecodeTable[256] = {
     '\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff',
 };
 
-//3¸ö×Ö½Ú×ª»»³É4¸ö×Ö½Ú
+//3ä¸ªå­—èŠ‚è½¬æ¢æˆ4ä¸ªå­—èŠ‚
 static std::string ThreeBytesToFourBytes(const char* bytes, int len)
 {
     std::string res;
@@ -81,7 +81,7 @@ std::string Base64Encode(const std::string str_in)
     std::string res;
     for (size_t i = 0; i < str_in.size(); i += 3)
     {
-        //È¡3¸ö×Ö½Ú²¢×ª»»³É4¸ö×Ö½Ú
+        //å–3ä¸ªå­—èŠ‚å¹¶è½¬æ¢æˆ4ä¸ªå­—èŠ‚
         int bytes_count = std::min(3, static_cast<int>(str_in.size() - i));
         std::string fourBytes = ThreeBytesToFourBytes(str_in.data() + i, bytes_count);
         res.append(fourBytes);
@@ -102,20 +102,20 @@ std::string Base64Decode(const std::string str_in)
 }
 
 
-bool IsBase64Code(const std::string str)
+bool IsBase64Code(const std::string str, size_t max_length)
 {
     std::set<char> base64EncodeSet;
     int len = _countof(base64DecodeTable);
     for (int i = 0; i < len; i++)
         base64EncodeSet.insert(base64EncodeTable[i]);
 
-    for (size_t i = 0; i < str.size(); i++)
+    for (size_t i = 0; i < str.size() && i <= max_length; i++)
     {
-        if (i == str.size() - 1 && str[i] == '=')		//±éÀúµ½×îºóÒ»¸ö×Ö·ûÊÇ'='£¬·µ»Øtrue
+        if (i == str.size() - 1 && str[i] == '=')		//éå†åˆ°æœ€åä¸€ä¸ªå­—ç¬¦æ˜¯'='ï¼Œè¿”å›true
             return true;
-        if (i == str.size() - 2 && str[i] == '=' && str[i + 1] == '=')	//±éÀúµ½×îµ¹ÊıµÚ2¸ö×Ö·û£¬ºóÃæÁ½¸ö×Ö·û¶¼ÊÇ'='£¬·µ»Øtrue
+        if (i == str.size() - 2 && str[i] == '=' && str[i + 1] == '=')	//éå†åˆ°æœ€å€’æ•°ç¬¬2ä¸ªå­—ç¬¦ï¼Œåé¢ä¸¤ä¸ªå­—ç¬¦éƒ½æ˜¯'='ï¼Œè¿”å›true
             return true;
-        if (base64EncodeSet.find(str[i]) == base64EncodeSet.end())		//Èç¹ûÓĞÒ»¸ö×Ö·û²»ÔÚbase64±àÂë±íÖĞ£¬Ôò·µ»Øfalse
+        if (base64EncodeSet.find(str[i]) == base64EncodeSet.end())		//å¦‚æœæœ‰ä¸€ä¸ªå­—ç¬¦ä¸åœ¨base64ç¼–ç è¡¨ä¸­ï¼Œåˆ™è¿”å›false
             return false;
     }
     return true;
