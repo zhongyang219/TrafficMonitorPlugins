@@ -2,7 +2,7 @@
 
 # TrafficMonitor Plugin Download
 
-It is welcome to develop your own plugin for TrafficMonitor. If you want to submit your plugin, please compile the plugin to dll file and email it to zhongyang219@hotmail.com. Please marked "TrafficMonitor Plugin" in the email. Please provide 32-bit and 64-bit versions whenever possible.
+It is welcome to develop your own plugin for TrafficMonitor. If you want to submit your plugin, please send email to zhongyang219@hotmail.com and attach the download URL. Please marked "TrafficMonitor Plugin" in the email.
 
 ## How to develop the plugin
 
@@ -26,7 +26,11 @@ For the detail description of the plugin usage instruction, please refer to the 
 
 A plugin used to display the date and time.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x64.zip?raw=true)
+Version: V1.00
+
+Download url: 
+
+[Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
 
 ---
 
@@ -38,11 +42,15 @@ Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPl
 
 A plugin for displaying the weather. Support manual selection of cities (only cities in China is supported), support display of today's and tomorrow's weather.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x64.zip?raw=true)
+Version: V1.03
+
+Download url: 
+
+[Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
 
 ---
 
-### Weather plugin 2
+### WeatherPro
 
 ![img-weather-pro](images/img-weather-pro.png)
 
@@ -64,17 +72,17 @@ Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorP
 
 A plugin for displaying the battery level of your computer.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x64.zip?raw=true)
+Version: V1.03
+
+Download url:
+
+[Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
 
 ---
 
 ### Stock plugin
 
-![gp](images/gp_viewer_20220411100625.png)
-
-<img src="images/gp_mgr_20220411100659.png" alt="gp_mgr" style="zoom:65%;" />
-
-<img src="images/gp_edit_20220411100337.png" alt="gp_edit" style="zoom:100%;" />
+![image-20250308114302152](images/image-20250308114302152.png)
 
 Displays real-time trading information for specified stocks. Use the Sina interface.
 
@@ -82,7 +90,9 @@ Displays real-time trading information for specified stocks. Use the Sina interf
 
 Author: [CListery](https://github.com/CListery)
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x64.zip?raw=true)
+Download url: 
+
+[Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
 
 ---
 
@@ -96,7 +106,7 @@ Author: [AzulEterno](https://github.com/AzulEterno)
 
 Home page: [AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
 
-Download url: [32 bit download](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x86/PowerMonPlugin.dll) [64 bit download](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x64/PowerMonPlugin.dll)
+Download url: [Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
 
 ---
 
@@ -120,7 +130,40 @@ The text reader plugin can be used to read text files in the taskbar. Including 
 
 Use the mouse click or down arrow key to turn the page backward, the up arrow keys to turn the page forward. The left and right arrow keys to move the page one character at a time.
 
-Download url: [32 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x86.zip?raw=true) [64 bit download](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x64.zip?raw=true)
+Version: V1.02
+
+Download url: [Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
 
 ---
+
+### Hardware Monitor plugin
+
+![](images/420555677-53bd3ac9-1c55-4212-aa68-1fe5711e9fbc.png)
+
+Description:
+
+- Hardware monitor plugin used the third-party library LibreHardwareMonitor. It can be used in both the Standard and Lite versions of TrafficMonitor. But since the Lite version does not have administrator privileges, it may not be possible to display all the hardware information.
+- Unzip the file, place `HardwareMonitor.dll` in the `plugins` directory, and place `LibreHardwareMonitorLib.dll` to TrafficMonitor directory (NOT `plugins` directory). Since the standard version of TrafficMonitor contains a `LibreHardwareMonitorLib.dll`, so this file can be ignored.
+- Start TrafficMonitor, open "Plugin Manager" dialog, select "Hardware Monitor plugin", click "Options", click "Add monitoring Items" button, right click the item to be monitored, select "Add to monitoring items", and close the dialog.
+- Close all dialogs, restart TrafficMonitor, right-click the taskbar window, select "Display Settings", the added hardware monitoring items can be seen in the dialog.
+
+Version: V1.00
+
+Download url:
+
+[Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+
+---
+
+### IP address plugin
+
+![image-20250308114927871](images/image-20250308114927871.png)
+
+A plugin to display the local IP address.
+
+Version: V1.00
+
+Download url:
+
+[Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
 

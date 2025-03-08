@@ -2,7 +2,7 @@
 
 # TrafficMonitor插件下载
 
-欢迎大家为TrafficMonitor开发自己的插件，如果你想提交你制作的插件，请将插件编译成dll文件后通过电子邮件发送到 zhongyang219@hotmail.com，邮件请注明“TrafficMonitor插件”，请尽可能提供32位和64位的版本。
+欢迎大家为TrafficMonitor开发自己的插件，如果你想提交你制作的插件，请发送电子邮件到 zhongyang219@hotmail.com，并附上下载链接，邮件请注明“TrafficMonitor插件”。
 
 ## 如何开发插件
 
@@ -26,7 +26,11 @@
 
 用于显示日期和时间的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/DateTime/DateTime_V1.0_x64.zip?raw=true)
+版本：V1.00
+
+下载链接：
+
+[Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
 
 ---
 
@@ -38,11 +42,15 @@
 
 用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/weather/Weather_V1.02_x64.zip?raw=true)
+版本：V1.03
+
+下载链接：
+
+[Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
 
 ---
 
-### 天气插件2
+### WeatherPro
 
 ![img-weather-pro](images/img-weather-pro.png)
 
@@ -64,17 +72,17 @@
 
 用于显示电脑电池的电量的插件。
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/Battery/Battery_V1.02_x64.zip?raw=true)
+版本：V1.03
+
+下载链接：
+
+[Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
 
 ---
 
 ### 股票插件
 
-![gp](images/gp_viewer_20220411100625.png)
-
-<img src="images/gp_mgr_20220411100659.png" alt="gp_mgr" style="zoom:65%;" />
-
-<img src="images/gp_edit_20220411100337.png" alt="gp_edit" style="zoom:100%;" />
+![image-20250308114302152](images/image-20250308114302152.png)
 
 显示指定股票的实时交易信息 `新浪接口`
 
@@ -82,7 +90,9 @@
 
 作者：[CListery](https://github.com/CListery)
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/GP/GP_V1.12_x64.zip?raw=true)
+下载链接：
+
+[Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
 
 ---
 
@@ -96,7 +106,7 @@
 
 主页：[AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
 
-下载链接：[32位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x86/PowerMonPlugin.dll) [64位下载](https://github.com/AzulEterno/Plugins-For-TrafficMonitor/raw/main/archs/x64/PowerMonPlugin.dll)
+下载链接：[Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
 
 ---
 
@@ -120,9 +130,39 @@
 
 使用鼠标点击或下方向键可以向后翻页，上方向键向前翻页，左右方向键可以一次移动一个字符。
 
-由于TrafficMonitor 1.83版本还不支持向插件传递键盘事件，因此在使用此插件时无法使用键操作，请等TrafficMonitor下个版本更新。
+版本：V1.02
 
-下载链接：[32位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x86.zip?raw=true) [64位下载](https://github.com/zhongyang219/TrafficMonitorPlugins/blob/main/download/TextReader/TextReader_V1.01_x64.zip?raw=true)
+下载链接：[Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
 
 ---
 
+### 硬件监控插件
+
+![](images/420555677-53bd3ac9-1c55-4212-aa68-1fe5711e9fbc.png)
+
+说明：
+
+- 硬件监控插件使用了第三库LibreHardwareMonitor。可以在标准版和Lite版TrafficMonitor中使用，但是由于Lite版没有管理员权限，因此可能无法显示所有的硬件信息。
+- 解压后，将`HardwareMonitor.dll`放到`plugins`目录下，将`zh-CN`文件夹和`LibreHardwareMonitorLib.dll`放到TrafficMonitor所在目录下（注意不是`plugins`目录下）。由于标准版TrafficMonitor自带`LibreHardwareMonitorLib.dll`，因此可以忽略此文件。
+- 启动TrafficMonitor，打开“插件管理”对话框，选中“硬件监控插件”，点击“选项”，点击“添加监控项”，按钮，在“硬件信息”对话框中选择要添加的监控项，点击鼠标右键，选择“添加到监控项目”，关闭对话框。
+- 关闭所有对话框，重新启动TrafficMonitor，在任务栏窗口点击右键菜单，选择“显示设置”，即可看到添加的硬件监控项目。
+
+版本：V1.00
+
+下载链接：
+
+[Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+
+---
+
+### IP地址插件
+
+![image-20250308114927871](images/image-20250308114927871.png)
+
+用于显示本地IP地址的插件。
+
+版本：V1.00
+
+下载链接：
+
+[Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
