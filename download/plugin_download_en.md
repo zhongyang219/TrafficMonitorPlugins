@@ -167,3 +167,15 @@ Download url:
 
 [Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
 
+---
+
+### Lua Plugin
+
+A TrafficMonitor plugin to support writing plugin by lua script.
+
+Author: [compilelife](https://github.com/compilelife)
+
+Homepage: [compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
+
+Download url: [Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
+

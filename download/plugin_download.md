@@ -166,3 +166,16 @@
 下载链接：
 
 [Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
+
+---
+
+### Lua Plugin
+
+一个支持使用Lua脚本编写插件的TrafficMonitor插件。
+
+作者：[compilelife](https://github.com/compilelife)
+
+主页：[compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
+
+下载链接：[Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
+

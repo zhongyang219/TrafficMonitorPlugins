@@ -7,4 +7,8 @@
     <plugin file_name="Stock.dll" version="1.13"/>
     <plugin file_name="TextReader.dll" version="1.02"/>
     <plugin file_name="Weather.dll" version="1.03"/>
+    <plugin file_name="WeatherPro.dll" version="0.12"/>
+    <plugin file_name="PomodoroTimer.dll" version="1.4"/>
+    <plugin file_name="PowerMonPlugin.dll" version="1.3.7.5"/>
+    <plugin file_name="TrafficMonitorLuaPlugin.dll" version="1.0"/>
 </plugins>
