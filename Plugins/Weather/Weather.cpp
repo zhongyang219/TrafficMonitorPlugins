@@ -233,7 +233,7 @@ ITMPlugin::OptionReturn CWeather::ShowOptionsDialog(void* hParent)
         {
             CWeather::Instance().SendWetherInfoQequest();   //城市改变后，重新发送天气请求
         }
-
+        g_data.SaveConfig();
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;

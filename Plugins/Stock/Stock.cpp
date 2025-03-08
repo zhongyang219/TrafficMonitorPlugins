@@ -315,6 +315,7 @@ INT_PTR Stock::ShowStockManageDlg(CWnd* pWnd)
     {
         g_data.m_setting_data = dlg.m_data;
         updateItems();
+        g_data.SaveConfig();
     }
     return rtn;
 }

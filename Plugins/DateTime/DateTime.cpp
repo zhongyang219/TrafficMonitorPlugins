@@ -70,6 +70,7 @@ ITMPlugin::OptionReturn CDateTime::ShowOptionsDialog(void* hParent)
     if (dlg.DoModal() == IDOK)
     {
         CDataManager::Instance().m_setting_data = dlg.m_data;
+        g_data.SaveConfig();
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;
