@@ -37,8 +37,16 @@ BOOL COptionsDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
 
-    // TODO:  在此添加额外的初始化
+    // TODO: 在此将 m_data 中的数据设置到对话框中
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
+}
+
+
+void COptionsDlg::OnOK()
+{
+    // TODO: 在此将对话框中的数据保存到 m_data
+
+    CDialog::OnOK();
 }

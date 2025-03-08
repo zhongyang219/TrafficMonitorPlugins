@@ -45,6 +45,7 @@ ITMPlugin::OptionReturn CPluginTemplate::ShowOptionsDialog(void* hParent)
     if (dlg.DoModal() == IDOK)
     {
         g_data.m_setting_data = dlg.m_data;
+        g_data.SaveConfig();
         return ITMPlugin::OR_OPTION_CHANGED;
     }
     return ITMPlugin::OR_OPTION_UNCHANGED;
