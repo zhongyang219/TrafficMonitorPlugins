@@ -2,6 +2,7 @@
 #include "LoudnessMeterItem.h"
 #include "DataManager.h"
 #include <afxdrawmanager.h>
+#include <gdiplus.h>
 
 CLoudnessMeterItem::CLoudnessMeterItem()
 {
@@ -85,7 +86,7 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     //矩形区域
     CRect rect(CPoint(x, y), CSize(w, h));
-    const int bar_height = (std::min)(h, g_data.DPI(10));
+    const int bar_height = (std::min)(h, g_data.DPI(12));
 
     CRect bar_rect{ rect };
     bar_rect.top += (rect.Height() - bar_height) / 2;
@@ -117,7 +118,14 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
     if (m_state != DB_INVALID)
     {
         COLORREF outline_color = dark_mode ? RGB(255, 255, 255) : 0;
-        // 绘制边框
+        COLORREF fill_color = dark_mode ? RGB(33, 33, 33) : RGB(235, 235, 235);
+        // 绘制矩形
+        if (g_data.m_setting_data.show_db)
+        {
+            //显示了文本时，绘制带背景的矩形
+            pDC->FillSolidRect(bar_rect, fill_color);
+        }
+        //绘制矩形边框
         DrawRectOutLine(pDC, bar_rect, outline_color);
     }
     if (m_state == DB_VALID && fillWidth > 0)
@@ -160,7 +168,25 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
         else
             swprintf_s(buff, L"%.2f dB", m_db);
 
-        pDC->DrawText(buff, bar_rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        //pDC->DrawText(buff, bar_rect, DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+        //使用GDI+绘制文本，防止TrafficMonitor使用Direct2D渲染时hook DrawText函数导致文本显示不正常的问题
+        Gdiplus::Graphics graphics((HDC)hDC);
+        Gdiplus::Font font(pDC->GetSafeHdc());
+        //设置文本颜色
+        COLORREF color = pDC->GetTextColor();
+        Gdiplus::Color gdip_color = Gdiplus::Color(255, GetRValue(color), GetGValue(color), GetBValue(color));
+        Gdiplus::SolidBrush brush(gdip_color);
+        //设置文本格式
+        Gdiplus::StringFormat format;
+        format.SetAlignment(Gdiplus::StringAlignmentCenter);    //水平对齐方式
+        format.SetLineAlignment(Gdiplus::StringAlignmentCenter);    //垂直对齐方式
+        format.SetTrimming(Gdiplus::StringTrimmingNone);    //禁止文本截断
+        format.SetFormatFlags(Gdiplus::StringFormatFlagsNoFitBlackBox | Gdiplus::StringFormatFlagsNoWrap);
+        //设置矩形区域
+        Gdiplus::RectF rect_gdiplus = Gdiplus::RectF(bar_rect.left, bar_rect.top, bar_rect.Width(), bar_rect.Height());
+        //绘制文本
+        graphics.DrawString(buff, -1, &font, rect_gdiplus, &format, &brush);
     }
 
 }

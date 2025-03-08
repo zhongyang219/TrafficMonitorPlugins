@@ -26,6 +26,6 @@ public:
 private:
     float m_db{ 1 };        //响度的分贝值
     float m_percent{};
-    DBState m_state;
+    DBState m_state{};
     CFont m_font;
 };
