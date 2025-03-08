@@ -42,15 +42,17 @@ int CKeyboardIndicatorItem::GetItemWidthEx(void * hDC) const
     //绘图句柄
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     //设置字体
-    CFont* pFont = (CFont*)&m_font;
-    CFont* pOldFont = pDC->SelectObject(pFont);
+    CKeyboardIndicatorItem* pThis = (CKeyboardIndicatorItem*)this;
+    pThis->InitFont(pDC);
+    CFont* pOldFont = pDC->SelectObject(&pThis->m_font);
+    int item_space = g_data.DPI(2) + g_data.DPI(2) - g_data.DPI(1);
     int width = 0;
     if (g_data.m_setting_data.show_caps_lock)
-        width += (pDC->GetTextExtent(INDICATOR_CAPS_LOCK).cx + g_data.DPI(3));
+        width += (pDC->GetTextExtent(INDICATOR_CAPS_LOCK).cx + item_space);
     if (g_data.m_setting_data.show_num_lock)
-        width += (pDC->GetTextExtent(INDICATOR_NUM_LOCK).cx + g_data.DPI(3));
+        width += (pDC->GetTextExtent(INDICATOR_NUM_LOCK).cx + item_space);
     if (g_data.m_setting_data.show_scroll_lock)
-        width += (pDC->GetTextExtent(INDICATOR_SCROLL_LOCK).cx + g_data.DPI(3));
+        width += (pDC->GetTextExtent(INDICATOR_SCROLL_LOCK).cx + item_space);
     //恢复字体
     pDC->SelectObject(pOldFont);
     return width;
@@ -79,7 +81,7 @@ static void DrawIndicator(CDC* pDC, CRect& rect, const wchar_t* text, COLORREF c
     pDC->SetTextColor(color);
     pDC->DrawText(text, rect, DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
     //绘制完成后将矩形的左边框移动到右边框
-    rect.MoveToX(rect.right + g_data.DPI(1));
+    rect.MoveToX(rect.right + g_data.DPI(2));
 }
 
 void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
@@ -103,8 +105,7 @@ void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, boo
     }
 
     //设置字体
-    if (m_font.GetSafeHandle() == NULL)
-        m_font.CreatePointFont(70, _T("Segoe UI"), pDC);
+    InitFont(pDC);
     pDC->SelectObject(&m_font);
 
     int item_height = g_data.DPI(14);
@@ -129,4 +130,10 @@ void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, boo
         COLORREF color = CKeyboardIndicator::IsScrollLockOn() ? color_enable : color_disable;
         DrawIndicator(pDC, rect_indicator, INDICATOR_SCROLL_LOCK, color);
     }
+}
+
+void CKeyboardIndicatorItem::InitFont(CDC* pDC)
+{
+    if (m_font.GetSafeHandle() == NULL)
+        m_font.CreatePointFont(70, _T("Segoe UI"), pDC);
 }
