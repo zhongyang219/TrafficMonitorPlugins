@@ -1,8 +1,5 @@
 ﻿#include "pch.h"
 #include "DataManager.h"
-#include "Common.h"
-#include <vector>
-#include <sstream>
 
 CDataManager CDataManager::m_instance;
 
@@ -33,29 +30,13 @@ static void WritePrivateProfileInt(const wchar_t* app_name, const wchar_t* key_n
 
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
-    //获取模块的路径
-    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(hModule, path, MAX_PATH);
-    std::wstring module_path = path;
-    m_config_path = module_path;
-    if (!config_dir.empty())
-    {
-        size_t index = module_path.find_last_of(L"\\/");
-        //模块的文件名
-        std::wstring module_file_name = module_path.substr(index + 1);
-        m_config_path = config_dir + module_file_name;
-    }
-    m_config_path += L".ini";
-    //TODO: 在此添加载入配置的代码
+    m_config_path = config_dir + L"LoudnessMeter.ini";
+    m_setting_data.show_db = GetPrivateProfileIntW(L"config", L"show_db", 1, m_config_path.c_str());
 }
 
 void CDataManager::SaveConfig() const
 {
-    if (!m_config_path.empty())
-    {
-        //TODO: 在此添加保存配置的代码
-    }
+    WritePrivateProfileInt(L"config", L"show_db", m_setting_data.show_db, m_config_path.c_str());
 }
 
 const CString& CDataManager::StringRes(UINT id)

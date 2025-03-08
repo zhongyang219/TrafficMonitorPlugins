@@ -23,6 +23,7 @@ public:
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
 
 private:
+    void DoDataAcquire();
 
 private:
     static CLoudnessMeter m_instance;

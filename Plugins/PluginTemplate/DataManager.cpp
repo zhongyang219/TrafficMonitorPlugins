@@ -37,10 +37,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
 void CDataManager::SaveConfig() const
 {
-    if (!m_config_path.empty())
-    {
-        //TODO: 在此添加保存配置的代码
-    }
+    //TODO: 在此添加保存配置的代码
 }
 
 const CString& CDataManager::StringRes(UINT id)

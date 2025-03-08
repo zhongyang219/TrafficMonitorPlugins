@@ -147,17 +147,20 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
     }
 
     //绘制文本
-    if (m_font.GetSafeHandle() == NULL)
-        m_font.CreatePointFont(80, _T("Segoe UI"), pDC);
-    pDC->SelectObject(&m_font);
-    wchar_t buff[64]{};
-    if (m_state == DB_INVALID)
-        wcscpy_s(buff, L"--.-- db");
-    else if (m_state == DB_MUTE)
-        wcscpy_s(buff, L"mute");
-    else
-        swprintf_s(buff, L"%.2f dB", m_db);
+    if (g_data.m_setting_data.show_db)
+    {
+        if (m_font.GetSafeHandle() == NULL)
+            m_font.CreatePointFont(80, _T("Segoe UI"), pDC);
+        pDC->SelectObject(&m_font);
+        wchar_t buff[64]{};
+        if (m_state == DB_INVALID)
+            wcscpy_s(buff, L"--.-- db");
+        else if (m_state == DB_MUTE)
+            wcscpy_s(buff, L"mute");
+        else
+            swprintf_s(buff, L"%.2f dB", m_db);
 
-    pDC->DrawText(buff, bar_rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        pDC->DrawText(buff, bar_rect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    }
 
 }

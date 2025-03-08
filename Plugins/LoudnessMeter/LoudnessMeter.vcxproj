@@ -242,7 +242,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OptionsDlg.h" />
@@ -252,7 +251,6 @@
     <ClInclude Include="LoudnessMeterItem.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">

@@ -37,8 +37,16 @@ BOOL COptionsDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
 
-    // TODO:  在此添加额外的初始化
+    CheckDlgButton(IDC_SHOW_DB_CHECK, m_data.show_db);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
+}
+
+
+void COptionsDlg::OnOK()
+{
+    m_data.show_db = (IsDlgButtonChecked(IDC_SHOW_DB_CHECK) != 0);
+
+    CDialog::OnOK();
 }

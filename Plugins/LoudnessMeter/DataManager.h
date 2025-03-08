@@ -8,7 +8,7 @@
 
 struct SettingData
 {
-    //TODO: 在此添加选项设置的数据
+    bool show_db;       //显示分贝值
 };
 
 class CDataManager

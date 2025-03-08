@@ -52,29 +52,21 @@ const wchar_t* CLoudnessMeter::GetTooltipInfo()
 
 void CLoudnessMeter::DataRequired()
 {
-    float peakValue = 0.0f;
-    if (pMeterInfo != nullptr)
-    {
-        pMeterInfo->GetPeakValue(&peakValue);
-        if (peakValue > 0.0f)
-        {
-            float dB = static_cast<float>(20 * log10(peakValue));
-            m_item.SetValue(dB, peakValue * 100, CLoudnessMeterItem::DB_VALID);
-        }
-        else
-        {
-            m_item.SetValue(0, 0, CLoudnessMeterItem::DB_MUTE);
-        }
-    }
-    else
-    {
-        m_item.SetValue(0, 0, CLoudnessMeterItem::DB_INVALID);
-    }
 }
 
 ITMPlugin::OptionReturn CLoudnessMeter::ShowOptionsDialog(void* hParent)
 {
-    return ITMPlugin::OR_OPTION_NOT_PROVIDED;
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    CWnd* pParent = CWnd::FromHandle((HWND)hParent);
+    COptionsDlg dlg(pParent);
+    dlg.m_data = g_data.m_setting_data;
+    if (dlg.DoModal() == IDOK)
+    {
+        g_data.m_setting_data = dlg.m_data;
+        g_data.SaveConfig();
+        return ITMPlugin::OR_OPTION_CHANGED;
+    }
+    return ITMPlugin::OR_OPTION_UNCHANGED;
 }
 
 const wchar_t* CLoudnessMeter::GetInfo(PluginInfoIndex index)
@@ -108,9 +100,36 @@ void CLoudnessMeter::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     case ITMPlugin::EI_CONFIG_DIR:
         //从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
+        //启动一个定时器
+        SetTimer(NULL, 1265, 50, [](HWND, UINT, UINT_PTR, DWORD) {
+            m_instance.DoDataAcquire();
+        });
+
         break;
     default:
         break;
+    }
+}
+
+void CLoudnessMeter::DoDataAcquire()
+{
+    float peakValue = 0.0f;
+    if (pMeterInfo != nullptr)
+    {
+        pMeterInfo->GetPeakValue(&peakValue);
+        if (peakValue > 0.0f)
+        {
+            float dB = static_cast<float>(20 * log10(peakValue));
+            m_item.SetValue(dB, peakValue * 100, CLoudnessMeterItem::DB_VALID);
+        }
+        else
+        {
+            m_item.SetValue(0, 0, CLoudnessMeterItem::DB_MUTE);
+        }
+    }
+    else
+    {
+        m_item.SetValue(0, 0, CLoudnessMeterItem::DB_INVALID);
     }
 }
 
