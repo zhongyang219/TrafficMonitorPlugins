@@ -45,7 +45,7 @@ int CKeyboardIndicatorItem::GetItemWidthEx(void * hDC) const
     CKeyboardIndicatorItem* pThis = (CKeyboardIndicatorItem*)this;
     pThis->InitFont(pDC);
     CFont* pOldFont = pDC->SelectObject(&pThis->m_font);
-    int item_space = g_data.DPI(2) + g_data.DPI(2) - g_data.DPI(1);
+    int item_space = g_data.DPI(4) + g_data.DPI(2) - g_data.DPI(1);
     int width = 0;
     if (g_data.m_setting_data.show_caps_lock)
         width += (pDC->GetTextExtent(INDICATOR_CAPS_LOCK).cx + item_space);
@@ -71,14 +71,29 @@ static void DrawRectOutLine(CDC* pDC, CRect rect, COLORREF color)	//绘制矩形
     aPen.DeleteObject();
 }
 
-static void DrawIndicator(CDC* pDC, CRect& rect, const wchar_t* text, COLORREF color)
+static void DrawIndicator(CDC* pDC, CRect& rect, const wchar_t* text, bool dark_mode, bool enable, COLORREF color_ori)
 {
+    COLORREF color_default;
+    COLORREF color_disable;
+    if (dark_mode)
+    {
+        color_default = RGB(255, 255, 255);
+        color_disable = RGB(145, 145, 145);
+    }
+    else
+    {
+        color_default = RGB(0, 0, 0);
+        color_disable = RGB(140, 140, 140);
+    }
+
+    COLORREF color_text = enable ? color_ori : color_disable;
+    COLORREF color_frame = enable ? color_default : color_disable;
     //根据文本宽度设置矩形的宽度
-    rect.right = rect.left + pDC->GetTextExtent(text).cx + g_data.DPI(2);
+    rect.right = rect.left + pDC->GetTextExtent(text).cx + g_data.DPI(4);
     //绘制边框
-    DrawRectOutLine(pDC, rect, color);
+    DrawRectOutLine(pDC, rect, color_frame);
     //绘制文本
-    pDC->SetTextColor(color);
+    pDC->SetTextColor(color_text);
     pDC->DrawText(text, rect, DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
     //绘制完成后将矩形的左边框移动到右边框
     rect.MoveToX(rect.right + g_data.DPI(2));
@@ -90,46 +105,25 @@ void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, boo
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     //矩形区域
     CRect rect(CPoint(x, y), CSize(w, h));
-    //绘图颜色
-    COLORREF color_enable;
-    COLORREF color_disable;
-    if (dark_mode)
-    {
-        color_enable = RGB(255, 255, 255);
-        color_disable = RGB(145, 145, 145);
-    }
-    else
-    {
-        color_enable = RGB(0, 0, 0);
-        color_disable = RGB(140, 140, 140);
-    }
-
+    //TrafficMonitor设置的文本颜色
+    COLORREF color_ori = pDC->GetTextColor();
     //设置字体
     InitFont(pDC);
     pDC->SelectObject(&m_font);
-
+    //设置指示器高度
     int item_height = g_data.DPI(14);
     CRect rect_indicator{ rect };
     rect_indicator.top += (rect.Height() - item_height) / 2;
     rect_indicator.bottom = rect_indicator.top + item_height;
     //绘制Caps Lock
     if (g_data.m_setting_data.show_caps_lock)
-    {
-        COLORREF color = CKeyboardIndicator::IsCapsLockOn() ? color_enable : color_disable;
-        DrawIndicator(pDC, rect_indicator, INDICATOR_CAPS_LOCK, color);
-    }
+        DrawIndicator(pDC, rect_indicator, INDICATOR_CAPS_LOCK, dark_mode, CKeyboardIndicator::IsCapsLockOn(), color_ori);
     //绘制num lock
     if (g_data.m_setting_data.show_num_lock)
-    {
-        COLORREF color = CKeyboardIndicator::IsNumLockOn() ? color_enable : color_disable;
-        DrawIndicator(pDC, rect_indicator, INDICATOR_NUM_LOCK, color);
-    }
+        DrawIndicator(pDC, rect_indicator, INDICATOR_NUM_LOCK, dark_mode, CKeyboardIndicator::IsNumLockOn(), color_ori);
     //绘制scroll lock
     if (g_data.m_setting_data.show_scroll_lock)
-    {
-        COLORREF color = CKeyboardIndicator::IsScrollLockOn() ? color_enable : color_disable;
-        DrawIndicator(pDC, rect_indicator, INDICATOR_SCROLL_LOCK, color);
-    }
+        DrawIndicator(pDC, rect_indicator, INDICATOR_SCROLL_LOCK, dark_mode, CKeyboardIndicator::IsScrollLockOn(), color_ori);
 }
 
 void CKeyboardIndicatorItem::InitFont(CDC* pDC)
