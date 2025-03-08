@@ -26,11 +26,13 @@ For the detail description of the plugin usage instruction, please refer to the 
 
 A plugin used to display the date and time.
 
-Version: V1.00
+* Version: V1.00
 
-Download url: 
+* Download url: 
 
-[Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
+  GitHub: [Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
+
+  Gitee: [DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
 
 ---
 
@@ -42,11 +44,13 @@ Download url:
 
 A plugin for displaying the weather. Support manual selection of cities (only cities in China is supported), support display of today's and tomorrow's weather.
 
-Version: V1.03
+* Version: V1.03
 
-Download url: 
+* Download url: 
 
-[Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
+  GitHub: [Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
+
+  Gitee: [Weather_V1.03 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
 
 ---
 
@@ -56,11 +60,11 @@ Download url:
 
 A plugin for displaying the weather. Support web fetching and weather API two data sources.
 
-Author: [Haojia521](https://github.com/Haojia521)
+* Author: [Haojia521](https://github.com/Haojia521)
 
-Home page: [Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
+* Home page: [Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
 
-Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+* Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
 ---
 
@@ -72,11 +76,13 @@ Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorP
 
 A plugin for displaying the battery level of your computer.
 
-Version: V1.03
+* Version: V1.03
 
-Download url:
+* Download url:
 
-[Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
+  GitHub: [Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
+
+  Gitee: [Battery_V1.03 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
 
 ---
 
@@ -88,11 +94,13 @@ Displays real-time trading information for specified stocks. Use the Sina interf
 
 - **sh indicates Shanghai Stock Exchange, sz indicates Shenzhen Stock Exchange, and so on.**
 
-Author: [CListery](https://github.com/CListery)
+* Author: [CListery](https://github.com/CListery)
 
-Download url: 
+* Download url:
 
-[Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+  GitHub: [Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+
+  Gitee: [Stock_V1.13 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
 
 ---
 
@@ -102,11 +110,11 @@ Download url:
 
 A plugin for displaying the battery power consumption. At the same time, the remaining battery and battery voltage information can be displayed in the mouse tool tip.
 
-Author: [AzulEterno](https://github.com/AzulEterno)
+* Author: [AzulEterno](https://github.com/AzulEterno)
 
-Home page: [AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
+* Home page: [AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
 
-Download url: [Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
+* Download url: [Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
 
 ---
 
@@ -116,9 +124,9 @@ Download url: [Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https:/
 
 A plugin Providing basic tomato time management functions. The red icon represents the working period and the green represents the rest period.
 
-Author: [Haojia521](https://github.com/Haojia521)
+* Author: [Haojia521](https://github.com/Haojia521)
 
-Download url: [PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+* Download url: [PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
 ---
 
@@ -130,9 +138,13 @@ The text reader plugin can be used to read text files in the taskbar. Including 
 
 Use the mouse click or down arrow key to turn the page backward, the up arrow keys to turn the page forward. The left and right arrow keys to move the page one character at a time.
 
-Version: V1.02
+* Version: V1.02
 
-Download url: [Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
+* Download url:
+
+  GitHub: [Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
+
+  Gitee: [TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
 
 ---
 
@@ -147,11 +159,13 @@ Description:
 - Start TrafficMonitor, open "Plugin Manager" dialog, select "Hardware Monitor plugin", click "Options", click "Add monitoring Items" button, right click the item to be monitored, select "Add to monitoring items", and close the dialog.
 - Close all dialogs, restart TrafficMonitor, right-click the taskbar window, select "Display Settings", the added hardware monitoring items can be seen in the dialog.
 
-Version: V1.00
+* Version: V1.00
 
-Download url:
+* Download url:
 
-[Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+  GitHub: [Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+
+  Gitee: [HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
 
 ---
 
@@ -161,11 +175,13 @@ Download url:
 
 A plugin to display the local IP address.
 
-Version: V1.00
+* Version: V1.00
 
-Download url:
+* Download url:
 
-[Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
+  GitHub: [Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
+
+  Gitee: [IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
 
 ---
 
@@ -173,9 +189,9 @@ Download url:
 
 A TrafficMonitor plugin to support writing plugin by lua script.
 
-Author: [compilelife](https://github.com/compilelife)
+* Author: [compilelife](https://github.com/compilelife)
 
-Homepage: [compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
+* Homepage: [compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
 
-Download url: [Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
+* Download url: [Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
 

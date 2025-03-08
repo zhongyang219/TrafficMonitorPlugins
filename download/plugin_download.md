@@ -26,11 +26,13 @@
 
 用于显示日期和时间的插件。
 
-版本：V1.00
+* 版本：V1.00
 
-下载链接：
+* 下载链接：
 
-[Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
+  GitHub: [Release DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
+
+  Gitee: [DateTime_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/DateTime_V1.00)
 
 ---
 
@@ -42,11 +44,13 @@
 
 用于显示天气的插件，支持手动选择城市（仅支持中国的城市），支持显示今天和明天的天气。
 
-版本：V1.03
+* 版本：V1.03
 
-下载链接：
+* 下载链接：
 
-[Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
+  GitHub: [Release Weather_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
+
+  Gitee: [Weather_V1.03 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Weather_V1.03)
 
 ---
 
@@ -56,11 +60,11 @@
 
 用于显示天气的插件。支持网页抓取与和风天气API两种数据源。
 
-作者：[Haojia521](https://github.com/Haojia521)
+* 作者：[Haojia521](https://github.com/Haojia521)
 
-主页：[Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
+* 主页：[Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
 
-下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+* 下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
 ---
 
@@ -72,11 +76,13 @@
 
 用于显示电脑电池的电量的插件。
 
-版本：V1.03
+* 版本：V1.03
 
-下载链接：
+* 下载链接：
 
-[Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
+  GitHub: [Release Battery_V1.03 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
+  
+  Gitee: [Battery_V1.03 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Battery_V1.03)
 
 ---
 
@@ -88,11 +94,13 @@
 
 - **配置时sh表示“上证”，sz表示深证，依次类推**
 
-作者：[CListery](https://github.com/CListery)
+* 作者：[CListery](https://github.com/CListery)
 
-下载链接：
+* 下载链接：
 
-[Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+  GitHub: [Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+  
+  Gitee: [Stock_V1.13 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
 
 ---
 
@@ -102,11 +110,11 @@
 
 用于显示电池的功耗。同时可以在鼠标提示中显示剩余电量、电池电压信息。
 
-作者：[AzulEterno](https://github.com/AzulEterno)
+* 作者：[AzulEterno](https://github.com/AzulEterno)
 
-主页：[AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
+* 主页：[AzulEterno/Plugins-For-TrafficMonitor (github.com)](https://github.com/AzulEterno/Plugins-For-TrafficMonitor)
 
-下载链接：[Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
+* 下载链接：[Releases · AzulEterno/PowerMonPlugin-For-TrafficMonitor](https://github.com/AzulEterno/PowerMonPlugin-For-TrafficMonitor/releases)
 
 ---
 
@@ -116,9 +124,9 @@
 
 提供基本的番茄时间管理功能。红色图标代表工作时段，绿色代表休息时段。
 
-作者：[Haojia521](https://github.com/Haojia521)
+* 作者：[Haojia521](https://github.com/Haojia521)
 
-下载链接：[PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+* 下载链接：[PomodoroTimer-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
 
 ---
 
@@ -130,9 +138,13 @@
 
 使用鼠标点击或下方向键可以向后翻页，上方向键向前翻页，左右方向键可以一次移动一个字符。
 
-版本：V1.02
+* 版本：V1.02
 
-下载链接：[Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
+* 下载链接：
+
+  GitHub: [Release TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
+
+  Gitee: [TextReader_V1.02 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/TextReader_V1.02)
 
 ---
 
@@ -147,11 +159,13 @@
 - 启动TrafficMonitor，打开“插件管理”对话框，选中“硬件监控插件”，点击“选项”，点击“添加监控项”，按钮，在“硬件信息”对话框中选择要添加的监控项，点击鼠标右键，选择“添加到监控项目”，关闭对话框。
 - 关闭所有对话框，重新启动TrafficMonitor，在任务栏窗口点击右键菜单，选择“显示设置”，即可看到添加的硬件监控项目。
 
-版本：V1.00
+* 版本：V1.00
 
-下载链接：
+* 下载链接：
 
-[Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+  GitHub: [Release HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
+  
+  Gitee: [HardwareMonitor_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/HardwareMonitor_V1.00)
 
 ---
 
@@ -161,11 +175,13 @@
 
 用于显示本地IP地址的插件。
 
-版本：V1.00
+* 版本：V1.00
 
-下载链接：
+* 下载链接：
 
-[Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
+  GitHub: [Release IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
+  
+  Gitee: [IpAddress_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/IpAddress_V1.00)
 
 ---
 
@@ -173,9 +189,9 @@
 
 一个支持使用Lua脚本编写插件的TrafficMonitor插件。
 
-作者：[compilelife](https://github.com/compilelife)
+* 作者：[compilelife](https://github.com/compilelife)
 
-主页：[compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
+* 主页：[compilelife/TrafficMonitorLuaPlugin: Missing Plugin for TrafficMonitor to support lua](https://github.com/compilelife/TrafficMonitorLuaPlugin)
 
-下载链接：[Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
+* 下载链接：[Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
 
