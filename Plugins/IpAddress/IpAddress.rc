@@ -133,7 +133,7 @@ BEGIN
             VALUE "FileDescription", "IpAddress Plugin for TrafficMonitor"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "IpAddress.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2021"
+            VALUE "LegalCopyright", "Copyright (C) 2025 By ZhongYang"
             VALUE "OriginalFilename", "IpAddress.dll"
             VALUE "ProductName", "IpAddress Plugin for TrafficMonitor"
             VALUE "ProductVersion", "1.0.0.0"

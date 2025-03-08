@@ -123,11 +123,11 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "CompanyName", "<TODO: Company name>"
-            VALUE "FileDescription", "<TODO: plugin name> Plugin for TrafficMonitor"
+            VALUE "CompanyName", "By ZhongYang"
+            VALUE "FileDescription", "LoudnessMeter Plugin for TrafficMonitor"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "LoudnessMeter.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2021"
+            VALUE "LegalCopyright", "Copyright (C) 2025 By ZhongYang"
             VALUE "OriginalFilename", "LoudnessMeter.dll"
             VALUE "ProductName", "LoudnessMeter Plugin for TrafficMonitor"
             VALUE "ProductVersion", "1.0.0.0"
