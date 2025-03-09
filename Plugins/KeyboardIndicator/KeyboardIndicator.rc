@@ -154,7 +154,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "键盘指示器"
-    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的键盘指示器插件"
+    IDS_PLUGIN_DESCRIPTION  "用于指示键盘Caps Lock、Num Lock、Scroll Lock等状态的插件。"
     IDS_PLUGIN_ITEM_NAME    "键盘指示器"
     IDS_SELECT_AT_LEAST_WARNING "清至少选择一项！"
 END
@@ -226,7 +226,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "Keyboard indicator"
-    IDS_PLUGIN_DESCRIPTION  "Keyboard indicator plugin for TrafficMonitor"
+    IDS_PLUGIN_DESCRIPTION  "A plugin for indicating the status of keyboard Caps Lock, Num Lock, Scroll Lock, etc."
     IDS_PLUGIN_ITEM_NAME    "Keyboard indicator"
     IDS_SELECT_AT_LEAST_WARNING "Please select at least one item!"
 END

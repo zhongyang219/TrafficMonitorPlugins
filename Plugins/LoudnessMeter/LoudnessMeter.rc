@@ -220,7 +220,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_PLUGIN_NAME         "Loudness meter"
-    IDS_PLUGIN_DESCRIPTION  "A plugin for measuring the current system volume"
+    IDS_PLUGIN_DESCRIPTION  "A plugin for measuring the current system volume."
     IDS_PLUGIN_ITEM_NAME    "Loudness meter"
     IDS_MUTE                "mute"
 END
