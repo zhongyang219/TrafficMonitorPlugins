@@ -389,6 +389,9 @@ namespace HardwareMonitor
         //这里让monitorItemListBox的下边缘总是和groupBox2的下边缘对齐，以修正在高DPI下ListBox下边缘超出窗口边界的问题
         int listBoxHeight = groupBox2->Bottom - monitorItemListBox->Top;
         monitorItemListBox->Height = listBoxHeight;
+        //让monitorItemListBox的右边缘总是跟随groupBox2的左边缘，修正执行显示桌面时ListBox的右边缘超出窗口边界的问题
+        int listBoxWidth = groupBox2->Left - monitorItemListBox->Left - CHardwareMonitor::GetInstance()->DPI(12);
+        monitorItemListBox->Width = listBoxWidth;
 
         monitorItemListBox->Invalidate();
     }
