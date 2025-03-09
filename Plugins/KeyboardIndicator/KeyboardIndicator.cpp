@@ -86,6 +86,11 @@ void CKeyboardIndicator::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* d
     }
 }
 
+void* CKeyboardIndicator::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_ICON1);
+}
+
 bool CKeyboardIndicator::IsCapsLockOn()
 {
     return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;

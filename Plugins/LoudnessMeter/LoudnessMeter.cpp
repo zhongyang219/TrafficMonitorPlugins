@@ -111,6 +111,11 @@ void CLoudnessMeter::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     }
 }
 
+void* CLoudnessMeter::GetPluginIcon()
+{
+    return g_data.GetIcon(IDI_ICON1);
+}
+
 void CLoudnessMeter::DoDataAcquire()
 {
     float peakValue = 0.0f;

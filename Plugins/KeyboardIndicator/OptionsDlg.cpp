@@ -36,6 +36,7 @@ END_MESSAGE_MAP()
 BOOL COptionsDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
+    SetIcon(g_data.GetIcon(IDI_ICON1), FALSE);
 
     CheckDlgButton(IDC_SHOW_CAPS_LOCK_CHECK, m_data.show_caps_lock);
     CheckDlgButton(IDC_SHOW_NUM_LOCK_CHECK, m_data.show_num_lock);

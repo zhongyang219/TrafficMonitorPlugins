@@ -60,6 +60,8 @@ BOOL COptionsDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
 
+    SetIcon(g_data.GetIcon(IDI_IP_ADDRESS), FALSE);
+
     //初始化下拉列表
     InitConnectionsCombobox();
 
