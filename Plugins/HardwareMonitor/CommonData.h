@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include <vector>
+#include "PluginInterface.h"
 
 namespace HardwareMonitor
 {
@@ -25,6 +26,7 @@ namespace HardwareMonitor
         {}
     };
 
+    //选项设置数据
     struct OptionSettings
     {
         std::vector<ItemInfo> items_info;     //所有监控项目
@@ -34,4 +36,19 @@ namespace HardwareMonitor
         bool show_mouse_tooltip{};
     };
 
+    //分别定义一个用于主窗口和任务栏窗口的设置数据，同时定义一个函数，根据is_taskbar返回对应的值
+#define DECLARE_TM_SETTINGS_DATA(type, data) \
+    type taskbar_##data{}; \
+    type main_wnd_##data{}; \
+    type data() const \
+    { \
+        return is_taskbar ? taskbar_##data : main_wnd_##data; \
+    }
+
+    //TrafficMonitor的设置数据
+    struct TMSettings
+    {
+        bool is_taskbar{};
+        DECLARE_TM_SETTINGS_DATA(bool, sperate_with_space)  //数值和单位使用空格分隔
+    };
 }

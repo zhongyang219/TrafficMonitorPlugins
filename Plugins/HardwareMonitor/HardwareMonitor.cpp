@@ -367,6 +367,15 @@ namespace HardwareMonitor
                 ShowErrorMessage(e);
             }
             break;
+        case ITMPlugin::EI_DRAW_TASKBAR_WND:
+            m_tm_settings.is_taskbar = _wtoi(data);
+            break;
+        case ITMPlugin::EI_MAIN_WND_SPERATE_WITH_SPACE:
+            m_tm_settings.main_wnd_sperate_with_space = _wtoi(data);
+            break;
+        case ITMPlugin::EI_TASKBAR_WND_SPERATE_WITH_SPACE:
+            m_tm_settings.taskbar_sperate_with_space = _wtoi(data);
+            break;
         default:
             break;
         }

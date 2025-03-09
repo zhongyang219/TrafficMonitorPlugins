@@ -32,7 +32,10 @@ namespace HardwareMonitor
 
     const wchar_t* CHardwareMonitorItem::GetItemValueText() const
     {
-        return item_value.c_str();
+        if (CHardwareMonitor::GetInstance()->m_tm_settings.is_taskbar)
+            return item_value_taskbar.c_str();
+        else
+            return item_value_main_wnd.c_str();
     }
 
     const wchar_t* CHardwareMonitorItem::GetItemValueSampleText() const
@@ -49,7 +52,8 @@ namespace HardwareMonitor
             }
             if (item_info.show_unit)
             {
-                sample_text += L' ';
+                if (CHardwareMonitor::GetInstance()->m_tm_settings.sperate_with_space())
+                    sample_text += L' ';
                 SensorType type = static_cast<SensorType>(sensor_type);
                 std::wstring unit;
                 if (!item_info.unit.empty())
@@ -61,6 +65,7 @@ namespace HardwareMonitor
         }
         else
         {
+            std::wstring item_value(GetItemValueText());
             if (item_value.empty())
                 sample_text = L"0.00";
             else
@@ -91,12 +96,14 @@ namespace HardwareMonitor
         if (sensor != nullptr)
         {
             const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
-            std::wstring unit;
+            String^ unit;
             if (!item_info.unit.empty())
-                unit = item_info.unit;
+                unit = gcnew String(item_info.unit.c_str());
             else
-                unit = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType));
-            item_value = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(unit.c_str()), item_info.decimal_places, item_info.show_unit));
+                unit = HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensor->SensorType);
+            const auto& cfg{ CHardwareMonitor::GetInstance()->m_tm_settings };
+            item_value_main_wnd = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, unit, item_info.decimal_places, item_info.show_unit, cfg.main_wnd_sperate_with_space));
+            item_value_taskbar = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorValueText(sensor, unit, item_info.decimal_places, item_info.show_unit, cfg.taskbar_sperate_with_space));
             try
             {
                 item_value_num = sensor->Value.Value;

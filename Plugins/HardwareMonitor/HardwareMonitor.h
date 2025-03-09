@@ -50,6 +50,7 @@ namespace HardwareMonitor
         int DPI(int pixel) const;
 
         OptionSettings m_settings;
+        TMSettings m_tm_settings;
 
         static void ShowErrorMessage(System::Exception^ e);
 
