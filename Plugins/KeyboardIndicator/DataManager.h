@@ -11,6 +11,7 @@ struct SettingData
     bool show_caps_lock{ true };
     bool show_num_lock{ true };
     bool show_scroll_lock{ true };
+    bool draw_round_rect{ false };  //是否使用圆角矩形
 };
 
 class CDataManager

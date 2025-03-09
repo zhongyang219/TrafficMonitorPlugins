@@ -2,6 +2,8 @@
 #include "KeyboardIndicatorItem.h"
 #include "DataManager.h"
 #include "KeyboardIndicator.h"
+#include <gdiplus.h>
+
 const wchar_t* INDICATOR_CAPS_LOCK = L"Caps";
 const wchar_t* INDICATOR_NUM_LOCK = L"Num";
 const wchar_t* INDICATOR_SCROLL_LOCK = L"ScrLk";
@@ -71,6 +73,32 @@ static void DrawRectOutLine(CDC* pDC, CRect rect, COLORREF color)	//绘制矩形
     aPen.DeleteObject();
 }
 
+static void DrawRoundRectOutLine(CDC* pDC, CRect rect, COLORREF color)  //绘制圆角矩形
+{
+    Gdiplus::Graphics graphics(pDC->GetSafeHdc()); // 创建GDI+ Graphics对象
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias); // 启用抗锯齿
+
+    Gdiplus::Pen pen(Gdiplus::Color(255, GetRValue(color), GetGValue(color), GetBValue(color))); // 创建画笔
+    pen.SetWidth(g_data.DPIF(1)); // 设置画笔宽度
+
+    int x = rect.left; // 矩形左上角x坐标
+    int y = rect.top; // 矩形左上角y坐标
+    int width = rect.Width() - g_data.DPI(1); // 矩形宽度
+    int height = rect.Height() - g_data.DPI(1); // 矩形高度
+    int cornerRadius = g_data.DPI(3); // 圆角半径
+
+    // 创建圆角矩形路径
+    Gdiplus::GraphicsPath path;
+    path.AddArc(x, y, cornerRadius * 2, cornerRadius * 2, 180, 90); // 左上角
+    path.AddArc(x + width - cornerRadius * 2, y, cornerRadius * 2, cornerRadius * 2, 270, 90); // 右上角
+    path.AddArc(x + width - cornerRadius * 2, y + height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 0, 90); // 右下角
+    path.AddArc(x, y + height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 90, 90); // 左下角
+    path.CloseFigure();
+
+    // 绘制无填充的圆角矩形
+    graphics.DrawPath(&pen, &path);
+}
+
 static void DrawIndicator(CDC* pDC, CRect& rect, const wchar_t* text, bool dark_mode, bool enable, COLORREF color_ori)
 {
     COLORREF color_default;
@@ -91,11 +119,14 @@ static void DrawIndicator(CDC* pDC, CRect& rect, const wchar_t* text, bool dark_
     //根据文本宽度设置矩形的宽度
     rect.right = rect.left + pDC->GetTextExtent(text).cx + g_data.DPI(4);
     //绘制边框
-    DrawRectOutLine(pDC, rect, color_frame);
+    if (g_data.m_setting_data.draw_round_rect)
+        DrawRoundRectOutLine(pDC, rect, color_frame);
+    else
+        DrawRectOutLine(pDC, rect, color_frame);
     //绘制文本
     pDC->SetTextColor(color_text);
     pDC->DrawText(text, rect, DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
-    //绘制完成后将矩形的左边框移动到右边框
+    //绘制完成后将矩形的左边框移动到右边框的位置
     rect.MoveToX(rect.right + g_data.DPI(2));
 }
 

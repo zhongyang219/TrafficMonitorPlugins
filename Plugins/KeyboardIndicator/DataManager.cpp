@@ -34,6 +34,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.show_caps_lock = GetPrivateProfileIntW(L"config", L"show_caps_lock", 1, m_config_path.c_str());
     m_setting_data.show_num_lock = GetPrivateProfileIntW(L"config", L"show_num_lock", 1, m_config_path.c_str());
     m_setting_data.show_scroll_lock = GetPrivateProfileIntW(L"config", L"show_scroll_lock", 1, m_config_path.c_str());
+    m_setting_data.draw_round_rect = GetPrivateProfileIntW(L"config", L"draw_round_rect", 0, m_config_path.c_str());
 }
 
 void CDataManager::SaveConfig() const
@@ -41,6 +42,7 @@ void CDataManager::SaveConfig() const
     WritePrivateProfileInt(L"config", L"show_caps_lock", m_setting_data.show_caps_lock, m_config_path.c_str());
     WritePrivateProfileInt(L"config", L"show_num_lock", m_setting_data.show_num_lock, m_config_path.c_str());
     WritePrivateProfileInt(L"config", L"show_scroll_lock", m_setting_data.show_scroll_lock, m_config_path.c_str());
+    WritePrivateProfileInt(L"config", L"draw_round_rect", m_setting_data.draw_round_rect, m_config_path.c_str());
 }
 
 const CString& CDataManager::StringRes(UINT id)

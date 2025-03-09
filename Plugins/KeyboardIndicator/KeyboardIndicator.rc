@@ -60,6 +60,7 @@ BEGIN
     CONTROL         "显示 Caps Lock",IDC_SHOW_CAPS_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,134,10
     CONTROL         "显示 Num Lock",IDC_SHOW_NUM_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,134,10
     CONTROL         "显示 Scroll Lock",IDC_SHOW_SCROLL_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,134,10
+    CONTROL         "使用圆角矩形边框",IDC_DRAW_ROUND_RECT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,134,10
 END
 
 
@@ -92,6 +93,7 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0
@@ -185,6 +187,8 @@ BEGIN
     CONTROL         "Show Caps Lock",IDC_SHOW_CAPS_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,7,151,10
     CONTROL         "Show Num Lock",IDC_SHOW_NUM_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,19,151,10
     CONTROL         "Show Scroll Lock",IDC_SHOW_SCROLL_LOCK_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,31,151,10
+    CONTROL         "Use rounded rectangle borders",IDC_DRAW_ROUND_RECT_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,43,151,10
 END
 
 
