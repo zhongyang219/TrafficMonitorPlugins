@@ -3,6 +3,7 @@
 #include "DataManager.h"
 #include <afxdrawmanager.h>
 #include <gdiplus.h>
+#include <strsafe.h>
 
 CLoudnessMeterItem::CLoudnessMeterItem()
 {
@@ -43,6 +44,17 @@ void CLoudnessMeterItem::SetValue(const float value, float percent, DBState stat
     else
         m_percent = percent;
     m_state = state;
+}
+
+void CLoudnessMeterItem::InitFont(CDC* pDC)
+{
+    if (m_font.GetSafeHandle() == NULL)
+    {
+        CFont* pCurFont = pDC->GetCurrentFont();
+        LOGFONT lf;
+        pCurFont->GetLogFont(&lf);
+        m_font.CreatePointFont(80, lf.lfFaceName, pDC);
+    }
 }
 
 bool CLoudnessMeterItem::IsCustomDraw() const
@@ -120,7 +132,7 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
         COLORREF outline_color = dark_mode ? RGB(255, 255, 255) : 0;
         COLORREF fill_color = dark_mode ? RGB(33, 33, 33) : RGB(235, 235, 235);
         // 绘制矩形
-        if (g_data.m_setting_data.show_db)
+        if (g_data.m_setting_data.show_db || m_state == DB_MUTE)
         {
             //显示了文本时，绘制带背景的矩形
             pDC->FillSolidRect(bar_rect, fill_color);
@@ -155,18 +167,17 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
     }
 
     //绘制文本
-    if (g_data.m_setting_data.show_db)
+    if (g_data.m_setting_data.show_db || m_state == DB_MUTE)
     {
-        if (m_font.GetSafeHandle() == NULL)
-            m_font.CreatePointFont(80, _T("Segoe UI"), pDC);
+        InitFont(pDC);
         pDC->SelectObject(&m_font);
         wchar_t buff[64]{};
         if (m_state == DB_INVALID)
-            wcscpy_s(buff, L"--.-- db");
+            StringCchCopyW(buff, 64, L"--.-- db");
         else if (m_state == DB_MUTE)
-            wcscpy_s(buff, L"mute");
+            StringCchCopyW(buff, 64, g_data.StringRes(IDS_MUTE));
         else
-            swprintf_s(buff, L"%.2f dB", m_db);
+            StringCchPrintfW(buff, 64, L"%.2f dB", m_db);
 
         //pDC->DrawText(buff, bar_rect, DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
 
@@ -188,5 +199,4 @@ void CLoudnessMeterItem::DrawItem(void* hDC, int x, int y, int w, int h, bool da
         //绘制文本
         graphics.DrawString(buff, -1, &font, rect_gdiplus, &format, &brush);
     }
-
 }

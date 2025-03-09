@@ -23,6 +23,10 @@ public:
     };
 
     void SetValue(const float value, float percent, DBState state);
+
+private:
+    void InitFont(CDC* pDC);
+
 private:
     float m_db{ 1 };        //响度的分贝值
     float m_percent{};

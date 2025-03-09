@@ -52,7 +52,7 @@ END
 
 IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 134, 81
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "设置"
+CAPTION "响度计设置"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "确定",IDOK,23,60,50,14
@@ -152,6 +152,7 @@ BEGIN
     IDS_PLUGIN_NAME         "响度计"
     IDS_PLUGIN_DESCRIPTION  "用于测量当前系统音量的插件"
     IDS_PLUGIN_ITEM_NAME    "响度计"
+    IDS_MUTE                "静音"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -172,7 +173,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 153, 81
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Settings"
+CAPTION "Loudness Metter Settings"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,41,60,50,14
@@ -221,6 +222,7 @@ BEGIN
     IDS_PLUGIN_NAME         "Loudness meter"
     IDS_PLUGIN_DESCRIPTION  "A plugin for measuring the current system volume"
     IDS_PLUGIN_ITEM_NAME    "Loudness meter"
+    IDS_MUTE                "mute"
 END
 
 #endif    // 英语(美国) resources

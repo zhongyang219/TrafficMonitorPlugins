@@ -6,7 +6,7 @@
 #define IDS_PLUGIN_NAME                 103
 #define IDS_PLUGIN_DESCRIPTION          104
 #define IDS_PLUGIN_ITEM_NAME            105
-#define IDC_CHECK1                      1000
+#define IDS_MUTE                        106
 #define IDC_SHOW_DB_CHECK               1000
 
 // Next default values for new objects
