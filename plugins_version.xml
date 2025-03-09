@@ -11,4 +11,6 @@
     <plugin file_name="PomodoroTimer.dll" version="1.4"/>
     <plugin file_name="PowerMonPlugin.dll" version="1.3.7.5"/>
     <plugin file_name="TrafficMonitorLuaPlugin.dll" version="1.0"/>
+    <plugin file_name="KeyboardIndicator.dll" version="1.00"/>
+    <plugin file_name="LoudnessMeter.dll" version="1.00"/>
 </plugins>

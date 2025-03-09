@@ -195,3 +195,36 @@
 
 * 下载链接：[Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
 
+---
+
+### 键盘指示器
+
+![image-20250309172613785](images/image-20250309172613785.png)
+
+一个用于显示键盘Caps Lock、Num Lock、Scroll Lock等状态的插件。
+
+* 版本：V1.00
+
+* 下载链接：
+
+  GitHub: [Release KeyboardIndicator_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/KeyboardIndicator_V1.00)
+
+  Gitee: [KeyboardIndicator_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/KeyboardIndicator_V1.00)
+
+
+
+---
+
+### 响度计
+
+![image-20250309173332515](images/image-20250309173332515.png)
+
+一个用于显示当前系统音量的插件。
+
+* 版本：V1.00
+
+* 下载链接：
+
+  GitHub: [Release LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
+
+  Gitee: [LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
