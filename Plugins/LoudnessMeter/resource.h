@@ -7,14 +7,17 @@
 #define IDS_PLUGIN_DESCRIPTION          104
 #define IDI_ICON1                       104
 #define IDS_PLUGIN_ITEM_NAME            105
+#define IDI_ICON2                       105
+#define IDI_UPDATE                      105
 #define IDS_MUTE                        106
+#define IDS_RE_INIT                     107
 #define IDC_SHOW_DB_CHECK               1000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        105
+#define _APS_NEXT_RESOURCE_VALUE        106
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1001
 #define _APS_NEXT_SYMED_VALUE           103

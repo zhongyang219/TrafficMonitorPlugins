@@ -12,10 +12,7 @@ CLoudnessMeter::CLoudnessMeter()
     CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&pEnumerator);
     if (pEnumerator == nullptr)
         return;
-    pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
-    if (pDevice == nullptr)
-        return;
-    pDevice->Activate(__uuidof(IAudioMeterInformation), CLSCTX_ALL, NULL, (void**)&pMeterInfo);
+    InitDevice();
 }
 
 CLoudnessMeter::~CLoudnessMeter()
@@ -116,13 +113,40 @@ void* CLoudnessMeter::GetPluginIcon()
     return g_data.GetIcon(IDI_ICON1);
 }
 
+int CLoudnessMeter::GetCommandCount()
+{
+    return 1;
+}
+
+const wchar_t* CLoudnessMeter::GetCommandName(int command_index)
+{
+    if (command_index == 0)
+        return g_data.StringRes(IDS_RE_INIT).GetString();
+    return nullptr;
+}
+
+void* CLoudnessMeter::GetCommandIcon(int command_index)
+{
+    if (command_index == 0)
+        return g_data.GetIcon(IDI_UPDATE);
+    return nullptr;
+}
+
+void CLoudnessMeter::OnPluginCommand(int command_index, void* hWnd, void* para)
+{
+    if (command_index == 0)
+    {
+        InitDevice();
+    }
+}
+
 void CLoudnessMeter::DoDataAcquire()
 {
     float peakValue = 0.0f;
     if (pMeterInfo != nullptr)
     {
         pMeterInfo->GetPeakValue(&peakValue);
-        if (peakValue > 0.0f)
+        if (peakValue > 1e-6f)
         {
             float dB = static_cast<float>(20 * log10(peakValue));
             m_item.SetValue(dB, peakValue * 100, CLoudnessMeterItem::DB_VALID);
@@ -136,6 +160,14 @@ void CLoudnessMeter::DoDataAcquire()
     {
         m_item.SetValue(0, 0, CLoudnessMeterItem::DB_INVALID);
     }
+}
+
+void CLoudnessMeter::InitDevice()
+{
+    pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
+    if (pDevice == nullptr)
+        return;
+    pDevice->Activate(__uuidof(IAudioMeterInformation), CLSCTX_ALL, NULL, (void**)&pMeterInfo);
 }
 
 ITMPlugin* TMPluginGetInstance()

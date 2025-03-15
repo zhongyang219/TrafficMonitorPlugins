@@ -22,9 +22,14 @@ public:
     virtual const wchar_t* GetInfo(PluginInfoIndex index) override;
     virtual void OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data) override;
     virtual void* GetPluginIcon() override;
+    virtual int GetCommandCount() override;
+    virtual const wchar_t* GetCommandName(int command_index) override;
+    virtual void* GetCommandIcon(int command_index) override;
+    virtual void OnPluginCommand(int command_index, void* hWnd, void* para) override;
 
 private:
     void DoDataAcquire();
+    void InitDevice();
 
 private:
     static CLoudnessMeter m_instance;
