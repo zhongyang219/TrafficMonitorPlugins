@@ -96,11 +96,21 @@
 
 * 作者：[CListery](https://github.com/CListery)
 
-* 仓库地址：[TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins)
+* 仓库地址（插件 issue 可以提到这里）：[CListery · TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins)
 
 * 下载链接：
 
-  GitHub: [Release · CListery/TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins/releases)
+  > 由于主干代码更新可能不及时，请从下面这些地方检查最新版本
+
+  * 主干
+
+    * GitHub: [Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+
+    * Gitee: [Stock_V1.13 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+
+  * 分支
+
+    * GitHub: [Release · CListery/TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins/releases)
 
 ---
 
