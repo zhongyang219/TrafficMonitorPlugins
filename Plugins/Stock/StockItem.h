@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "PluginInterface.h"
+#include "FloatingWnd.h"
 
 class StockItem : public IPluginItem
 {
@@ -17,4 +18,7 @@ public:
     int index;
     std::wstring stock_id;
     bool enable;
+
+private:
+    void requestMinlineData();
 };
