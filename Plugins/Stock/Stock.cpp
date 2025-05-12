@@ -92,7 +92,7 @@ IPluginItem *Stock::GetItem(int index)
 
 const wchar_t *Stock::GetTooltipInfo()
 {
-    return m_tooltop_info.c_str();
+    return L"";
 }
 
 void Stock::DataRequired()
@@ -152,15 +152,9 @@ const wchar_t *Stock::GetInfo(PluginInfoIndex index)
     case TMI_AUTHOR:
         return L"CListery";
     case TMI_COPYRIGHT:
-    {
-        static std::wstring copyright;
-        SYSTEMTIME now_time;
-        GetLocalTime(&now_time);
-        copyright = L"Copyright © 2022-" + std::to_wstring(now_time.wYear) + L" CListery. All rights reserved.";
-        return copyright.c_str();
-    }
+        return L"Copyright (C) by CListery 2022";
     case ITMPlugin::TMI_URL:
-        return L"https://github.com/CListery/TrafficMonitorPlugins";
+        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
     case TMI_VERSION:
         return L"1.14";
     default:

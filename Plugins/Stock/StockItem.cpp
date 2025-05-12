@@ -11,16 +11,32 @@
 const wchar_t *StockItem::GetItemName() const
 {
     static std::wstring item_name;
-    item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
-    item_name += std::to_wstring(index);
+    auto data = g_data.GetStockData(stock_id);
+    if (data)
+    {
+        item_name = data->info.displayName;
+    }
+    else
+    {
+        item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
+        item_name += std::to_wstring(index);
+    }
     return item_name.c_str();
 }
 
 const wchar_t *StockItem::GetItemId() const
 {
     static std::wstring item_id;
-    item_id = L"qL0KmmYi";
-    item_id += std::to_wstring(index);
+    auto data = g_data.GetStockData(stock_id);
+    if (data)
+    {
+        item_id = data->info.code;
+    }
+    else
+    {
+        item_id = L"qL0KmmYi";
+        item_id += std::to_wstring(index);
+    }
     return item_id.c_str();
 }
 
@@ -31,10 +47,11 @@ const wchar_t *StockItem::GetItemLableText() const
 
 const wchar_t *StockItem::GetItemValueText() const
 {
-    auto data = g_data.GetStockData(stock_id);
-    static std::wstring current;
-    current = data->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name);
-    return current.c_str();
+    //auto data = g_data.GetStockData(stock_id);
+    //static std::wstring current;
+    //current = data->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name);
+    //return current.c_str();
+    return L"";
 }
 
 bool StockItem::IsCustomDraw() const
@@ -44,7 +61,24 @@ bool StockItem::IsCustomDraw() const
 int StockItem::GetItemWidthEx(void *hDC) const
 {
     CDC *pDC = CDC::FromHandle((HDC)hDC);
-    return std::max(pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
+    //std::wstring sample;
+    //if (g_data.m_setting_data.m_show_stock_name)
+    //{
+    //    sample = L"----: 00.00 +0.00%";
+    //}
+    //else
+    //{
+    //    sample = L"00.00 +0.00%";
+    //}
+    //return std::max(pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx, pDC->GetTextExtent(sample.c_str()).cx);
+    int width = pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx;
+    
+    char buff[32];
+    sprintf_s(buff, "GetItemWidthEx %d", width);
+
+    CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
+    LogX(L"GetItemWidthEx: %d\n", width);
+    return width;
 }
 
 void StockItem::DrawItem(void *hDC, int x, int y, int w, int h, bool dark_mode)
@@ -108,24 +142,21 @@ void StockItem::DrawItem(void *hDC, int x, int y, int w, int h, bool dark_mode)
 
 const wchar_t *StockItem::GetItemValueSampleText() const
 {
-    if (g_data.m_setting_data.m_show_stock_name)
-    {
-        return L"--------: 0000000.00 +00.00%";
-    }
-    else
-    {
-        return L"0000000.00 +00.00%";
-    }
-}
-
-void StockItem::requestMinlineData()
-{
+    //    if (g_data.m_setting_data.m_show_stock_name)
+    //    {
+    //        return L"--------: 0000000.00 +00.00%";
+    //    }
+    //    else
+    //    {
+    //        return L"0000000.00 +00.00%";
+    //    }
+    return L"";
 }
 
 int StockItem::OnMouseEvent(MouseEventType type, int x, int y, void *hWnd, int flag)
 {
     CWnd *pWnd = CWnd::FromHandle((HWND)hWnd);
-    LogX(L"OnMouseEvent: %d", type);
+    LogX(L"OnMouseEvent: %d\n", type);
     switch (type)
     {
     case IPluginItem::MT_RCLICKED:
