@@ -32,7 +32,7 @@ public:
 
 private:
     static UINT ThreadCallback(LPVOID dwUser);
-    void ParseJsonData(std::string json_data);
+    bool ParseJsonData(std::string json_data);
     void LoadContextMenu();
 
 private:

@@ -52,10 +52,12 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         std::string weather_data;
         if (CCommon::GetURL(url, weather_data))
         {
-            m_instance.ParseJsonData(weather_data);
-            //将天气信息保存到Weather.json
-            std::ofstream stream{ g_data.m_config_dir + L"Weather.json" };
-            stream << weather_data;
+            if (m_instance.ParseJsonData(weather_data))
+            {
+                //解析成功时，将天气信息保存到Weather.json
+                std::ofstream stream{ g_data.m_config_dir + L"Weather.json" };
+                stream << weather_data;
+            }
         }
 
         if (m_instance.m_option_dlg != nullptr)
@@ -90,85 +92,85 @@ static void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val
     }
 }
 
-void CWeather::ParseJsonData(std::string json_data)
+bool CWeather::ParseJsonData(std::string json_data)
 {
+    yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
+    if (doc == nullptr)
+        return false;
+    //获取Json根节点
+    yyjson_val* root = yyjson_doc_get_root(doc);
+    if (root == nullptr)
+        return false;
+
     g_data.ResetText();
 
-    yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
-    if (doc != nullptr)
+    //获取日期
+    int year{};
+    int month{};
+    int day{};
+    std::string str_date = utilities::JsonHelper::GetJsonString(root, "date");
+    if (str_date.size() >= 4)
+        year = atoi(str_date.substr(0, 4).c_str());
+    if (str_date.size() >= 6)
+        month = atoi(str_date.substr(4, 2).c_str());
+    if (str_date.size() >= 8)
+        day = atoi(str_date.substr(6, 2).c_str());
+
+    //获取城市
+    yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
+    std::wstring str_city = utilities::JsonHelper::GetJsonWString(city_info, "city");
+
+    //获取时间
+    std::string str_time = utilities::JsonHelper::GetJsonString(city_info, "updateTime");
+    std::vector<std::string> time_split;
+    utilities::StringHelper::StringSplit(str_time, ':', time_split);
+    int hour{};
+    int minute{};
+    if (time_split.size() >= 1)
+        hour = atoi(time_split[0].c_str());
+    if (time_split.size() >= 2)
+        minute = atoi(time_split[1].c_str());
+    g_data.m_update_time = CTime(year, month, day, hour, minute, 0);
+
+    //获取当前天气
+    yyjson_val* data = yyjson_obj_get(root, "data");
+    g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(data, "wendu") + L"℃";
+    g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
+
+    //空气质量
+    g_data.m_pm2_5 = utilities::JsonHelper::GetJsonFloat(data, "pm25");
+    g_data.m_quality = utilities::JsonHelper::GetJsonWString(data, "quality");
+
+    //获取3天的天气
+    yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
+    if (forecast_arr != nullptr && yyjson_is_arr(forecast_arr))
     {
-        //获取Json根节点
-        yyjson_val* root = yyjson_doc_get_root(doc);
-        if (root == nullptr)
-            return;
-
-        //获取日期
-        int year{};
-        int month{};
-        int day{};
-        std::string str_date = utilities::JsonHelper::GetJsonString(root, "date");
-        if (str_date.size() >= 4)
-            year = atoi(str_date.substr(0, 4).c_str());
-        if (str_date.size() >= 6)
-            month = atoi(str_date.substr(4, 2).c_str());
-        if (str_date.size() >= 8)
-            day = atoi(str_date.substr(6, 2).c_str());
-
-        //获取城市
-        yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
-        std::wstring str_city = utilities::JsonHelper::GetJsonWString(city_info, "city");
-
-        //获取时间
-        std::string str_time = utilities::JsonHelper::GetJsonString(city_info, "updateTime");
-        std::vector<std::string> time_split;
-        utilities::StringHelper::StringSplit(str_time, ':', time_split);
-        int hour{};
-        int minute{};
-        if (time_split.size() >= 1)
-            hour = atoi(time_split[0].c_str());
-        if (time_split.size() >= 2)
-            minute = atoi(time_split[1].c_str());
-        g_data.m_update_time = CTime(year, month, day, hour, minute, 0);
-
-        //获取当前天气
-        yyjson_val* data = yyjson_obj_get(root, "data");
-        g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(data, "wendu") + L"℃";
-        g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
-
-        //空气质量
-        g_data.m_pm2_5 = utilities::JsonHelper::GetJsonFloat(data, "pm25");
-        g_data.m_quality = utilities::JsonHelper::GetJsonWString(data, "quality");
-
-        //获取3天的天气
-        yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
-        if (forecast_arr != nullptr && yyjson_is_arr(forecast_arr))
-        {
-            yyjson_val* forecast_today = yyjson_arr_get_first(forecast_arr);
-            yyjson_val* forecast_tommorrow = yyjson_arr_get(forecast_arr, 1);
-            yyjson_val* forecast_day2 = yyjson_arr_get(forecast_arr, 2);
-            ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
-            ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
-            ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
-            g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
-        }
-
-        //生成鼠标提示字符串
-        const CDataManager::WeatherInfo& weather_current{ g_data.m_weather_info[WEATHER_CURRENT] };
-        const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
-        const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
-        const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
-        std::wstringstream wss;
-        wss << str_city << L' ' << weather_current.ToString()
-            << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
-            << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
-            << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
-            << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
-            << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
-            ;
-        m_tooltop_info = wss.str();
-
-        yyjson_doc_free(doc);
+        yyjson_val* forecast_today = yyjson_arr_get_first(forecast_arr);
+        yyjson_val* forecast_tommorrow = yyjson_arr_get(forecast_arr, 1);
+        yyjson_val* forecast_day2 = yyjson_arr_get(forecast_arr, 2);
+        ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
+        ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
+        ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
+        g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
     }
+
+    //生成鼠标提示字符串
+    const CDataManager::WeatherInfo& weather_current{ g_data.m_weather_info[WEATHER_CURRENT] };
+    const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
+    const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
+    const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
+    std::wstringstream wss;
+    wss << str_city << L' ' << weather_current.ToString()
+        << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
+        << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
+        << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
+        << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
+        << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
+        ;
+    m_tooltop_info = wss.str();
+
+    yyjson_doc_free(doc);
+    return true;
 }
 
 void CWeather::LoadContextMenu()
