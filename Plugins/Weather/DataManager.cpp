@@ -186,11 +186,12 @@ CDataManager::WeatherInfo& CDataManager::GetWeather()
 
 CString CDataManager::GetUpdateTimeAsString()
 {
-    // 获取当前时间
-    CTime now = CTime::GetCurrentTime();
+    // 获取当前日期和更新日期
+    CTime now_date = CCommon::GetDateOnly(CTime::GetCurrentTime());
+    CTime update_date = CCommon::GetDateOnly(m_update_time);
 
     // 计算日期差（以天为单位）
-    CTimeSpan span = now - m_update_time;
+    CTimeSpan span = now_date - update_date;
     int daysDiff = static_cast<int>(span.GetDays());
 
     // 格式化日期部分

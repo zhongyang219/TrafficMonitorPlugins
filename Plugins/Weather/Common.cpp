@@ -97,3 +97,14 @@ std::wstring CCommon::URLEncode(const std::wstring& wstr)
     }
     return result;
 }
+
+CTime CCommon::GetDateOnly(CTime time)
+{
+    // 将时间设置为 00:00:00，只保留日期部分
+    return CTime(
+        time.GetYear(),
+        time.GetMonth(),
+        time.GetDay(),
+        0, 0, 0, 0 // 将小时、分钟、秒、毫秒设置为 0
+    );
+}

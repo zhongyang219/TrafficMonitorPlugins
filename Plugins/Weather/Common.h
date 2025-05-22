@@ -14,6 +14,8 @@ public:
     //将一个字符串转换成URL编码（以UTF8编码格式）
     static std::wstring URLEncode(const std::wstring& wstr);
 
+    //去掉日期部分仅保留时间部分
+    static CTime GetDateOnly(CTime time);
 };
 
 
