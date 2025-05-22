@@ -12,14 +12,21 @@ const wchar_t *StockItem::GetItemName() const
 {
     static std::wstring item_name;
     auto data = g_data.GetStockData(stock_id);
-    if (data)
+    if (data->info.is_ok)
     {
-        item_name = data->info.displayName;
+        if (data)
+        {
+            item_name = data->info.displayName;
+        }
+        else
+        {
+            item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
+            item_name += std::to_wstring(index);
+        }
     }
     else
     {
-        item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
-        item_name += std::to_wstring(index);
+        item_name = stock_id + L" " + g_data.StringRes(IDS_LOAD_FAIL).GetString();
     }
     return item_name.c_str();
 }
@@ -27,16 +34,8 @@ const wchar_t *StockItem::GetItemName() const
 const wchar_t *StockItem::GetItemId() const
 {
     static std::wstring item_id;
-    auto data = g_data.GetStockData(stock_id);
-    if (data)
-    {
-        item_id = data->info.code;
-    }
-    else
-    {
-        item_id = L"qL0KmmYi";
-        item_id += std::to_wstring(index);
-    }
+    item_id = L"qL0KmmYi";
+    item_id += std::to_wstring(index);
     return item_id.c_str();
 }
 
@@ -47,10 +46,6 @@ const wchar_t *StockItem::GetItemLableText() const
 
 const wchar_t *StockItem::GetItemValueText() const
 {
-    //auto data = g_data.GetStockData(stock_id);
-    //static std::wstring current;
-    //current = data->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name);
-    //return current.c_str();
     return L"";
 }
 
@@ -61,18 +56,8 @@ bool StockItem::IsCustomDraw() const
 int StockItem::GetItemWidthEx(void *hDC) const
 {
     CDC *pDC = CDC::FromHandle((HDC)hDC);
-    //std::wstring sample;
-    //if (g_data.m_setting_data.m_show_stock_name)
-    //{
-    //    sample = L"----: 00.00 +0.00%";
-    //}
-    //else
-    //{
-    //    sample = L"00.00 +0.00%";
-    //}
-    //return std::max(pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx, pDC->GetTextExtent(sample.c_str()).cx);
     int width = pDC->GetTextExtent(g_data.GetStockData(stock_id)->GetCurrentDisplay(g_data.m_setting_data.m_show_stock_name).c_str()).cx;
-    
+
     char buff[32];
     sprintf_s(buff, "GetItemWidthEx %d", width);
 
@@ -108,7 +93,7 @@ void StockItem::DrawItem(void *hDC, int x, int y, int w, int h, bool dark_mode)
     }
 
     CRect rect_value{rect};
-    if (g_data.m_setting_data.m_show_stock_name)
+    if (data->info.is_ok && g_data.m_setting_data.m_show_stock_name)
     {
         // 绘制名称
         pDC->SetTextColor(color_default);

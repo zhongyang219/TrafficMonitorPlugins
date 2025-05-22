@@ -16,8 +16,9 @@
 #define IDS_RESTART_TRAFFICMONITOR_INFO 110
 #define IDS_CHANGE_STOCK_TIP            110
 #define IDS_STOCK_NUM_LIMIT_WARNING     111
-#define IDS_CHANGE_SHOW_STOCK_NAME_TIP  112
-#define IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP 113
+#define IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP 112
+#define IDS_LOAD_FAIL                   113
+#define IDS_LOADING                     114
 #define IDC_CODE_EDIT                   1003
 #define IDC_UPDATE_BUTTON               1004
 #define IDC_FULL_DAY_CHECK              1005

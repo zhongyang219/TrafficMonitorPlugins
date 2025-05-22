@@ -7,7 +7,6 @@
 #include <chrono>
 #include <iostream>
 
-// 使用命名空间避免名称冲突
 namespace STOCK
 {
 
@@ -18,8 +17,6 @@ namespace STOCK
   // 金额
   using Amount = double;
   using TimePoint = std::string;
-  // using TimePoint = long long;
-  // using Duration = std::chrono::duration<std::chrono::system_clock>;
 
   // 买卖盘信息
   struct OrderLevel
@@ -157,8 +154,10 @@ namespace STOCK
   // 股票基础信息
   struct StockInfo
   {
-    std::wstring code;        // 股票代码
-    std::wstring displayName; // 股票名称
+    std::wstring code;              // 股票代码
+    std::wstring displayName = L""; // 股票名称
+
+    bool is_ok = TRUE;              // 加载成功标志
     // std::string industry; // 所属行业
   };
 

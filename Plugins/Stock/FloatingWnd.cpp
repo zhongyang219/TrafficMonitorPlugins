@@ -42,6 +42,8 @@ LRESULT CFloatingWnd::OnRequestData(WPARAM wParam, LPARAM lParam)
             // 开始网络请求
             RequestData();
         }
+        loading_state_txt += L".";
+        Invalidate();
     }
     return 0;
 }
@@ -223,48 +225,48 @@ void CFloatingWnd::OnPaint()
         timelinePoint = stockData->getTimelineData()->data;
     }
 
-    float halfH = h / 2.0;
-
-    STOCK::Price priceLimit = realtimeData.priceLimit;
-    float unitY = priceLimit != 0 ? halfH / (priceLimit * 100) : 0;
-
-    memDC.SetTextColor(RGB(179, 64, 65));
-    float upperLimitPrice = realtimeData.prevClosePrice + priceLimit;
-    CString upperLimitTxt;
-    upperLimitTxt.Format(_T("%.2f"), upperLimitPrice);
-    CRect upperLimitTxtRect{rect};
-    upperLimitTxtRect.right = upperLimitTxtRect.left + memDC.GetTextExtent(upperLimitTxt).cx;
-    memDC.DrawText(upperLimitTxt, upperLimitTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
-
-    CString upperLimitRateTxt;
-    upperLimitRateTxt.Format(_T("%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
-    CRect upperLimitRateTxtRect{rect};
-    upperLimitRateTxtRect.left = w - (upperLimitRateTxtRect.left + memDC.GetTextExtent(upperLimitRateTxt).cx);
-    memDC.DrawText(upperLimitRateTxt, upperLimitRateTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
-
-    memDC.SetTextColor(RGB(44, 144, 51));
-    float lowerLimitPrice = realtimeData.prevClosePrice - priceLimit;
-    CString lowerLimitTxt;
-    lowerLimitTxt.Format(_T("%.2f"), lowerLimitPrice);
-    CRect lowerLimitTxtRect{rect};
-    lowerLimitTxtRect.right = lowerLimitTxtRect.left + memDC.GetTextExtent(lowerLimitTxt).cx;
-    memDC.DrawText(lowerLimitTxt, lowerLimitTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
-
-    CString lowerLimitRateTxt;
-    lowerLimitRateTxt.Format(_T("-%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
-    CRect lowerLimitRateTxtRect{rect};
-    lowerLimitRateTxtRect.left = w - (lowerLimitRateTxtRect.left + memDC.GetTextExtent(lowerLimitRateTxt).cx);
-    memDC.DrawText(lowerLimitRateTxt, lowerLimitRateTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
-
-    memDC.SetTextColor(RGB(154, 151, 157));
-    CString middleTxt;
-    middleTxt.Format(_T("%.2f"), realtimeData.prevClosePrice);
-    CRect middleTxtRect{rect};
-    middleTxtRect.right = middleTxtRect.left + memDC.GetTextExtent(middleTxt).cx;
-    memDC.DrawText(middleTxt, middleTxtRect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-
     if (timelinePoint.size() > 0)
     {
+        float halfH = h / 2.0;
+
+        STOCK::Price priceLimit = realtimeData.priceLimit;
+        float unitY = priceLimit != 0 ? halfH / (priceLimit * 100) : 0;
+
+        memDC.SetTextColor(RGB(179, 64, 65));
+        float upperLimitPrice = realtimeData.prevClosePrice + priceLimit;
+        CString upperLimitTxt;
+        upperLimitTxt.Format(_T("%.2f"), upperLimitPrice);
+        CRect upperLimitTxtRect{rect};
+        upperLimitTxtRect.right = upperLimitTxtRect.left + memDC.GetTextExtent(upperLimitTxt).cx;
+        memDC.DrawText(upperLimitTxt, upperLimitTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
+
+        CString upperLimitRateTxt;
+        upperLimitRateTxt.Format(_T("%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
+        CRect upperLimitRateTxtRect{rect};
+        upperLimitRateTxtRect.left = w - (upperLimitRateTxtRect.left + memDC.GetTextExtent(upperLimitRateTxt).cx);
+        memDC.DrawText(upperLimitRateTxt, upperLimitRateTxtRect, DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
+
+        memDC.SetTextColor(RGB(44, 144, 51));
+        float lowerLimitPrice = realtimeData.prevClosePrice - priceLimit;
+        CString lowerLimitTxt;
+        lowerLimitTxt.Format(_T("%.2f"), lowerLimitPrice);
+        CRect lowerLimitTxtRect{rect};
+        lowerLimitTxtRect.right = lowerLimitTxtRect.left + memDC.GetTextExtent(lowerLimitTxt).cx;
+        memDC.DrawText(lowerLimitTxt, lowerLimitTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
+
+        CString lowerLimitRateTxt;
+        lowerLimitRateTxt.Format(_T("-%.2f%%"), priceLimit * 100.0 / realtimeData.prevClosePrice);
+        CRect lowerLimitRateTxtRect{rect};
+        lowerLimitRateTxtRect.left = w - (lowerLimitRateTxtRect.left + memDC.GetTextExtent(lowerLimitRateTxt).cx);
+        memDC.DrawText(lowerLimitRateTxt, lowerLimitRateTxtRect, DT_BOTTOM | DT_SINGLELINE | DT_NOPREFIX);
+
+        memDC.SetTextColor(RGB(154, 151, 157));
+        CString middleTxt;
+        middleTxt.Format(_T("%.2f"), realtimeData.prevClosePrice);
+        CRect middleTxtRect{rect};
+        middleTxtRect.right = middleTxtRect.left + memDC.GetTextExtent(middleTxt).cx;
+        memDC.DrawText(middleTxt, middleTxtRect, DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
         std::vector<CPoint> dataPoints;
         for (const STOCK::TimelinePoint &item : timelinePoint)
         {
@@ -284,8 +286,8 @@ void CFloatingWnd::OnPaint()
     else
     {
         memDC.SelectObject(&pMiddleLine);
-        CString status{L"Loading..."};
-        memDC.TextOut((w - memDC.GetTextExtent(status).cx) / 2, g_data.RDPI(10), status);
+        memDC.SetTextColor(RGB(154, 151, 157));
+        memDC.TextOut((w - memDC.GetTextExtent(loading_state_txt).cx) / 2, g_data.RDPI(10), loading_state_txt);
     }
 
     memDC.SelectObject(pOldPen);
@@ -310,6 +312,7 @@ void CFloatingWnd::RequestData()
 {
     if (!m_is_thread_running)
     {
+        loading_state_txt = g_data.StringRes(IDS_LOADING).GetString();
         AfxBeginThread(NetworkThreadProc, this);
     }
 }

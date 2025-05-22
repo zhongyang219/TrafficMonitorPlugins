@@ -57,10 +57,10 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
     auto stockData = getStock(key);
     stockData->info.code = CCommon::StrToUnicode(item_arr[0].c_str());
 
-    if (item_arr.size() < 2)
-    {
-      stockData->info.displayName = stockData->info.code + L" 获取失败";
+    stockData->info.is_ok = item_arr.size() >= 2;
 
+    if (!stockData->info.is_ok)
+    {
       CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
       continue;
     }
@@ -214,9 +214,16 @@ void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString *
 std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
 {
   std::wstringstream wss;
-  if (include_name)
-    wss << info.displayName << ": ";
-  wss << realTimeData.displayPrice << ' ' << realTimeData.displayFluctuation;
+  if (info.is_ok)
+  {
+    if (include_name)
+      wss << info.displayName << ": ";
+    wss << realTimeData.displayPrice << ' ' << realTimeData.displayFluctuation;
+  }
+  else
+  {
+    wss << info.code + L" " + g_data.StringRes(IDS_LOAD_FAIL).GetString();
+  }
   return wss.str();
 }
 

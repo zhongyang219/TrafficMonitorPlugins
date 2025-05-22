@@ -34,6 +34,7 @@ private:
     bool m_is_thread_running{};
     volatile BOOL m_isDestroying; // 添加销毁标志
     CFont *m_pfont{};
+    CString loading_state_txt;
 
     unsigned __int64 m_last_request_time{};
 };

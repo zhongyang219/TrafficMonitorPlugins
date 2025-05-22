@@ -251,8 +251,9 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_CHANGE_SHOW_STOCK_NAME_TIP "修改隐藏或显示股票名称需要重新启动TrafficMonitor才能生效。"
     IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP "暂不支持除A股外的K线走势！"
+    IDS_LOAD_FAIL           "加载失败"
+    IDS_LOADING             "加载中"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -415,10 +416,10 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_CHANGE_SHOW_STOCK_NAME_TIP 
-                            "To change the hiding or displaying of stock names, you need to restart TrafficMonitor to make it take effect."
     IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP 
                             "K-line trends other than A-shares are not supported yet!"
+    IDS_LOAD_FAIL           "Load Fail"
+    IDS_LOADING             "Loading"
 END
 
 #endif    // 英语(美国) resources
