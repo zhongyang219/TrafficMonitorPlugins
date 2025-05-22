@@ -73,8 +73,10 @@ public:
     static void WriteLog(const wchar_t* str_text, LPCTSTR file_path);
     // 字符串拆分
     static std::vector<std::string> split(const std::string& str, const char pattern);
-    static std::vector<std::string> split(std::string str, std::string pattern);
+    static std::vector<std::string> split(const std::string& str, const std::string& delimiter);
     static std::wstring vectorJoinString(const std::vector<std::wstring> data, const std::wstring& pattern);
+    static std::string removeChar(const std::string& str, char ch);
+    static std::string removeStr(const std::string str, const std::string del);
 };
 
 

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "PluginInterface.h"
+#include "FloatingWnd.h"
 
 class StockItem : public IPluginItem
 {

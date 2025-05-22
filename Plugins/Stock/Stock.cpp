@@ -7,7 +7,7 @@
 
 Stock Stock::m_instance;
 
-Stock::Stock()
+Stock::Stock() : m_pFloatingWnd(NULL)
 {
     m_items = vector<StockItem>(Stock_ITEM_MAX);
     fill(m_items.begin(), m_items.end(), StockItem());
@@ -17,7 +17,12 @@ Stock::Stock()
     }
 }
 
-Stock& Stock::Instance()
+Stock::~Stock()
+{
+    DestroyFloatingWnd();
+}
+
+Stock &Stock::Instance()
 {
     return m_instance;
 }
@@ -27,8 +32,9 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CFlagLocker flag_locker(m_instance.m_is_thread_runing);
 
-    if (g_data.m_setting_data.m_stock_codes.empty()) {
-        //CCommon::WriteLog(L"Stock_code not setting!", g_data.m_log_path.c_str());
+    if (g_data.m_setting_data.m_stock_codes.empty())
+    {
+        // CCommon::WriteLog(L"Stock_code not setting!", g_data.m_log_path.c_str());
         g_data.ResetText();
         return 0;
     }
@@ -38,134 +44,29 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
     {
         m_instance.m_last_request_time = cur_time;
 
-        if (g_data.m_setting_data.m_full_day != 1) {
+        if (g_data.m_setting_data.m_full_day != 1)
+        {
             SYSTEMTIME now_time;
             GetLocalTime(&now_time);
-            //CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
-            //CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
-            if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30)) {
+            // CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
+            // CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
+            if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30))
+            {
                 CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
                 g_data.ResetText();
                 return 0;
             }
         }
 
-        //禁用选项设置中的“更新”按钮
+        // 禁用选项设置中的“更新”按钮
         m_instance.DisableUpdateCommand();
 
-        //std::wstring url{ L"http://ig507.com/data/time/real/" };
-        //url += g_data.m_setting_data.m_stock_code;
-        //url += L"?licence=";
-        //url += g_data.m_setting_data.m_licence;
+        g_data.RequestRealtimeData();
 
-        // https://hq.sinajs.cn/list=sz002497
-        std::wstring url{ L"https://hq.sinajs.cn/list=" };
-        url += CCommon::vectorJoinString(g_data.m_setting_data.m_stock_codes, L",");
-        CString strHeaders = _T("Referer: https://finance.sina.com.cn");
-        CCommon::WriteLog(url.c_str(), g_data.m_log_path.c_str());
-
-        CString UA = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36");
-
-        std::string Stock_data;
-        if (CCommon::GetURL(url, Stock_data, false, UA, strHeaders, strHeaders.GetLength()))
-        {
-            m_instance.ParseJsonData(Stock_data);
-        }
-
-        //启用选项设置中的“更新”按钮
+        // 启用选项设置中的“更新”按钮
         m_instance.EnableUpdateCommand();
     }
     return 0;
-}
-
-void Stock::ParseJsonData(std::string json_data)
-{
-    //CCommon::WriteLog(json_data.c_str(), g_data.m_log_path.c_str());
-    //LogX(L"ParseJsonData: %s", CCommon::StrToUnicode(json_data.c_str()).c_str());
-
-    g_data.ResetText();
-
-    if (json_data == "") {
-        CCommon::WriteLog("response is EMPTY!", g_data.m_log_path.c_str());
-        return;
-    }
-
-    std::vector<std::string> origin_arr = CCommon::split(json_data, "var hq_str_");
-    if (origin_arr.size() < 1) {
-        CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
-        return;
-    }
-
-    for (int index = 0; index < origin_arr.size(); index++)
-    {
-        std::vector<std::string> item_arr = CCommon::split(origin_arr[index], "=\"");
-        if (item_arr.size() < 2)
-        {
-            CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
-            continue;
-        }
-
-        std::string key = item_arr[0];
-        std::string data = item_arr[1];
-        std::vector<std::string> data_arr = CCommon::split(data, ',');
-
-        StockInfo& StockInfo = g_data.GetStockInfo(CCommon::StrToUnicode(key.c_str()));
-
-        int data_size = static_cast<int> (data_arr.size());
-
-        CString name;
-        float now = -1;
-        float yesterday = -1;
-        if (key.find(kMG) == 0)
-        {
-            if (data_size != 35) {
-                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
-                continue;
-            }
-            name = data_arr[0].c_str();
-            now = { convert<float>(data_arr[1]) };
-            yesterday = { convert<float>(data_arr[26]) };
-        }
-        else if (key.find(kHK) == 0) 
-        {
-            if (data_size != 25) {
-                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
-                continue;
-            }
-            name = data_arr[1].c_str();
-            now = { convert<float>(data_arr[6]) };
-            yesterday = { convert<float>(data_arr[3]) };
-        }
-        else if (key.find(kBJ) == 0)
-        {
-            if (data_size != 39) {
-                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
-                continue;
-            }
-            name = data_arr[0].c_str();
-            now = { convert<float>(data_arr[3]) };
-            yesterday = { convert<float>(data_arr[2]) };
-        }
-        else // key.find(kSH) != -1 || key.find(kSZ) != -1
-        {
-            if (data_size != 33 && data_size != 34) {
-                CCommon::WriteLog("data is INVALID!", g_data.m_log_path.c_str());
-                continue;
-            }
-            name = data_arr[0].c_str();
-            now = { convert<float>(data_arr[3]) };
-            yesterday = { convert<float>(data_arr[2]) };
-        }
-
-        char buff[32];
-        sprintf_s(buff, "%.2f", now);
-        StockInfo.p = CCommon::StrToUnicode(buff);
-
-        sprintf_s(buff, "%.2f%%", ((now - yesterday) / yesterday * 100));
-        StockInfo.pc = CCommon::StrToUnicode(buff);
-
-        StockInfo.name = name;
-    }
 }
 
 void Stock::LoadContextMenu()
@@ -177,7 +78,7 @@ void Stock::LoadContextMenu()
     }
 }
 
-IPluginItem* Stock::GetItem(int index)
+IPluginItem *Stock::GetItem(int index)
 {
     size_t item_size = m_items.size();
     if (g_data.m_setting_data.m_stock_codes.size() < item_size)
@@ -189,25 +90,50 @@ IPluginItem* Stock::GetItem(int index)
     return &(m_items[index]);
 }
 
-const wchar_t* Stock::GetTooltipInfo()
+const wchar_t *Stock::GetTooltipInfo()
 {
-    return m_tooltop_info.c_str();
+    return L"";
 }
 
 void Stock::DataRequired()
 {
-    static time_t last_req_time{ -1 };
+    static time_t last_req_time{-1};
     time_t cur_time = time(nullptr);
-    if (cur_time - m_instance.m_last_request_time > 3) {
+    if (cur_time - m_instance.m_last_request_time > 3)
+    {
         last_req_time = cur_time;
-        SendStockInfoQequest();
+        SendStockInfoRequest();
+    }
+    std::lock_guard<std::mutex> lock(m_wndMutex);
+    if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
+    {
+        m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
+        // DWORD_PTR dwResult = 0;
+        // LRESULT lr = ::SendMessageTimeout(
+        //     m_pFloatingWnd->GetSafeHwnd(),  // 目标窗口句柄
+        //     FWND_MSG_REQUEST_DATA,          // 消息ID
+        //     cur_time,                       // wParam
+        //     0,                              // lParam
+        //     SMTO_ABORTIFHUNG | SMTO_BLOCK,  // 如果窗口挂起则放弃，并阻塞调用线程
+        //     2000,                           // 2秒超时
+        //     &dwResult);                     // 接收返回值
+
+        // if (lr == 0) // 失败
+        //{
+        //     DWORD dwErr = GetLastError();
+        //     // 处理错误：记录日志或销毁无效窗口等
+        //     if (dwErr == ERROR_TIMEOUT)
+        //     {
+        //         TRACE("SendMessageTimeout timed out\n");
+        //     }
+        // }
     }
 }
 
-ITMPlugin::OptionReturn Stock::ShowOptionsDialog(void* hParent)
+ITMPlugin::OptionReturn Stock::ShowOptionsDialog(void *hParent)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
-    CWnd* pParent = CWnd::FromHandle((HWND)hParent);
+    CWnd *pParent = CWnd::FromHandle((HWND)hParent);
     if (ShowStockManageDlg(pParent) == IDOK)
     {
         return ITMPlugin::OR_OPTION_CHANGED;
@@ -215,9 +141,8 @@ ITMPlugin::OptionReturn Stock::ShowOptionsDialog(void* hParent)
     return ITMPlugin::OR_OPTION_UNCHANGED;
 }
 
-const wchar_t* Stock::GetInfo(PluginInfoIndex index)
+const wchar_t *Stock::GetInfo(PluginInfoIndex index)
 {
-    static CString str;
     switch (index)
     {
     case TMI_NAME:
@@ -231,24 +156,24 @@ const wchar_t* Stock::GetInfo(PluginInfoIndex index)
     case ITMPlugin::TMI_URL:
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
     case TMI_VERSION:
-        return L"1.13";
+        return L"1.14";
     default:
         break;
     }
     return L"";
 }
 
-void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
+void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t *data)
 {
     switch (index)
     {
     case ITMPlugin::EI_CONFIG_DIR:
-        //从配置文件读取配置
+        // 从配置文件读取配置
         g_data.LoadConfig(std::wstring(data));
         updateItems();
         break;
     case ITMPlugin::EI_TASKBAR_WND_VALUE_RIGHT_ALIGN:
-        //获取TrafficMonitor任务栏窗口中“数值右对齐”设置
+        // 获取TrafficMonitor任务栏窗口中“数值右对齐”设置
         g_data.m_right_align = (_wtoi(data) != 0);
         break;
     default:
@@ -261,26 +186,27 @@ int Stock::GetCommandCount()
     return 1;
 }
 
-const wchar_t* Stock::GetCommandName(int command_index)
-{
-    switch (command_index)
-    {
-    case 0: return g_data.StringRes(IDS_MENU_UPDATE_STOCK).GetString();
-    }
-    return nullptr;
-}
-
-void Stock::OnPluginCommand(int command_index, void* hWnd, void* para)
+const wchar_t *Stock::GetCommandName(int command_index)
 {
     switch (command_index)
     {
     case 0:
-        SendStockInfoQequest();
+        return g_data.StringRes(IDS_MENU_UPDATE_STOCK).GetString();
+    }
+    return nullptr;
+}
+
+void Stock::OnPluginCommand(int command_index, void *hWnd, void *para)
+{
+    switch (command_index)
+    {
+    case 0:
+        SendStockInfoRequest();
         break;
     }
 }
 
-void* Stock::GetPluginIcon()
+void *Stock::GetPluginIcon()
 {
     return g_data.GetIcon(IDI_STOCK);
 }
@@ -303,7 +229,7 @@ void Stock::updateItems()
     }
 }
 
-INT_PTR Stock::ShowStockManageDlg(CWnd* pWnd)
+INT_PTR Stock::ShowStockManageDlg(CWnd *pWnd)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CManagerDialog dlg(pWnd);
@@ -320,51 +246,111 @@ INT_PTR Stock::ShowStockManageDlg(CWnd* pWnd)
     return rtn;
 }
 
-void Stock::SendStockInfoQequest()
+void Stock::SendStockInfoRequest()
 {
-    if (!m_is_thread_runing)    //确保线程已退出
+    if (!m_is_thread_runing) // 确保线程已退出
         AfxBeginThread(ThreadCallback, nullptr);
 }
 
-void Stock::ShowContextMenu(CWnd* pWnd)
+void Stock::ShowContextMenu(CWnd *pWnd)
 {
     LoadContextMenu();
-    CMenu* context_menu = m_menu.GetSubMenu(0);
+    CMenu *context_menu = m_menu.GetSubMenu(0);
     if (context_menu != nullptr)
     {
         CPoint point1;
         GetCursorPos(&point1);
         DWORD id = context_menu->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD, point1.x, point1.y, pWnd);
-        //点击了“管理”
+        // 点击了“管理”
         if (id == ID_OPTIONS)
         {
             ShowStockManageDlg(pWnd);
         }
-        //点击了“更新”
+        // 点击了“更新”
         else if (id == ID_UPDATE)
         {
-            SendStockInfoQequest();
+            SendStockInfoRequest();
         }
+    }
+}
+
+void Stock::ShowFloatingWnd(void *hWnd, CPoint ptScreen, std::wstring stock_id)
+{
+    // 如果已有悬浮窗，先销毁
+    DestroyFloatingWnd();
+
+    ClientToScreen((HWND)hWnd, &ptScreen);
+
+    CWnd *pWnd = CWnd::FromHandle((HWND)hWnd);
+
+    CFont *font = pWnd->GetParent()->GetFont();
+
+    std::lock_guard<std::mutex> lock(m_wndMutex);
+    // 创建新的悬浮窗
+    m_pFloatingWnd = new CFloatingWnd;
+    if (!m_pFloatingWnd->Create(font, ptScreen, stock_id))
+    {
+        delete m_pFloatingWnd;
+        m_pFloatingWnd = NULL;
+    }
+}
+
+void Stock::DestroyFloatingWnd()
+{
+    std::lock_guard<std::mutex> lock(m_wndMutex);
+    if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
+    {
+        m_pFloatingWnd->DestroyWindow();
+        delete m_pFloatingWnd;
+        m_pFloatingWnd = NULL;
+    }
+}
+
+void Stock::UpdateKLine()
+{
+    std::lock_guard<std::mutex> lock(m_wndMutex);
+    if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
+    {
+        m_pFloatingWnd->SendMessage(FWND_MSG_UPDATE_STATUS, FALSE, 0);
+        // DWORD_PTR dwResult = 0;
+        // LRESULT lr = ::SendMessageTimeout(
+        //     m_pFloatingWnd->GetSafeHwnd(),  // 目标窗口句柄
+        //     FWND_MSG_UPDATE_STATUS,          // 消息ID
+        //     FALSE,                       // wParam
+        //     0,                              // lParam
+        //     SMTO_ABORTIFHUNG | SMTO_BLOCK,  // 如果窗口挂起则放弃，并阻塞调用线程
+        //     2000,                           // 2秒超时
+        //     &dwResult);                     // 接收返回值
+
+        // if (lr == 0) // 失败
+        //{
+        //     DWORD dwErr = GetLastError();
+        //     // 处理错误：记录日志或销毁无效窗口等
+        //     if (dwErr == ERROR_TIMEOUT)
+        //     {
+        //         TRACE("SendMessageTimeout timed out\n");
+        //     }
+        // }
     }
 }
 
 void Stock::DisableUpdateCommand()
 {
-    //if (m_option_dlg != nullptr)
-    //    m_option_dlg->EnableUpdateBtn(false);
+    // if (m_option_dlg != nullptr)
+    //     m_option_dlg->EnableUpdateBtn(false);
     if (m_menu.m_hMenu != NULL)
         m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_GRAYED);
 }
 
 void Stock::EnableUpdateCommand()
 {
-    //if (m_instance.m_option_dlg != nullptr)
-    //    m_instance.m_option_dlg->EnableUpdateBtn(true);
+    // if (m_instance.m_option_dlg != nullptr)
+    //     m_instance.m_option_dlg->EnableUpdateBtn(true);
     if (m_menu.m_hMenu != NULL)
         m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_ENABLED);
 }
 
-ITMPlugin* TMPluginGetInstance()
+ITMPlugin *TMPluginGetInstance()
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     return &Stock::Instance();
