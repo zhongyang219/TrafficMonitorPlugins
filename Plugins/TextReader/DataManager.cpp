@@ -5,6 +5,9 @@
 #include <sstream>
 #include <fstream>
 #include "../utilities/bass64/base64.h"
+#include "../utilities/FilePathHelper.h"
+#include "../utilities/Common.h"
+#include "HtmlToText.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -165,34 +168,47 @@ bool CDataManager::LoadTextContents(LPCTSTR file_path)
     //保存文件的上次修改时间
     CCommon::GetFileLastModified(file_path, m_file_last_modified);
 
-    //获取文件长度
-    file.seekg(0, file.end);
-    size_t length = file.tellg();
-    file.seekg(0, file.beg);
-    if (length > MAX_FILE_SIZE)	//限制文件大小不超过MAX_FILE_SIZE
+    std::wstring ext = utilities::CFilePathHelper(file_path).GetFileExtension();
+    utilities::StringHelper::StringTransform(ext, false);
+    //打开html文件
+    if (ext == L"html" || ext == L"htm")
     {
-        length = MAX_FILE_SIZE;
+        CHtmlToText html_to_text;
+        html_to_text.ParseFromFile(file_path);
+        m_text_contents = html_to_text.GetText();
     }
-    if (length <= 0)
-        return false;
-
-    //读取数据
-    char* buff = new char[length + 1];
-    file.read(buff, length);
-    file.close();
-    buff[length] = '\0';
-    std::string str_contents(buff, length);
-    delete[] buff;
-
-    //判断是否是base64编码
-    const int BASE64_MAX_LENGTH = 1048576;
-    if (g_data.m_setting_data.auto_decode_base64 && utilities::IsBase64Code(str_contents, BASE64_MAX_LENGTH))
+    //打开文本文件
+    else
     {
-        str_contents = utilities::Base64Decode(str_contents);
-    }
+        //获取文件长度
+        file.seekg(0, file.end);
+        size_t length = file.tellg();
+        file.seekg(0, file.beg);
+        if (length > MAX_FILE_SIZE)	//限制文件大小不超过MAX_FILE_SIZE
+        {
+            length = MAX_FILE_SIZE;
+        }
+        if (length <= 0)
+            return false;
 
-    bool is_utf8 = CCommon::IsUTF8Bytes(str_contents.c_str());                              //判断编码类型
-    m_text_contents = CCommon::StrToUnicode(str_contents.c_str(), is_utf8);	                //转换成Unicode
+        //读取数据
+        char* buff = new char[length + 1];
+        file.read(buff, length);
+        file.close();
+        buff[length] = '\0';
+        std::string str_contents(buff, length);
+        delete[] buff;
+
+        //判断是否是base64编码
+        const int BASE64_MAX_LENGTH = 1048576;
+        if (g_data.m_setting_data.auto_decode_base64 && utilities::IsBase64Code(str_contents, BASE64_MAX_LENGTH))
+        {
+            str_contents = utilities::Base64Decode(str_contents);
+        }
+
+        bool is_utf8 = CCommon::IsUTF8Bytes(str_contents.c_str());                              //判断编码类型
+        m_text_contents = CCommon::StrToUnicode(str_contents.c_str(), is_utf8);	                //转换成Unicode
+    }
 
     //解析章节
     m_chapter_parser.Parse();

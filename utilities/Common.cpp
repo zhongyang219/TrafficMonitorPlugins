@@ -219,4 +219,33 @@ namespace utilities
         _StringSplit(str, div_str, results, skip_empty, trim);
     }
 
+    template<class T>
+    void _StringTransform(T& str, bool upper)
+    {
+        for (auto& ch : str)
+        {
+            //转换为大写
+            if (upper)
+            {
+                if (ch >= 'a' && ch <= 'z')
+                    ch -= 32;
+            }
+            //转换为小写
+            else
+            {
+                if (ch >= 'A' && ch <= 'Z')
+                    ch += 32;
+            }
+        }
+    }
+
+    void StringHelper::StringTransform(std::wstring& str, bool upper)
+    {
+        _StringTransform(str, upper);
+    }
+
+    void StringHelper::StringTransform(std::string& str, bool upper)
+    {
+        _StringTransform(str, upper);
+    }
 }

@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Common.h"
+#include <afxinet.h>    //用于支持使用网络相关的类
 
 std::wstring CCommon::StrToUnicode(const char* str, bool utf8)
 {
@@ -100,4 +101,48 @@ bool CCommon::GetFileLastModified(const std::wstring& file_path, unsigned __int6
         return true;
     }
     return false;
+}
+
+
+bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, const std::wstring& user_agent)
+{
+    bool succeed{ false };
+    CInternetSession* pSession{};
+    CHttpFile* pfile{};
+    try
+    {
+        pSession = new CInternetSession(user_agent.c_str());
+        pfile = (CHttpFile*)pSession->OpenURL(url.c_str());
+        DWORD dwStatusCode;
+        pfile->QueryInfoStatusCode(dwStatusCode);
+        if (dwStatusCode == HTTP_STATUS_OK)
+        {
+            CString content;
+            CString data;
+            while (pfile->ReadString(data))
+            {
+                content += data;
+            }
+            result = (const char*)content.GetString();
+            succeed = true;
+        }
+        pfile->Close();
+        delete pfile;
+        pSession->Close();
+    }
+    catch (CInternetException* e)
+    {
+        if (pfile != nullptr)
+        {
+            pfile->Close();
+            delete pfile;
+        }
+        if (pSession != nullptr)
+            pSession->Close();
+        succeed = false;
+        e->Delete();
+        SAFE_DELETE(pSession);
+    }
+    SAFE_DELETE(pSession);
+    return succeed;
 }

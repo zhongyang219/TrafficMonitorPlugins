@@ -255,6 +255,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="HtmlToText.h" />
     <ClInclude Include="OptionsContainerDlg.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
@@ -270,6 +271,7 @@
     <ClCompile Include="ChapterParser.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="DataManager.cpp" />
+    <ClCompile Include="HtmlToText.cpp" />
     <ClCompile Include="OptionsContainerDlg.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">

@@ -17,4 +17,6 @@ public:
     //获取一个文件的最后修改时间
     static bool GetFileLastModified(const std::wstring& file_path, unsigned __int64& modified_time);
 
+    //获取URL的内容
+    static bool GetURL(const std::wstring& url, std::string& result, bool utf8 = false, const std::wstring& user_agent = std::wstring());
 };

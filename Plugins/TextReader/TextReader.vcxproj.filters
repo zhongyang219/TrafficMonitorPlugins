@@ -69,6 +69,9 @@
     <ClInclude Include="BookmarkDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="HtmlToText.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -106,6 +109,9 @@
     </ClCompile>
     <ClCompile Include="BookmarkDlg.cpp">
       <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="HtmlToText.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

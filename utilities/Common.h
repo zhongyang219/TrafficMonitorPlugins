@@ -47,6 +47,8 @@ namespace utilities
         static void StringSplit(const std::wstring& str, const std::wstring& div_str, std::vector<std::wstring>& results, bool skip_empty = true, bool trim = true);
         static void StringSplit(const std::string& str, const std::string& div_str, std::vector<std::string>& results, bool skip_empty = true, bool trim = true);
 
+        static void StringTransform(std::wstring& str, bool upper);
+        static void StringTransform(std::string& str, bool upper);
     };
 }
 
