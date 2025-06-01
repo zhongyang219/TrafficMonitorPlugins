@@ -30,6 +30,7 @@ namespace utilities
 
         //字符串替换
         static bool StringReplace(std::wstring& str, const std::wstring& str_old, const std::wstring& str_new);
+        static bool StringReplace(std::string& str, const std::string& str_old, const std::string& str_new);
 
         //安全的格式化字符串，将format_str中形如<%序号%>的字符串替换成初始化列表paras中的元素，元素支持int/size_t/double/const wchar_t*/std::wstring格式，序号从1开始
         static std::wstring StringFormat(const wchar_t* format_str, const std::initializer_list<CVariant>& paras);

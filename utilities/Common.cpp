@@ -95,19 +95,30 @@ namespace utilities
         return result;
     }
 
-    bool StringHelper::StringReplace(std::wstring& str, const std::wstring& str_old, const std::wstring& str_new)
+    template<class T>
+    static bool _StringReplace(T& str, const T& str_old, const T& str_new)
     {
         if (str.empty())
             return false;
         bool replaced{ false };
         size_t pos = 0;
-        while ((pos = str.find(str_old, pos)) != std::wstring::npos)
+        while ((pos = str.find(str_old, pos)) != std::string::npos)
         {
             str.replace(pos, str_old.length(), str_new);
             replaced = true;
             pos += str_new.length();    // 前进到替换后的字符串末尾
         }
         return replaced;
+    }
+
+    bool StringHelper::StringReplace(std::wstring& str, const std::wstring& str_old, const std::wstring& str_new)
+    {
+        return _StringReplace(str, str_old, str_new);
+    }
+
+    bool StringHelper::StringReplace(std::string& str, const std::string& str_old, const std::string& str_new)
+    {
+        return _StringReplace(str, str_old, str_new);
     }
 
     std::wstring StringHelper::StringFormat(const wchar_t* format_str, const std::initializer_list<CVariant>& paras)
