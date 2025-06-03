@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64EC">
@@ -251,17 +251,21 @@
   <ItemGroup>
     <ClInclude Include="Common.h" />
     <ClInclude Include="DataManager.h" />
+    <ClInclude Include="FloatingWnd.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ManagerDialog.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stock.h" />
+    <ClInclude Include="StockDef.h" />
     <ClInclude Include="StockItem.h" />
+    <ClInclude Include="TransparentWnd.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="DataManager.cpp" />
+    <ClCompile Include="FloatingWnd.cpp" />
     <ClCompile Include="ManagerDialog.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">
@@ -273,7 +277,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Stock.cpp" />
+    <ClCompile Include="StockDef.cpp" />
     <ClCompile Include="StockItem.cpp" />
+    <ClCompile Include="TransparentWnd.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Stock.rc" />
