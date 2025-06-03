@@ -32,6 +32,7 @@
 #define IDS_DAYS_LATER                  118
 #define IDI_HEAVY_STORM                 119
 #define IDS_DAYS_AGO2                   119
+#define IDS_DATE_FORMAT                 119
 #define IDI_HEAVY_SNOW                  120
 #define IDI_HEAVY_RAIN                  121
 #define IDI_CLOUDY2                     122

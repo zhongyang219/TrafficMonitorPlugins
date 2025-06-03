@@ -295,6 +295,7 @@ BEGIN
     IDS_YESTERDAY           "昨天"
     IDS_DAYS_AGO            "<%1%> 天前"
     IDS_DAYS_LATER          "<%1%> 天后"
+    IDS_DATE_FORMAT         "<%1%>月<%2%>日"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -450,6 +451,7 @@ BEGIN
     IDS_YESTERDAY           "yesterday"
     IDS_DAYS_AGO            "<%1%> days ago"
     IDS_DAYS_LATER          "<%1%> days later"
+    IDS_DATE_FORMAT         "<%1%>/<%2%>"
 END
 
 #endif    // 英语(美国) resources

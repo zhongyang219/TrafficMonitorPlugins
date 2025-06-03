@@ -159,13 +159,35 @@ bool CWeather::ParseJsonData(std::string json_data)
     const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
     const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
     const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
+    std::wstring today_string;
+    std::wstring tomorrow_string;
+    std::wstring the_day_after_tomorrow_string;
+    CTime now_date = CCommon::GetDateOnly(CTime::GetCurrentTime());
+    CTime update_date = CCommon::GetDateOnly(g_data.m_update_time);
+    //如果更新时间是今天，则鼠标提示中显示为“今天”、“明天”、“后天”
+    if (now_date == update_date)
+    {
+        today_string = g_data.StringRes(IDS_TODAY_WEATHER).GetString();
+        tomorrow_string = g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString();
+        the_day_after_tomorrow_string = g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString();
+    }
+    //更新时间不是今天（天气数据已过期），则鼠标提示中显示具体日期
+    else
+    {
+        const CTimeSpan one_day_span(1, 0, 0, 0);
+        CTime tomorrow_date = update_date + one_day_span;
+        CTime the_day_after_tomorrow_date = tomorrow_date + one_day_span;
+        today_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { update_date.GetMonth(), update_date.GetDay() });
+        tomorrow_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { tomorrow_date.GetMonth(), tomorrow_date.GetDay() });
+        the_day_after_tomorrow_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { the_day_after_tomorrow_date.GetMonth(), the_day_after_tomorrow_date.GetDay() });
+    }
     std::wstringstream wss;
     wss << str_city << L' ' << weather_current.ToString()
         << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
         << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
-        << std::endl << g_data.StringRes(IDS_TODAY_WEATHER).GetString() << L": " << weather_today.ToString()
-        << std::endl << g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString() << L": " << weather_tomorrow.ToString()
-        << std::endl << g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString() << L": " << weather_day2.ToString()
+        << std::endl << today_string << L": " << weather_today.ToString()
+        << std::endl << tomorrow_string << L": " << weather_tomorrow.ToString()
+        << std::endl << the_day_after_tomorrow_string << L": " << weather_day2.ToString()
         ;
     m_tooltop_info = wss.str();
 
