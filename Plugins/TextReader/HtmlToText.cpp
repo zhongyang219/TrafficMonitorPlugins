@@ -121,7 +121,7 @@ std::string CHtmlToText::HtmlToText(const std::string& html)
         {
             char h_level = html[index + 2];
             std::string label_end = "</h" + h_level + '>';
-            size_t index_end = html.find(label_end);
+            size_t index_end = html.find(label_end, index + 4);
             if (index_end == std::string::npos)
                 break;
             cur_text = html.substr(index + 4, index_end - index - 4);
