@@ -28,7 +28,7 @@ const wchar_t* CWeatherItem::GetItemValueText() const
 
 const wchar_t* CWeatherItem::GetItemValueSampleText() const
 {
-    const CDataManager::WeatherInfo& weather_info{ g_data.GetWeather() };
+    const WeatherInfo& weather_info{ g_data.GetWeather() };
     if (g_data.m_setting_data.m_use_weather_icon)
     {
         if (weather_info.is_cur_weather)

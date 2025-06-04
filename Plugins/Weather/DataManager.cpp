@@ -5,6 +5,7 @@
 #include <sstream>
 #include "utilities/IniHelper.h"
 #include "utilities/Common.h"
+#include "HistoryWeatherMgr.h"
 
 CDataManager CDataManager::m_instance;
 
@@ -72,20 +73,23 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.m_show_weather_in_tooltips = ini.GetBool(L"config", L"show_weather_in_tooltips", true);
     m_setting_data.m_use_weather_icon = ini.GetBool(L"config", L"use_weather_icon", true);
     m_setting_data.auto_locate = ini.GetBool(L"config", L"auto_locate", true);
+
+    //载入历史天气数据
+    m_history_weather_mgr.Load();
 }
 
 void CDataManager::SaveConfig() const
 {
-    if (!m_config_path.empty())
-    {
-        utilities::CIniHelper ini(m_config_path);
-        ini.WriteInt(L"config", L"city", m_setting_data.m_city_index);
-        ini.WriteInt(L"config", L"weather_selected", m_setting_data.m_weather_selected);
-        ini.WriteBool(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips);
-        ini.WriteBool(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon);
-        ini.WriteBool(L"config", L"auto_locate", m_setting_data.auto_locate);
-        ini.Save();
-    }
+    utilities::CIniHelper ini(m_config_path);
+    ini.WriteInt(L"config", L"city", m_setting_data.m_city_index);
+    ini.WriteInt(L"config", L"weather_selected", m_setting_data.m_weather_selected);
+    ini.WriteBool(L"config", L"show_weather_in_tooltips", m_setting_data.m_show_weather_in_tooltips);
+    ini.WriteBool(L"config", L"use_weather_icon", m_setting_data.m_use_weather_icon);
+    ini.WriteBool(L"config", L"auto_locate", m_setting_data.auto_locate);
+    ini.Save();
+
+    //保存历史天气数据
+    m_history_weather_mgr.Save();
 }
 
 const CString& CDataManager::StringRes(UINT id)
@@ -179,7 +183,12 @@ HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
     return GetIcon(id);
 }
 
-CDataManager::WeatherInfo& CDataManager::GetWeather()
+CHistoryWeatherMgr& CDataManager::HistoryWeatherMgr()
+{
+    return m_history_weather_mgr;
+}
+
+WeatherInfo& CDataManager::GetWeather()
 {
     return m_weather_info[m_setting_data.m_weather_selected];
 }
@@ -228,29 +237,4 @@ CString CDataManager::GetPM25AsString() const
     wchar_t buff[32];
     swprintf_s(buff, L"%g", m_pm2_5);
     return CString(buff);
-}
-
-std::wstring CDataManager::WeatherInfo::ToString() const
-{
-    std::wstringstream wss;
-    if (m_low.empty() || is_cur_weather)
-        wss << m_type << ' ' << m_high;
-    else if (m_high.empty())
-        wss << m_type << ' ' << m_low;
-    else
-        wss << m_type << ' ' << m_low << '~' << m_high;
-    wss << ' ' << m_wind;
-    return wss.str();
-}
-
-std::wstring CDataManager::WeatherInfo::ToStringTemperature() const
-{
-    std::wstringstream wss;
-    if (m_low.empty() || is_cur_weather)
-        wss << m_high;
-    else if (m_high.empty())
-        wss << m_low;
-    else
-        wss << m_low << '~' << m_high;
-    return wss.str();
 }

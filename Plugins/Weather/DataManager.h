@@ -3,26 +3,10 @@
 #include <map>
 #include "resource.h"
 #include "CityCode.h"
+#include "HistoryWeatherMgr.h"
+#include "CommonData.h"
 
 #define g_data CDataManager::Instance()
-
-enum WeahterSelected
-{
-    WEATHER_CURRENT,
-    WEATHER_TODAY,
-    WEATHER_TOMMORROW,
-    WEATHER_DAY2
-};
-
-struct SettingData
-{
-    int m_city_index{};                     //选择的城市在列表中的序号
-    WeahterSelected m_weather_selected{};   //要显示的天气
-    bool m_show_weather_in_tooltips{};      //是否在鼠标提示中显示
-    bool m_use_weather_icon{};
-    //int m_display_width{};
-    bool auto_locate{};         //自动定位
-};
 
 class CDataManager
 {
@@ -44,18 +28,8 @@ public:
     CityCodeItem CurCity() const;
     void ResetText();
     HICON GetWeatherIcon(const std::wstring weather_type);
+    CHistoryWeatherMgr& HistoryWeatherMgr();
 
-    //一个天气信息
-    struct WeatherInfo
-    {
-        std::wstring m_type = L"--";         //天气类型
-        std::wstring m_high = L"-℃";        //最高温度
-        std::wstring m_low = L"-℃";         //最低温度
-        bool is_cur_weather{};                 //是否为当前温度，如果为true，则m_low无效
-        std::wstring m_wind;                //风向和风力
-        std::wstring ToString() const;
-        std::wstring ToStringTemperature() const;
-    };
     WeatherInfo& GetWeather();
 
     std::map<WeahterSelected, WeatherInfo> m_weather_info;
@@ -78,4 +52,5 @@ private:
     std::map<UINT, HICON> m_icons;
     std::map<std::wstring, UINT> m_weather_icon_id;     //保存所有天气图标的ID
     int m_dpi{ 96 };
+    CHistoryWeatherMgr m_history_weather_mgr;
 };

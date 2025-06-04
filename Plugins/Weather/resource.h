@@ -34,7 +34,9 @@
 #define IDS_DAYS_AGO2                   119
 #define IDS_DATE_FORMAT                 119
 #define IDI_HEAVY_SNOW                  120
+#define IDS_WEATHER_HISTORY             120
 #define IDI_HEAVY_RAIN                  121
+#define IDS_DATE                        121
 #define IDI_CLOUDY2                     122
 #define IDI_DUST2                       123
 #define IDI_THUNDERSTORM                124
@@ -60,6 +62,8 @@
 #define IDR_MENU1                       144
 #define IDI_ICON1                       145
 #define IDI_UPDATE                      145
+#define IDD_DIALOG1                     146
+#define IDD_WEATHER_HISTORY_DIALOG      146
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
 #define IDC_SELECT_CITY_BUTTON          1006
@@ -73,6 +77,7 @@
 #define IDC_AUTO_LOCATE_CHECK           1014
 #define IDC_AUTO_LOCATE_RESULT_STATIC   1015
 #define IDC_HELP_SYSLINK                1016
+#define IDC_LIST1                       1017
 #define ID_OPTIONS                      40001
 #define ID_1_40002                      40002
 #define ID_UPDATE_WEATHER               40003
@@ -81,9 +86,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        146
+#define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         40004
-#define _APS_NEXT_CONTROL_VALUE         1017
+#define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

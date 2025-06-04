@@ -25,6 +25,9 @@
     <Filter Include="对话框">
       <UniqueIdentifier>{6c31e635-2c3b-4a9d-b8da-3497016dae84}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HistoryWeather">
+      <UniqueIdentifier>{548396cd-b234-4fac-8582-f21144b4e019}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -60,6 +63,15 @@
     <ClInclude Include="CurLocationHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="HistoryWeatherMgr.h">
+      <Filter>HistoryWeather</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonData.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WeatherHistoryDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -85,6 +97,15 @@
     </ClCompile>
     <ClCompile Include="CurLocationHelper.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="HistoryWeatherMgr.cpp">
+      <Filter>HistoryWeather</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonData.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WeatherHistoryDlg.cpp">
+      <Filter>对话框</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

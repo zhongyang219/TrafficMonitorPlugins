@@ -250,20 +250,25 @@
   <ItemGroup>
     <ClInclude Include="CityCode.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="CommonData.h" />
     <ClInclude Include="CurLocationHelper.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="HistoryWeatherMgr.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SelectCityDlg.h" />
     <ClInclude Include="Weather.h" />
+    <ClInclude Include="WeatherHistoryDlg.h" />
     <ClInclude Include="WeatherItem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="CommonData.cpp" />
     <ClCompile Include="CurLocationHelper.cpp" />
     <ClCompile Include="DataManager.cpp" />
+    <ClCompile Include="HistoryWeatherMgr.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -275,6 +280,7 @@
     </ClCompile>
     <ClCompile Include="SelectCityDlg.cpp" />
     <ClCompile Include="Weather.cpp" />
+    <ClCompile Include="WeatherHistoryDlg.cpp" />
     <ClCompile Include="WeatherItem.cpp" />
   </ItemGroup>
   <ItemGroup>

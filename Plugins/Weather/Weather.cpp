@@ -10,6 +10,8 @@
 #include "utilities/Common.h"
 #include "utilities/JsonHelper.h"
 #include <iomanip>
+#include "HistoryWeatherMgr.h"
+#include "WeatherHistoryDlg.h"
 
 CWeather CWeather::m_instance;
 
@@ -69,7 +71,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
     return 0;
 }
 
-static void ParseWeatherInfo(CDataManager::WeatherInfo& weather_info, yyjson_val* forecast)
+static void ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast)
 {
     if (forecast != nullptr)
     {
@@ -152,13 +154,26 @@ bool CWeather::ParseJsonData(std::string json_data)
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
         g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
+        //添加到历史记录
+        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_today);
+        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_tommorrow);
+        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_day2);
+        //获取所有天气并添加到历史记录
+        for (int i = 3; ; i++)
+        {
+            yyjson_val* forecast = yyjson_arr_get(forecast_arr, i);
+            if (forecast != nullptr)
+                g_data.HistoryWeatherMgr().AddWeatherInfo(forecast);
+            else
+                break;
+        }
     }
 
     //生成鼠标提示字符串
-    const CDataManager::WeatherInfo& weather_current{ g_data.m_weather_info[WEATHER_CURRENT] };
-    const CDataManager::WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
-    const CDataManager::WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
-    const CDataManager::WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
+    const WeatherInfo& weather_current{ g_data.m_weather_info[WEATHER_CURRENT] };
+    const WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
+    const WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
+    const WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
     std::wstring today_string;
     std::wstring tomorrow_string;
     std::wstring the_day_after_tomorrow_string;
@@ -292,10 +307,15 @@ void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     switch (index)
     {
     case ITMPlugin::EI_CONFIG_DIR:
+    {
         //从配置文件读取配置
-        g_data.LoadConfig(std::wstring(data));
+        std::wstring cfg_dir(data);
+        cfg_dir += L"Weather\\";
+        CreateDirectory(cfg_dir.c_str(), NULL);
+        g_data.LoadConfig(cfg_dir);
         //初始化天气
         Init();
+    }
         break;
     default:
         break;
@@ -371,6 +391,8 @@ const wchar_t* CWeather::GetCommandName(int command_index)
     {
     case 0:
         return g_data.StringRes(IDS_UPDATE_WEATHER).GetString();
+    case 1:
+        return g_data.StringRes(IDS_WEATHER_HISTORY).GetString();
     default:
         return nullptr;
     }
@@ -390,11 +412,20 @@ void* CWeather::GetCommandIcon(int command_index)
 
 void CWeather::OnPluginCommand(int command_index, void* hWnd, void* para)
 {
+    CWnd* parent = CWnd::FromHandle((HWND)hWnd);
     switch (command_index)
     {
+        //更新天气
     case 0:
         SendWetherInfoQequest();
         break;
+        //显示天气历史记录
+    case 1:
+    {
+        AFX_MANAGE_STATE(AfxGetStaticModuleState());
+        CWeatherHistoryDlg dlg(parent);
+        dlg.DoModal();
+    }
     default:
         break;
     }
@@ -413,7 +444,7 @@ void CWeather::Init()
 
 int CWeather::GetCommandCount()
 {
-    return 1;
+    return 2;
 }
 
 ITMPlugin* TMPluginGetInstance()

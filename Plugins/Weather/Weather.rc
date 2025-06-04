@@ -82,6 +82,15 @@ BEGIN
     EDITTEXT        IDC_SEARCH_EDIT,7,7,147,12,ES_AUTOHSCROLL
 END
 
+IDD_WEATHER_HISTORY_DIALOG DIALOGEX 0, 0, 206, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "历史天气"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    PUSHBUTTON      "取消",IDCANCEL,149,114,50,14
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,192,104
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -103,6 +112,14 @@ BEGIN
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 154
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_WEATHER_HISTORY_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 199
         TOPMARGIN, 7
         BOTTOMMARGIN, 128
     END
@@ -141,6 +158,11 @@ BEGIN
     100, 100, 0, 0,
     0, 0, 100, 100,
     0, 0, 0, 0
+END
+
+IDD_WEATHER_HISTORY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
 END
 
 
@@ -296,6 +318,8 @@ BEGIN
     IDS_DAYS_AGO            "<%1%> 天前"
     IDS_DAYS_LATER          "<%1%> 天后"
     IDS_DATE_FORMAT         "<%1%>月<%2%>日"
+    IDS_WEATHER_HISTORY     "历史和未来天气"
+    IDS_DATE                "日期"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -452,6 +476,8 @@ BEGIN
     IDS_DAYS_AGO            "<%1%> days ago"
     IDS_DAYS_LATER          "<%1%> days later"
     IDS_DATE_FORMAT         "<%1%>/<%2%>"
+    IDS_WEATHER_HISTORY     "History and Future Weather"
+    IDS_DATE                "Date"
 END
 
 #endif    // 英语(美国) resources
