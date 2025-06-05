@@ -16,6 +16,9 @@ public:
 
     //去掉日期部分仅保留时间部分
     static CTime GetDateOnly(CTime time);
+
+    //根据日期计算星期(0~6：星期日~星期六)
+    static int CaculateWeekDay(int y, int m, int d);
 };
 
 

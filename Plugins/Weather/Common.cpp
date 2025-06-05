@@ -108,3 +108,13 @@ CTime CCommon::GetDateOnly(CTime time)
         0, 0, 0, 0 // 将小时、分钟、秒、毫秒设置为 0
     );
 }
+
+int CCommon::CaculateWeekDay(int y, int m, int d)
+{
+    if (m <= 2)
+    {
+        m += 12;
+        y--;
+    }
+    return (d + 2 * m + 3 * (m + 1) / 5 + y + y / 4 - y / 100 + y / 400 + 1) % 7;
+}

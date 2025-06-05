@@ -320,6 +320,17 @@ BEGIN
     IDS_DATE_FORMAT         "<%1%>月<%2%>日"
     IDS_WEATHER_HISTORY     "历史和未来天气"
     IDS_DATE                "日期"
+    IDS_MONDAY              "一"
+    IDS_TUESDAY             "二"
+    IDS_WEDNESDAY           "三"
+    IDS_THURSDAY            "四"
+    IDS_FRIDAY              "五"
+    IDS_SATURDAY            "六"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SUNDAY              "日"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -478,6 +489,17 @@ BEGIN
     IDS_DATE_FORMAT         "<%1%>/<%2%>"
     IDS_WEATHER_HISTORY     "History and Future Weather"
     IDS_DATE                "Date"
+    IDS_MONDAY              "Mon"
+    IDS_TUESDAY             "Tue"
+    IDS_WEDNESDAY           "Wed"
+    IDS_THURSDAY            "Thu"
+    IDS_FRIDAY              "Fri"
+    IDS_SATURDAY            "Sat"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SUNDAY              "Sun"
 END
 
 #endif    // 英语(美国) resources
