@@ -25,6 +25,9 @@
     <Filter Include="StockItem">
       <UniqueIdentifier>{dea0bd8c-eff4-48bb-913e-262140be1154}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FloatingWnd">
+      <UniqueIdentifier>{bc94a766-d2ab-42d5-9671-72960500d3d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -54,6 +57,15 @@
     <ClInclude Include="ManagerDialog.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="FloatingWnd.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
+    <ClInclude Include="StockDef.h">
+      <Filter>DataManager</Filter>
+    </ClInclude>
+    <ClInclude Include="TransparentWnd.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -76,6 +88,15 @@
     </ClCompile>
     <ClCompile Include="ManagerDialog.cpp">
       <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="FloatingWnd.cpp">
+      <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="StockDef.cpp">
+      <Filter>DataManager</Filter>
+    </ClCompile>
+    <ClCompile Include="TransparentWnd.cpp">
+      <Filter>FloatingWnd</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

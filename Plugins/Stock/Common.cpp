@@ -159,28 +159,26 @@ std::vector<std::string> CCommon::split(const std::string& str, const char patte
     return res;
 }
 
-std::vector<std::string> CCommon::split(std::string str, std::string pattern)
-{
-    std::string::size_type pos;
-    std::vector<std::string> result;
-    str += pattern;//扩展字符串以方便操作
-    int size = static_cast<int>(str.size());
-    for (int i = 0; i < size; i++)
-    {
-        pos = str.find(pattern, i);
-        if (pos < size)
-        {
-            if (pos == 0)
-            {
-                i = static_cast<int>(pos + pattern.size() - 1);
-                continue;
-            }
-            std::string s = str.substr(i, pos - i);
-            result.push_back(s);
-            i = static_cast<int>(pos + pattern.size() - 1);
-        }
+std::vector<std::string> CCommon::split(const std::string& str, const std::string& delimiter) {
+    std::vector<std::string> tokens;
+
+    if (delimiter.empty()) {
+        tokens.push_back(str);
+        return tokens;
     }
-    return result;
+
+    size_t pos = 0;
+    size_t prev = 0;
+
+    while ((pos = str.find(delimiter, prev)) != std::string::npos) {
+        tokens.push_back(str.substr(prev, pos - prev));
+        prev = pos + delimiter.length();
+    }
+
+    // 添加最后一个片段
+    tokens.push_back(str.substr(prev));
+
+    return tokens;
 }
 
 std::wstring CCommon::vectorJoinString(const std::vector<std::wstring> data, const std::wstring& pattern)
@@ -193,4 +191,38 @@ std::wstring CCommon::vectorJoinString(const std::vector<std::wstring> data, con
         str.append(data[index]);
     }
     return str;
+}
+
+std::string CCommon::removeChar(const std::string &str, char ch)
+{
+    std::string result;
+    for (char c : str)
+    {
+        if (c != ch)
+        {
+            result += c;
+        }
+    }
+    return result;
+}
+
+std::string CCommon::removeStr(const std::string str, const std::string del)
+{
+    std::string result;
+
+    if (del.empty()) {
+        return str;
+    }
+
+    size_t pos = 0;
+    size_t prev = 0;
+
+    while ((pos = str.find(del, prev)) != std::string::npos) {
+        result += str.substr(prev, pos - prev);
+        prev = pos + del.length();
+    }
+
+    result += str.substr(prev);
+
+    return result;
 }

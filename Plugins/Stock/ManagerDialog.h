@@ -38,4 +38,6 @@ public:
 	afx_msg void OnBnClickedCancel();
     afx_msg void OnLbnDblclkMgrList();
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+	afx_msg void OnBnClickedShowStockNameCheck();
+	afx_msg void OnBnClickedColorWithPriceCheck();
 };

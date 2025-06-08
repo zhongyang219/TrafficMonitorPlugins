@@ -88,19 +88,29 @@
 
 ### 股票插件
 
-![image-20250308114302152](images/image-20250308114302152.png)
+![stock](images/stock.png)
 
 显示指定股票的实时交易信息 `新浪接口`
 
-- **配置时sh表示“上证”，sz表示深证，依次类推**
+> **配置时sh表示“上证”，sz表示深证，依次类推**
 
 * 作者：[CListery](https://github.com/CListery)
 
+* 仓库地址（插件 issue 可以提到这里）：[CListery · TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins)
+
 * 下载链接：
 
-  GitHub: [Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
-  
-  Gitee: [Stock_V1.13 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+  > 由于主干代码更新可能不及时，请从下面这些地方检查最新版本
+
+  * 主干
+
+    * GitHub: [Release Stock_V1.13 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+
+    * Gitee: [Stock_V1.13 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/Stock_V1.13)
+
+  * 分支
+
+    * GitHub: [Release · CListery/TrafficMonitorPlugins](https://github.com/CListery/TrafficMonitorPlugins/releases)
 
 ---
 
