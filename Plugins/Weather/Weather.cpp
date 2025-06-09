@@ -59,6 +59,8 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
                 //解析成功时，将天气信息保存到Weather.json
                 std::ofstream stream{ g_data.m_config_dir + L"Weather.json" };
                 stream << weather_data;
+                //保存历史天气数据
+                g_data.HistoryWeatherMgr().Save();
             }
         }
 
