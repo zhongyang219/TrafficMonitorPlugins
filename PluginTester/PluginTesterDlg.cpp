@@ -113,6 +113,9 @@ PluginInfo CPluginTesterDlg::LoadPlugin(const std::wstring& plugin_file_path, co
     if (plugin_info.plugin != nullptr)
         plugin_info.plugin->OnExtenedInfo(ITMPlugin::EI_CONFIG_DIR, config_dir.c_str());
 
+    //调用初始化函数
+    plugin_info.plugin->OnInitialize(&theApp);
+
     //获取插件信息
     for (int i{}; i < ITMPlugin::TMI_MAX; i++)
     {
@@ -378,6 +381,11 @@ bool CPluginTesterDlg::IsDarkmodeChecked() const
 bool CPluginTesterDlg::IsDoubleLineChecked() const
 {
     return IsDlgButtonChecked(IDC_DOUBLE_LINE_CHECK);
+}
+
+const std::wstring& CPluginTesterDlg::PluginDir() const
+{
+    return m_plugin_dir;
 }
 
 

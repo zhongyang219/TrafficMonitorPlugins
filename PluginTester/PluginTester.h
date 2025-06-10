@@ -10,12 +10,13 @@
 
 #include "resource.h"		// 主符号
 #include "CommonData.h"
+#include "PluginInterface.h"
 
 // CPluginTesterApp: 
 // 有关此类的实现，请参阅 PluginTester.cpp
 //
 
-class CPluginTesterApp : public CWinApp
+class CPluginTesterApp : public CWinApp, public ITrafficMonitor
 {
 public:
     CPluginTesterApp();
@@ -43,6 +44,16 @@ public:
 
     DECLARE_MESSAGE_MAP()
     afx_msg void OnHelp();
+
+    // 通过 ITrafficMonitor 继承
+    int GetAPIVersion() override;
+    const wchar_t* GetTrafficMonitorVersion() override;
+    double GetMonitorData(ITrafficMonitor::MonitorItem item) override;
+    void ShowNotifyMessage(const wchar_t* strMsg) override;
+    unsigned short GetLanguageId() const override;
+    const wchar_t* GetConfigDir() const override;
+    int GetDPI(ITrafficMonitor::DPIType type) const override;
+    unsigned int GetThemeColor() const override;
 };
 
 extern CPluginTesterApp theApp;

@@ -19,6 +19,7 @@ public:
     int GetItemWidth(IPluginItem* pItem, CDC* pDC);
     bool IsDarkmodeChecked() const;
     bool IsDoubleLineChecked() const;
+    const std::wstring& PluginDir() const;
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

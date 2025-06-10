@@ -160,3 +160,46 @@ void CPluginTesterApp::OnHelp()
 {
     ShellExecute(NULL, _T("open"), _T("https://github.com/zhongyang219/TrafficMonitorPlugins/wiki/%E6%8F%92%E4%BB%B6%E6%B5%8B%E8%AF%95%E5%99%A8"), NULL, NULL, SW_SHOW);
 }
+
+
+int CPluginTesterApp::GetAPIVersion()
+{
+    return 0;
+}
+
+const wchar_t* CPluginTesterApp::GetTrafficMonitorVersion()
+{
+    return L"1.86";
+}
+
+double CPluginTesterApp::GetMonitorData(ITrafficMonitor::MonitorItem item)
+{
+    return 0.0;
+}
+
+void CPluginTesterApp::ShowNotifyMessage(const wchar_t* strMsg)
+{
+}
+
+unsigned short CPluginTesterApp::GetLanguageId() const
+{
+    return GetThreadUILanguage();
+}
+
+const wchar_t* CPluginTesterApp::GetConfigDir() const
+{
+    CPluginTesterDlg* pDlg = dynamic_cast<CPluginTesterDlg*>(m_pMainWnd);
+    if (pDlg != nullptr)
+        return pDlg->PluginDir().c_str();
+    return nullptr;
+}
+
+int CPluginTesterApp::GetDPI(ITrafficMonitor::DPIType type) const
+{
+    return m_dpi;
+}
+
+unsigned int CPluginTesterApp::GetThemeColor() const
+{
+    return RGB(0, 120, 215);
+}

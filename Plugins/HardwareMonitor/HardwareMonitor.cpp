@@ -239,6 +239,11 @@ namespace HardwareMonitor
         return pixel * m_dpi / 96;
     }
 
+    ITrafficMonitor* CHardwareMonitor::GetMainApp() const
+    {
+        return m_pMainApp;
+    }
+
     void CHardwareMonitor::ShowErrorMessage(System::Exception^ e)
     {
         String^ str = e->Message;
@@ -403,6 +408,11 @@ namespace HardwareMonitor
         {
             MonitorGlobal::Instance()->ShowHardwareInfoDialog();
         }
+    }
+
+    void CHardwareMonitor::OnInitialize(ITrafficMonitor* pApp)
+    {
+        m_pMainApp = pApp;
     }
 
 

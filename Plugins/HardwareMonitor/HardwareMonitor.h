@@ -9,7 +9,6 @@
 #include "SettingsForm.h"
 #include "HardwareMonitorItem.h"
 #include <vector>
-#include <map>
 #include "CommonData.h"
 
 using namespace System;
@@ -49,6 +48,8 @@ namespace HardwareMonitor
 
         int DPI(int pixel) const;
 
+        ITrafficMonitor* GetMainApp() const;
+
         OptionSettings m_settings;
         TMSettings m_tm_settings;
 
@@ -72,10 +73,12 @@ namespace HardwareMonitor
         virtual int GetCommandCount() override;
         virtual const wchar_t* GetCommandName(int command_index) override;
         virtual void OnPluginCommand(int command_index, void* hWnd, void* para) override;
+        virtual void OnInitialize(ITrafficMonitor* pApp) override;
 
     private:
         std::map<const wchar_t*, std::wstring> string_table;
         int m_dpi{ 96 };
+        ITrafficMonitor* m_pMainApp{};
     };
 
     public ref class MonitorGlobal
