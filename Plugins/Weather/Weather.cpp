@@ -96,6 +96,27 @@ static void ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast)
     }
 }
 
+//获取一个日期的字符串。如果日期是今天、明天或后天，则返回“今天”、“明天”和“后天”的字符串，否则返回几月几日
+static std::wstring GetDateString(CTime date)
+{
+    date = CCommon::GetDateOnly(date);
+    CTime now_date = CCommon::GetDateOnly(CTime::GetCurrentTime());
+    const CTimeSpan one_day_span(1, 0, 0, 0);
+    CTime tomorrow_date = now_date + one_day_span;
+    CTime the_day_after_tomorrow_date = tomorrow_date + one_day_span;
+    CTime yesterday_date = now_date - one_day_span;
+    if (date == now_date)
+        return g_data.StringRes(IDS_TODAY_WEATHER).GetString();
+    else if (date == tomorrow_date)
+        return g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString();
+    else if (date == the_day_after_tomorrow_date)
+        return  g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString();
+    else if (date == yesterday_date)
+        return  g_data.StringRes(IDS_YESTERDAY).GetString();
+    else
+        return utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { date.GetMonth(), date.GetDay() });
+}
+
 bool CWeather::ParseJsonData(std::string json_data)
 {
     yyjson_doc* doc = yyjson_read(json_data.c_str(), json_data.size(), 0);
@@ -176,35 +197,17 @@ bool CWeather::ParseJsonData(std::string json_data)
     const WeatherInfo& weather_today{ g_data.m_weather_info[WEATHER_TODAY] };
     const WeatherInfo& weather_tomorrow{ g_data.m_weather_info[WEATHER_TOMMORROW] };
     const WeatherInfo& weather_day2{ g_data.m_weather_info[WEATHER_DAY2] };
-    std::wstring today_string;
-    std::wstring tomorrow_string;
-    std::wstring the_day_after_tomorrow_string;
-    CTime now_date = CCommon::GetDateOnly(CTime::GetCurrentTime());
     CTime update_date = CCommon::GetDateOnly(g_data.m_update_time);
-    //如果更新时间是今天，则鼠标提示中显示为“今天”、“明天”、“后天”
-    if (now_date == update_date)
-    {
-        today_string = g_data.StringRes(IDS_TODAY_WEATHER).GetString();
-        tomorrow_string = g_data.StringRes(IDS_TOMMORROW_WEATHER).GetString();
-        the_day_after_tomorrow_string = g_data.StringRes(IDS_THE_DAY_AFTER_TOMMORROW_WEATHER).GetString();
-    }
-    //更新时间不是今天（天气数据已过期），则鼠标提示中显示具体日期
-    else
-    {
-        const CTimeSpan one_day_span(1, 0, 0, 0);
-        CTime tomorrow_date = update_date + one_day_span;
-        CTime the_day_after_tomorrow_date = tomorrow_date + one_day_span;
-        today_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { update_date.GetMonth(), update_date.GetDay() });
-        tomorrow_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { tomorrow_date.GetMonth(), tomorrow_date.GetDay() });
-        the_day_after_tomorrow_string = utilities::StringHelper::StringFormat(g_data.StringRes(IDS_DATE_FORMAT).GetString(), { the_day_after_tomorrow_date.GetMonth(), the_day_after_tomorrow_date.GetDay() });
-    }
+    const CTimeSpan one_day_span(1, 0, 0, 0);
+    CTime tomorrow_date = update_date + one_day_span;
+    CTime the_day_after_tomorrow_date = tomorrow_date + one_day_span;
     std::wstringstream wss;
     wss << str_city << L' ' << weather_current.ToString()
         << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
         << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
-        << std::endl << today_string << L": " << weather_today.ToString()
-        << std::endl << tomorrow_string << L": " << weather_tomorrow.ToString()
-        << std::endl << the_day_after_tomorrow_string << L": " << weather_day2.ToString()
+        << std::endl << GetDateString(update_date) << L": " << weather_today.ToString()
+        << std::endl << GetDateString(tomorrow_date) << L": " << weather_tomorrow.ToString()
+        << std::endl << GetDateString(the_day_after_tomorrow_date) << L": " << weather_day2.ToString()
         ;
     m_tooltop_info = wss.str();
 
