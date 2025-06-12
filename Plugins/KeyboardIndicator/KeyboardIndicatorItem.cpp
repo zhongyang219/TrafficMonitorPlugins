@@ -140,7 +140,7 @@ void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, boo
     COLORREF color_ori = pDC->GetTextColor();
     //设置字体
     InitFont(pDC);
-    pDC->SelectObject(&m_font);
+    CFont* old_font = pDC->SelectObject(&m_font);
     //设置指示器高度
     int item_height = g_data.DPI(14);
     CRect rect_indicator{ rect };
@@ -155,6 +155,8 @@ void CKeyboardIndicatorItem::DrawItem(void* hDC, int x, int y, int w, int h, boo
     //绘制scroll lock
     if (g_data.m_setting_data.show_scroll_lock)
         DrawIndicator(pDC, rect_indicator, INDICATOR_SCROLL_LOCK, dark_mode, CKeyboardIndicator::IsScrollLockOn(), color_ori);
+    //恢复字体
+    pDC->SelectObject(old_font);
 }
 
 void CKeyboardIndicatorItem::InitFont(CDC* pDC)
