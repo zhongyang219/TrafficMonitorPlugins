@@ -22,7 +22,7 @@ const wchar_t* CExternalIpAddressItem::GetItemValueText() const
     static std::wstring ipv4_addr;
     if (g_data.GetExternalIPv4Address(ipv4_addr))
         return ipv4_addr.c_str();
-    return L"";
+    return L"N/A";
 }
 
 const wchar_t* CExternalIpAddressItem::GetItemValueSampleText() const
