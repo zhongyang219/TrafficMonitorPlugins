@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 中文(简体，中国) resources
+// Chinese (Simplified, China) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
@@ -25,18 +25,18 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -50,16 +50,21 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 194, 83
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 223, 89
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "IP地址设置"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,82,62,50,14
-    PUSHBUTTON      "取消",IDCANCEL,137,62,50,14
-    LTEXT           "选择要显示本地IPv4地址的网络连接：",IDC_STATIC,7,7,180,8
-    COMBOBOX        IDC_CONNECTIONS_COMBO,7,17,180,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "刷新网络连接列表",IDC_REFRESH_CONNECTIONS_BUTTON,7,33,80,14
+    DEFPUSHBUTTON   "确定",IDOK,106,68,50,14
+    PUSHBUTTON      "取消",IDCANCEL,166,68,50,14
+    LTEXT           "选择要显示本地IPv4地址的网络连接：",IDC_STATIC,7,7,203,8
+    COMBOBOX        IDC_CONNECTIONS_COMBO,7,17,209,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "刷新网络连接列表",IDC_BUTTON1,7,68,83,14
+    LTEXT           "外部IP地址查询间隔（秒）：",IDC_STATIC,7,33,140,8
+    EDITTEXT        IDC_IP_QUERY_INTERVAL_EDIT,151,32,55,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_IP_QUERY_INTERVAL_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,206,32,10,14
+    LTEXT           "外部IP地址服务商：",IDC_STATIC,7,52,140,8
+    COMBOBOX        IDC_IP_PROVIDER_COMBO,151,50,65,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 
@@ -169,14 +174,15 @@ BEGIN
     IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的IP地址插件。"
     IDS_PLUGIN_ITEM_NAME    "本地IPv4地址"
     IDS_REFRESH_CONNECTION_LIST "刷新网络连接列表"
+    IDS_EXTERNAL_IP_ADDRESS "外部IPv4地址"
 END
 
-#endif    // 中文(简体，中国) resources
+#endif    // Chinese (Simplified, China) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 英语(美国) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -187,16 +193,21 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 218, 83
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 223, 89
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "IP Address Settings"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,106,62,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,161,62,50,14
-    LTEXT           "Select the connection to show the local IPv4 address:",IDC_STATIC,8,7,203,8
-    COMBOBOX        IDC_CONNECTIONS_COMBO,8,17,203,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Refresh connection list",IDC_BUTTON1,7,34,97,14
+    DEFPUSHBUTTON   "OK",IDOK,106,68,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,166,68,50,14
+    LTEXT           "Select the connection to show the local IPv4 address:",IDC_STATIC,7,7,203,8
+    COMBOBOX        IDC_CONNECTIONS_COMBO,7,17,209,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Refresh connection list",IDC_BUTTON1,7,68,83,14
+    LTEXT           "External IP address query interval (seconds):",IDC_STATIC,7,33,140,8
+    EDITTEXT        IDC_IP_QUERY_INTERVAL_EDIT,151,32,55,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_IP_QUERY_INTERVAL_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,206,32,10,14
+    LTEXT           "External IP address provider:",IDC_STATIC,7,52,140,8
+    COMBOBOX        IDC_IP_PROVIDER_COMBO,151,50,65,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 
@@ -211,9 +222,9 @@ BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 211
+        RIGHTMARGIN, 216
         TOPMARGIN, 7
-        BOTTOMMARGIN, 76
+        BOTTOMMARGIN, 82
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -241,9 +252,10 @@ BEGIN
     IDS_PLUGIN_DESCRIPTION  "IP address plugin for TrafficMonitor."
     IDS_PLUGIN_ITEM_NAME    "Local IPv4 address"
     IDS_REFRESH_CONNECTION_LIST "Refresh connection list"
+    IDS_EXTERNAL_IP_ADDRESS "External IP Address"
 END
 
-#endif    // 英语(美国) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -257,4 +269,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

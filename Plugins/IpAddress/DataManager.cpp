@@ -3,13 +3,20 @@
 #include "Common.h"
 #include <vector>
 #include <sstream>
+#include <chrono>
 #include "../utilities/FilePathHelper.h"
 #include "../utilities/IniHelper.h"
+#include "IpSbProvider.h"
+#include "TencentIpProvider.h"
+#include "DummyIpProvider.h"
 
 CDataManager CDataManager::m_instance;
 
 CDataManager::CDataManager()
 {
+    m_ip_providers.push_back(std::make_unique<CDummyIpProvider>());
+    m_ip_providers.push_back(std::make_unique<CIpSbProvider>());
+    m_ip_providers.push_back(std::make_unique<CTencentIpProvider>());
     //初始化DPI
     HDC hDC = ::GetDC(HWND_DESKTOP);
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
@@ -45,6 +52,8 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_config_path += L".ini";
     utilities::CIniHelper ini(m_config_path);
     m_setting_data.current_connection_name = ini.GetString(L"config", L"connection_name");
+    m_setting_data.ip_query_interval = ini.GetInt(L"config", L"ip_query_interval", 60);
+    m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"None");
     if (m_setting_data.current_connection_name.empty() && !m_connections.empty())
     {
         m_setting_data.current_connection_name = m_connections[0].description;
@@ -58,6 +67,8 @@ void CDataManager::SaveConfig() const
     {
         utilities::CIniHelper ini(m_config_path);
         ini.WriteString(L"config", L"connection_name", m_setting_data.current_connection_name);
+        ini.WriteInt(L"config", L"ip_query_interval", m_setting_data.ip_query_interval);
+        ini.WriteString(L"config", L"ip_provider_name", m_setting_data.ip_provider_name);
         ini.Save();
     }
 }
@@ -133,7 +144,31 @@ bool CDataManager::GetLocalIPv4Address(std::wstring& ipv4address)
     return false;
 }
 
+bool CDataManager::GetExternalIPv4Address(std::wstring& ipv4address)
+{
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - m_last_ip_query_time).count() > m_setting_data.ip_query_interval)
+    {
+        m_last_ip_query_time = now;
+        for (const auto& provider : m_ip_providers)
+        {
+            if (provider->GetName() == m_setting_data.ip_provider_name)
+            {
+                provider->GetExternalIp(m_external_ip);
+                break;
+            }
+        }
+    }
+    ipv4address = m_external_ip;
+    return !m_external_ip.empty();
+}
+
 const std::vector<NetWorkConection>& CDataManager::GetAllConnections() const
 {
     return m_connections;
+}
+
+const std::vector<std::unique_ptr<IExternalIpProvider>>& CDataManager::GetIpProviders() const
+{
+    return m_ip_providers;
 }

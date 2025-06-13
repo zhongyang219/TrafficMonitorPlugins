@@ -20,6 +20,8 @@ IPluginItem* CIpAddress::GetItem(int index)
     {
     case 0:
         return &m_item;
+    case 1:
+        return &m_external_item;
     default:
         break;
     }

@@ -28,6 +28,12 @@
     <Filter Include="AdapterCommon">
       <UniqueIdentifier>{fc2feae3-bf7a-4a5a-8e1b-19d13acb5d52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ExternalIpAddressItem">
+      <UniqueIdentifier>{a735836a-34a2-474a-986a-21931bb42178}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IpDataProvider">
+      <UniqueIdentifier>{26262444-977c-456f-a67e-350a3503538e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -57,6 +63,21 @@
     <ClInclude Include="AdapterCommon.h">
       <Filter>AdapterCommon</Filter>
     </ClInclude>
+    <ClInclude Include="ExternalIpAddressItem.h">
+      <Filter>ExternalIpAddressItem</Filter>
+    </ClInclude>
+    <ClInclude Include="IExternalIpProvider.h">
+      <Filter>IpDataProvider</Filter>
+    </ClInclude>
+    <ClInclude Include="IpSbProvider.h">
+      <Filter>IpDataProvider</Filter>
+    </ClInclude>
+    <ClInclude Include="TencentIpProvider.h">
+      <Filter>IpDataProvider</Filter>
+    </ClInclude>
+    <ClInclude Include="DummyIpProvider.h">
+      <Filter>IpDataProvider</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -79,6 +100,18 @@
     </ClCompile>
     <ClCompile Include="AdapterCommon.cpp">
       <Filter>AdapterCommon</Filter>
+    </ClCompile>
+    <ClCompile Include="ExternalIpAddressItem.cpp">
+      <Filter>ExternalIpAddressItem</Filter>
+    </ClCompile>
+    <ClCompile Include="IpSbProvider.cpp">
+      <Filter>IpDataProvider</Filter>
+    </ClCompile>
+    <ClCompile Include="TencentIpProvider.cpp">
+      <Filter>IpDataProvider</Filter>
+    </ClCompile>
+    <ClCompile Include="DummyIpProvider.cpp">
+      <Filter>IpDataProvider</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

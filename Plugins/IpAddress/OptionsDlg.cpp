@@ -4,7 +4,6 @@
 #include "pch.h"
 #include "IpAddress.h"
 #include "OptionsDlg.h"
-#include "afxdialogex.h"
 #include "DataManager.h"
 
 // COptionsDlg 对话框
@@ -24,6 +23,9 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
     DDX_Control(pDX, IDC_CONNECTIONS_COMBO, m_connections_combo);
+    DDX_Control(pDX, IDC_IP_QUERY_INTERVAL_SPIN, m_ip_query_interval_spin);
+    DDX_Text(pDX, IDC_IP_QUERY_INTERVAL_EDIT, m_data.ip_query_interval);
+    DDX_Control(pDX, IDC_IP_PROVIDER_COMBO, m_ip_provider_combo);
 }
 
 void COptionsDlg::InitConnectionsCombobox()
@@ -65,6 +67,15 @@ BOOL COptionsDlg::OnInitDialog()
     //初始化下拉列表
     InitConnectionsCombobox();
 
+    m_ip_query_interval_spin.SetRange(1, 3600);
+    m_ip_query_interval_spin.SetPos(m_data.ip_query_interval);
+
+    for (const auto& provider : g_data.GetIpProviders())
+    {
+        m_ip_provider_combo.AddString(provider->GetName().c_str());
+    }
+    m_ip_provider_combo.SelectString(-1, m_data.ip_provider_name.c_str());
+
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
 }
@@ -75,6 +86,11 @@ void COptionsDlg::OnOK()
     CString str;
     m_connections_combo.GetWindowText(str);
     m_data.current_connection_name = str.GetString();
+
+    m_data.ip_query_interval = GetDlgItemInt(IDC_IP_QUERY_INTERVAL_EDIT);
+
+    m_ip_provider_combo.GetWindowText(str);
+    m_data.ip_provider_name = str.GetString();
 
     CDialog::OnOK();
 }

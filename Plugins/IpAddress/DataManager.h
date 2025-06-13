@@ -1,16 +1,21 @@
 ﻿#pragma once
+#include <chrono>
 #include <string>
 #include <map>
+#include <memory>
 #include "resource.h"
 #include "AdapterCommon.h"
+#include "IExternalIpProvider.h"
 
 #define g_data CDataManager::Instance()
 
 
-struct SettingData
-{
-    std::wstring current_connection_name;         //选择的网络连接名称
-};
+    struct SettingData
+    {
+        std::wstring current_connection_name;
+        int ip_query_interval{ 60 };
+        std::wstring ip_provider_name;
+    };
 
 class CDataManager
 {
@@ -32,9 +37,13 @@ public:
 
     void UpdateConnections();
     bool GetLocalIPv4Address(std::wstring& ipv4address);
+    bool GetExternalIPv4Address(std::wstring& ipv4address);
     const std::vector<NetWorkConection>& GetAllConnections() const;
 
     SettingData m_setting_data;
+
+public:
+    const std::vector<std::unique_ptr<IExternalIpProvider>>& GetIpProviders() const;
 
 private:
     static CDataManager m_instance;
@@ -44,4 +53,7 @@ private:
     int m_dpi{ 96 };
 
     std::vector<NetWorkConection> m_connections;    //所有网络连接
+    std::vector<std::unique_ptr<IExternalIpProvider>> m_ip_providers;
+    std::wstring m_external_ip;
+    std::chrono::steady_clock::time_point m_last_ip_query_time;
 };
