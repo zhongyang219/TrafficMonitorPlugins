@@ -42,8 +42,8 @@ public:
     bool GetLocalIPv4Address(std::wstring& ipv4address);
     bool GetExternalIPv4Address(std::wstring& ipv4address);
     void ForceRefreshExternalIp();
-    const std::vector<NetWorkConection>& GetAllConnections() const;
-    const std::vector<std::unique_ptr<IExternalIpProvider>>& GetIpProviders() const;
+    const std::map<std::wstring, NetWorkConection>& GetAllConnections() const;
+    const std::map<std::wstring, std::unique_ptr<IExternalIpProvider>>& GetIpProviders() const;
 
 
     SettingData m_setting_data;
@@ -55,8 +55,8 @@ private:
     std::map<UINT, HICON> m_icons;
     int m_dpi{ 96 };
 
-    std::vector<NetWorkConection> m_connections;    //所有网络连接
-    std::vector<std::unique_ptr<IExternalIpProvider>> m_ip_providers;
+    std::map<std::wstring, NetWorkConection> m_connections;    //所有网络连接
+    std::map<std::wstring, std::unique_ptr<IExternalIpProvider>> m_ip_providers;
     std::wstring m_external_ip;
     std::chrono::steady_clock::time_point m_last_ip_query_time;
     bool m_is_thread_running{};

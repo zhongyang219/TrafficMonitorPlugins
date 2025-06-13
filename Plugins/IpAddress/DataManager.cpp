@@ -14,9 +14,12 @@ CDataManager CDataManager::m_instance;
 
 CDataManager::CDataManager()
 {
-    m_ip_providers.push_back(std::make_unique<CDummyIpProvider>());
-    m_ip_providers.push_back(std::make_unique<CIpSbProvider>());
-    m_ip_providers.push_back(std::make_unique<CTencentIpProvider>());
+    auto dummy_provider = std::make_unique<CDummyIpProvider>();
+    m_ip_providers[dummy_provider->GetName()] = std::move(dummy_provider);
+    auto ip_sb_provider = std::make_unique<CIpSbProvider>();
+    m_ip_providers[ip_sb_provider->GetName()] = std::move(ip_sb_provider);
+    auto tencent_provider = std::make_unique<CTencentIpProvider>();
+    m_ip_providers[tencent_provider->GetName()] = std::move(tencent_provider);
     //初始化DPI
     HDC hDC = ::GetDC(HWND_DESKTOP);
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
@@ -56,7 +59,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"None");
     if (m_setting_data.current_connection_name.empty() && !m_connections.empty())
     {
-        m_setting_data.current_connection_name = m_connections[0].description;
+        m_setting_data.current_connection_name = m_connections.begin()->second.description;
     }
 
 }
@@ -133,13 +136,11 @@ void CDataManager::UpdateConnections()
 
 bool CDataManager::GetLocalIPv4Address(std::wstring& ipv4address)
 {
-    for (const auto& item : m_connections)
+    auto it = m_connections.find(m_setting_data.current_connection_name);
+    if (it != m_connections.end())
     {
-        if (item.description == m_setting_data.current_connection_name)
-        {
-            ipv4address = item.ip_address;
-            return true;
-        }
+        ipv4address = it->second.ip_address;
+        return true;
     }
     return false;
 }
@@ -166,26 +167,23 @@ UINT CDataManager::ExternalIpUpdateThread(LPVOID dwUser)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
     CFlagLocker flag_locker(m_instance.m_is_thread_running);
-    for (const auto& provider : m_instance.m_ip_providers)
+    auto it = m_instance.m_ip_providers.find(m_instance.m_setting_data.ip_provider_name);
+    if (it != m_instance.m_ip_providers.end())
     {
-        if (provider->GetName() == m_instance.m_setting_data.ip_provider_name)
+        if (!it->second->GetExternalIp(m_instance.m_external_ip))
         {
-            if (!provider->GetExternalIp(m_instance.m_external_ip))
-            {
-                m_instance.m_external_ip = L"<disconnected>";
-            }
-            break;
+            m_instance.m_external_ip = L"<disconnected>";
         }
     }
     return 0;
 }
 
-const std::vector<NetWorkConection>& CDataManager::GetAllConnections() const
+const std::map<std::wstring, NetWorkConection>& CDataManager::GetAllConnections() const
 {
     return m_connections;
 }
 
-const std::vector<std::unique_ptr<IExternalIpProvider>>& CDataManager::GetIpProviders() const
+const std::map<std::wstring, std::unique_ptr<IExternalIpProvider>>& CDataManager::GetIpProviders() const
 {
     return m_ip_providers;
 }

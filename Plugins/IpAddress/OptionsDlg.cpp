@@ -32,21 +32,12 @@ void COptionsDlg::InitConnectionsCombobox()
 {
     m_connections_combo.ResetContent();
     //填充下拉列表
-    for (const auto& connection : g_data.GetAllConnections())
+    for (const auto& pair : g_data.GetAllConnections())
     {
-        m_connections_combo.AddString(connection.description.c_str());
+        m_connections_combo.AddString(pair.first.c_str());
     }
     //设置选择项
-    int index{};
-    for (int i = 0; i < static_cast<int>(g_data.GetAllConnections().size()); i++)
-    {
-        if (m_data.current_connection_name == g_data.GetAllConnections()[i].description)
-        {
-            index = i;
-            break;
-        }
-    }
-    m_connections_combo.SetCurSel(index);
+    m_connections_combo.SelectString(-1, m_data.current_connection_name.c_str());
 }
 
 
@@ -70,9 +61,9 @@ BOOL COptionsDlg::OnInitDialog()
     m_ip_query_interval_spin.SetRange(1, 3600);
     m_ip_query_interval_spin.SetPos(m_data.ip_query_interval);
 
-    for (const auto& provider : g_data.GetIpProviders())
+    for (const auto& pair : g_data.GetIpProviders())
     {
-        m_ip_provider_combo.AddString(provider->GetName().c_str());
+        m_ip_provider_combo.AddString(pair.first.c_str());
     }
     m_ip_provider_combo.SelectString(-1, m_data.ip_provider_name.c_str());
 

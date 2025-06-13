@@ -11,7 +11,7 @@ CAdapterCommon::~CAdapterCommon()
 {
 }
 
-void CAdapterCommon::GetAdapterInfo(std::vector<NetWorkConection>& adapters)
+void CAdapterCommon::GetAdapterInfo(std::map<std::wstring, NetWorkConection>& adapters)
 {
 	adapters.clear();
 	PIP_ADAPTER_INFO pIpAdapterInfo = (PIP_ADAPTER_INFO)new BYTE[sizeof(IP_ADAPTER_INFO)];		//PIP_ADAPTER_INFO结构体指针存储本机网卡信息
@@ -39,7 +39,7 @@ void CAdapterCommon::GetAdapterInfo(std::vector<NetWorkConection>& adapters)
 			connection.subnet_mask = CCommon::StrToUnicode(pIpAdapterInfo->IpAddressList.IpMask.String);
 			connection.default_gateway = CCommon::StrToUnicode(pIpAdapterInfo->GatewayList.IpAddress.String);
 
-			adapters.push_back(connection);
+			adapters[connection.description] = connection;
 			pIpAdapterInfo = pIpAdapterInfo->Next;
 		}
 	}
@@ -52,24 +52,22 @@ void CAdapterCommon::GetAdapterInfo(std::vector<NetWorkConection>& adapters)
 	{
 		NetWorkConection connection{};
 		connection.description = L"<no connection>";
-		adapters.push_back(connection);
+		adapters[connection.description] = connection;
 	}
 }
 
-void CAdapterCommon::RefreshIpAddress(std::vector<NetWorkConection>& adapters)
+void CAdapterCommon::RefreshIpAddress(std::map<std::wstring, NetWorkConection>& adapters)
 {
-    std::vector<NetWorkConection> adapters_tmp;
+    std::map<std::wstring, NetWorkConection> adapters_tmp;
 	GetAdapterInfo(adapters_tmp);
-	for (const auto& adapter_tmp : adapters_tmp)
+	for (const auto& pair_tmp : adapters_tmp)
 	{
-		for (auto& adapter : adapters)
+		auto it = adapters.find(pair_tmp.first);
+		if (it != adapters.end())
 		{
-			if (adapter_tmp.description == adapter.description)
-			{
-				adapter.ip_address = adapter_tmp.ip_address;
-				adapter.subnet_mask = adapter_tmp.subnet_mask;
-				adapter.default_gateway = adapter_tmp.default_gateway;
-			}
+			it->second.ip_address = pair_tmp.second.ip_address;
+			it->second.subnet_mask = pair_tmp.second.subnet_mask;
+			it->second.default_gateway = pair_tmp.second.default_gateway;
 		}
 	}
 }
