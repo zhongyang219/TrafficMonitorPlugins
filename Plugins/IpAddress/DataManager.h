@@ -6,6 +6,7 @@
 #include "resource.h"
 #include "AdapterCommon.h"
 #include "IExternalIpProvider.h"
+#include "Common.h"
 
 #define g_data CDataManager::Instance()
 
@@ -22,6 +23,8 @@ class CDataManager
 private:
     CDataManager();
     ~CDataManager();
+
+    static UINT ExternalIpUpdateThread(LPVOID dwUser);
 
 public:
     static CDataManager& Instance();
@@ -40,11 +43,10 @@ public:
     bool GetExternalIPv4Address(std::wstring& ipv4address);
     void ForceRefreshExternalIp();
     const std::vector<NetWorkConection>& GetAllConnections() const;
+    const std::vector<std::unique_ptr<IExternalIpProvider>>& GetIpProviders() const;
+
 
     SettingData m_setting_data;
-
-public:
-    const std::vector<std::unique_ptr<IExternalIpProvider>>& GetIpProviders() const;
 
 private:
     static CDataManager m_instance;
@@ -57,4 +59,5 @@ private:
     std::vector<std::unique_ptr<IExternalIpProvider>> m_ip_providers;
     std::wstring m_external_ip;
     std::chrono::steady_clock::time_point m_last_ip_query_time;
+    bool m_is_thread_running{};
 };
