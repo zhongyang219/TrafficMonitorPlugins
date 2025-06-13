@@ -20,6 +20,8 @@ IPluginItem* CIpAddress::GetItem(int index)
     {
     case 0:
         return &m_item;
+    case 1:
+        return &m_external_item;
     default:
         break;
     }
@@ -61,13 +63,13 @@ const wchar_t* CIpAddress::GetInfo(PluginInfoIndex index)
     case TMI_DESCRIPTION:
         return g_data.StringRes(IDS_PLUGIN_DESCRIPTION).GetString();
     case TMI_AUTHOR:
-        return L"zhongyang219";
+        return L"zhongyang219, KnownRabbit";
     case TMI_COPYRIGHT:
-        return L"Copyright (C) by Zhong Yang 2025";
+        return L"Copyright (C) by Zhong Yang, KnownRabbit 2025";
     case ITMPlugin::TMI_URL:
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
     case TMI_VERSION:
-        return L"1.00";
+        return L"1.01";
     default:
         break;
     }
@@ -96,23 +98,34 @@ void* CIpAddress::GetPluginIcon()
 
 int CIpAddress::GetCommandCount()
 {
-    return 1;
+    return 2;
 }
 
 const wchar_t* CIpAddress::GetCommandName(int command_index)
 {
-    if (command_index == 0)
+    switch (command_index)
     {
+    case 0:
         return g_data.StringRes(IDS_REFRESH_CONNECTION_LIST);
+    case 1:
+        return g_data.StringRes(IDS_REFRESH_EXTERNAL_IP);
+    default:
+        return L"";
     }
-    return L"";
 }
 
 void CIpAddress::OnPluginCommand(int command_index, void* hWnd, void* para)
 {
-    if (command_index == 0)
+    switch (command_index)
     {
+    case 0:
         g_data.UpdateConnections();
+        break;
+    case 1:
+        g_data.ForceRefreshExternalIp();
+        break;
+    default:
+        break;
     }
 }
 

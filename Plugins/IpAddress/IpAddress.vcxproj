@@ -251,18 +251,29 @@
     <ClInclude Include="AdapterCommon.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="DataManager.h" />
+    <ClInclude Include="ExternalIpAddressItem.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IExternalIpProvider.h" />
+    <ClInclude Include="IpAddress.h" />
+    <ClInclude Include="IpAddressItem.h" />
+    <ClInclude Include="IpSbProvider.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="IpAddress.h" />
-    <ClInclude Include="IpAddressItem.h" />
+    <ClInclude Include="TencentIpProvider.h" />
+    <ClInclude Include="DummyIpProvider.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AdapterCommon.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="DataManager.cpp" />
+    <ClCompile Include="ExternalIpAddressItem.cpp" />
+    <ClCompile Include="IpAddress.cpp" />
+    <ClCompile Include="IpAddressItem.cpp" />
+    <ClCompile Include="IpSbProvider.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
+    <ClCompile Include="TencentIpProvider.cpp" />
+    <ClCompile Include="DummyIpProvider.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -271,8 +282,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="IpAddress.cpp" />
-    <ClCompile Include="IpAddressItem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IpAddress.rc" />
