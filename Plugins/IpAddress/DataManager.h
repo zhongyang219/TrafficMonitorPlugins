@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <afxmt.h>
 #include "resource.h"
 #include "AdapterCommon.h"
 #include "IExternalIpProvider.h"
@@ -24,7 +25,7 @@ private:
     CDataManager();
     ~CDataManager();
 
-    static UINT ExternalIpUpdateThread(LPVOID dwUser);
+    static UINT UpdateIpThread(LPVOID dwUser);
 
 public:
     static CDataManager& Instance();
@@ -59,5 +60,5 @@ private:
     std::map<std::wstring, std::unique_ptr<IExternalIpProvider>> m_ip_providers;
     std::wstring m_external_ip;
     std::chrono::steady_clock::time_point m_last_ip_query_time;
-    bool m_is_thread_running{};
+    CSemaphore m_update_thread_semaphore;
 };

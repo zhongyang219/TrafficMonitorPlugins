@@ -12,7 +12,7 @@
 
 CDataManager CDataManager::m_instance;
 
-CDataManager::CDataManager()
+CDataManager::CDataManager() : m_update_thread_semaphore(1, 1)
 {
     auto dummy_provider = std::make_unique<CDummyIpProvider>();
     m_ip_providers[dummy_provider->GetName()] = std::move(dummy_provider);
@@ -56,7 +56,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     utilities::CIniHelper ini(m_config_path);
     m_setting_data.current_connection_name = ini.GetString(L"config", L"connection_name");
     m_setting_data.ip_query_interval = ini.GetInt(L"config", L"ip_query_interval", 60);
-    m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"None");
+    m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"Disabled");
     if (m_setting_data.current_connection_name.empty() && !m_connections.empty())
     {
         m_setting_data.current_connection_name = m_connections.begin()->second.description;
@@ -136,6 +136,13 @@ void CDataManager::UpdateConnections()
 
 bool CDataManager::GetLocalIPv4Address(std::wstring& ipv4address)
 {
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - m_last_ip_query_time).count() > m_setting_data.ip_query_interval)
+    {
+        m_last_ip_query_time = now;
+        if (m_update_thread_semaphore.Lock(0))
+            AfxBeginThread(UpdateIpThread, nullptr);
+    }
     auto it = m_connections.find(m_setting_data.current_connection_name);
     if (it != m_connections.end())
     {
@@ -151,8 +158,8 @@ bool CDataManager::GetExternalIPv4Address(std::wstring& ipv4address)
     if (std::chrono::duration_cast<std::chrono::seconds>(now - m_last_ip_query_time).count() > m_setting_data.ip_query_interval)
     {
         m_last_ip_query_time = now;
-        if (!m_is_thread_running)
-            AfxBeginThread(ExternalIpUpdateThread, nullptr);
+        if (m_update_thread_semaphore.Lock(0))
+            AfxBeginThread(UpdateIpThread, nullptr);
     }
     ipv4address = m_external_ip;
     return !m_external_ip.empty();
@@ -163,10 +170,10 @@ void CDataManager::ForceRefreshExternalIp()
     m_last_ip_query_time = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(0));
 }
 
-UINT CDataManager::ExternalIpUpdateThread(LPVOID dwUser)
+UINT CDataManager::UpdateIpThread(LPVOID dwUser)
 {
     AFX_MANAGE_STATE(AfxGetStaticModuleState());
-    CFlagLocker flag_locker(m_instance.m_is_thread_running);
+    m_instance.UpdateConnections();
     auto it = m_instance.m_ip_providers.find(m_instance.m_setting_data.ip_provider_name);
     if (it != m_instance.m_ip_providers.end())
     {
@@ -175,6 +182,7 @@ UINT CDataManager::ExternalIpUpdateThread(LPVOID dwUser)
             m_instance.m_external_ip = L"<disconnected>";
         }
     }
+    m_instance.m_update_thread_semaphore.Unlock();
     return 0;
 }
 
