@@ -63,13 +63,13 @@ const wchar_t* CIpAddress::GetInfo(PluginInfoIndex index)
     case TMI_DESCRIPTION:
         return g_data.StringRes(IDS_PLUGIN_DESCRIPTION).GetString();
     case TMI_AUTHOR:
-        return L"zhongyang219";
+        return L"zhongyang219, KnownRabbit";
     case TMI_COPYRIGHT:
-        return L"Copyright (C) by Zhong Yang 2025";
+        return L"Copyright (C) by Zhong Yang, KnownRabbit 2025";
     case ITMPlugin::TMI_URL:
         return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
     case TMI_VERSION:
-        return L"1.00";
+        return L"1.01";
     default:
         break;
     }
