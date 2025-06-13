@@ -38,6 +38,7 @@ public:
     void UpdateConnections();
     bool GetLocalIPv4Address(std::wstring& ipv4address);
     bool GetExternalIPv4Address(std::wstring& ipv4address);
+    void ForceRefreshExternalIp();
     const std::vector<NetWorkConection>& GetAllConnections() const;
 
     SettingData m_setting_data;

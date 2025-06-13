@@ -163,6 +163,11 @@ bool CDataManager::GetExternalIPv4Address(std::wstring& ipv4address)
     return !m_external_ip.empty();
 }
 
+void CDataManager::ForceRefreshExternalIp()
+{
+    m_last_ip_query_time = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(0));
+}
+
 const std::vector<NetWorkConection>& CDataManager::GetAllConnections() const
 {
     return m_connections;

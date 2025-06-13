@@ -98,23 +98,34 @@ void* CIpAddress::GetPluginIcon()
 
 int CIpAddress::GetCommandCount()
 {
-    return 1;
+    return 2;
 }
 
 const wchar_t* CIpAddress::GetCommandName(int command_index)
 {
-    if (command_index == 0)
+    switch (command_index)
     {
+    case 0:
         return g_data.StringRes(IDS_REFRESH_CONNECTION_LIST);
+    case 1:
+        return g_data.StringRes(IDS_REFRESH_EXTERNAL_IP);
+    default:
+        return L"";
     }
-    return L"";
 }
 
 void CIpAddress::OnPluginCommand(int command_index, void* hWnd, void* para)
 {
-    if (command_index == 0)
+    switch (command_index)
     {
+    case 0:
         g_data.UpdateConnections();
+        break;
+    case 1:
+        g_data.ForceRefreshExternalIp();
+        break;
+    default:
+        break;
     }
 }
 

@@ -175,6 +175,7 @@ BEGIN
     IDS_PLUGIN_ITEM_NAME    "本地IPv4地址"
     IDS_REFRESH_CONNECTION_LIST "刷新网络连接列表"
     IDS_EXTERNAL_IP_ADDRESS "外部IPv4地址"
+    IDS_REFRESH_EXTERNAL_IP "刷新外部IP地址"
 END
 
 #endif    // Chinese (Simplified, China) resources
@@ -253,6 +254,7 @@ BEGIN
     IDS_PLUGIN_ITEM_NAME    "Local IPv4 address"
     IDS_REFRESH_CONNECTION_LIST "Refresh connection list"
     IDS_EXTERNAL_IP_ADDRESS "External IP Address"
+    IDS_REFRESH_EXTERNAL_IP "Refresh External IP Address"
 END
 
 #endif    // English (United States) resources
