@@ -26,6 +26,7 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_IP_QUERY_INTERVAL_SPIN, m_ip_query_interval_spin);
     DDX_Text(pDX, IDC_IP_QUERY_INTERVAL_EDIT, m_data.ip_query_interval);
     DDX_Control(pDX, IDC_IP_PROVIDER_COMBO, m_ip_provider_combo);
+    DDX_Text(pDX, IDC_DUMMY_IP_EDIT, m_data.dummy_ip_value);
 }
 
 void COptionsDlg::InitConnectionsCombobox()
@@ -66,6 +67,7 @@ BOOL COptionsDlg::OnInitDialog()
         m_ip_provider_combo.AddString(pair.first.c_str());
     }
     m_ip_provider_combo.SelectString(-1, m_data.ip_provider_name.c_str());
+    SetDlgItemTextW(IDC_DUMMY_IP_EDIT, m_data.dummy_ip_value);
 
     return TRUE;  // return TRUE unless you set the focus to a control
                   // 异常: OCX 属性页应返回 FALSE
@@ -82,6 +84,7 @@ void COptionsDlg::OnOK()
 
     m_ip_provider_combo.GetWindowText(str);
     m_data.ip_provider_name = str.GetString();
+    GetDlgItemTextW(IDC_DUMMY_IP_EDIT, m_data.dummy_ip_value);
 
     CDialog::OnOK();
 }

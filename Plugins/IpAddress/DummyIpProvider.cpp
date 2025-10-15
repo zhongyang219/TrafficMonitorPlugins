@@ -8,6 +8,6 @@ std::wstring CDummyIpProvider::GetName() const
 
 bool CDummyIpProvider::GetExternalIp(std::wstring& ip) const
 {
-    ip = L"<disabled>";
+    ip = g_data.m_setting_data.dummy_ip_value;
     return true;
 }

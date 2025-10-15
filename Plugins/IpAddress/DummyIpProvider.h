@@ -1,5 +1,6 @@
 #pragma once
 #include "IExternalIpProvider.h"
+#include "DataManager.h"
 
 class CDummyIpProvider :
     public IExternalIpProvider

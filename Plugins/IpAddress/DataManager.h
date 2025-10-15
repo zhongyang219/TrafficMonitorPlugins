@@ -17,6 +17,7 @@
         std::wstring current_connection_name;
         int ip_query_interval{ 60 };
         std::wstring ip_provider_name;
+        CString dummy_ip_value;     // 为了数据绑定需要，定义为 CString
     };
 
 class CDataManager
