@@ -56,7 +56,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
     utilities::CIniHelper ini(m_config_path);
     m_setting_data.current_connection_name = ini.GetString(L"config", L"connection_name");
     m_setting_data.ip_query_interval = ini.GetInt(L"config", L"ip_query_interval", 60);
-    m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"Disabled");
+    m_setting_data.ip_provider_name = ini.GetString(L"config", L"ip_provider_name", L"Dummy");
     if (m_setting_data.current_connection_name.empty() && !m_connections.empty())
     {
         m_setting_data.current_connection_name = m_connections.begin()->second.description;

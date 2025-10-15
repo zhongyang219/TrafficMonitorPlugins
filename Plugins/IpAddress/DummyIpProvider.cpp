@@ -3,7 +3,7 @@
 
 std::wstring CDummyIpProvider::GetName() const
 {
-    return L"Disabled";
+    return L"Dummy";
 }
 
 bool CDummyIpProvider::GetExternalIp(std::wstring& ip) const
