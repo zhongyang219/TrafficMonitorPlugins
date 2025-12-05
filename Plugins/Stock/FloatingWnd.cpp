@@ -216,12 +216,12 @@ void CFloatingWnd::OnPaint()
     CPen pKLine(PS_SOLID, 1, RGB(70, 113, 152));
     memDC.SelectObject(&pKLine);
 
-    STOCK::RealTimeData realtimeData;
+    STOCK::StockInfo realtimeData;
     std::vector<STOCK::TimelinePoint> timelinePoint;
     {
         std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
         auto stockData = g_data.GetStockData(m_stock_id);
-        realtimeData = stockData->realTimeData;
+        realtimeData = stockData->info;
         timelinePoint = stockData->getTimelineData()->data;
     }
 

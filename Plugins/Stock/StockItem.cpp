@@ -109,7 +109,7 @@ void StockItem::DrawItem(void *hDC, int x, int y, int w, int h, bool dark_mode)
     if (g_data.m_setting_data.m_color_with_price)
     {
         // 绘制数值
-        if (data->realTimeData.displayFluctuation.find('-') != std::wstring::npos)
+        if (data->info.displayFluctuation.find('-') != std::wstring::npos)
             pDC->SetTextColor(color_green);
         else
             pDC->SetTextColor(color_red);

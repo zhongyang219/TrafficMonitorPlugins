@@ -69,13 +69,13 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 
     std::vector<std::string> data_arr = CCommon::split(data, ",");
 
-    stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
+    // stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
 
-    stockData->realTimeData.Load(key, data_arr);
+    stockData->info.Load(key, data_arr);
   }
 }
 
-void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_arr)
+void STOCK::StockInfo::Load(std::wstring key, std::vector<std::string> data_arr)
 {
   size_t data_size = static_cast<size_t>(data_arr.size());
 
@@ -111,12 +111,13 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   }
 }
 
-void STOCK::RealTimeData::LoadMG(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadMG(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_MG)
   {
     return;
   }
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[5])};
   prevClosePrice = {convert<Price>(data[26])};
   currentPrice = {convert<Price>(data[1])};
@@ -126,8 +127,9 @@ void STOCK::RealTimeData::LoadMG(std::vector<std::string> data, size_t size)
   // turnover = {convert<Price>(data[5])};
 }
 
-void STOCK::RealTimeData::LoadAG(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadAG(std::vector<std::string> data, size_t size)
 {
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[1])};
   prevClosePrice = {convert<Price>(data[2])};
   currentPrice = {convert<Price>(data[3])};
@@ -155,7 +157,7 @@ void STOCK::RealTimeData::LoadAG(std::vector<std::string> data, size_t size)
   bidLevels[4] = {{convert<Price>(data[19])}, {convert<Volume>(data[18])}};
 }
 
-void STOCK::RealTimeData::LoadSH(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadSH(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_SH)
   {
@@ -164,7 +166,7 @@ void STOCK::RealTimeData::LoadSH(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadSZ(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadSZ(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_SZ)
   {
@@ -173,7 +175,7 @@ void STOCK::RealTimeData::LoadSZ(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadBJ(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadBJ(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_BJ)
   {
@@ -182,12 +184,13 @@ void STOCK::RealTimeData::LoadBJ(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadHK(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_HK)
   {
     return;
   }
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[2])};
   prevClosePrice = {convert<Price>(data[3])};
   currentPrice = {convert<Price>(data[6])};
@@ -218,7 +221,7 @@ std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
   {
     if (include_name)
       wss << info.displayName << ": ";
-    wss << realTimeData.displayPrice << ' ' << realTimeData.displayFluctuation;
+    wss << info.displayPrice << ' ' << info.displayFluctuation;
   }
   else
   {
