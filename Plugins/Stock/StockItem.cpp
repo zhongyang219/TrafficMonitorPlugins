@@ -61,7 +61,7 @@ int StockItem::GetItemWidthEx(void *hDC) const
     char buff[32];
     sprintf_s(buff, "GetItemWidthEx %d", width);
 
-    CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
+    // CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
     LogX(L"GetItemWidthEx: %d\n", width);
     return width;
 }
