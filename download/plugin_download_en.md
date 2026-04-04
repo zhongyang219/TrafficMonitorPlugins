@@ -195,3 +195,60 @@ A TrafficMonitor plugin to support writing plugin by lua script.
 
 * Download url: [Releases · compilelife/TrafficMonitorLuaPlugin](https://github.com/compilelife/TrafficMonitorLuaPlugin/releases)
 
+### Keyboard Indicator
+
+![image-20250309172613785](images/image-20250309172613785.png)
+
+A plugin used to display the status of keys such as Caps Lock, Num Lock, and Scroll Lock on the keyboard.
+
+* Version: V1.00
+
+* Download url:
+
+  GitHub: [Release KeyboardIndicator_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/KeyboardIndicator_V1.00)
+
+  Gitee: [KeyboardIndicator_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/KeyboardIndicator_V1.00)
+
+### Loudness Meter
+
+![image-20250309173332515](images/image-20250309173332515.png)
+
+A plugin used to display the current system volume.
+
+* Version: V1.00
+
+* Download url:
+
+  GitHub: [Release LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
+
+  Gitee: [LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
+
+### MijiaPluginForTM
+
+这是一个 TrafficMonitor 插件，可以在 Windows 任务栏实时显示米家/酷控（cuco）智能插座的功率数值，并可选开启功率历史记录功能。
+
+![](images/571876656-90fd0cb1-d807-4bc9-a64a-b7a10b8ae9c9.png)
+
+* Author: [cxhoyo](https://github.com/cxhoyo)
+* Homepage: [cxhoyo/MijiaPluginForTM: 米家智能插座功率显示插件_TrafficMonitor](https://github.com/cxhoyo/MijiaPluginForTM/tree/main?tab=readme-ov-file)
+* Download url: [Releases · cxhoyo/MijiaPluginForTM](https://github.com/cxhoyo/MijiaPluginForTM/releases)
+
+# IP Location Plugin
+
+I’ve built a brand-new IPLocation plugin for TrafficMonitor! It accurately displays your public egress IP and its geographic location with auto-refresh every 30s, perfectly fixing the original plugin’s flaws of inaccurate IP display and no location support.
+Super practical for these scenarios:✅ VPN/Proxy users: Instantly verify node switching results & confirm egress IP/region✅ Remote work/development: Quick check of public IP for server connection/port mapping✅ Network troubleshooting: Fast confirm real egress IP to locate network issues✅ Multi-node testing: Effortlessly check IP status when switching different proxy/VPN nodes
+It’s lightweight and works seamlessly with TrafficMonitor v1.85.1 (Win10/11 x64).
+
+* Author: [byLennert](https://github.com/byLennert)
+* Homepage: [byLennert/IPLocation_for_TrafficMonitor: a tool for TrafficMonitor to show current ip and region.](https://github.com/byLennert/IPLocation_for_TrafficMonitor)
+* Download url: [Releases · byLennert/IPLocation_for_TrafficMonitor](https://github.com/byLennert/IPLocation_for_TrafficMonitor/releases)
+
+### Ping Plugin
+
+A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) that displays **real-time ping latency** to a configurable host directly in your Windows taskbar.
+
+![](images/ping-plugin-preview.jpg)
+
+* Author: [wwwroot](https://github.com/wwwroot)
+* Homepage: [wwwroot/TrafficMonitorPingPlugin: A TrafficMonitor plugin to display ping latency to configurable hosts (e.g. google.com)](https://github.com/wwwroot/TrafficMonitorPingPlugin)
+* Download url: [Releases · wwwroot/TrafficMonitorPingPlugin](

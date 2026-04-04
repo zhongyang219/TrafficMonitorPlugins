@@ -238,3 +238,37 @@
   GitHub: [Release LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
 
   Gitee: [LoudnessMeter_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/LoudnessMeter_V1.00)
+
+### 米家插座功率插件
+
+这是一个 TrafficMonitor 插件，可以在 Windows 任务栏实时显示米家/酷控（cuco）智能插座的功率数值，并可选开启功率历史记录功能。
+
+![](images/571876656-90fd0cb1-d807-4bc9-a64a-b7a10b8ae9c9.png)
+
+* 作者：[cxhoyo](https://github.com/cxhoyo)
+* 主页：[cxhoyo/MijiaPluginForTM: 米家智能插座功率显示插件_TrafficMonitor](https://github.com/cxhoyo/MijiaPluginForTM/tree/main?tab=readme-ov-file)
+* 下载链接：[Releases · cxhoyo/MijiaPluginForTM](https://github.com/cxhoyo/MijiaPluginForTM/releases)
+
+### IP 定位插件
+
+给 TrafficMonitor 做了款全新 IP 定位插件，精准显示公网出口 IP + 地区信息，每 30 秒自动刷新，直接解决原版插件 IP 显示不准、无地区展示的核心问题，轻量适配 Win10/11，和 TrafficMonitor v1.85.1 完美兼容！
+这些场景用超方便：✅ VPN / 代理用户：切换节点后秒验出口 IP + 地区，确认节点是否生效✅ 远程办公 / 开发：快速查公网 IP，方便服务器连接、端口映射配置✅ 网络排障：一键确认真实出口 IP，快速定位网络访问 / 路由问题✅ 多节点测试：来回切换代理 / VPN 节点，无需额外工具，实时看 IP 状态
+
+* 作者：[byLennert](https://github.com/byLennert)
+* 主页：[byLennert/IPLocation_for_TrafficMonitor: a tool for TrafficMonitor to show current ip and region.](https://github.com/byLennert/IPLocation_for_TrafficMonitor)
+* 下载链接：[Releases · byLennert/IPLocation_for_TrafficMonitor](https://github.com/byLennert/IPLocation_for_TrafficMonitor/releases)
+
+### Ping Plugin
+
+A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) that displays **real-time ping latency** to a configurable host directly in your Windows taskbar.
+
+![](images/ping-plugin-preview.jpg)
+
+* 作者：[wwwroot](https://github.com/wwwroot)
+* 主页：[wwwroot/TrafficMonitorPingPlugin: A TrafficMonitor plugin to display ping latency to configurable hosts (e.g. google.com)](https://github.com/wwwroot/TrafficMonitorPingPlugin)
+* 下载链接：[Releases · wwwroot/TrafficMonitorPingPlugin](https://github.com/wwwroot/TrafficMonitorPingPlugin/releases)
+
+
+
+
+
