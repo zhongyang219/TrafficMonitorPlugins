@@ -18,6 +18,10 @@ constexpr auto _DATA_LEN_SZ = 33;
 constexpr auto _DATA_LEN_BJ = 39;
 // 港股数据长度
 constexpr auto _DATA_LEN_HK = 25;
+// 国内期货数据长度
+constexpr auto _DATA_LEN_NF = 16;
+// 海外期货数据长度
+constexpr auto _DATA_LEN_HF = 14;
 
 using namespace STOCK;
 
@@ -69,13 +73,13 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 
     std::vector<std::string> data_arr = CCommon::split(data, ",");
 
-    stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
+    // stockData->info.displayName = CCommon::StrToUnicode(data_arr[0].c_str());
 
-    stockData->realTimeData.Load(key, data_arr);
+    stockData->info.Load(key, data_arr);
   }
 }
 
-void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_arr)
+void STOCK::StockInfo::Load(std::wstring key, std::vector<std::string> data_arr)
 {
   size_t data_size = static_cast<size_t>(data_arr.size());
 
@@ -99,6 +103,14 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   {
     LoadHK(data_arr, data_size);
   }
+  else if (key.find(kNF) == 0)
+  {
+    LoadNF(data_arr, data_size);
+  }
+  else if (key.find(kHF) == 0)
+  {
+    LoadHF(data_arr, data_size);
+  }
 
   if (currentPrice > 0 && prevClosePrice > 0)
   {
@@ -111,12 +123,13 @@ void STOCK::RealTimeData::Load(std::wstring key, std::vector<std::string> data_a
   }
 }
 
-void STOCK::RealTimeData::LoadMG(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadMG(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_MG)
   {
     return;
   }
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[5])};
   prevClosePrice = {convert<Price>(data[26])};
   currentPrice = {convert<Price>(data[1])};
@@ -126,8 +139,9 @@ void STOCK::RealTimeData::LoadMG(std::vector<std::string> data, size_t size)
   // turnover = {convert<Price>(data[5])};
 }
 
-void STOCK::RealTimeData::LoadAG(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadAG(std::vector<std::string> data, size_t size)
 {
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[1])};
   prevClosePrice = {convert<Price>(data[2])};
   currentPrice = {convert<Price>(data[3])};
@@ -155,7 +169,7 @@ void STOCK::RealTimeData::LoadAG(std::vector<std::string> data, size_t size)
   bidLevels[4] = {{convert<Price>(data[19])}, {convert<Volume>(data[18])}};
 }
 
-void STOCK::RealTimeData::LoadSH(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadSH(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_SH)
   {
@@ -164,7 +178,7 @@ void STOCK::RealTimeData::LoadSH(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadSZ(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadSZ(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_SZ)
   {
@@ -173,7 +187,7 @@ void STOCK::RealTimeData::LoadSZ(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadBJ(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadBJ(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_BJ)
   {
@@ -182,12 +196,13 @@ void STOCK::RealTimeData::LoadBJ(std::vector<std::string> data, size_t size)
   LoadAG(data, size);
 }
 
-void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
+void STOCK::StockInfo::LoadHK(std::vector<std::string> data, size_t size)
 {
   if (size < _DATA_LEN_HK)
   {
     return;
   }
+  displayName = CCommon::StrToUnicode(data[0].c_str());
   openPrice = {convert<Price>(data[2])};
   prevClosePrice = {convert<Price>(data[3])};
   currentPrice = {convert<Price>(data[6])};
@@ -195,6 +210,66 @@ void STOCK::RealTimeData::LoadHK(std::vector<std::string> data, size_t size)
   lowPrice = {convert<Price>(data[5])};
   volume = {convert<Volume>(data[12])};
   turnover = {convert<Price>(data[11])};
+}
+
+void STOCK::StockInfo::LoadNF(std::vector<std::string> data, size_t size)
+{
+    if (size < _DATA_LEN_NF)
+    {
+        return;
+	}
+    /* 解析格式，与股票略有不同
+    var hq_str_V2201="PVC2201,230000,
+    8585.00, 8692.00, 8467.00, 8641.00, // params[2,3,4,5] 开，高，低，昨收
+    8673.00, 8674.00, // params[6, 7] 买一、卖一价
+    8675.00, // 现价 params[8]
+    8630.00, // 均价
+    8821.00, // 昨日结算价【一般软件的行情涨跌幅按这个价格显示涨跌幅】（后续考虑配置项，设置按收盘价还是结算价显示涨跌幅）
+    109, // 买一量
+    2, // 卖一量
+    289274, // 持仓量
+    230643, //总量
+    连, // params[8 + 7] 交易所名称 ["连","沪", "郑"]
+    PVC,2021-11-26,1,9243.000,8611.000,9243.000,8251.000,9435.000,8108.000,13380.000,8108.000,445.541";
+    */
+	displayName = CCommon::StrToUnicode(data[0].c_str());
+	openPrice = { convert<Price>(data[2]) };
+	highPrice = { convert<Price>(data[3]) };
+	lowPrice = { convert<Price>(data[4]) };
+	prevClosePrice = { convert<Price>(data[10]) };  // 昨结算
+	currentPrice = { convert<Price>(data[8]) };
+	volume = { convert<Volume>(data[14]) };
+}
+
+void STOCK::StockInfo::LoadHF(std::vector<std::string> data, size_t size)
+{
+    if (size < _DATA_LEN_HF)
+    {
+		return;
+	}
+    // 海外期货格式
+    // 0 当前价格
+    // '105.306', '',
+    //  2  买一价  3 卖一价  4  最高价   5 最低价
+    // '105.270', '105.290', '105.540', '102.950',
+    //  6 时间   7 昨日结算价  8 开盘价  9 持仓量
+    // '15:51:34', '102.410', '103.500', '250168.000',
+    // 10 买 11 卖 12 日期      13 名称  14 成交量
+    // '5', '2', '2022-05-04', 'WTI纽约原油2206', '28346'
+	currentPrice = { convert<Price>(data[0]) };
+	highPrice = { convert<Price>(data[4]) };
+	lowPrice = { convert<Price>(data[5]) };
+	prevClosePrice = { convert<Price>(data[7]) };
+	openPrice = { convert<Price>(data[8]) };
+	displayName = CCommon::StrToUnicode(data[13].c_str());
+    // The overseas futures name field (data[13]) may contain additional information in parentheses,
+    // e.g. "伦敦金（现货黄金）". To keep the display name concise and consistent with other formats,
+    // we strip any characters after '（', retaining only the main contract name.
+    displayName = displayName.substr(0, displayName.find(L"（"));
+
+	
+	if (data.size() >= 15)
+        volume = { convert<Volume>(data[14]) };
 }
 
 void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString *pData)
@@ -218,7 +293,7 @@ std::wstring STOCK::StockData::GetCurrentDisplay(bool include_name) const
   {
     if (include_name)
       wss << info.displayName << ": ";
-    wss << realTimeData.displayPrice << ' ' << realTimeData.displayFluctuation;
+    wss << info.displayPrice << ' ' << info.displayFluctuation;
   }
   else
   {

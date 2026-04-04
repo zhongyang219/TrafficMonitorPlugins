@@ -29,48 +29,50 @@ namespace STOCK
   };
 
   // 最新交易数据
-  struct RealTimeData
-  {
-    Price openPrice;      // 今日开盘价
-    Price prevClosePrice; // 昨日收盘价
-    Price currentPrice;   // 当前价格
-    Price highPrice;      // 最高价
-    Price lowPrice;       // 最低价
-    Volume volume;        // 成交量(股)
-    Amount turnover;      // 成交额(元)
+ // struct RealTimeData
+ // {
+ //   Price openPrice;      // 今日开盘价
+ //   Price prevClosePrice; // 昨日收盘价
+ //   Price currentPrice;   // 当前价格
+ //   Price highPrice;      // 最高价
+ //   Price lowPrice;       // 最低价
+ //   Volume volume;        // 成交量(股)
+ //   Amount turnover;      // 成交额(元)
 
-    std::wstring displayPrice = L"--";
-    std::wstring displayFluctuation = L"--%";
+ //   std::wstring displayPrice = L"--";
+ //   std::wstring displayFluctuation = L"--%";
 
-    Price priceLimit; // 价格限制
+ //   Price priceLimit; // 价格限制
 
-    // 买卖盘口，使用数组便于遍历
-    static const int MAX_LEVEL = 5;
+ //   // 买卖盘口，使用数组便于遍历
+ //   static const int MAX_LEVEL = 5;
 
-    OrderLevel askLevels[MAX_LEVEL]; // 卖盘(5档)
-    OrderLevel bidLevels[MAX_LEVEL]; // 买盘(5档)
+ //   OrderLevel askLevels[MAX_LEVEL]; // 卖盘(5档)
+ //   OrderLevel bidLevels[MAX_LEVEL]; // 买盘(5档)
 
-    RealTimeData() : openPrice(0.0),
-                     prevClosePrice(0.0),
-                     currentPrice(0.0),
-                     highPrice(0.0),
-                     lowPrice(0.0),
-                     volume(0),
-                     turnover(0.0),
-                     priceLimit(0.0)
-    {
-      // bidLevels.resize(MAX_LEVEL);
-      // askLevels.resize(MAX_LEVEL);
-    }
+ //   RealTimeData() : openPrice(0.0),
+ //                    prevClosePrice(0.0),
+ //                    currentPrice(0.0),
+ //                    highPrice(0.0),
+ //                    lowPrice(0.0),
+ //                    volume(0),
+ //                    turnover(0.0),
+ //                    priceLimit(0.0)
+ //   {
+ //     // bidLevels.resize(MAX_LEVEL);
+ //     // askLevels.resize(MAX_LEVEL);
+ //   }
 
-    void Load(std::wstring key, std::vector<std::string> data);
-    void LoadMG(std::vector<std::string> data, size_t size);
-    void LoadAG(std::vector<std::string> data, size_t size);
-    void LoadSH(std::vector<std::string> data, size_t size);
-    void LoadSZ(std::vector<std::string> data, size_t size);
-    void LoadBJ(std::vector<std::string> data, size_t size);
-    void LoadHK(std::vector<std::string> data, size_t size);
-  };
+ //   void Load(std::wstring key, std::vector<std::string> data);
+ //   void LoadMG(std::vector<std::string> data, size_t size);
+ //   void LoadAG(std::vector<std::string> data, size_t size);
+ //   void LoadSH(std::vector<std::string> data, size_t size);
+ //   void LoadSZ(std::vector<std::string> data, size_t size);
+ //   void LoadBJ(std::vector<std::string> data, size_t size);
+ //   void LoadHK(std::vector<std::string> data, size_t size);
+ //   void LoadNF(std::vector<std::string> data, size_t size);
+ //   void LoadHF(std::vector<std::string> data, size_t size);
+ // };
 
   // 分时数据点
   struct TimelinePoint
@@ -159,14 +161,56 @@ namespace STOCK
 
     bool is_ok = TRUE;              // 加载成功标志
     // std::string industry; // 所属行业
+
+    Price openPrice;      // 今日开盘价
+    Price prevClosePrice; // 昨日收盘价
+    Price currentPrice;   // 当前价格
+    Price highPrice;      // 最高价
+    Price lowPrice;       // 最低价
+    Volume volume;        // 成交量(股)
+    Amount turnover;      // 成交额(元)
+
+    std::wstring displayPrice = L"--";
+    std::wstring displayFluctuation = L"--%";
+
+    Price priceLimit; // 价格限制
+
+    // 买卖盘口，使用数组便于遍历
+    static const int MAX_LEVEL = 5;
+
+    OrderLevel askLevels[MAX_LEVEL]; // 卖盘(5档)
+    OrderLevel bidLevels[MAX_LEVEL]; // 买盘(5档)
+
+    StockInfo() : openPrice(0.0),
+        prevClosePrice(0.0),
+        currentPrice(0.0),
+        highPrice(0.0),
+        lowPrice(0.0),
+        volume(0),
+        turnover(0.0),
+        priceLimit(0.0)
+    {
+        // bidLevels.resize(MAX_LEVEL);
+        // askLevels.resize(MAX_LEVEL);
+    }
+
+    void Load(std::wstring key, std::vector<std::string> data);
+    void LoadMG(std::vector<std::string> data, size_t size);
+    void LoadAG(std::vector<std::string> data, size_t size);
+    void LoadSH(std::vector<std::string> data, size_t size);
+    void LoadSZ(std::vector<std::string> data, size_t size);
+    void LoadBJ(std::vector<std::string> data, size_t size);
+    void LoadHK(std::vector<std::string> data, size_t size);
+    void LoadNF(std::vector<std::string> data, size_t size);
+    void LoadHF(std::vector<std::string> data, size_t size);
   };
 
   // 股票数据结构
   class StockData
   {
   public:
-    StockInfo info;            // 基础信息
-    RealTimeData realTimeData; // 最新数据
+    StockInfo info;
+    // RealTimeData realTimeData; // 最新数据
 
     std::wstring GetCurrentDisplay(bool include_name = true) const;
 
@@ -226,8 +270,8 @@ namespace STOCK
     {
       for (const auto &it : stocks)
       {
-        RealTimeData data;
-        it.second->realTimeData = data;
+        StockInfo data;
+        it.second->info = data;
       }
     }
 
@@ -252,12 +296,12 @@ namespace STOCK
     }
 
     // 更新股票最新数据
-    void updateStockData(const std::wstring &code, const RealTimeData &data)
+    void updateStockData(const std::wstring &code, const StockInfo &data)
     {
       auto stock = getStock(code);
       if (stock)
       {
-        stock->realTimeData = data;
+        stock->info = data;
       }
     }
 

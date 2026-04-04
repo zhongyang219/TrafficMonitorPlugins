@@ -61,7 +61,7 @@ int StockItem::GetItemWidthEx(void *hDC) const
     char buff[32];
     sprintf_s(buff, "GetItemWidthEx %d", width);
 
-    CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
+    // CCommon::WriteLog(CCommon::StrToUnicode(buff).c_str(), g_data.m_log_path.c_str());
     LogX(L"GetItemWidthEx: %d\n", width);
     return width;
 }
@@ -109,7 +109,7 @@ void StockItem::DrawItem(void *hDC, int x, int y, int w, int h, bool dark_mode)
     if (g_data.m_setting_data.m_color_with_price)
     {
         // 绘制数值
-        if (data->realTimeData.displayFluctuation.find('-') != std::wstring::npos)
+        if (data->info.displayFluctuation.find('-') != std::wstring::npos)
             pDC->SetTextColor(color_green);
         else
             pDC->SetTextColor(color_red);

@@ -13,6 +13,8 @@ constexpr auto kSZ = L"sz";    // 深圳
 constexpr auto kHK = L"rt_hk"; // 香港
 constexpr auto kMG = L"gb_";   // 美国
 constexpr auto kBJ = L"bj";    // 北京
+constexpr auto kNF = L"nf";    // 国内期货
+constexpr auto kHF = L"hf";    // 海外期货
 
 const std::vector<CString> StockTypeSet{kSH, kSZ, kHK, kMG, kBJ};
 
