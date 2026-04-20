@@ -61,26 +61,26 @@ namespace HardwareMonitor
         List<String^>^ unitList = gcnew List<String^>();
         switch (type)
         {
-        case SensorType::Voltage: unitList->Add("V"); unitList->Add("mV"); break;
-        case SensorType::Current: unitList->Add("A"); unitList->Add("mA"); break;
-        case SensorType::Power: unitList->Add("W"); unitList->Add("mW"); break;
+        case SensorType::Voltage: unitList->Add("V"); unitList->Add(" V"); unitList->Add("Ｖ"); unitList->Add("mV"); break;
+        case SensorType::Current: unitList->Add("A"); unitList->Add(" A"); unitList->Add("Ａ"); unitList->Add("mA"); break;
+        case SensorType::Power: unitList->Add("W"); unitList->Add(" W"); unitList->Add("Ｗ"); unitList->Add("mW"); break;
         case SensorType::Clock: unitList->Add("MHz"); unitList->Add("GHz"); break;
-        case SensorType::Temperature: unitList->Add("°C"); unitList->Add("°F"); break;
-        case SensorType::Load: unitList->Add("%"); break;
+        case SensorType::Temperature: unitList->Add("°C"); unitList->Add("℃"); unitList->Add("°F");unitList->Add("℉"); break;
+        case SensorType::Load: unitList->Add("%");unitList->Add(" %");unitList->Add("％"); break;
         case SensorType::Frequency: unitList->Add("Hz"); break;
         case SensorType::Fan: unitList->Add("RPM"); break;
         case SensorType::Flow: unitList->Add("L/h"); break;
-        case SensorType::Control: unitList->Add("%"); break;
-        case SensorType::Level: unitList->Add("%"); break;
+        case SensorType::Control: unitList->Add("%");unitList->Add(" %");unitList->Add("％"); break;
+        case SensorType::Level: unitList->Add("%");unitList->Add(" %");unitList->Add("％"); break;
         case SensorType::Factor: unitList->Add(""); break;
         case SensorType::Data: unitList->Add("GB"); unitList->Add("MB"); break;
         case SensorType::SmallData: unitList->Add("MB"); unitList->Add("GB"); break;
         case SensorType::Throughput: unitList->Add("KB/s"); unitList->Add("MB/s"); break;
-        case SensorType::TimeSpan: unitList->Add("s"); break;
+        case SensorType::TimeSpan: unitList->Add("s"); unitList->Add(" s"); unitList->Add("ｓ"); break;
         case SensorType::Energy: unitList->Add("mWh"); unitList->Add("Wh"); break;
         case SensorType::Noise: unitList->Add("dBA"); break;
         case SensorType::Conductivity: unitList->Add(L"µS/cm"); break;
-        case SensorType::Humidity: unitList->Add("%"); break;
+        case SensorType::Humidity: unitList->Add("%");unitList->Add(" %");unitList->Add("％"); break;
         default: unitList->Add(""); break;
         }
         return unitList;
@@ -169,7 +169,7 @@ namespace HardwareMonitor
             //温度
             else if (sensor->SensorType == SensorType::Temperature)
             {
-                if (unit->Equals("°F"))
+                if (unit->Equals("°F") || unit->Equals("℉"))
                     value = (value * 9.0f / 5.0f) + 32.0f;
             }
 
