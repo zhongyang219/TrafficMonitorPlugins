@@ -56,15 +56,17 @@
 
 ### WeatherPro
 
-![img-weather-pro](images/img-weather-pro.png)
+![img-weather-pro](images/img-weather-pro-v1.0.png)
 
-用于显示天气的插件。支持网页抓取与和风天气API两种数据源。
+用于显示天气的插件。支持多种数据源和丰富的配置选项。
 
 * 作者：[Haojia521](https://github.com/Haojia521)
 
-* 主页：[Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
-
-* 下载链接：[WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+* 下载链接：
+  
+  Github: https://github.com/Haojia521/TMP-WeatherPro/releases
+  
+  Gitee: https://gitee.com/Haojia521/TMP-WeatherPro/releases
 
 ---
 

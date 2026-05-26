@@ -56,15 +56,17 @@ A plugin for displaying the weather. Support manual selection of cities (only ci
 
 ### WeatherPro
 
-![img-weather-pro](images/img-weather-pro.png)
+![img-weather-pro](images/img-weather-pro-v1.0.png)
 
-A plugin for displaying the weather. Support web fetching and weather API two data sources.
+A plugin for displaying weather. Supports multiple data sources and rich configuration options.
 
 * Author: [Haojia521](https://github.com/Haojia521)
 
-* Home page: [Haojia521/TrafficMonitorPlugins (github.com)](https://github.com/Haojia521/TrafficMonitorPlugins)
+* Download url: 
 
-* Download url: [WeatherPro-releases](https://github.com/Haojia521/TrafficMonitorPlugins/releases)
+  Github: https://github.com/Haojia521/TMP-WeatherPro/releases
+  
+  Gitee: https://gitee.com/Haojia521/TMP-WeatherPro/releases
 
 ---
 
