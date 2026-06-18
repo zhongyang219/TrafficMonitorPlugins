@@ -1,4 +1,4 @@
-﻿//{{NO_DEPENDENCIES}}
+//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ 生成的包含文件。
 // 供 Stock.rc 使用
 //
@@ -37,27 +37,53 @@
 #define IDC_MGR_ADD_BTN                 1018
 #define IDC_RADIO_OTHER                 1018
 #define IDC_MGR_DEL_BTN                 1019
+#define IDC_MGR_MOVE_UP_BTN             1039
+#define IDC_MGR_MOVE_DOWN_BTN           1040
 #define IDC_SHOW_STOCK_NAME_CHECK       1021
 #define IDC_CHECK2                      1022
 #define IDC_COLOR_WITH_PRICE_CHECK      1022
+#define IDC_SHOW_FLUCTUATION_CHECK      1037
 #define IDC_TAB1                        1023
 #define IDC_KLINE_WIDTH_EDIT            1026
 #define IDC_EDIT2                       1027
 #define IDC_IDC_KLINE_HEIGHT_EDIT       1027
 #define IDC_KLINE_HEIGHT_EDIT           1027
 #define IDC_EDIT3                       1028
+#define IDC_ALERT_LOW_PRICE_EDIT        1030
+#define IDC_ALERT_HIGH_PRICE_EDIT       1031
+#define IDC_COST_PRICE_EDIT             1032
+#define IDC_HOLDING_COUNT_EDIT          1033
+#define IDC_MARKET_TYPE_STATIC          1034
+#define IDC_MARKET_TYPE_COMBO           1038
+#define IDC_BUY_DATE_EDIT               1035
+#define IDC_TODAY_BUTTON                1036
+#define IDS_ALERT_LOW_PRICE             115
+#define IDS_ALERT_HIGH_PRICE            116
+#define IDS_PRICE_ALERT_TITLE           117
+#define IDS_ALERT_LOW_PRICE_INVALID     118
+#define IDS_ALERT_HIGH_PRICE_INVALID    119
+#define IDS_ALERT_PRICE_RANGE_INVALID   120
+#define IDS_PRICE_ALERT_LOW_MSG         121
+#define IDS_PRICE_ALERT_HIGH_MSG        122
+#define IDS_POSITION_TITLE              123
+#define IDS_COST_PRICE                  124
+#define IDS_HOLDING_COUNT               125
+#define IDS_COST_PRICE_INVALID          126
+#define IDS_HOLDING_COUNT_INVALID       127
+#define IDS_PERCENT_ALERT_RISE_MSG      128
+#define IDS_PERCENT_ALERT_FALL_MSG      129
 #define ID_SETTINGS                     40003
 #define ID_UPDATE                       40004
 #define ID_OPTIONS                      40005
 #define ID_Menu                         40006
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1030
-#define _APS_NEXT_SYMED_VALUE           103
+#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

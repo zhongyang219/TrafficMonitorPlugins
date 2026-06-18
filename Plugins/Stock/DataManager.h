@@ -11,12 +11,13 @@ using namespace STOCK;
 
 struct SettingData
 {
-    vector<std::wstring> m_stock_codes; // 代码
-    bool m_full_day{};                  // 全天更新
-    bool m_show_stock_name{};           // 显示股票名称
-    bool m_color_with_price{};          // 涨跌颜色标识
-    unsigned m_kline_width;             // 走势图宽度
-    unsigned m_kline_height;            // 走势图高度
+	vector<std::wstring> m_stock_codes; // 代码
+	bool m_full_day{};                  // 全天更新
+	bool m_show_stock_name{};           // 显示股票名称
+	bool m_show_fluctuation{};          // 显示涨跌幅
+	bool m_color_with_price{};          // 涨跌颜色标识
+	unsigned m_kline_width;             // 走势图宽度
+	unsigned m_kline_height;            // 走势图高度
 };
 
 // Stock显示数据
@@ -32,39 +33,64 @@ struct SettingData
 class CDataManager
 {
 private:
-    CDataManager();
-    ~CDataManager();
+	CDataManager();
+	~CDataManager();
 
 public:
-    static CDataManager &Instance();
+	static CDataManager& Instance();
 
-    void LoadConfig(const std::wstring &config_dir);
-    void SaveConfig();
-    const CString &StringRes(UINT id); // 根据资源id获取一个字符串资源
-    void DPIFromWindow(CWnd *pWnd);
-    int DPI(int pixel);
-    float DPIF(float pixel);
-    int RDPI(int pixel);
-    HICON GetIcon(UINT id);
-    void ResetText();
-    std::shared_ptr<StockData> GetStockData(const std::wstring &code);
+	void LoadConfig(const std::wstring& config_dir);
+	void SaveConfig();
+	const CString& StringRes(UINT id); // 根据资源id获取一个字符串资源
+	void DPIFromWindow(CWnd* pWnd);
+	int DPI(int pixel);
+	float DPIF(float pixel);
+	int RDPI(int pixel);
+	HICON GetIcon(UINT id);
+	void ResetText();
+	std::shared_ptr<StockData> GetStockData(const std::wstring& code);
 
-    // 获取最新数据
-    void RequestRealtimeData();
-    void RequestTimelineData(std::wstring stock_id);
+	// 获取最新数据
+	void RequestRealtimeData();
+	void RequestTimelineData(std::wstring stock_id);
+	void RequestKLineData(std::wstring stock_id, int days = 250);
+	void RequestInnerOuterData();
 
-    SettingData m_setting_data;
-    std::wstring m_log_path;
-    bool m_right_align{}; // 数值是否右对齐
+	SettingData m_setting_data;
+	std::wstring m_log_path;
+	bool m_right_align{}; // 数值是否右对齐
+
+	// 关注价格设置
+	double GetAlertLowPrice(const std::wstring& code);
+	double GetAlertHighPrice(const std::wstring& code);
+	void SetAlertPrice(const std::wstring& code, double low, double high);
+
+	// 持仓配置设置
+	double GetCostPrice(const std::wstring& code);
+	double GetHoldingCount(const std::wstring& code);
+	std::wstring GetBuyDate(const std::wstring& code);
+	void SetPosition(const std::wstring& code, double cost, double count, const std::wstring& buy_date = L"");
+
+	// 计算N日均线 (当前价格 + 前N-1天收盘价) / N
+	double CalculateMA(const std::wstring& code, double currentPrice, int N);
+
+	// 计算N日平均振幅
+	double CalculateAverageAmplitude(const std::wstring& code, int days = 5);
 
 private:
-    static CDataManager m_instance;
+	static CDataManager m_instance;
 
-    std::wstring m_config_path;
+	std::wstring m_config_path;
 
-    std::map<UINT, CString> m_string_table;
-    std::map<UINT, HICON> m_icons;
-    int m_dpi{96};
+	std::map<UINT, CString> m_string_table;
+	std::map<UINT, HICON> m_icons;
+	int m_dpi{ 96 };
 
-    STOCK::StockMarket stockMarket;
+	STOCK::StockMarket stockMarket;
+
+	// 关注价格映射表: code -> (low_price, high_price)
+	std::map<std::wstring, std::pair<double, double>> m_stock_alert_prices;
+
+	// 持仓配置映射表: code -> (cost_price, holding_count, buy_date)
+	std::map<std::wstring, std::tuple<double, double, std::wstring>> m_stock_positions;
 };
