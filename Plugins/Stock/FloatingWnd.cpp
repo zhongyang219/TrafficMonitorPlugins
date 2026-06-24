@@ -632,45 +632,156 @@ void CFloatingWnd::DrawTimelineCostAndProfitLines(CDC& memDC, const TimelineDraw
 
 	double minRatio = isETF ? 0.005 : 0.025;
 	double plRatio = calculatedRatio > minRatio ? calculatedRatio : minRatio;
-	double basePrice = costPrice > ctx.realtimeData.prevClosePrice ? costPrice : ctx.realtimeData.prevClosePrice;
-	double profitPrice = basePrice * (1 + plRatio);
-	double lossPrice = basePrice * (1 - plRatio);
 
-	float profitLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((profitPrice - minPrice) * unitY);
-	float lossLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((lossPrice - minPrice) * unitY);
+	const auto& timelinePoint = *ctx.timelinePoint;
+	if (timelinePoint.empty())
+	{
+		memDC.SelectObject(pOldPen);
+		return;
+	}
 
-	profitLineY = max((float)ctx.priceChartTop + 5, min(profitLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
-	lossLineY = max((float)ctx.priceChartTop + 5, min(lossLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+	const int totalPoints = static_cast<int>(timelinePoint.size());
+	const float unitX = static_cast<float>(ctx.chartWidth) / (totalPoints > 1 ? totalPoints - 1 : 1);
 
-	// 绘制盈利线
-	CPen profitPen(PS_DASH, 1, COLOR_RED_UP);
+	// 绘制盈利曲线（基于每分钟均价计算）
+	CPen profitPen(PS_DOT, 1, COLOR_RED_UP);
 	memDC.SelectObject(&profitPen);
-	memDC.MoveTo(0, (int)profitLineY);
-	memDC.LineTo(ctx.chartWidth, (int)profitLineY);
-	memDC.SetTextColor(COLOR_RED_UP);
-	CString profitPriceTxt = CCommon::FormatFloat(profitPrice);
-	CSize profitTxtSize = memDC.GetTextExtent(profitPriceTxt);
-	int profitTxtY = (int)profitLineY - profitTxtSize.cy;
-	memDC.TextOut(g_data.RDPI(2), profitTxtY, profitPriceTxt);
-	CString profitRatioTxt;
-	profitRatioTxt.Format(_T("+%.2f%%"), plRatio * 100);
-	CSize profitRatioSize = memDC.GetTextExtent(profitRatioTxt);
-	memDC.TextOut(ctx.chartWidth - profitRatioSize.cx - g_data.RDPI(2), profitTxtY, profitRatioTxt);
+	bool profitFirstPoint = true;
+	for (int i = 0; i < totalPoints; i++)
+	{
+		const auto& item = timelinePoint[i];
+		if (item.averagePrice <= 0)
+			continue;
 
-	// 绘制亏损线
-	CPen lossPen(PS_DASH, 1, COLOR_GREEN_DOWN);
+		double profitPrice = item.averagePrice * (1 + plRatio);
+		float profitLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((profitPrice - minPrice) * unitY);
+		profitLineY = max((float)ctx.priceChartTop + 5, min(profitLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+		float x = static_cast<float>(i) * unitX;
+		if (profitFirstPoint)
+		{
+			memDC.MoveTo((int)x, (int)profitLineY);
+			profitFirstPoint = false;
+		}
+		else
+		{
+			memDC.LineTo((int)x, (int)profitLineY);
+		}
+	}
+
+	// 绘制亏损曲线（基于每分钟均价计算）
+	CPen lossPen(PS_DOT, 1, COLOR_GREEN_DOWN);
 	memDC.SelectObject(&lossPen);
-	memDC.MoveTo(0, (int)lossLineY);
-	memDC.LineTo(ctx.chartWidth, (int)lossLineY);
-	memDC.SetTextColor(COLOR_GREEN_DOWN);
-	CString lossPriceTxt = CCommon::FormatFloat(lossPrice);
-	CSize lossTxtSize = memDC.GetTextExtent(lossPriceTxt);
-	int lossTxtY = (int)lossLineY - lossTxtSize.cy;
-	memDC.TextOut(g_data.RDPI(2), lossTxtY, lossPriceTxt);
-	CString lossRatioTxt;
-	lossRatioTxt.Format(_T("%.2f%%"), -plRatio * 100);
-	CSize lossRatioSize = memDC.GetTextExtent(lossRatioTxt);
-	memDC.TextOut(ctx.chartWidth - lossRatioSize.cx - g_data.RDPI(2), lossTxtY, lossRatioTxt);
+	bool lossFirstPoint = true;
+	for (int i = 0; i < totalPoints; i++)
+	{
+		const auto& item = timelinePoint[i];
+		if (item.averagePrice <= 0)
+			continue;
+
+		double lossPrice = item.averagePrice * (1 - plRatio);
+		float lossLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((lossPrice - minPrice) * unitY);
+		lossLineY = max((float)ctx.priceChartTop + 5, min(lossLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+		float x = static_cast<float>(i) * unitX;
+		if (lossFirstPoint)
+		{
+			memDC.MoveTo((int)x, (int)lossLineY);
+			lossFirstPoint = false;
+		}
+		else
+		{
+			memDC.LineTo((int)x, (int)lossLineY);
+		}
+	}
+
+	// 检测价格走势线与振幅曲线的交叉并绘制金色圆点
+	for (int i = 1; i < totalPoints; i++)
+	{
+		const auto& currItem = timelinePoint[i];
+		const auto& prevItem = timelinePoint[i - 1];
+		
+		if (currItem.averagePrice <= 0 || prevItem.averagePrice <= 0 || 
+			currItem.price <= 0 || prevItem.price <= 0)
+			continue;
+
+		double currProfitPrice = currItem.averagePrice * (1 + plRatio);
+		double prevProfitPrice = prevItem.averagePrice * (1 + plRatio);
+		double currLossPrice = currItem.averagePrice * (1 - plRatio);
+		double prevLossPrice = prevItem.averagePrice * (1 - plRatio);
+
+		bool currAboveProfit = currItem.price >= currProfitPrice;
+		bool prevAboveProfit = prevItem.price >= prevProfitPrice;
+		bool currBelowLoss = currItem.price <= currLossPrice;
+		bool prevBelowLoss = prevItem.price <= prevLossPrice;
+
+		float x = static_cast<float>(i) * unitX;
+		
+		if (currAboveProfit != prevAboveProfit)
+		{
+			float profitLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((currProfitPrice - minPrice) * unitY);
+			profitLineY = max((float)ctx.priceChartTop + 5, min(profitLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+			CBrush goldBrush(COLOR_GOLDEN);
+			CBrush* pOldBrush = memDC.SelectObject(&goldBrush);
+			CPen goldPen(PS_SOLID, 1, COLOR_GOLDEN);
+			CPen* pOldPen = memDC.SelectObject(&goldPen);
+			memDC.Ellipse((int)x - 5, (int)profitLineY - 5, (int)x + 5, (int)profitLineY + 5);
+			memDC.SelectObject(pOldPen);
+			memDC.SelectObject(pOldBrush);
+		}
+
+		if (currBelowLoss != prevBelowLoss)
+		{
+			float lossLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((currLossPrice - minPrice) * unitY);
+			lossLineY = max((float)ctx.priceChartTop + 5, min(lossLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+			CBrush goldBrush(COLOR_GOLDEN);
+			CBrush* pOldBrush = memDC.SelectObject(&goldBrush);
+			CPen goldPen(PS_SOLID, 1, COLOR_GOLDEN);
+			CPen* pOldPen = memDC.SelectObject(&goldPen);
+			memDC.Ellipse((int)x - 5, (int)lossLineY - 5, (int)x + 5, (int)lossLineY + 5);
+			memDC.SelectObject(pOldPen);
+			memDC.SelectObject(pOldBrush);
+		}
+	}
+
+	// 绘制最后一个有效点的价格标签
+	if (!timelinePoint.empty())
+	{
+		const auto& lastItem = timelinePoint.back();
+		if (lastItem.averagePrice > 0)
+		{
+			double lastProfitPrice = lastItem.averagePrice * (1 + plRatio);
+			double lastLossPrice = lastItem.averagePrice * (1 - plRatio);
+
+			float lastProfitLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((lastProfitPrice - minPrice) * unitY);
+			lastProfitLineY = max((float)ctx.priceChartTop + 5, min(lastProfitLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+			float lastLossLineY = ctx.priceChartTop + ctx.priceChartHeight - (int)((lastLossPrice - minPrice) * unitY);
+			lastLossLineY = max((float)ctx.priceChartTop + 5, min(lastLossLineY, (float)ctx.priceChartTop + ctx.priceChartHeight - 5));
+
+			memDC.SetTextColor(COLOR_RED_UP);
+			CString profitPriceTxt = CCommon::FormatFloat(lastProfitPrice);
+			CSize profitTxtSize = memDC.GetTextExtent(profitPriceTxt);
+			int profitTxtY = (int)lastProfitLineY - profitTxtSize.cy;
+			memDC.TextOut(g_data.RDPI(2), profitTxtY, profitPriceTxt);
+			CString profitRatioTxt;
+			profitRatioTxt.Format(_T("+%.2f%%"), plRatio * 100);
+			CSize profitRatioSize = memDC.GetTextExtent(profitRatioTxt);
+			memDC.TextOut(ctx.chartWidth - profitRatioSize.cx - g_data.RDPI(2), profitTxtY, profitRatioTxt);
+
+			memDC.SetTextColor(COLOR_GREEN_DOWN);
+			CString lossPriceTxt = CCommon::FormatFloat(lastLossPrice);
+			CSize lossTxtSize = memDC.GetTextExtent(lossPriceTxt);
+			int lossTxtY = (int)lastLossLineY - lossTxtSize.cy;
+			memDC.TextOut(g_data.RDPI(2), lossTxtY, lossPriceTxt);
+			CString lossRatioTxt;
+			lossRatioTxt.Format(_T("%.2f%%"), -plRatio * 100);
+			CSize lossRatioSize = memDC.GetTextExtent(lossRatioTxt);
+			memDC.TextOut(ctx.chartWidth - lossRatioSize.cx - g_data.RDPI(2), lossTxtY, lossRatioTxt);
+		}
+	}
 
 	memDC.SelectObject(pOldPen);
 }
@@ -710,7 +821,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 
 	float unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 
-	CPen pKLine(PS_SOLID, 1, COLOR_DARK_GRAY_BORDER);
+	CPen pKLine(PS_SOLID, 2, COLOR_DARK_GRAY_BORDER);
 	memDC.SelectObject(&pKLine);
 
 	// 价格曲线

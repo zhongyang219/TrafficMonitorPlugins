@@ -48,7 +48,7 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 	}
 
 	time_t cur_time = time(nullptr);
-	if (cur_time - m_instance.m_last_request_time > 3)
+	if (cur_time - m_instance.m_last_request_time > 2)
 	{
 		m_instance.m_last_request_time = cur_time;
 
