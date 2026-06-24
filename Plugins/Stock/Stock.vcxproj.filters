@@ -66,6 +66,9 @@
     <ClInclude Include="TransparentWnd.h">
       <Filter>FloatingWnd</Filter>
     </ClInclude>
+    <ClInclude Include="TradeRecordDialog.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -96,6 +99,9 @@
       <Filter>DataManager</Filter>
     </ClCompile>
     <ClCompile Include="TransparentWnd.cpp">
+      <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="TradeRecordDialog.cpp">
       <Filter>FloatingWnd</Filter>
     </ClCompile>
   </ItemGroup>

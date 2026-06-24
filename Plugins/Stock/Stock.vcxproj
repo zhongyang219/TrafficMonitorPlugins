@@ -260,6 +260,7 @@
     <ClInclude Include="Stock.h" />
     <ClInclude Include="StockDef.h" />
     <ClInclude Include="StockItem.h" />
+    <ClInclude Include="TradeRecordDialog.h" />
     <ClInclude Include="TransparentWnd.h" />
   </ItemGroup>
   <ItemGroup>
@@ -279,6 +280,7 @@
     <ClCompile Include="Stock.cpp" />
     <ClCompile Include="StockDef.cpp" />
     <ClCompile Include="StockItem.cpp" />
+    <ClCompile Include="TradeRecordDialog.cpp" />
     <ClCompile Include="TransparentWnd.cpp" />
   </ItemGroup>
   <ItemGroup>

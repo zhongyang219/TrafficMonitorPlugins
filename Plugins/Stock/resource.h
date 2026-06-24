@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ 生成的包含文件。
 // 供 Stock.rc 使用
 //
@@ -10,6 +10,7 @@
 #define IDS_MENU_STOCK_MANAGE           106
 #define IDS_MENU_UPDATE_STOCK           107
 #define IDD_MANAGER_DIALOG              108
+#define IDD_TRADE_RECORD_DIALOG          109
 #define IDS_ADD_STOCK                   108
 #define IDS_EDIT_STOCK                  109
 #define IDI_STOCK                       109
@@ -57,6 +58,14 @@
 #define IDC_MARKET_TYPE_COMBO           1038
 #define IDC_BUY_DATE_EDIT               1035
 #define IDC_TODAY_BUTTON                1036
+#define IDC_TRADE_TYPE_BUY              1041
+#define IDC_TRADE_TYPE_SELL             1042
+#define IDC_TRADE_TIME_EDIT             1043
+#define IDC_TRADE_PRICE_EDIT            1044
+#define IDC_TRADE_AMOUNT_EDIT           1045
+#define IDC_TRADE_AMOUNT_STATIC         1046
+#define IDC_TRADE_FEE_STATIC            1047
+#define IDC_TRADE_TOTAL_STATIC          1048
 #define IDS_ALERT_LOW_PRICE             115
 #define IDS_ALERT_HIGH_PRICE            116
 #define IDS_PRICE_ALERT_TITLE           117

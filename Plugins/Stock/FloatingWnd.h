@@ -11,6 +11,7 @@
 #define FWND_MSG_REQUEST_DATA (WM_USER + 101)
 #define FWND_MSG_SHOW_EDIT_DLG (WM_USER + 102)
 #define FWND_MSG_SHOW_ADD_DLG (WM_USER + 103)
+#define FWND_MSG_SHOW_TRADE_DLG (WM_USER + 104)
 
 class CFloatingWnd : public CWnd
 {
@@ -27,7 +28,6 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
@@ -37,6 +37,7 @@ protected:
 	LRESULT OnCloseWindow(WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowEditDialog(WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowAddDialog(WPARAM wParam, LPARAM lParam);
+	LRESULT OnShowTradeDialog(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnBnClickedTimeLineBtn();
 	afx_msg void OnBnClickedKLineBtn();
 	afx_msg void OnCbnSelChangeKLinePeriod();
@@ -184,6 +185,8 @@ private:
 	DWORD m_lastClickTime{};
 	CPoint m_lastClickPos;
 	std::wstring m_pendingEditStockCode;
+	CString m_pendingTradeTime;
+	double m_pendingTradePrice{ 0.0 };
 
 	// 日K线鼠标悬停数据
 	bool m_isHoveringKLine{ false };

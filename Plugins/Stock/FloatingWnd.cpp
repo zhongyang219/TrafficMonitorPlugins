@@ -7,6 +7,7 @@
 #include <Stock.h>
 #include <algorithm>
 #include "OptionsDlg.h"
+#include "TradeRecordDialog.h"
 
 // 大盘指数优先级列表（用于总览列表排序）
 const std::vector<std::wstring> IndexPriority = {
@@ -138,7 +139,6 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_WM_PAINT()
 	ON_WM_ERASEBKGND()
 	ON_WM_LBUTTONDOWN()
-	ON_WM_LBUTTONDBLCLK()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_CREATE()
 	ON_WM_MOUSEMOVE()
@@ -149,6 +149,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_MESSAGE((WM_USER + 101), OnRequestData)
 	ON_MESSAGE((WM_USER + 102), OnShowEditDialog)
 	ON_MESSAGE((WM_USER + 103), OnShowAddDialog)
+	ON_MESSAGE((WM_USER + 104), OnShowTradeDialog)
 	ON_MESSAGE(IDM_CLOSE_WINDOW, OnCloseWindow)
 	ON_BN_CLICKED(IDC_OVERVIEW_BTN, &CFloatingWnd::OnBnClickedOverviewBtn)
 	ON_BN_CLICKED(IDC_TIMELINE_BTN, &CFloatingWnd::OnBnClickedTimeLineBtn)
@@ -262,7 +263,7 @@ BOOL CFloatingWnd::Create(CFont* font, CPoint pt, std::wstring stock_id)
 	HINSTANCE hInst = AfxGetInstanceHandle();
 	if (!(::GetClassInfo(hInst, L"CTransparentWnd", &wndcls)))
 	{
-		wndcls.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+		wndcls.style = CS_HREDRAW | CS_VREDRAW;  // 不使用CS_DBLCLKS，让双击也发送WM_LBUTTONDOWN
 		wndcls.lpfnWndProc = ::DefWindowProc;
 		wndcls.cbClsExtra = wndcls.cbWndExtra = 0;
 		wndcls.hInstance = hInst;
@@ -3892,6 +3893,50 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		}
 	}
 
+	// 非总览模式、非K线模式下的分时图双击
+	if (!m_isKLineMode && !m_isOverviewMode && isDoubleClick)
+	{
+		CRect rect;
+		GetClientRect(&rect);
+		bool isIndex = (GetStockPriority(m_stock_id) < 200);
+		bool isIndexKLine = isIndex && m_isKLineMode;
+		const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
+		const int chartWidth = rect.Width() - orderBookWidth;
+		const int headerHeight = g_data.RDPI(26);
+
+		if (point.x >= 0 && point.x < chartWidth && point.y >= headerHeight)
+		{
+			std::vector<STOCK::TimelinePoint> timelinePoint;
+			{
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				auto stockData = g_data.GetStockData(m_stock_id);
+				if (stockData)
+				{
+					auto timelineData = stockData->getTimelineData();
+					if (timelineData)
+					{
+						timelinePoint = timelineData->data;
+					}
+				}
+			}
+
+			if (!timelinePoint.empty())
+			{
+				int countX = static_cast<int>(point.x * timelinePoint.size() / chartWidth);
+				if (countX >= timelinePoint.size())
+				{
+					countX = timelinePoint.size() - 1;
+				}
+
+				const auto& item = timelinePoint[countX];
+				m_pendingTradeTime = item.time.c_str();
+				m_pendingTradePrice = item.price;
+				PostMessage(FWND_MSG_SHOW_TRADE_DLG);
+				return;
+			}
+		}
+	}
+
 	// 点击在窗口外部则关闭
 	CPoint ptScreen = point;
 	ClientToScreen(&ptScreen);
@@ -3902,11 +3947,8 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		DestroyWindow();
 		Stock::Instance().DestroyFloatingWnd();
 	}
-}
 
-void CFloatingWnd::OnLButtonDblClk(UINT nFlags, CPoint point)
-{
-	CWnd::OnLButtonDblClk(nFlags, point);
+	CWnd::OnLButtonDown(nFlags, point);
 }
 
 void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
@@ -4618,6 +4660,15 @@ LRESULT CFloatingWnd::OnShowAddDialog(WPARAM wParam, LPARAM lParam)
 		Invalidate();
 		RequestData();
 	}
+	return 0;
+}
+
+LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+	CTradeRecordDialog dlg(this);
+	dlg.SetTradeInfo(m_pendingTradeTime, m_pendingTradePrice, CString(m_stock_id.c_str()));
+	dlg.DoModal();
 	return 0;
 }
 
