@@ -174,6 +174,20 @@ private:
 
 	bool m_kline_preloaded{ false };
 	std::mutex m_preload_mutex;
+
+	// T+0买卖点告警状态
+	struct T0AlertState {
+		bool last_buy_signal = false;    // 上一次是否为买点
+		bool last_sell_signal = false;   // 上一次是否为卖点
+		time_t last_buy_alert_time = 0;  // 上一次买点告警时间
+		time_t last_sell_alert_time = 0; // 上一次卖点告警时间
+		static constexpr int COOLDOWN_SECONDS = 120; // 同方向告警冷却时间（秒）
+	};
+
+	std::map<std::wstring, T0AlertState> m_t0_alert_state;
+	std::mutex m_t0_alert_mutex;
+
+	void CheckT0AlertForStock(const std::wstring& code);
 };
 
 #ifdef __cplusplus

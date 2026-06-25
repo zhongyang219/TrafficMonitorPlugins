@@ -93,6 +93,9 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 
 			// 检查趋势预警条件并弹窗提醒
 			//m_instance.CheckTrendAlertForStock(code);
+
+			// 检查T+0买卖点告警
+			m_instance.CheckT0AlertForStock(code);
 		}
 
 		// 启用选项设置中的"更新"按钮
@@ -1324,4 +1327,417 @@ ITMPlugin* TMPluginGetInstance()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 	return &Stock::Instance();
+}
+
+// ========== T+0买卖点告警辅助函数 ==========
+
+namespace T0Helper {
+	struct MACDPoint {
+		double dif;
+		double dea;
+		double bar;
+		bool valid;
+	};
+
+	struct T0Signal {
+		bool valid;
+		bool isBuy;
+		int strength;
+		CString reason;
+		double price;
+		CString time;
+	};
+
+	// 计算分时MACD（通达信初始化方式）
+	std::vector<MACDPoint> CalculateMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint)
+	{
+		std::vector<MACDPoint> result;
+		int n = static_cast<int>(timelinePoint.size());
+		if (n == 0)
+			return result;
+
+		result.resize(n);
+
+		std::vector<double> closes(n);
+		for (int i = 0; i < n; i++)
+			closes[i] = timelinePoint[i].price;
+
+		std::vector<double> ema12(n);
+		ema12[0] = closes[0];
+		for (int i = 1; i < n; i++)
+			ema12[i] = closes[i] * 2.0 / 13.0 + ema12[i - 1] * 11.0 / 13.0;
+
+		std::vector<double> ema26(n);
+		ema26[0] = closes[0];
+		for (int i = 1; i < n; i++)
+			ema26[i] = closes[i] * 2.0 / 27.0 + ema26[i - 1] * 25.0 / 27.0;
+
+		std::vector<double> dif(n);
+		for (int i = 0; i < n; i++)
+			dif[i] = ema12[i] - ema26[i];
+
+		std::vector<double> dea(n);
+		dea[0] = dif[0];
+		for (int i = 1; i < n; i++)
+			dea[i] = dif[i] * 2.0 / 11.0 + dea[i - 1] * 9.0 / 11.0;
+
+		for (int i = 0; i < n; i++)
+		{
+			result[i].dif = dif[i];
+			result[i].dea = dea[i];
+			result[i].bar = (dif[i] - dea[i]) * 2.0;
+			result[i].valid = true;
+		}
+
+		return result;
+	}
+
+	// 检测买点
+	T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& tp, const std::vector<MACDPoint>& macd)
+	{
+		T0Signal sig;
+		sig.valid = false;
+		sig.isBuy = true;
+		sig.strength = 0;
+		sig.price = 0;
+
+		int n = static_cast<int>(tp.size());
+		int m = static_cast<int>(macd.size());
+		if (n < 10 || m < 10)
+			return sig;
+
+		int last = n - 1;
+		sig.price = tp[last].price;
+		sig.time = CString(tp[last].time.c_str());
+
+		// ========== 量能基准：前三根成交量均值 ==========
+		long long volAvg3 = 0;
+		{
+			int volCount = min(3, last);
+			for (int i = last - volCount; i < last; i++)
+				volAvg3 += tp[i].volume;
+			if (volCount > 0) volAvg3 /= volCount;
+		}
+		bool isShrinking = (volAvg3 > 0 && tp[last].volume < volAvg3);           // 缩量：当前量 < 前三根均值
+		bool isExpanding = (volAvg3 > 0 && tp[last].volume > volAvg3 * 3 / 2);    // 放量：当前量 > 前三根均值的1.5倍
+
+		int strength = 0;
+		CString reasons;
+
+		// 避坑：放量大跌不抄底
+		{
+			int lb = min(5, n - 1);
+			bool heavyDecline = true;
+			for (int i = last - lb + 1; i <= last; i++)
+			{
+				if (tp[i].price >= tp[i - 1].price) { heavyDecline = false; break; }
+			}
+			if (heavyDecline)
+			{
+				bool volUp = true;
+				for (int i = last - lb + 2; i <= last; i++)
+				{
+					if (tp[i].volume < tp[i - 1].volume) { volUp = false; break; }
+				}
+				if (volUp) return sig;
+			}
+		}
+
+		// 避坑：无量阴跌
+		{
+			int lb = min(10, n - 1);
+			bool decline = true;
+			for (int i = last - lb + 1; i <= last; i++)
+			{
+				if (tp[i].price >= tp[i - 1].price) { decline = false; break; }
+			}
+			bool lowVol = isShrinking;
+			bool macdDown = macd[last].valid && macd[last].dif < 0 && macd[last].bar < 0;
+			if (decline && lowVol && macdDown) return sig;
+	}
+
+	// 量柱信号（需量能确认）
+		{
+			int lb = min(10, n - 1);
+			int greenCnt = 0;
+			bool shrinking = true;
+			long long prevGVol = 0;
+			for (int i = last - lb + 1; i <= last; i++)
+			{
+				if (tp[i].price < tp[i - 1].price)
+				{
+					greenCnt++;
+					if (prevGVol > 0 && tp[i].volume > prevGVol) shrinking = false;
+					prevGVol = tp[i].volume;
+				}
+			}
+			bool firstRed = (tp[last].price > tp[last - 1].price) && greenCnt >= 3;
+			if (shrinking && greenCnt >= 3 && isShrinking) { strength++; reasons += _T("缩量下跌抛压耗尽 "); }
+			// 首根红量柱需要放量确认，否则可能是假反弹
+			if (firstRed && isExpanding) { strength++; reasons += _T("放量红柱资金承接 "); }
+		}
+
+		// MACD信号
+		if (macd[last].valid)
+		{
+			if (macd[last].bar < 0)
+			{
+				int sc = 0;
+				for (int i = last; i > max(0, last - 5); i--)
+				{
+					if (macd[i].valid && macd[i].bar < 0 && std::abs(macd[i].bar) <= std::abs(macd[i - 1].bar)) sc++;
+				}
+				if (sc >= 3) { strength++; reasons += _T("MACD绿柱缩短 "); }
+			}
+			// 底背离
+			int lb = min(30, n - 1);
+			int lo1 = -1, lo2 = -1;
+			for (int i = last - lb + 1; i < last; i++)
+			{
+				if (i > 0 && i < n - 1 && tp[i].price < tp[i - 1].price && tp[i].price < tp[i + 1].price)
+				{
+					if (lo1 < 0) lo1 = i;
+					else if (i > lo1 + 3 && lo2 < 0) lo2 = i;
+				}
+			}
+			if (lo1 >= 0 && lo2 >= 0 && tp[lo2].price < tp[lo1].price &&
+				macd[lo2].valid && macd[lo1].valid && macd[lo2].dif > macd[lo1].dif)
+			{
+				strength += 2; reasons += _T("MACD底背离 ");
+			}
+		}
+
+		// 股价支撑（需量能确认）
+		{
+			double avgP = tp[last].averagePrice;
+			double p = tp[last].price;
+			// 回踩均价支撑：需要缩量回踩才有效
+			if (avgP > 0 && std::abs(p - avgP) / avgP < 0.003 && isShrinking) { strength++; reasons += _T("缩量回踩均价支撑 "); }
+			// 分时底部企稳：需要放量止跌才可靠
+			if (last >= 2 && tp[last].price >= tp[last - 1].price && tp[last - 1].price < tp[last - 2].price && isExpanding)
+			{
+				strength++; reasons += _T("放量底部企稳 ");
+			}
+		}
+
+		sig.strength = min(3, strength);
+		sig.reason = reasons;
+		sig.valid = (strength >= 2);
+		return sig;
+	}
+
+	// 检测卖点
+	T0Signal DetectSellSignal(const std::vector<STOCK::TimelinePoint>& tp, const std::vector<MACDPoint>& macd)
+	{
+		T0Signal sig;
+		sig.valid = false;
+		sig.isBuy = false;
+		sig.strength = 0;
+		sig.price = 0;
+
+		int n = static_cast<int>(tp.size());
+		int m = static_cast<int>(macd.size());
+		if (n < 10 || m < 10)
+			return sig;
+
+		int last = n - 1;
+		sig.price = tp[last].price;
+		sig.time = CString(tp[last].time.c_str());
+
+		// ========== 量能基准：前三根成交量均值 ==========
+		long long volAvg3 = 0;
+		{
+			int volCount = min(3, last);
+			for (int i = last - volCount; i < last; i++)
+				volAvg3 += tp[i].volume;
+			if (volCount > 0) volAvg3 /= volCount;
+		}
+		bool isShrinking = (volAvg3 > 0 && tp[last].volume < volAvg3);           // 缩量：当前量 < 前三根均值
+		bool isExpanding = (volAvg3 > 0 && tp[last].volume > volAvg3 * 3 / 2);    // 放量：当前量 > 前三根均值的1.5倍
+
+		int strength = 0;
+		CString reasons;
+
+		// 避坑：放量大涨不卖出
+		{
+			int lb = min(5, n - 1);
+			bool strongRise = true;
+			for (int i = last - lb + 1; i <= last; i++)
+			{
+				if (tp[i].price <= tp[i - 1].price) { strongRise = false; break; }
+			}
+			if (strongRise)
+			{
+				bool volUp = true;
+				for (int i = last - lb + 2; i <= last; i++)
+				{
+					if (tp[i].volume < tp[i - 1].volume) { volUp = false; break; }
+				}
+				if (volUp) return sig;
+		}
+	}
+
+	// 量柱信号（需量能确认）
+		{
+			int lb = min(10, n - 1);
+			// 检查近期是否有放量冲高（使用前三根均值判定放量）
+			bool hadSpike = false;
+			int spikeIdx = -1;
+			for (int i = last - lb + 1; i <= last; i++)
+			{
+				long long localAvg3 = 0;
+				int vc = min(3, i);
+				for (int j = i - vc; j < i; j++)
+					localAvg3 += tp[j].volume;
+				if (vc > 0) localAvg3 /= vc;
+				if (localAvg3 > 0 && tp[i].volume > localAvg3 * 3 / 2) { hadSpike = true; spikeIdx = i; break; }
+			}
+			// 放量后量能萎缩，且当前价格未明显回落（仍在高位）
+			bool priceStillHigh = (hadSpike && spikeIdx >= 0 &&
+				tp[last].price >= tp[spikeIdx].price * 0.995);
+			bool shrinkingNow = false;
+			if (hadSpike && last > spikeIdx + 1 && tp[last].volume < tp[last - 1].volume && isShrinking && priceStillHigh)
+				shrinkingNow = true;
+
+			if (hadSpike && shrinkingNow) { strength++; reasons += _T("放量冲高后缩量回落 "); }
+		}
+
+		// MACD信号
+		if (macd[last].valid)
+		{
+			if (macd[last].bar > 0)
+			{
+				int sc = 0;
+				for (int i = last; i > max(0, last - 5); i--)
+				{
+					if (macd[i].valid && macd[i].bar > 0 && macd[i].bar <= macd[i - 1].bar) sc++;
+				}
+				if (sc >= 3) { strength++; reasons += _T("MACD红柱缩短 "); }
+			}
+			// 死叉
+			if (last >= 1 && macd[last].valid && macd[last - 1].valid)
+			{
+				if (macd[last - 1].dif > macd[last - 1].dea && macd[last].dif < macd[last].dea)
+				{
+					strength++; reasons += _T("MACD死叉 ");
+				}
+			}
+			// 顶背离
+			int lb = min(30, n - 1);
+			int hi1 = -1, hi2 = -1;
+			for (int i = last - lb + 1; i < last; i++)
+			{
+				if (i > 0 && i < n - 1 && tp[i].price > tp[i - 1].price && tp[i].price > tp[i + 1].price)
+				{
+					if (hi1 < 0) hi1 = i;
+					else if (i > hi1 + 3 && hi2 < 0) hi2 = i;
+				}
+			}
+			if (hi1 >= 0 && hi2 >= 0 && tp[hi2].price > tp[hi1].price &&
+				macd[hi2].valid && macd[hi1].valid && macd[hi2].dif < macd[hi1].dif)
+			{
+				strength += 2; reasons += _T("MACD顶背离 ");
+			}
+		}
+
+		// 股价压力（需量能确认）
+		{
+			double avgP = tp[last].averagePrice;
+			double p = tp[last].price;
+			// 遇均价压力：需要放量冲高遇阻才有效
+			if (avgP > 0 && p > avgP && std::abs(p - avgP) / avgP < 0.005 && isExpanding) { strength++; reasons += _T("放量遇均价压力 "); }
+			// 冲高滞涨：放量冲高后缩量回落
+			if (last >= 2 && tp[last].price <= tp[last - 1].price && tp[last - 1].price > tp[last - 2].price && isShrinking)
+			{
+				strength++; reasons += _T("冲高缩量滞涨 ");
+			}
+		}
+
+		sig.strength = min(3, strength);
+		sig.reason = reasons;
+		sig.valid = (strength >= 2);
+		return sig;
+	}
+} // namespace T0Helper
+
+void Stock::CheckT0AlertForStock(const std::wstring& code)
+{
+	std::lock_guard<std::mutex> lock(m_t0_alert_mutex);
+
+	auto stock_data = g_data.GetStockData(code);
+	if (!stock_data || !stock_data->info.is_ok)
+		return;
+
+	// 获取分时数据
+	auto* timelineData = stock_data->getTimelineData();
+	if (!timelineData || timelineData->data.size() < 10)
+		return;
+
+	const auto& tp = timelineData->data;
+
+	// 计算MACD
+	auto macd = T0Helper::CalculateMACD(tp);
+
+	// 检测买卖信号
+	auto buySig = T0Helper::DetectBuySignal(tp, macd);
+	auto sellSig = T0Helper::DetectSellSignal(tp, macd);
+
+	time_t now = time(nullptr);
+	auto& state = m_t0_alert_state[code];
+
+	// 买点告警
+	if (buySig.valid && !state.last_buy_signal)
+	{
+		if (now - state.last_buy_alert_time >= T0AlertState::COOLDOWN_SECONDS)
+		{
+			CString alert_msg;
+			CString strengthStr;
+			switch (buySig.strength)
+			{
+			case 3: strengthStr = _T("强"); break;
+			case 2: strengthStr = _T("中"); break;
+			default: strengthStr = _T("弱"); break;
+			}
+			alert_msg.Format(_T("%s (%s):\n【T+0买入信号】%s\n当前价格: %.3f\n信号原因: %s"),
+				stock_data->info.displayName.c_str(),
+				code.c_str(),
+				strengthStr.GetString(),
+				buySig.price,
+				buySig.reason.GetString());
+
+			if (m_pMonitor != nullptr)
+				m_pMonitor->ShowNotifyMessage(alert_msg);
+
+			state.last_buy_alert_time = now;
+		}
+	}
+	state.last_buy_signal = buySig.valid;
+
+	// 卖点告警
+	if (sellSig.valid && !state.last_sell_signal)
+	{
+		if (now - state.last_sell_alert_time >= T0AlertState::COOLDOWN_SECONDS)
+		{
+			CString alert_msg;
+			CString strengthStr;
+			switch (sellSig.strength)
+			{
+			case 3: strengthStr = _T("强"); break;
+			case 2: strengthStr = _T("中"); break;
+			default: strengthStr = _T("弱"); break;
+			}
+			alert_msg.Format(_T("%s (%s):\n【T+0卖出信号】%s\n当前价格: %.3f\n信号原因: %s"),
+				stock_data->info.displayName.c_str(),
+				code.c_str(),
+				strengthStr.GetString(),
+				sellSig.price,
+				sellSig.reason.GetString());
+
+			if (m_pMonitor != nullptr)
+				m_pMonitor->ShowNotifyMessage(alert_msg);
+
+			state.last_sell_alert_time = now;
+		}
+	}
+	state.last_sell_signal = sellSig.valid;
 }

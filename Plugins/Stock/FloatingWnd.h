@@ -61,10 +61,37 @@ private:
 		int priceChartHeight;
 		int volumeChartTop;
 		int volumeChartHeight;
+		int macdChartTop;
+		int macdChartHeight;
 		int positionY;
 		STOCK::StockInfo realtimeData;
 		const std::vector<STOCK::TimelinePoint>* timelinePoint;
 		const std::vector<STOCK::KLinePoint>* klineData;
+	};
+
+	// MACD指标数据
+	struct MACDData {
+		double dif;
+		double dea;
+		double bar;
+		bool valid;
+	};
+
+	// MACD金叉死叉信号
+	enum class MACDCrossSignal {
+		None,       // 无信号
+		GoldenCross,// 金叉：DIF从下往上穿过DEA
+		DeathCross  // 死叉：DIF从上往下跌破DEA
+	};
+
+	// T+0日内买卖信号
+	struct T0Signal {
+		bool valid;         // 是否有有效信号
+		bool isBuy;         // true=买点, false=卖点
+		int strength;       // 信号强度 1-3
+		CString reason;     // 信号原因描述
+		double price;       // 信号价格
+		CString time;       // 信号时间
 	};
 
 	void DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight);
@@ -77,6 +104,13 @@ private:
 	void DrawTimelineGridAndLines(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
+	std::vector<MACDData> CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint);
+	std::vector<MACDCrossSignal> DetectMACDCross(const std::vector<MACDData>& macdData);
+	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
+	T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
+	T0Signal DetectSellSignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
 	void DrawTimelinePositionInfo(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContext& ctx);
 
