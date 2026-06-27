@@ -69,6 +69,9 @@
     <ClInclude Include="TradeRecordDialog.h">
       <Filter>FloatingWnd</Filter>
     </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>DataManager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -103,6 +106,9 @@
     </ClCompile>
     <ClCompile Include="TradeRecordDialog.cpp">
       <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>DataManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

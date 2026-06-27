@@ -52,19 +52,15 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 	{
 		m_instance.m_last_request_time = cur_time;
 
-		if (g_data.m_setting_data.m_full_day != 1)
+		// 休市检测：非全天更新模式且不在交易时间，且已经获取过一次数据，则不再请求
+		static bool hasFetchedOnce = false;
+		if (hasFetchedOnce && g_data.m_setting_data.m_full_day != 1 && !CDataManager::IsMarketOpen())
 		{
-			SYSTEMTIME now_time;
-			GetLocalTime(&now_time);
-			// CCommon::WriteLog(now_time.wHour, g_data.m_log_path.c_str());
-			// CCommon::WriteLog(now_time.wMinute, g_data.m_log_path.c_str());
-			if (now_time.wHour < 9 || now_time.wHour > 15 || (now_time.wHour == 15 && now_time.wMinute > 30))
-			{
-				CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
-				g_data.ResetText();
-				return 0;
-			}
+			CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
+			g_data.ResetText();
+			return 0;
 		}
+		hasFetchedOnce = true;
 
 		// 禁用选项设置中的“更新”按钮
 		m_instance.DisableUpdateCommand();
@@ -365,6 +361,7 @@ void Stock::PreloadAllKLineData()
 		for (const auto& code : *pCodes)
 		{
 			g_data.RequestKLineData(code, 750);
+			g_data.RequestMin5KLineData(code, 250);
 		}
 		delete pCodes;
 		return 0;

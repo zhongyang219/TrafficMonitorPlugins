@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -40,21 +40,24 @@ protected:
 	LRESULT OnShowTradeDialog(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnBnClickedTimeLineBtn();
 	afx_msg void OnBnClickedKLineBtn();
+	afx_msg void OnBnClickedMin5KLineBtn();
 	afx_msg void OnCbnSelChangeKLinePeriod();
 	afx_msg void OnBnClickedTrendBtn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
+	afx_msg void OnBnClickedBollBtn();
 	afx_msg void OnBnClickedOverviewBtn();
 
 private:
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
 	CPoint Stock2Point(int x, int y, int w, int h, float unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
 	void DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
-	void DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo = nullptr);
+	void DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo = nullptr, int startIndex = 0, int visibleCount = -1);
 
 	// 分时图绘制相关
 	struct TimelineDrawContext {
 		int chartWidth;
+		int chartLeft{ 0 };   // 绘图区左侧偏移（用于Y轴标签留白）
 		int windowWidth;
 		int chartHeight;
 		int priceChartTop;
@@ -64,6 +67,12 @@ private:
 		int macdChartTop;
 		int macdChartHeight;
 		int positionY;
+		int visibleCount{ 0 };   // 可见数据点数（≤120）
+		int startIndex{ 0 };     // 可见数据起始索引
+		int scrollRange{ 0 };    // 滚动范围
+		STOCK::Price maxPrice{ 0 };   // 可见区间最大价（含内边距）
+		STOCK::Price minPrice{ 0 };   // 可见区间最小价（含内边距）
+		float unitY{ 0 };             // Y轴缩放（像素/价格）
 		STOCK::StockInfo realtimeData;
 		const std::vector<STOCK::TimelinePoint>* timelinePoint;
 		const std::vector<STOCK::KLinePoint>* klineData;
@@ -105,7 +114,8 @@ private:
 	void DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx);
-	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
+	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
+	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
 	std::vector<MACDData> CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint);
 	std::vector<MACDCrossSignal> DetectMACDCross(const std::vector<MACDData>& macdData);
 	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
@@ -144,6 +154,7 @@ private:
 	void CalculatePeriodHighsLows(const KLineDrawData& drawData, PeriodPoint periodHighs[3], PeriodPoint periodLows[3], bool useClose = false);
 	std::vector<LabelInfo> DrawKLineMonthLines(CDC& memDC, const KLineDrawData& drawData);
 	void DrawKLineMonthLabels(CDC& memDC, const KLineDrawData& drawData, const std::vector<LabelInfo>& labelInfos);
+	void DrawMin5HourLines(CDC& memDC, const KLineDrawData& drawData);
 	void DrawKLineGrid(CDC& memDC, const KLineDrawData& drawData);
 	void DrawYearAverageLines(CDC& memDC, const KLineDrawData& drawData);
 	void DrawMAIndicators(CDC& memDC, const KLineDrawData& drawData);
@@ -159,8 +170,20 @@ private:
 
 	void DrawKLineVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
 
+	// KDJ计算与绘制
+	struct KDJData {
+		double k;
+		double d;
+		double j;
+		bool valid;
+	};
+	std::vector<KDJData> CalculateKDJ(const std::vector<STOCK::KLinePoint>& klineData, int period = 9);
+	void DrawKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
+
 	// 走势图绘制
 	void DrawKLineTrendCurve(CDC& memDC, const KLineDrawData& drawData, std::vector<CPoint>& outPoints);
+	// 布林带绘制（5分钟K线模式）
+	void DrawBollBands(CDC& memDC, const KLineDrawData& drawData);
 	void DrawKLineTrendBuyMarkers(CDC& memDC, const KLineDrawData& drawData, const std::vector<CPoint>& closePoints);
 	void DrawKLineTrendPeriodMarkers(CDC& memDC, const KLineDrawData& drawData, const std::vector<CPoint>& closePoints, const PeriodPoint periodHighs[3], const PeriodPoint periodLows[3]);
 	void DrawKLineTrendChart(CDC& memDC, int x, int y, int w, int h, const std::vector<STOCK::KLinePoint>& klineData, const STOCK::StockInfo& stockInfo);
@@ -181,6 +204,7 @@ private:
 	};
 
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	void UpdateModeButtons();
 	void UpdatePeriodComboVisibility();
@@ -189,19 +213,34 @@ private:
 	CButton m_btnOverview;
 	CButton m_btnTimeLine;
 	CButton m_btnKLine;
+	CButton m_btnMin5KLine;
 	CButton m_btnTrend;
 	CButton m_btnMA;
+	CButton m_btnBoll;
 	CButton m_btnClose;
 	CComboBox m_comboKLinePeriod;
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
 	bool m_isKLineMode{};
+	bool m_isMin5KLineMode{};  // 5分钟K线模式（m_isKLineMode为true时的子模式）
 	bool m_isOverviewMode{};
 	bool m_klineDataLoaded{ false };
 	int m_klinePeriodDays{ 250 };
 	int m_scrollOffset{ 0 };
+	int m_timelineScrollOffset{ 0 };  // 分时图水平滚动偏移
+	int m_timelineVisibleCount{ 240 };  // 分时图可见数据点数（240=1天，最小60）
 	int m_vScrollOffset{ 0 };
+
+	// 分时图鼠标拖动滚动
+	bool m_isTimelineDragging{ false };
+	CPoint m_timelineDragStartPos;
+	int m_timelineDragStartOffset{ 0 };
+	// K线图鼠标拖动滚动
+	bool m_isKLineDragging{ false };
+	CPoint m_klineDragStartPos;
+	int m_klineDragStartOffset{ 0 };
+	HCURSOR m_hPrevCursor{ NULL };
 	volatile BOOL m_isDestroying;
 	CFont* m_pfont{};
 	CString loading_state_txt;
@@ -214,6 +253,10 @@ private:
 	int m_hoveredBarIndex{ -1 };
 	STOCK::TimelinePoint m_hoveredData;
 	CString m_hoverTip;
+	// 分时图标题栏悬停提示
+	CString m_timelinePriceTitleTip;   // 走势图标题栏：现价/均价/MA5/MA10...
+	CString m_timelineVolumeTitleTip;  // 量柱图标题栏：成交量/成交额
+	CString m_timelineMacdTitleTip;    // MACD标题栏：DIF/DEA/MACD
 
 	// 双击检测
 	DWORD m_lastClickTime{};
@@ -225,12 +268,18 @@ private:
 	// 日K线鼠标悬停数据
 	bool m_isHoveringKLine{ false };
 	bool m_isHoveringKLineVolume{ false };
+	bool m_isHoveringKDJ{ false };
 	bool m_showTrendView{ false };
 	bool m_showMA{ false };
+	bool m_showBollBands{ false };
 	int m_klineHoveredBarIndex{ -1 };
 	CString m_klineHoverTip;
 	CString m_klineVolumeHoverTip;
 	CString m_klineTrendHoverTip;
+	CString m_kdjHoverTip;
+
+	// 5分钟K线图整点时间标签（X轴：centerX, "h:mm"）
+	std::vector<std::pair<int, CString>> m_min5HourLabels;
 
 	// 总览表行信息（用于双击处理）
 	std::vector<OverviewRowInfo> m_overviewRows;

@@ -6,6 +6,7 @@
 #include "../utilities/IniHelper.h"
 #include <iomanip>
 #include <afxinet.h>
+#include "sqlite3.h"
 
 constexpr auto WEB_USERAGENT = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0");
 
@@ -22,11 +23,34 @@ CDataManager::CDataManager()
 CDataManager::~CDataManager()
 {
 	SaveConfig();
+	if (m_db != nullptr)
+	{
+		sqlite3_close(m_db);
+		m_db = nullptr;
+	}
 }
 
 CDataManager& CDataManager::Instance()
 {
 	return m_instance;
+}
+
+bool CDataManager::IsMarketOpen()
+{
+	SYSTEMTIME now;
+	GetLocalTime(&now);
+	// 周六日休市
+	if (now.wDayOfWeek == 0 || now.wDayOfWeek == 6)
+		return false;
+	// A股交易时间：9:30-11:30, 13:00-15:00
+	int minutes = now.wHour * 60 + now.wMinute;
+	if (minutes < 9 * 60 + 30)          // 9:30之前
+		return false;
+	if (minutes > 11 * 60 + 30 && minutes < 13 * 60)  // 11:30-13:00午休
+		return false;
+	if (minutes > 15 * 60)              // 15:00之后
+		return false;
+	return true;
 }
 
 void CDataManager::ResetText()
@@ -92,6 +116,72 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 		if (!count_str.empty()) count = std::stod(count_str);
 		m_stock_positions[code] = std::make_tuple(cost, count, buy_date);
 	}
+
+	InitDatabase();
+}
+
+void CDataManager::InitDatabase()
+{
+	if (m_db != nullptr) return;
+
+	// 数据库路径与ini配置文件同目录
+	if (m_config_path.empty()) return;
+	size_t pos = m_config_path.find_last_of(L"\\/");
+	if (pos == std::wstring::npos) return;
+	m_db_path = m_config_path.substr(0, pos + 1) + L"stock_trades.db";
+
+	int rc = sqlite3_open16(m_db_path.c_str(), &m_db);
+	if (rc != SQLITE_OK)
+	{
+		sqlite3_close(m_db);
+		m_db = nullptr;
+		return;
+	}
+
+	// 创建交易记录表
+	const char* sql = "CREATE TABLE IF NOT EXISTS trades ("
+		"id INTEGER PRIMARY KEY AUTOINCREMENT,"
+		"stock_code TEXT NOT NULL,"
+		"stock_name TEXT NOT NULL,"
+		"trade_type INTEGER NOT NULL,"
+		"trade_time DATETIME NOT NULL,"
+		"price REAL NOT NULL,"
+		"amount REAL NOT NULL,"
+		"total_amount REAL NOT NULL,"
+		"fee REAL NOT NULL,"
+		"total REAL NOT NULL"
+		");";
+	char* errMsg = nullptr;
+	rc = sqlite3_exec(m_db, sql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK)
+	{
+		sqlite3_free(errMsg);
+	}
+}
+
+bool CDataManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
+{
+	if (m_db == nullptr) return false;
+
+	const char* sql = "INSERT INTO trades(stock_code, stock_name, trade_type, trade_time, price, amount, total_amount, fee, total) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text16(stmt, 2, stockName.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int(stmt, 3, tradeType);
+	sqlite3_bind_text16(stmt, 4, time.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_double(stmt, 5, price);
+	sqlite3_bind_double(stmt, 6, amount);
+	sqlite3_bind_double(stmt, 7, totalAmount);
+	sqlite3_bind_double(stmt, 8, fee);
+	sqlite3_bind_double(stmt, 9, total);
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
 }
 
 void CDataManager::SaveConfig()
@@ -514,5 +604,53 @@ void CDataManager::RequestKLineData(std::wstring stock_id, int days /*= 750*/)
 	{
 		e->Delete();
 		stockMarket.LoadKLineDataByJson(stock_id, NULL);
+	}
+}
+
+void CDataManager::RequestMin5KLineData(std::wstring stock_id, int datalen /*= 250*/)
+{
+	try
+	{
+		TRACE(L"RequestMin5KLineData...\n");
+
+		std::wstring url{ L"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?" };
+		std::vector<std::wstring> params;
+		params.push_back(L"symbol=" + stock_id);
+		params.push_back(L"scale=5");
+		params.push_back(L"ma=no");
+		params.push_back(L"datalen=" + std::to_wstring(datalen));
+
+		url += CCommon::vectorJoinString(params, L"&");
+
+		CString strHeaders = _T("Referer: http://finance.sina.com.cn");
+
+		CInternetSession* session = new CInternetSession(WEB_USERAGENT);
+		CHttpFile* pFile = (CHttpFile*)session->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_ASCII, strHeaders, strHeaders.GetLength());
+
+		DWORD dwStatusCode;
+		pFile->QueryInfoStatusCode(dwStatusCode);
+
+		if (dwStatusCode == HTTP_STATUS_OK)
+		{
+			CString strData;
+			char szBuffer[1025];
+			int nRead;
+			while ((nRead = pFile->Read(szBuffer, 1024)) > 0)
+			{
+				szBuffer[nRead] = 0;
+				strData += CString(szBuffer);
+			}
+
+			stockMarket.LoadMin5KLineDataByJson(stock_id, &strData);
+		}
+
+		pFile->Close();
+		delete pFile;
+		session->Close();
+	}
+	catch (CInternetException* e)
+	{
+		e->Delete();
+		stockMarket.LoadMin5KLineDataByJson(stock_id, NULL);
 	}
 }

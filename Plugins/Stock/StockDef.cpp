@@ -109,6 +109,10 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		{
 			stockData->info.innerVolume = { convert<Volume>(data_arr[8]) * 100 };
 			stockData->info.outerVolume = { convert<Volume>(data_arr[7]) * 100 };
+			// 保存内外盘快照
+			time_t now;
+			time(&now);
+			stockData->addVolumeSnapshot(now, stockData->info.innerVolume, stockData->info.outerVolume);
 		}
 		if (data_arr.size() >= 39)
 		{
@@ -572,6 +576,55 @@ void STOCK::StockMarket::LoadKLineDataByJson(std::wstring stock_id, CString* pDa
 		if (pData)
 		{
 			data->addKLineData(*pData);
+		}
+	}
+	Stock::Instance().UpdateKLine();
+}
+
+void STOCK::StockData::addMin5KLineData(const CString& json_data)
+{
+	std::string _json_data = CCommon::UnicodeToStr(json_data);
+	yyjson_doc* doc = yyjson_read(_json_data.c_str(), _json_data.size(), 0);
+	if (doc == nullptr) return;
+
+	yyjson_val* root = yyjson_doc_get_root(doc);
+	if (root == nullptr || !yyjson_is_arr(root))
+	{
+		yyjson_doc_free(doc);
+		return;
+	}
+
+	clearMin5KLineData();
+
+	yyjson_val* item;
+	yyjson_arr_iter iter;
+	yyjson_arr_iter_init(root, &iter);
+	while ((item = yyjson_arr_iter_next(&iter)))
+	{
+		if (item != nullptr && yyjson_is_obj(item))
+		{
+			KLinePoint point;
+			point.day = utilities::JsonHelper::GetJsonString(item, "day");
+			point.open = GetJsonPrice(item, "open");
+			point.high = GetJsonPrice(item, "high");
+			point.low = GetJsonPrice(item, "low");
+			point.close = GetJsonPrice(item, "close");
+			point.volume = GetJsonVolume(item, "volume");
+			addMin5KLinePoint(point);
+		}
+	}
+	yyjson_doc_free(doc);
+}
+
+void STOCK::StockMarket::LoadMin5KLineDataByJson(std::wstring stock_id, CString* pData)
+{
+	auto data = g_data.GetStockData(stock_id);
+	{
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		data->clearMin5KLineData();
+		if (pData)
+		{
+			data->addMin5KLineData(*pData);
 		}
 	}
 	Stock::Instance().UpdateKLine();

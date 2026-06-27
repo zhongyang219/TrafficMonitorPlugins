@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "afxdialogex.h"
 
 class CTradeRecordDialog : public CDialogEx
@@ -11,7 +11,7 @@ public:
 
 	enum { IDD = IDD_TRADE_RECORD_DIALOG };
 
-	void SetTradeInfo(const CString& time, double price, const CString& stockCode);
+	void SetTradeInfo(const CString& time, double price, const CString& stockCode, const CString& stockName = _T(""));
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
@@ -32,6 +32,7 @@ private:
 	CString m_time;
 	double m_price;
 	CString m_stockCode;
+	CString m_stockName;
 	int m_tradeType;
 	CString m_amount;
 	double m_fee;

@@ -257,6 +257,7 @@
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sqlite3.h" />
     <ClInclude Include="Stock.h" />
     <ClInclude Include="StockDef.h" />
     <ClInclude Include="StockItem.h" />
@@ -276,6 +277,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <SDLCheck>false</SDLCheck>
     </ClCompile>
     <ClCompile Include="Stock.cpp" />
     <ClCompile Include="StockDef.cpp" />

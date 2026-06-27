@@ -1,6 +1,7 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "TradeRecordDialog.h"
 #include "Common.h"
+#include "DataManager.h"
 
 IMPLEMENT_DYNAMIC(CTradeRecordDialog, CDialogEx)
 
@@ -33,11 +34,12 @@ void CTradeRecordDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TRADE_TOTAL_STATIC, m_staticTotal);
 }
 
-void CTradeRecordDialog::SetTradeInfo(const CString& time, double price, const CString& stockCode)
+void CTradeRecordDialog::SetTradeInfo(const CString& time, double price, const CString& stockCode, const CString& stockName)
 {
 	m_time = time;
 	m_price = price;
 	m_stockCode = stockCode;
+	m_stockName = stockName;
 }
 
 BOOL CTradeRecordDialog::OnInitDialog()
@@ -135,29 +137,35 @@ void CTradeRecordDialog::OnBnClickedOk()
 		return;
 	}
 
-	CString tradeTypeStr = (m_tradeType == 0) ? _T("买入") : _T("卖出");
 	CString timeStr;
 	m_editTime.GetWindowText(timeStr);
 	CString priceStr;
 	m_editPrice.GetWindowText(priceStr);
 
-	CString logLine;
-	logLine.Format(_T("%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\r\n"),
-		tradeTypeStr,
-		timeStr,
-		priceStr,
-		m_amount,
-		m_price * amount,
-		m_fee,
-		m_total);
+	// 构造完整日期时间: yyyy-MM-dd HH:mm:ss
+	CTime now = CTime::GetCurrentTime();
+	CString fullTime;
+	fullTime.Format(_T("%04d-%02d-%02d %s"), now.GetYear(), now.GetMonth(), now.GetDay(), (LPCTSTR)timeStr);
 
-	CString filePath = m_stockCode + _T(".txt");
-	FILE* pFile = nullptr;
-	errno_t err = _tfopen_s(&pFile, filePath, _T("a"));
-	if (err == 0 && pFile != nullptr)
+	double totalAmount = m_price * amount;
+
+	// 保存到sqlite数据库
+	bool ok = g_data.SaveTradeRecord(
+		(LPCWSTR)m_stockCode,
+		(LPCWSTR)m_stockName,
+		m_tradeType,
+		(LPCWSTR)fullTime,
+		m_price,
+		amount,
+		totalAmount,
+		m_fee,
+		m_total
+	);
+
+	if (!ok)
 	{
-		fwrite(logLine.GetBuffer(), sizeof(TCHAR), logLine.GetLength(), pFile);
-		fclose(pFile);
+		AfxMessageBox(_T("保存交易记录失败"));
+		return;
 	}
 
 	CDialogEx::OnOK();

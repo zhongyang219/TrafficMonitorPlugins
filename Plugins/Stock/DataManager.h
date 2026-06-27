@@ -5,6 +5,8 @@
 #include "StockDef.h"
 #include <mutex>
 
+struct sqlite3;
+
 using namespace STOCK;
 
 #define g_data CDataManager::Instance()
@@ -50,10 +52,14 @@ public:
 	void ResetText();
 	std::shared_ptr<StockData> GetStockData(const std::wstring& code);
 
+	// 判断当前是否在交易时间（A股：9:30-11:30, 13:00-15:00，非周末）
+	static bool IsMarketOpen();
+
 	// 获取最新数据
 	void RequestRealtimeData();
 	void RequestTimelineData(std::wstring stock_id);
 	void RequestKLineData(std::wstring stock_id, int days = 250);
+	void RequestMin5KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
 
 	SettingData m_setting_data;
@@ -77,7 +83,13 @@ public:
 	// 计算N日平均振幅
 	double CalculateAverageAmplitude(const std::wstring& code, int days = 5);
 
+	// 交易记录数据库操作
+	bool SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total);
+
 private:
+	void InitDatabase();
+	sqlite3* m_db{ nullptr };
+	std::wstring m_db_path;
 	static CDataManager m_instance;
 
 	std::wstring m_config_path;

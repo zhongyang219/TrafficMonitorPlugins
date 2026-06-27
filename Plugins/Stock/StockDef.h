@@ -45,7 +45,8 @@ namespace STOCK
 		DAY,       // 日线
 		WEEK,      // 周线
 		MONTH,     // 月线
-		YEAR       // 年线
+		YEAR,      // 年线
+		MIN5       // 5分钟线
 	};
 
 	// 历史数据基类
@@ -116,6 +117,13 @@ namespace STOCK
 			PeriodStats() : maxPrice(0), minPrice(0), avgPrice(0), isValid(false) {}
 		};
 		PeriodStats GetPeriodStats(int days) const;
+	};
+
+	// 5分钟K线历史数据（继承自KLineData，复用CalculateMA等方法）
+	class Min5KLineData : public KLineData
+	{
+	public:
+		Period GetPeriod() const override { return Period::MIN5; }
 	};
 
 	// 股票基础信息
@@ -254,7 +262,52 @@ namespace STOCK
 			return MakesureHistoricalData<KLineData>(Period::DAY).get();
 		}
 
+		void clearMin5KLineData()
+		{
+			auto klineData = MakesureHistoricalData<Min5KLineData>(Period::MIN5);
+			klineData->Clear();
+		}
+
+		void addMin5KLinePoint(const KLinePoint& point)
+		{
+			auto klineData = MakesureHistoricalData<Min5KLineData>(Period::MIN5);
+			klineData->data.push_back(point);
+		}
+
+		void addMin5KLineData(const CString& json_data);
+
+		// 获取5分钟K线数据
+		STOCK::Min5KLineData* getMin5KLineData()
+		{
+			return MakesureHistoricalData<Min5KLineData>(Period::MIN5).get();
+		}
+
 		std::wstring GetCurrentDisplay(bool include_name) const;
+
+		// 买一/卖一等于现价的累计计时（持久保存，窗口关闭不清零）
+		int ask1EqualSec{ 0 };       // 卖一等于现价的累计秒数
+		int bid1EqualSec{ 0 };       // 买一等于现价的累计秒数
+		bool isAsk1EqualCurrent{ false };  // 卖一当前是否等于现价
+		bool isBid1EqualCurrent{ false };  // 买一当前是否等于现价
+		Price lastAsk1Price{ 0 };    // 上次卖一价格（变化时清零）
+		Price lastBid1Price{ 0 };    // 上次买一价格（变化时清零）
+		DWORD lastTickTime{ 0 };     // 上次计时的时间戳
+
+		// 内外盘历史快照（按时间保存，用于计算1分钟/5分钟内外盘差值）
+		struct VolumeSnapshot {
+			time_t timestamp;
+			Volume innerVolume;
+			Volume outerVolume;
+		};
+		std::vector<VolumeSnapshot> volumeSnapshots;  // 按时间排序的快照
+		void addVolumeSnapshot(time_t t, Volume inner, Volume outer)
+		{
+			volumeSnapshots.push_back({ t, inner, outer });
+			// 只保留最近10分钟的数据
+			time_t cutoff = t - 600;
+			while (!volumeSnapshots.empty() && volumeSnapshots.front().timestamp < cutoff)
+				volumeSnapshots.erase(volumeSnapshots.begin());
+		}
 
 		// 持仓盈亏计算（需要外部传入成本价和持股数）
 		struct PositionInfo {
@@ -287,6 +340,7 @@ namespace STOCK
 		void LoadRealtimeDataByJson(std::string data);
 		void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
 		void LoadKLineDataByJson(std::wstring stock_id, CString* data);
+		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadInnerOuterData(std::string data);
 
 		void ClearRealtimeData()
