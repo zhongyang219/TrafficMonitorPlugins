@@ -46,6 +46,8 @@ protected:
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
 	afx_msg void OnBnClickedBollBtn();
+	afx_msg void OnBnClickedZoomOutBtn();
+	afx_msg void OnBnClickedZoomInBtn();
 	afx_msg void OnBnClickedOverviewBtn();
 
 private:
@@ -65,6 +67,7 @@ private:
 		int volumeChartTop;
 		int volumeChartHeight;
 		int macdChartTop;
+		double niceStep{ 0 };  // Y轴刻度步长（OnPaint计算一次，绘制函数直接用）
 		int macdChartHeight;
 		int positionY;
 		int visibleCount{ 0 };   // 可见数据点数（≤120）
@@ -76,6 +79,16 @@ private:
 		STOCK::StockInfo realtimeData;
 		const std::vector<STOCK::TimelinePoint>* timelinePoint;
 		const std::vector<STOCK::KLinePoint>* klineData;
+		// 滚动均价（最新数据点的值）
+		STOCK::Price ma1{ 0 };    // MA1（1分钟均价 = 当前价格）
+		STOCK::Price ma5{ 0 };    // MA5（5分钟滚动均价）
+		STOCK::Price ma10{ 0 };   // MA10（10分钟滚动均价）
+		STOCK::Price ma20{ 0 };   // MA20（20分钟滚动均价）
+		// 前一分钟数据点的MA值（用于箭头方向判断）
+		STOCK::Price prevMa1{ 0 };
+		STOCK::Price prevMa5{ 0 };
+		STOCK::Price prevMa10{ 0 };
+		STOCK::Price prevMa20{ 0 };
 	};
 
 	// MACD指标数据
@@ -117,6 +130,10 @@ private:
 	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
 	std::vector<MACDData> CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint);
+	// 为每个分时数据点计算MA5/MA10/MA20滚动均价（修改timelinePoint中的ma5/ma10/ma20字段）
+	static void CalcAllRollingAvgPrices(std::vector<STOCK::TimelinePoint>& timelinePoint);
+	// 计算滚动均价：N分钟成交额/N分钟成交量（单次查询）
+	static STOCK::Price CalcRollingAvgPrice(const std::vector<STOCK::TimelinePoint>& timelinePoint, int nMinutes);
 	std::vector<MACDCrossSignal> DetectMACDCross(const std::vector<MACDData>& macdData);
 	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
 	T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
@@ -218,6 +235,8 @@ private:
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
+	CButton m_btnZoomOut;  // 缩小按钮（显示240分钟）
+	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
 	CComboBox m_comboKLinePeriod;
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
@@ -229,7 +248,7 @@ private:
 	int m_klinePeriodDays{ 250 };
 	int m_scrollOffset{ 0 };
 	int m_timelineScrollOffset{ 0 };  // 分时图水平滚动偏移
-	int m_timelineVisibleCount{ 240 };  // 分时图可见数据点数（240=1天，最小60）
+	int m_timelineVisibleCount{ 60 };  // 分时图可见数据点数（240=1天，最小60）
 	int m_vScrollOffset{ 0 };
 
 	// 分时图鼠标拖动滚动
@@ -252,6 +271,9 @@ private:
 	bool m_isHoveringVolume{ false };
 	int m_hoveredBarIndex{ -1 };
 	STOCK::TimelinePoint m_hoveredData;
+	// 悬停点的MA值及前一点MA值（用于箭头方向）
+	STOCK::Price m_hoverMa1{ 0 }, m_hoverMa5{ 0 }, m_hoverMa10{ 0 }, m_hoverMa20{ 0 };
+	STOCK::Price m_hoverPrevMa1{ 0 }, m_hoverPrevMa5{ 0 }, m_hoverPrevMa10{ 0 }, m_hoverPrevMa20{ 0 };
 	CString m_hoverTip;
 	// 分时图标题栏悬停提示
 	CString m_timelinePriceTitleTip;   // 走势图标题栏：现价/均价/MA5/MA10...

@@ -525,6 +525,7 @@ void STOCK::StockData::addTimelinePoint(const CString& json_data)
 					point.volume = GetJsonVolume(item, "v");
 					point.price = GetJsonPrice(item, "p");
 					point.averagePrice = GetJsonPrice(item, "avg_p");
+					point.amount = point.price * point.volume;
 					addTimelinePoint(point);
 				}
 			}

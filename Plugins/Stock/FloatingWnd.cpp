@@ -134,7 +134,9 @@ enum {
 	IDM_CLOSE_WINDOW = 1006,
 	IDC_MA_BTN = 1007,
 	IDC_MIN5_KLINE_BTN = 1008,
-	IDC_BOLL_BTN = 1009
+	IDC_BOLL_BTN = 1009,
+	IDC_ZOOM_OUT_BTN = 1010,
+	IDC_ZOOM_IN_BTN = 1011
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -163,6 +165,8 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_MA_BTN, &CFloatingWnd::OnBnClickedMABtn)
 	ON_BN_CLICKED(IDC_MIN5_KLINE_BTN, &CFloatingWnd::OnBnClickedMin5KLineBtn)
 	ON_BN_CLICKED(IDC_BOLL_BTN, &CFloatingWnd::OnBnClickedBollBtn)
+	ON_BN_CLICKED(IDC_ZOOM_OUT_BTN, &CFloatingWnd::OnBnClickedZoomOutBtn)
+	ON_BN_CLICKED(IDC_ZOOM_IN_BTN, &CFloatingWnd::OnBnClickedZoomInBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -222,6 +226,16 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect bollBtnRect(maBtnRect.left - bollBtnWidth - comboGap, g_data.RDPI(2), maBtnRect.left - comboGap, g_data.RDPI(2) + btnHeight);
 	m_btnBoll.Create(_T("BOLL"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
 	m_btnBoll.ShowWindow(SW_HIDE);
+
+	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
+	const int zoomBtnWidth = g_data.RDPI(28);
+	const int zoomBtnHeight = g_data.RDPI(16);
+	CRect zoomOutRect(0, 0, zoomBtnWidth, zoomBtnHeight);
+	CRect zoomInRect(0, 0, zoomBtnWidth, zoomBtnHeight);
+	m_btnZoomOut.Create(_T("><"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, zoomOutRect, this, IDC_ZOOM_OUT_BTN);
+	m_btnZoomIn.Create(_T("<>"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, zoomInRect, this, IDC_ZOOM_IN_BTN);
+	m_btnZoomOut.ShowWindow(SW_HIDE);
+	m_btnZoomIn.ShowWindow(SW_HIDE);
 
 	m_hScrollBar.Create(WS_CHILD | SBS_HORZ, CRect(0, 0, 0, 0), this, 0);
 	m_hScrollBar.ShowWindow(SW_HIDE);
@@ -474,20 +488,16 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
 	CPen* pOldPen = memDC.SelectObject(&pGrid);
 
-	const TimeMarker timeMarkers[] = {
-		{ _T("9:30"), 0 },
-		{ _T("10:30"), 60 },
-		{ _T("11:30"), 120 },
-		{ _T("14:00"), 180 },
-		{ _T("15:00"), 240 }
-	};
-
-	// X轴时间竖线（仅在显示全天数据时绘制固定时间标记）
-	if (ctx.timelinePoint && ctx.timelinePoint->size() >= 240)
+	// X轴时间竖线：4等分可见数据范围，共5条竖线（含首尾）
+	if (ctx.timelinePoint && !ctx.timelinePoint->empty())
 	{
-		for (const auto& marker : timeMarkers)
+		const int totalPts = static_cast<int>(ctx.timelinePoint->size());
+		const int numVLines = 4;
+		for (int i = 0; i <= numVLines; i++)
 		{
-			int xPos = ctx.chartWidth * marker.minutesFromStart / 240;
+			int idx = totalPts * i / numVLines;
+			if (idx >= totalPts) idx = totalPts - 1;
+			int xPos = ctx.chartWidth * i / numVLines;
 			memDC.MoveTo(xPos, ctx.priceChartTop);
 			memDC.LineTo(xPos, ctx.priceChartTop + ctx.priceChartHeight);
 		}
@@ -497,23 +507,24 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	memDC.MoveTo(0, ctx.priceChartTop + ctx.priceChartHeight);
 	memDC.LineTo(ctx.chartWidth, ctx.priceChartTop + ctx.priceChartHeight);
 
-	// 走势图高度5等分横线（标签由DrawTimelinePriceLabels统一绘制）
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
+	// 走势图横线（使用OnPaint预计算的niceStep）
+	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
 	{
 		CPen pGridLine(PS_DOT, 1, COLOR_GRAY_GRID);
 		memDC.SelectObject(&pGridLine);
-		const int numDiv = 5;
-		for (int i = 0; i <= numDiv; i++)
+		double priceRange = ctx.maxPrice - ctx.minPrice;
+		float unitY = ctx.priceChartHeight / static_cast<float>(priceRange);
+		for (double labelPrice = ctx.minPrice; labelPrice <= ctx.maxPrice + ctx.niceStep * 0.01; labelPrice += ctx.niceStep)
 		{
-			int y = ctx.priceChartTop + ctx.priceChartHeight * i / numDiv;
-			// 横线
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
 			memDC.MoveTo(0, y);
 			memDC.LineTo(ctx.chartWidth, y);
 		}
 	}
 
-	// 昨收价虚线（基于动态Y轴范围计算位置）
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.realtimeData.prevClosePrice > 0)
+	// 昨收价虚线（仅当昨收价在可见Y轴范围内时绘制）
+	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.realtimeData.prevClosePrice > 0
+		&& ctx.realtimeData.prevClosePrice >= ctx.minPrice && ctx.realtimeData.prevClosePrice <= ctx.maxPrice)
 	{
 		CPen pMiddleLine(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
 		memDC.SelectObject(&pMiddleLine);
@@ -523,14 +534,6 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 		memDC.MoveTo(0, prevCloseY);
 		memDC.LineTo(ctx.chartWidth, prevCloseY);
 	}
-	else
-	{
-		// 回退：中间位置
-		CPen pMiddleLine(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
-		memDC.SelectObject(&pMiddleLine);
-		memDC.MoveTo(0, ctx.priceChartTop + ctx.priceChartHeight / 2);
-		memDC.LineTo(ctx.chartWidth, ctx.priceChartTop + ctx.priceChartHeight / 2);
-	}
 
 	memDC.SelectObject(pOldPen);
 }
@@ -538,41 +541,39 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 // 绘制Y轴价格标签（最高价/最低价/昨收价）
 void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext& ctx)
 {
-	// 动态Y轴范围：5等分价格标签 + 昨收价标签，全部与横线居中对齐
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
+	// Y轴价格标签（使用OnPaint预计算的niceStep）
+	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
 	{
 		int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 		double priceRange = ctx.maxPrice - ctx.minPrice;
 		float unitY = ctx.priceChartHeight / static_cast<float>(priceRange);
-		const int numDiv = 5;
-		for (int i = 0; i <= numDiv; i++)
+
+		for (double labelPrice = ctx.minPrice; labelPrice <= ctx.maxPrice + ctx.niceStep * 0.01; labelPrice += ctx.niceStep)
 		{
-			int y = ctx.priceChartTop + ctx.priceChartHeight * i / numDiv;
-			double price = ctx.maxPrice - priceRange * i / numDiv;
-			CString priceTxt = CCommon::FormatFloat(price);
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
+			CString priceTxt = CCommon::FormatFloat(labelPrice);
 			CSize sz = memDC.GetTextExtent(priceTxt);
 			int labelX = -sz.cx - g_data.RDPI(4);
 			int labelY = y - sz.cy / 2;
-			labelY = max(ctx.priceChartTop, min(labelY, ctx.priceChartTop + ctx.priceChartHeight - sz.cy));
-			// 顶部红色、底部绿色、中间灰色
-			if (i == 0)
+			// 标签颜色：高于昨收红色，低于昨收绿色，等于昨收黑色
+			if (ctx.realtimeData.prevClosePrice > 0 && labelPrice > ctx.realtimeData.prevClosePrice + ctx.niceStep * 0.01)
 				memDC.SetTextColor(COLOR_RED_UP);
-			else if (i == numDiv)
+			else if (ctx.realtimeData.prevClosePrice > 0 && labelPrice < ctx.realtimeData.prevClosePrice - ctx.niceStep * 0.01)
 				memDC.SetTextColor(COLOR_GREEN_DOWN);
 			else
-				memDC.SetTextColor(COLOR_GRAY_TEXT);
+				memDC.SetTextColor(COLOR_BLACK);
 			memDC.TextOut(labelX, labelY, priceTxt);
 		}
 
-		// 昨收价标签（紫色，与横线居中对齐）
-		if (ctx.realtimeData.prevClosePrice > 0)
+		// 昨收价标签（仅当昨收价在可见Y轴范围内时绘制）
+		if (ctx.realtimeData.prevClosePrice > 0
+			&& ctx.realtimeData.prevClosePrice >= ctx.minPrice && ctx.realtimeData.prevClosePrice <= ctx.maxPrice)
 		{
 			memDC.SetTextColor(COLOR_GRAY_PURPLE);
 			CString prevTxt = CCommon::FormatFloat(ctx.realtimeData.prevClosePrice);
 			CSize prevSize = memDC.GetTextExtent(prevTxt);
 			int prevY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((ctx.realtimeData.prevClosePrice - ctx.minPrice) * unitY);
 			int labelY = prevY - prevSize.cy / 2;
-			labelY = max(ctx.priceChartTop, min(labelY, ctx.priceChartTop + ctx.priceChartHeight - prevSize.cy));
 			memDC.TextOut(-prevSize.cx - g_data.RDPI(4), labelY, prevTxt);
 		}
 		memDC.SetBkMode(oldBkMode);
@@ -630,14 +631,9 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	if (timelinePoint.empty())
 		return;
 
-	const int before12ClockOffset = 570;
-	const int after12ClockOffset = 660;
 	const int totalPoints = static_cast<int>(timelinePoint.size());
 
-	STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
-	float halfH = ctx.priceChartHeight / 2.0f;
-
-	// Y轴范围：优先使用 ctx 中预计算的动态范围（基于可见数据上浮10%）
+	// Y轴范围：优先使用 ctx 中预计算的动态范围
 	STOCK::Price maxPrice;
 	STOCK::Price minPrice;
 	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
@@ -648,6 +644,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	else
 	{
 		// 回退：基于涨跌停限制
+		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
 		minPrice = ctx.realtimeData.prevClosePrice - priceLimit;
 		const int pricePaddingY = g_data.RDPI(10);
@@ -667,30 +664,73 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	for (int i = 0; i < totalPoints; i++)
 	{
 		const auto& item = timelinePoint[i];
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		int pointX = 0;
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-			if (hour < 12) countX -= before12ClockOffset;
-			else if (hour >= 13) countX -= after12ClockOffset;
-			pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-		}
-		else
-			pointX = i * (ctx.chartWidth / totalPoints);
-
+		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
 		float yVal = (item.price - minPrice) * unitY;
 		dataPoints.push_back(CPoint(pointX, (int)yVal));
 	}
 
 	if (!dataPoints.empty())
 	{
-		int startY = ctx.priceChartTop + ctx.priceChartHeight - (int)((ctx.realtimeData.openPrice - minPrice) * unitY);
-		memDC.MoveTo(0, startY);
-		for (const auto& pt : dataPoints)
-			memDC.LineTo(pt.x, ctx.priceChartTop + ctx.priceChartHeight - pt.y);
+		// 走势线：从第一个可见数据点开始绘制（缩放/拖动时openPrice可能不在可见范围内）
+		memDC.MoveTo(dataPoints[0].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[0].y);
+		for (int i = 1; i < static_cast<int>(dataPoints.size()); i++)
+			memDC.LineTo(dataPoints[i].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[i].y);
+
+		// 最高/最低价标签
+		{
+			STOCK::Price hiPrice = 0, loPrice = (std::numeric_limits<STOCK::Price>::max)();
+			int hiIdx = -1, loIdx = -1;
+			for (int i = 0; i < totalPoints; i++)
+			{
+				STOCK::Price p = timelinePoint[i].price;
+				if (p > 0)
+				{
+					if (p > hiPrice) { hiPrice = p; hiIdx = i; }
+					if (p >= hiPrice) { hiPrice = p; hiIdx = i; }  // 相同价格取最后一个
+					if (p < loPrice) { loPrice = p; loIdx = i; }
+					if (p <= loPrice) { loPrice = p; loIdx = i; }  // 相同价格取最后一个
+				}
+			}
+
+			STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
+
+			// 最高价标签：<-1.083，显示在右侧，颜色红色
+			if (hiIdx >= 0 && hiPrice > 0)
+			{
+				CString hiStr;
+				hiStr.Format(_T("\u2190%.3f"), static_cast<double>(hiPrice));  // ←1.083
+				CSize hiSz = memDC.GetTextExtent(hiStr);
+				int hiX = dataPoints[hiIdx].x;
+				int hiY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[hiIdx].y;
+				// 标签在点的右侧
+				int labelX = hiX + g_data.RDPI(4);
+				int labelY = hiY - hiSz.cy / 2;
+				// 限制在图表区域内
+				labelY = max(ctx.priceChartTop, min(labelY, ctx.priceChartTop + ctx.priceChartHeight - hiSz.cy));
+				if (labelX + hiSz.cx > ctx.chartWidth)
+					labelX = hiX - hiSz.cx - g_data.RDPI(4);
+				memDC.SetTextColor(COLOR_RED_UP);
+				memDC.TextOut(labelX, labelY, hiStr);
+			}
+
+			// 最低价标签：1.072->，显示在左侧
+			if (loIdx >= 0 && loPrice > 0 && loIdx != hiIdx)
+			{
+				CString loStr;
+				loStr.Format(_T("%.3f\u2192"), static_cast<double>(loPrice));  // 1.072→
+				CSize loSz = memDC.GetTextExtent(loStr);
+				int loX = dataPoints[loIdx].x;
+				int loY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[loIdx].y;
+				// 标签在点的左侧
+				int labelX = loX - loSz.cx - g_data.RDPI(4);
+				int labelY = loY - loSz.cy / 2;
+				labelY = max(ctx.priceChartTop, min(labelY, ctx.priceChartTop + ctx.priceChartHeight - loSz.cy));
+				if (labelX < 0)
+					labelX = loX + g_data.RDPI(4);
+				memDC.SetTextColor(loPrice > prevClose ? COLOR_RED_UP : (loPrice < prevClose ? COLOR_GREEN_DOWN : COLOR_BLACK));
+				memDC.TextOut(labelX, labelY, loStr);
+			}
+		}
 
 		// 均价线
 		CPen avgLinePen(PS_SOLID, 1, COLOR_GOLDEN);
@@ -701,32 +741,126 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		for (int i = 0; i < totalPoints; i++)
 		{
 			const auto& item = timelinePoint[i];
-			std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-			int pointX = 0;
-			if (time_arr.size() >= 2)
-			{
-				int hour = _ttoi(CString(time_arr[0].c_str()));
-				int minute = _ttoi(CString(time_arr[1].c_str()));
-				int countX = hour * 60 + minute;
-				if (hour < 12) countX -= before12ClockOffset;
-				else if (hour >= 13) countX -= after12ClockOffset;
-				pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-			}
-			else
-				pointX = i * (ctx.chartWidth / totalPoints);
-
+			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
 			float yVal = (item.averagePrice - minPrice) * unitY;
 			avgPoints.push_back(CPoint(pointX, (int)yVal));
 		}
 
 		if (!avgPoints.empty())
 		{
-			int avgStartY = ctx.priceChartTop + ctx.priceChartHeight - (int)((ctx.realtimeData.openPrice - minPrice) * unitY);
-			memDC.MoveTo(0, avgStartY);
-			for (const auto& pt : avgPoints)
-				memDC.LineTo(pt.x, ctx.priceChartTop + ctx.priceChartHeight - pt.y);
+			memDC.MoveTo(avgPoints[0].x, ctx.priceChartTop + ctx.priceChartHeight - avgPoints[0].y);
+			for (int i = 1; i < static_cast<int>(avgPoints.size()); i++)
+				memDC.LineTo(avgPoints[i].x, ctx.priceChartTop + ctx.priceChartHeight - avgPoints[i].y);
 		}
 		memDC.SelectObject(pOldAvgPen);
+	}
+
+	// MA5/MA10/MA20均线（仅当m_showMA开启时绘制）
+	if (m_showMA)
+	{
+		const COLORREF ma5Color  = RGB(0, 0, 230);       // 蓝色
+		const COLORREF ma10Color = RGB(0, 166, 235);     // 青色
+		const COLORREF ma20Color = RGB(169, 102, 186);   // 紫色
+
+		auto drawMALine = [&](int fieldOffset, COLORREF color) {
+			CPen maPen(PS_SOLID, 1, color);
+			memDC.SelectObject(&maPen);
+			bool first = true;
+			for (int i = 0; i < totalPoints; i++)
+			{
+				const auto& item = timelinePoint[i];
+				STOCK::Price maVal = 0;
+				switch (fieldOffset)
+				{
+				case 5: maVal = item.ma5; break;
+				case 10: maVal = item.ma10; break;
+				case 20: maVal = item.ma20; break;
+				}
+				if (maVal <= 0) { first = true; continue; }
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				float yVal = (maVal - minPrice) * unitY;
+				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
+				if (first)
+				{
+					memDC.MoveTo(pointX, py);
+					first = false;
+				}
+				else
+				{
+					memDC.LineTo(pointX, py);
+				}
+			}
+		};
+
+		drawMALine(5, ma5Color);
+		drawMALine(10, ma10Color);
+		drawMALine(20, ma20Color);
+	}
+
+	// 布林带（仅当m_showBollBands开启时绘制）
+	if (m_showBollBands)
+	{
+		const int N = 20;       // 布林带周期
+		const int K = 2;        // 标准差倍数
+
+		std::vector<double> upperBand(totalPoints, 0);
+		std::vector<double> middleBand(totalPoints, 0);
+		std::vector<double> lowerBand(totalPoints, 0);
+
+		for (int i = 0; i < totalPoints; i++)
+		{
+			if (i < N - 1)
+			{
+				upperBand[i] = middleBand[i] = lowerBand[i] = 0;
+				continue;
+			}
+			double sum = 0;
+			for (int j = i - N + 1; j <= i; j++)
+			{
+				sum += timelinePoint[j].price;
+			}
+			double ma = sum / N;
+			double variance = 0;
+			for (int j = i - N + 1; j <= i; j++)
+			{
+				double diff = timelinePoint[j].price - ma;
+				variance += diff * diff;
+			}
+			double stddev = std::sqrt(variance / N);
+			middleBand[i] = ma;
+			upperBand[i] = ma + K * stddev;
+			lowerBand[i] = ma - K * stddev;
+		}
+
+		auto priceToY = [&](double price) -> int {
+			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
+		};
+
+		// 绘制上轨（金色）
+		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
+			CPen bandPen(PS_SOLID, 1, color);
+			memDC.SelectObject(&bandPen);
+			bool first = true;
+			for (int i = 0; i < totalPoints; i++)
+			{
+				if (band[i] <= 0) continue;
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int py = priceToY(band[i]);
+				if (first)
+				{
+					memDC.MoveTo(pointX, py);
+					first = false;
+				}
+				else
+				{
+					memDC.LineTo(pointX, py);
+				}
+			}
+		};
+
+		drawBandLine(upperBand, COLOR_RED_UP);
+		drawBandLine(middleBand, RGB(0, 0, 230));
+		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
 	// 绘制T+0买卖点标记
@@ -902,11 +1036,6 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	if (m_hoveredBarIndex >= static_cast<int>(timelinePoint.size()))
 		return;
 
-	const int before12ClockOffset = 570;
-	const int after12ClockOffset = 660;
-
-	STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
-
 	// Y轴范围：优先使用 ctx 中预计算的动态范围（与 DrawTimelinePriceCurve 一致）
 	STOCK::Price maxPrice;
 	STOCK::Price minPrice;
@@ -918,6 +1047,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	else
 	{
 		// 回退：基于涨跌停限制
+		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
 		minPrice = ctx.realtimeData.prevClosePrice - priceLimit;
 		const int pricePaddingY = g_data.RDPI(10);
@@ -930,18 +1060,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 
 	// 重新计算悬停点位置（按索引比例分配X坐标）
 	const auto& item = timelinePoint[m_hoveredBarIndex];
-	std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-	int hoverX = 0;
-	if (time_arr.size() >= 2)
-	{
-		int hour = _ttoi(CString(time_arr[0].c_str()));
-		int minute = _ttoi(CString(time_arr[1].c_str()));
-		int countX = hour * 60 + minute;
-		if (hour < 12) countX -= before12ClockOffset;
-		else if (hour >= 13) countX -= after12ClockOffset;
-		(void)countX;  // 保留计算但不用于X坐标
-		hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
-	}
+	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
 
 	int dotY = ctx.priceChartTop + ctx.priceChartHeight - (int)((item.price - minPrice) * unitY);
 
@@ -965,62 +1084,31 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	memDC.MoveTo(hoverX, ctx.priceChartTop);
 	memDC.LineTo(hoverX, ctx.macdChartTop + ctx.macdChartHeight);
 
-	// 悬停提示文字 - 显示在圆点右侧
-	double diff = item.price - ctx.realtimeData.prevClosePrice;
-	double diffPercent = ctx.realtimeData.prevClosePrice != 0 ? (diff / ctx.realtimeData.prevClosePrice) * 100 : 0;
+	// 十字横虚线（在走势图区域内，从左端到右端）
+	memDC.MoveTo(0, dotY);
+	memDC.LineTo(ctx.chartWidth, dotY);
 
-	CString priceTxt = CCommon::FormatFloat(item.price);
-	CString diffAmountTxt = CCommon::FormatFloat(std::abs(diff));
-	CString diffTxt;
-	if (diff >= 0)
-		diffTxt.Format(_T("+%.2f%%(+%s)"), diffPercent, diffAmountTxt);
-	else
-		diffTxt.Format(_T("%.2f%%(-%s)"), diffPercent, diffAmountTxt);
+	// Y轴左侧预留区域显示悬停点价格，浅蓝色背景高亮
+	// 注意：走势图绘制区使用了视口偏移，当前坐标系原点在Y轴右边缘
+	// 需要恢复原始坐标系来在Y轴区域绘制
+	int yAxisW = g_data.RDPI(50);
+	CPoint origOrg = memDC.GetViewportOrg();
+	memDC.OffsetViewportOrg(-yAxisW, 0);  // 恢复原始坐标系
 
-	CSize priceSize = memDC.GetTextExtent(priceTxt);
-	CSize diffSize = memDC.GetTextExtent(diffTxt);
-	CString space = _T(" ");
-	CSize spaceSize = memDC.GetTextExtent(space);
-	int totalWidth = priceSize.cx + spaceSize.cx + diffSize.cx;
-
-	// 文字位置：圆点右侧，向上偏移避免遮挡趋势线
-	int textX = hoverX + g_data.RDPI(8);
-	int textY = dotY - priceSize.cy / 2;
-
-	// 如果右侧空间不足，改为显示在圆点左侧
-	if (textX + totalWidth > ctx.chartWidth - g_data.RDPI(2))
-	{
-		textX = hoverX - totalWidth - g_data.RDPI(8);
-	}
-
-	// 限制在走势图区域内
-	textY = max(ctx.priceChartTop + g_data.RDPI(2), min(textY, ctx.priceChartTop + ctx.priceChartHeight - priceSize.cy - g_data.RDPI(2)));
-
+	CString hoverPriceStr;
+	hoverPriceStr.Format(_T("%.3f"), static_cast<double>(item.price));
+	CSize hoverPriceSize = memDC.GetTextExtent(hoverPriceStr);
+	int priceLabelX = yAxisW - hoverPriceSize.cx - g_data.RDPI(3);
+	int priceLabelY = dotY - hoverPriceSize.cy / 2;
+	// 限制在走势图Y轴区域内
+	priceLabelY = max(ctx.priceChartTop, min(priceLabelY, ctx.priceChartTop + ctx.priceChartHeight - hoverPriceSize.cy));
+	CRect priceBgRect(priceLabelX - g_data.RDPI(2), priceLabelY, priceLabelX + hoverPriceSize.cx + g_data.RDPI(2), priceLabelY + hoverPriceSize.cy);
+	memDC.FillSolidRect(priceBgRect, RGB(200, 220, 255));
 	memDC.SetTextColor(dotColor);
-	memDC.TextOut(textX, textY, priceTxt);
-	memDC.TextOut(textX + priceSize.cx + spaceSize.cx, textY, diffTxt);
+	memDC.TextOut(priceLabelX, priceLabelY, hoverPriceStr);
 
-	// 均价及涨跌幅、涨跌额显示在均价线圆点右侧
-	CString avgTxt = CCommon::FormatFloat(avgPrice);
-	double avgDiff = avgPrice - ctx.realtimeData.prevClosePrice;
-	double avgDiffPercent = ctx.realtimeData.prevClosePrice != 0 ? (avgDiff / ctx.realtimeData.prevClosePrice) * 100 : 0;
-	CString avgDiffTxt;
-	if (avgDiff >= 0)
-		avgDiffTxt.Format(_T("+%.2f%%(+%s)"), avgDiffPercent, CCommon::FormatFloat(std::abs(avgDiff)));
-	else
-		avgDiffTxt.Format(_T("%.2f%%(-%s)"), avgDiffPercent, CCommon::FormatFloat(std::abs(avgDiff)));
-
-	CSize avgSize = memDC.GetTextExtent(avgTxt);
-	CSize avgDiffSize = memDC.GetTextExtent(avgDiffTxt);
-	int avgTotalWidth = avgSize.cx + spaceSize.cx + avgDiffSize.cx;
-	int avgTextX = hoverX + g_data.RDPI(8);
-	int avgTextY = avgDotY - avgSize.cy / 2;
-	if (avgTextX + avgTotalWidth > ctx.chartWidth - g_data.RDPI(2))
-		avgTextX = hoverX - avgTotalWidth - g_data.RDPI(8);
-	avgTextY = max(ctx.priceChartTop + g_data.RDPI(2), min(avgTextY, ctx.priceChartTop + ctx.priceChartHeight - avgSize.cy - g_data.RDPI(2)));
-	memDC.SetTextColor(COLOR_GOLDEN);
-	memDC.TextOut(avgTextX, avgTextY, avgTxt);
-	memDC.TextOut(avgTextX + avgSize.cx + spaceSize.cx, avgTextY, avgDiffTxt);
+	// 恢复视口偏移
+	memDC.SetViewportOrg(origOrg);
 
 	// 时间标签显示在竖线对应的X轴下方（MACD图下方），浅蓝色背景高亮
 	CString timeStr(item.time.c_str());
@@ -1095,23 +1183,14 @@ void CFloatingWnd::DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawConte
 		}
 	}
 
-	struct TimeMarker {
-		const TCHAR* label;
-		int minutesFromStart;
-	};
-	const TimeMarker timeMarkers[] = {
-		{ _T("9:30"), 0 },
-		{ _T("10:30"), 60 },
-		{ _T("11:30"), 120 },
-		{ _T("14:00"), 180 },
-		{ _T("15:00"), 240 }
-	};
-	// X轴时间竖线（仅在显示全天数据时绘制）
-	if (ctx.timelinePoint && ctx.timelinePoint->size() >= 240)
+	// X轴时间竖线：4等分可见数据范围
+	if (ctx.timelinePoint && !ctx.timelinePoint->empty())
 	{
-		for (int i = 0; i < sizeof(timeMarkers) / sizeof(timeMarkers[0]); i++)
+		const int totalPts = static_cast<int>(ctx.timelinePoint->size());
+		const int numVLines = 4;
+		for (int i = 0; i <= numVLines; i++)
 		{
-			int xPos = ctx.chartWidth * timeMarkers[i].minutesFromStart / 240;
+			int xPos = ctx.chartWidth * i / numVLines;
 			memDC.MoveTo(xPos, volumeY);
 			memDC.LineTo(xPos, volumeY + ctx.volumeChartHeight);
 		}
@@ -1393,7 +1472,29 @@ void CFloatingWnd::OnPaint()
 			ctx.visibleCount = visibleCount;
 			ctx.klineData = &klineData;
 
-			// 动态计算Y轴范围：以可见区域的实际最低/最高价上浮10%作为Y轴长度
+			// 计算滚动均价（为每个可见数据点填充MA5/MA10/MA20）
+			if (!subTimeline.empty())
+			{
+				CalcAllRollingAvgPrices(subTimeline);
+				const auto& lastPt = subTimeline.back();
+				ctx.ma1 = lastPt.price;
+				ctx.ma5 = lastPt.ma5;
+				ctx.ma10 = lastPt.ma10;
+				ctx.ma20 = lastPt.ma20;
+				// 前一分钟数据用于箭头方向判断
+				if (subTimeline.size() >= 2)
+				{
+					const auto& prevPt = subTimeline[subTimeline.size() - 2];
+					ctx.prevMa1 = prevPt.price;
+					ctx.prevMa5 = prevPt.ma5;
+					ctx.prevMa10 = prevPt.ma10;
+					ctx.prevMa20 = prevPt.ma20;
+				}
+			}
+
+			// 计算整齐Y轴范围：先根据可见数据范围计算整齐步长，再扩展为整齐边界
+			// 注意：缩放/拖动后Y轴范围仅基于可见数据，不强制包含昨收价，
+			// 这样缩放到局部区域时Y轴步长能正确缩小，走势线始终居中
 			{
 				STOCK::Price visMax = 0;
 				STOCK::Price visMin = (std::numeric_limits<STOCK::Price>::max)();
@@ -1410,12 +1511,6 @@ void CFloatingWnd::OnPaint()
 						visMin = (std::min)(visMin, tp.averagePrice);
 					}
 				}
-				// 包含昨收价，确保中线（昨收）在视图内
-				if (ctx.realtimeData.prevClosePrice > 0)
-				{
-					visMax = (std::max)(visMax, ctx.realtimeData.prevClosePrice);
-					visMin = (std::min)(visMin, ctx.realtimeData.prevClosePrice);
-				}
 				if (visMin == (std::numeric_limits<STOCK::Price>::max)() || visMax <= visMin)
 				{
 					// 数据无效，回退到涨跌停范围
@@ -1423,12 +1518,45 @@ void CFloatingWnd::OnPaint()
 					visMax = ctx.realtimeData.prevClosePrice + priceLimit;
 					visMin = ctx.realtimeData.prevClosePrice - priceLimit;
 				}
-				// 上浮10%作为Y轴边距
+				// Y轴固定6等分7根横线：以价格中位数锚定，天然居中
+				const double DIV_COUNT = 6;
 				double range = visMax - visMin;
 				if (range <= 0) range = visMax * 0.1;
-				double margin = range * 0.1;
-				ctx.maxPrice = visMax + margin;
-				ctx.minPrice = visMin - margin;
+
+				// 步骤1：价格中心、原始区间步长
+				double midPrice = (visMin + visMax) / 2.0;
+				double rawStep = range / DIV_COUNT;
+
+				// 步骤2：规整刻度步长（不设最小间隔，让小范围也能得到合适步长）
+				double mag = pow(10.0, floor(log10(rawStep)));
+				double norm = rawStep / mag;
+				double niceStep;
+				if (norm <= 1.0) niceStep = 1.0 * mag;
+				else if (norm <= 2.0) niceStep = 2.0 * mag;
+				else if (norm <= 5.0) niceStep = 5.0 * mag;
+				else niceStep = 10.0 * mag;
+
+				// 步骤3：中位线吸附到规整刻度（关键居中逻辑）
+				double midTick = round(midPrice / niceStep) * niceStep;
+
+				// 步骤4：7根刻度天然结构 [midTick-3*ns, midTick+3*ns]
+				double calcMin = midTick - 3 * niceStep;
+				double calcMax = midTick + 3 * niceStep;
+
+				// 校验：高低点不能贴顶底、区间必须包住价格
+				int offset = 0;
+				while (visMin <= calcMin || visMax >= calcMax)
+				{
+					offset++;
+					calcMin = midTick - (3 + offset) * niceStep;
+					calcMax = midTick + (3 + offset) * niceStep;
+				}
+
+				// 步骤5：重新计算绘图实际步长
+				double actualStep = (calcMax - calcMin) / DIV_COUNT;
+				ctx.maxPrice = calcMax;
+				ctx.minPrice = calcMin;
+				ctx.niceStep = actualStep;
 				ctx.unitY = ctx.priceChartHeight / static_cast<float>(ctx.maxPrice - ctx.minPrice);
 			}
 
@@ -1446,6 +1574,18 @@ void CFloatingWnd::OnPaint()
 			DrawTimelineHoverOverlay(memDC, ctx);
 
 			memDC.RestoreDC(-1);
+
+			// 定位缩放按钮（量柱图标题栏最右侧，原始坐标系）
+			if (m_btnZoomOut.GetSafeHwnd() && m_btnZoomIn.GetSafeHwnd())
+			{
+				int zoomBtnW = g_data.RDPI(28);
+				int zoomBtnH = g_data.RDPI(16);
+				int zoomGap = g_data.RDPI(2);
+				int rightEdge = chartWidth;
+				int btnTop = origVolTop + (titleH - zoomBtnH) / 2;
+				m_btnZoomIn.SetWindowPos(nullptr, rightEdge - zoomBtnW - zoomGap, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				m_btnZoomOut.SetWindowPos(nullptr, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			}
 
 			// 右侧盘口用原始坐标系（全宽）
 			DrawOrderBook(memDC, chartWidth, w, h, realtimeData, klineData);
@@ -1654,6 +1794,64 @@ void CFloatingWnd::OnPaint()
 }
 
 // ========== MACD指标计算与绘制 ==========
+
+// 为每个分时数据点计算MA5/MA10/MA20滚动均价（滑动窗口）
+void CFloatingWnd::CalcAllRollingAvgPrices(std::vector<STOCK::TimelinePoint>& timelinePoint)
+{
+	int n = static_cast<int>(timelinePoint.size());
+	if (n == 0)
+		return;
+
+	// 计算每个窗口的滚动均价，使用滑动窗口避免重复求和
+	auto calcWindow = [&](int windowSize, int fieldOffset) {
+		STOCK::Amount sumAmount = 0;
+		STOCK::Volume sumVolume = 0;
+		for (int i = 0; i < n; i++)
+		{
+			sumAmount += timelinePoint[i].amount;
+			sumVolume += timelinePoint[i].volume;
+			if (i >= windowSize)
+			{
+				sumAmount -= timelinePoint[i - windowSize].amount;
+				sumVolume -= timelinePoint[i - windowSize].volume;
+			}
+			if (sumVolume > 0)
+			{
+				STOCK::Price maVal = sumAmount / sumVolume;
+				switch (fieldOffset)
+				{
+				case 5: timelinePoint[i].ma5 = maVal; break;
+				case 10: timelinePoint[i].ma10 = maVal; break;
+				case 20: timelinePoint[i].ma20 = maVal; break;
+				}
+			}
+		}
+	};
+
+	calcWindow(5, 5);
+	calcWindow(10, 10);
+	calcWindow(20, 20);
+}
+
+// 计算滚动均价：最近nMinutes分钟的成交额/成交量（单次查询）
+STOCK::Price CFloatingWnd::CalcRollingAvgPrice(const std::vector<STOCK::TimelinePoint>& timelinePoint, int nMinutes)
+{
+	int n = static_cast<int>(timelinePoint.size());
+	if (n == 0 || nMinutes <= 0)
+		return 0;
+
+	int startIdx = max(0, n - nMinutes);
+	STOCK::Amount sumAmount = 0;
+	STOCK::Volume sumVolume = 0;
+	for (int i = startIdx; i < n; i++)
+	{
+		sumAmount += timelinePoint[i].amount;
+		sumVolume += timelinePoint[i].volume;
+	}
+	if (sumVolume == 0)
+		return 0;
+	return sumAmount / sumVolume;
+}
 
 std::vector<CFloatingWnd::MACDData> CFloatingWnd::CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint)
 {
@@ -2147,9 +2345,6 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		startIndex = 0;
 	}
 
-	const int before12ClockOffset = 570;
-	const int after12ClockOffset = 660;
-
 	// 找到最大绝对值用于缩放
 	double maxAbs = 0;
 	for (const auto& m : macdData)
@@ -2175,28 +2370,17 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 	memDC.LineTo(x + width, zeroY);
 
 	// 绘制MACD柱
-	const int barWidth = 2;
+	// 动态计算柱子宽度：间距固定1像素，柱子宽度随缩放增大
+	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int fixedGap = 1;
+	int slotWidth = totalPts > 0 ? width / totalPts : 1;
+	int barWidth = max(2, slotWidth - fixedGap);
 	for (int i = startIndex; i < endIdx && i < static_cast<int>(macdData.size()); i++)
 	{
 		if (!macdData[i].valid)
 			continue;
 
-		const auto& item = timelinePoint[i];
-		int barX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-			if (hour < 12) countX -= before12ClockOffset;
-			else if (hour >= 13) countX -= after12ClockOffset;
-			barX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * i);
-		}
-		else
-		{
-			barX = x + i * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
 
 		double barVal = macdData[i].bar;
 		int barHeight = static_cast<int>(std::abs(barVal) * unitY);
@@ -2217,22 +2401,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		const auto& item = timelinePoint[i];
-		int pointX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-			if (hour < 12) countX -= before12ClockOffset;
-			else if (hour >= 13) countX -= after12ClockOffset;
-			pointX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * i);
-		}
-		else
-		{
-			pointX = x + i * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dif * unitY);
 		if (difFirst)
@@ -2255,22 +2424,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		const auto& item = timelinePoint[i];
-		int pointX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-			if (hour < 12) countX -= before12ClockOffset;
-			else if (hour >= 13) countX -= after12ClockOffset;
-			pointX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * i);
-		}
-		else
-		{
-			pointX = x + i * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dea * unitY);
 		if (deaFirst)
@@ -2298,22 +2452,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 			continue;
 
 		// 计算交叉点X坐标
-		const auto& item = timelinePoint[i];
-		int markX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-			if (hour < 12) countX -= before12ClockOffset;
-			else if (hour >= 13) countX -= after12ClockOffset;
-			markX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * i);
-		}
-		else
-		{
-			markX = x + i * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int markX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
 
 		// 交叉点Y坐标（DIF≈DEA处）
 		int markY = zeroY - static_cast<int>(macdData[i].dif * unitY);
@@ -2363,54 +2502,34 @@ void CFloatingWnd::DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext
 	memDC.MoveTo(0, macdY + ctx.macdChartHeight);
 	memDC.LineTo(ctx.chartWidth, macdY + ctx.macdChartHeight);
 
-	// 时间竖线（仅在显示全天数据时绘制）
-	struct TimeMarker {
-		const TCHAR* label;
-		int minutesFromStart;
-	};
-	const TimeMarker timeMarkers[] = {
-		{ _T("9:30"), 0 },
-		{ _T("10:30"), 60 },
-		{ _T("11:30"), 120 },
-		{ _T("14:00"), 180 },
-		{ _T("15:00"), 240 }
-	};
-	if (timelinePoint.size() >= 240)
+	// 时间竖线：4等分可见数据范围
+	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int numVLines = 4;
+	if (totalPts > 0)
 	{
-		for (int i = 0; i < sizeof(timeMarkers) / sizeof(timeMarkers[0]); i++)
+		for (int i = 0; i <= numVLines; i++)
 		{
-			int xPos = ctx.chartWidth * timeMarkers[i].minutesFromStart / 240;
+			int xPos = ctx.chartWidth * i / numVLines;
 			memDC.MoveTo(xPos, macdY);
 			memDC.LineTo(xPos, macdY + ctx.macdChartHeight);
 		}
 	}
 	memDC.SelectObject(pOldPen);
 
-	// 绘制时间标签（X轴）在MACD图下方
+	// 绘制时间标签（X轴）在MACD图下方：5等分位置对应的时间
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
-	if (timelinePoint.size() >= 240)
+	if (totalPts > 0)
 	{
-		for (int i = 0; i < sizeof(timeMarkers) / sizeof(timeMarkers[0]); i++)
+		for (int i = 0; i <= numVLines; i++)
 		{
-			int xPos = ctx.chartWidth * timeMarkers[i].minutesFromStart / 240;
-			CString timeLabel(timeMarkers[i].label);
+			int idx = totalPts * i / numVLines;
+			if (idx >= totalPts) idx = totalPts - 1;
+			int xPos = ctx.chartWidth * i / numVLines;
+			CString timeLabel(timelinePoint[idx].time.c_str());
+			if (timeLabel.GetLength() >= 5) timeLabel = timeLabel.Left(5);
 			CSize labelSize = memDC.GetTextExtent(timeLabel);
 			int labelX = max(0, min(xPos - labelSize.cx / 2, ctx.chartWidth - labelSize.cx));
 			memDC.TextOut(labelX, ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2), timeLabel);
-		}
-	}
-	else
-	{
-		// 非全天模式：显示可见范围的起止时间
-		if (!timelinePoint.empty())
-		{
-			CString startLabel(timelinePoint.front().time.c_str());
-			CString endLabel(timelinePoint.back().time.c_str());
-			if (startLabel.GetLength() >= 5) startLabel = startLabel.Left(5);
-			if (endLabel.GetLength() >= 5) endLabel = endLabel.Left(5);
-			memDC.TextOut(g_data.RDPI(2), ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2), startLabel);
-			CSize endSize = memDC.GetTextExtent(endLabel);
-			memDC.TextOut(ctx.chartWidth - endSize.cx - g_data.RDPI(2), ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2), endLabel);
 		}
 	}
 }
@@ -2444,37 +2563,16 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	if (maxVolume == 0)
 		return;
 
-	const float totalTradingMinutes = static_cast<float>(timelinePoint.size());
-	const int before12ClockOffset = 570;
-	const int after12ClockOffset = 660;
-	const int barWidth = 2;
+	// 动态计算柱子宽度：间距固定1像素，柱子宽度随缩放增大
+	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int fixedGap = 1;
+	int slotWidth = totalPts > 0 ? width / totalPts : 1;
+	int barWidth = max(2, slotWidth - fixedGap);
 
 	for (int i = startIndex; i < endIdx; i++)
 	{
 		const auto& item = timelinePoint[i];
-
-		int barX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-
-			if (hour < 12)
-			{
-				countX -= before12ClockOffset;
-			}
-			else if (hour >= 13)
-			{
-				countX -= after12ClockOffset;
-			}
-			barX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * i);
-		}
-		else
-		{
-			barX = x + i * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
 
 		float ratio = static_cast<float>(item.volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -2519,29 +2617,7 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	if (m_isHoveringVolume && m_hoveredBarIndex >= 0 && m_hoveredBarIndex < timelinePoint.size())
 	{
 		const auto& item = timelinePoint[m_hoveredBarIndex];
-		int barX = x;
-		std::vector<std::string> time_arr = CCommon::split(item.time, ":");
-		if (time_arr.size() >= 2)
-		{
-			int hour = _ttoi(CString(time_arr[0].c_str()));
-			int minute = _ttoi(CString(time_arr[1].c_str()));
-			int countX = hour * 60 + minute;
-
-			if (hour < 12)
-			{
-				countX -= 570;
-			}
-			else if (hour >= 13)
-			{
-				countX -= 660;
-			}
-			(void)countX;
-			barX = x + static_cast<int>(width / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
-		}
-		else
-		{
-			barX = x + m_hoveredBarIndex * (width / static_cast<int>(timelinePoint.size()));
-		}
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * m_hoveredBarIndex);
 
 		float ratio = static_cast<float>(timelinePoint[m_hoveredBarIndex].volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -5322,22 +5398,144 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 	const auto& timelinePoint = *ctx.timelinePoint;
 	int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 
-	// 走势图标题栏
+	// 走势图标题栏：昨收:xxx 现价:xxx MA1:xxx MA5:xxx MA10:xxx MA20:xxx
 	CRect priceTitleRect(0, priceChartTop, ctx.chartWidth, priceChartTop + timelineTitleHeight);
 	memDC.FillSolidRect(priceTitleRect, RGB(245, 245, 245));
-	memDC.SetTextColor(COLOR_BLACK);
-	CString priceTitle = _T("走势");
+
 	if (!m_timelinePriceTitleTip.IsEmpty())
 	{
-		priceTitle = m_timelinePriceTitleTip;
+		memDC.SetTextColor(COLOR_BLACK);
+		memDC.DrawText(m_timelinePriceTitleTip, priceTitleRect, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 	}
 	else if (!timelinePoint.empty())
 	{
-		priceTitle.Format(_T("走势  现价:%.2f  均价:%.2f"),
-			static_cast<double>(timelinePoint.back().price),
-			static_cast<double>(timelinePoint.back().averagePrice));
+		STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
+
+		// 判断是否hover：hover时使用hover点的数据
+		bool isHovering = (m_hoveredBarIndex >= 0 && m_isHoveringVolume);
+		STOCK::Price dispPrice = isHovering ? m_hoverMa1 : ctx.ma1;
+		STOCK::Price dispMa1 = isHovering ? m_hoverMa1 : ctx.ma1;
+		STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
+		STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
+		STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
+		STOCK::Price dispPrevMa1 = isHovering ? m_hoverPrevMa1 : ctx.prevMa1;
+		STOCK::Price dispPrevMa5 = isHovering ? m_hoverPrevMa5 : ctx.prevMa5;
+		STOCK::Price dispPrevMa10 = isHovering ? m_hoverPrevMa10 : ctx.prevMa10;
+		STOCK::Price dispPrevMa20 = isHovering ? m_hoverPrevMa20 : ctx.prevMa20;
+
+		int xPos = g_data.RDPI(4);
+		int centerY = priceChartTop + timelineTitleHeight / 2;
+		const COLORREF hoverBgColor = RGB(200, 220, 255);  // 浅蓝色高亮
+
+		// 辅助lambda：绘制"标签:数值"，标签和数值分别着色
+		auto drawLabelValue = [&](const CString& labelText, STOCK::Price value, COLORREF labelColor, COLORREF valueColor, bool highlight) {
+			CString valStr;
+			valStr.Format(_T("%.3f"), static_cast<double>(value));
+			memDC.SetTextColor(labelColor);
+			CSize ls = memDC.GetTextExtent(labelText);
+			memDC.TextOut(xPos, centerY - ls.cy / 2, labelText);
+			xPos += ls.cx;
+			memDC.SetTextColor(valueColor);
+			CSize vs = memDC.GetTextExtent(valStr);
+			if (highlight)
+			{
+				// 浅蓝色背景高亮
+				CRect hlRect(xPos, priceChartTop + 1, xPos + vs.cx, priceChartTop + timelineTitleHeight - 1);
+				memDC.FillSolidRect(hlRect, hoverBgColor);
+			}
+			memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
+			xPos += vs.cx + g_data.RDPI(4);
+		};
+
+		// 辅助lambda：绘制"标签:数值+箭头"，箭头由当前值与前一分钟值比较决定
+		auto drawLabelValueArrow = [&](const CString& labelText, STOCK::Price curVal, STOCK::Price prevVal, COLORREF labelColor, COLORREF valueColor, bool highlight) {
+			CString valStr;
+			valStr.Format(_T("%.3f"), static_cast<double>(curVal));
+			memDC.SetTextColor(labelColor);
+			CSize ls = memDC.GetTextExtent(labelText);
+			memDC.TextOut(xPos, centerY - ls.cy / 2, labelText);
+			xPos += ls.cx;
+			memDC.SetTextColor(valueColor);
+			CSize vs = memDC.GetTextExtent(valStr);
+			if (highlight)
+			{
+				CRect hlRect(xPos, priceChartTop + 1, xPos + vs.cx, priceChartTop + timelineTitleHeight - 1);
+				memDC.FillSolidRect(hlRect, hoverBgColor);
+			}
+			memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
+			xPos += vs.cx;
+
+			// 箭头：高于前值↑红色，低于前值↓绿色，等于前值-灰色
+			if (prevVal > 0 && curVal > 0)
+			{
+				CString arrow;
+				COLORREF arrowColor;
+				if (curVal > prevVal)
+				{
+					arrow = _T("\u2191");  // ↑
+					arrowColor = COLOR_RED_UP;
+				}
+				else if (curVal < prevVal)
+				{
+					arrow = _T("\u2193");  // ↓
+					arrowColor = COLOR_GREEN_DOWN;
+				}
+				else
+				{
+					arrow = _T("-");       // -
+					arrowColor = COLOR_GRAY_TEXT;
+				}
+				memDC.SetTextColor(arrowColor);
+				CSize as = memDC.GetTextExtent(arrow);
+				memDC.TextOut(xPos, centerY - as.cy / 2, arrow);
+				xPos += as.cx;
+			}
+			xPos += g_data.RDPI(4);
+		};
+
+		// 与昨收比较的颜色
+		auto cmpPrevClose = [prevClose](STOCK::Price p) -> COLORREF {
+			if (prevClose <= 0) return COLOR_BLACK;
+			if (p > prevClose) return COLOR_RED_UP;
+			if (p < prevClose) return COLOR_GREEN_DOWN;
+			return COLOR_BLACK;
+		};
+		// 与现价比较的颜色
+		auto cmpCurPrice = [dispPrice](STOCK::Price p) -> COLORREF {
+			if (dispPrice <= 0) return COLOR_BLACK;
+			if (p > dispPrice) return COLOR_RED_UP;
+			if (p < dispPrice) return COLOR_GREEN_DOWN;
+			return COLOR_BLACK;
+		};
+
+		// 昨收（标签黑色，数字按与昨收比较，hover不高亮）
+		drawLabelValue(_T("昨收:"), prevClose, COLOR_BLACK, cmpPrevClose(prevClose), false);
+
+		// 现价（标签黑色，数字按与昨收比较，hover高亮）
+		drawLabelValue(_T("现价:"), dispPrice, COLOR_BLACK, cmpPrevClose(dispPrice), isHovering);
+
+		// MA标签颜色定义
+		const COLORREF ma1Color  = RGB(255, 165, 0);     // 橙色
+		const COLORREF ma5Color  = RGB(0, 0, 230);       // 蓝色
+		const COLORREF ma10Color = RGB(0, 166, 235);     // 青色
+		const COLORREF ma20Color = RGB(169, 102, 186);   // 紫色
+
+		// MA1（标签橙色，数字按与现价比较，箭头与前一分钟比较，hover高亮）
+		if (dispMa1 > 0)
+			drawLabelValueArrow(_T("MA1:"), dispMa1, dispPrevMa1, ma1Color, cmpCurPrice(dispMa1), isHovering);
+
+		// MA5（标签蓝色，数字按与现价比较，箭头与前一分钟比较，hover高亮）
+		if (dispMa5 > 0)
+			drawLabelValueArrow(_T("MA5:"), dispMa5, dispPrevMa5, ma5Color, cmpCurPrice(dispMa5), isHovering);
+
+		// MA10（标签青色，数字按与现价比较，箭头与前一分钟比较，hover高亮）
+		if (dispMa10 > 0)
+			drawLabelValueArrow(_T("MA10:"), dispMa10, dispPrevMa10, ma10Color, cmpCurPrice(dispMa10), isHovering);
+
+		// MA20（标签紫色，数字按与现价比较，箭头与前一分钟比较，hover高亮）
+		if (dispMa20 > 0)
+			drawLabelValueArrow(_T("MA20:"), dispMa20, dispPrevMa20, ma20Color, cmpCurPrice(dispMa20), isHovering);
 	}
-	memDC.DrawText(priceTitle, priceTitleRect, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 
 	// 量柱图标题栏
 	CRect volumeTitleRect(0, volumeChartTop, ctx.chartWidth, volumeChartTop + timelineTitleHeight);
@@ -5641,21 +5839,39 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			int maxOffset = max(0, totalPoints - visibleCount);
 			int startIndex = max(0, min(m_timelineScrollOffset, maxOffset));
 
+			// 构建可见子向量并计算MA值（与OnPaint一致）
+			auto subStart = timelinePoint.begin() + startIndex;
+			auto subEnd = timelinePoint.begin() + startIndex + visibleCount;
+			std::vector<STOCK::TimelinePoint> subTimeline(subStart, subEnd);
+			CalcAllRollingAvgPrices(subTimeline);
+
 			// 鼠标坐标减去Y轴宽度，对应到分时图内部坐标
 			int adjX = point.x - yAxisWidth;
 			int effectiveWidth = chartWidth - yAxisWidth;
 			// 按索引比例计算鼠标对应的可见数据索引
 			int relIndex = static_cast<int>(adjX * static_cast<float>(visibleCount) / effectiveWidth);
 			relIndex = max(0, min(relIndex, visibleCount - 1));
-			int barIndex = startIndex + relIndex;
-			barIndex = max(0, min(barIndex, totalPoints - 1));
 
-			if (barIndex >= 0)
+			if (relIndex >= 0 && relIndex < static_cast<int>(subTimeline.size()))
 			{
 				m_isHoveringVolume = true;
-				// m_hoveredBarIndex 存储相对于子向量的索引
-				m_hoveredBarIndex = barIndex - startIndex;
-				m_hoveredData = timelinePoint[barIndex];
+				m_hoveredBarIndex = relIndex;
+				m_hoveredData = subTimeline[relIndex];
+
+				// 保存hover点的MA值
+				m_hoverMa1 = m_hoveredData.price;
+				m_hoverMa5 = m_hoveredData.ma5;
+				m_hoverMa10 = m_hoveredData.ma10;
+				m_hoverMa20 = m_hoveredData.ma20;
+				// 保存前一点MA值（用于箭头方向）
+				m_hoverPrevMa1 = 0; m_hoverPrevMa5 = 0; m_hoverPrevMa10 = 0; m_hoverPrevMa20 = 0;
+				if (relIndex > 0)
+				{
+					m_hoverPrevMa1 = subTimeline[relIndex - 1].price;
+					m_hoverPrevMa5 = subTimeline[relIndex - 1].ma5;
+					m_hoverPrevMa10 = subTimeline[relIndex - 1].ma10;
+					m_hoverPrevMa20 = subTimeline[relIndex - 1].ma20;
+				}
 
 				CString timeStr(m_hoveredData.time.c_str());
 				STOCK::Volume volumeLots = m_hoveredData.volume / 100;
@@ -5674,6 +5890,8 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 				m_hoveredBarIndex = -1;
 				m_hoverTip.Empty();
 				m_timelineVolumeTitleTip.Empty();
+				m_hoverMa1 = 0; m_hoverMa5 = 0; m_hoverMa10 = 0; m_hoverMa20 = 0;
+				m_hoverPrevMa1 = 0; m_hoverPrevMa5 = 0; m_hoverPrevMa10 = 0; m_hoverPrevMa20 = 0;
 			}
 
 			// 只在悬停状态变化时重绘图表区域，避免按钮闪烁
@@ -5703,7 +5921,7 @@ void CFloatingWnd::ToggleKLineMode()
 	m_isMin5KLineMode = false;
 	m_showBollBands = false;
 	m_scrollOffset = 0;
-	m_showTrendView = true;
+	m_showTrendView = m_isKLineMode;	// 切回分时模式时重置为false，避免布局计算走入m_showTrendView分支
 	m_showMA = false;
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
@@ -5758,17 +5976,25 @@ void CFloatingWnd::UpdateModeButtons()
 			if (m_isKLineMode && m_showTrendView)
 			{
 				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
+				m_btnTrend.SetWindowText(_T("走势"));
 				m_btnKLine.SetButtonStyle(BS_FLAT, TRUE);
+			}
+			else if (!m_isKLineMode)
+			{
+				// 分时模式：走势按钮高亮（分时本身就是走势图）
+				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
+				m_btnTrend.SetWindowText(_T("走势"));
 			}
 			else
 			{
 				m_btnTrend.SetButtonStyle(BS_FLAT, TRUE);
+				m_btnTrend.SetWindowText(_T("K线"));
 			}
 		}
 
 		if (m_btnMA.GetSafeHwnd())
 		{
-			if (m_isKLineMode && m_showMA)
+			if (m_showMA)
 			{
 				m_btnMA.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
 			}
@@ -5792,7 +6018,7 @@ void CFloatingWnd::UpdateModeButtons()
 
 		if (m_btnBoll.GetSafeHwnd())
 		{
-			if (m_isKLineMode && m_showBollBands)
+			if (m_showBollBands)
 			{
 				m_btnBoll.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
 			}
@@ -5800,6 +6026,22 @@ void CFloatingWnd::UpdateModeButtons()
 			{
 				m_btnBoll.SetButtonStyle(BS_FLAT, TRUE);
 			}
+		}
+
+		// 缩放按钮仅在分时模式下显示
+		if (m_btnZoomOut.GetSafeHwnd())
+		{
+			if (!m_isKLineMode && !m_isOverviewMode)
+				m_btnZoomOut.ShowWindow(SW_SHOW);
+			else
+				m_btnZoomOut.ShowWindow(SW_HIDE);
+		}
+		if (m_btnZoomIn.GetSafeHwnd())
+		{
+			if (!m_isKLineMode && !m_isOverviewMode)
+				m_btnZoomIn.ShowWindow(SW_SHOW);
+			else
+				m_btnZoomIn.ShowWindow(SW_HIDE);
 		}
 	}
 }
@@ -5813,12 +6055,12 @@ void CFloatingWnd::UpdatePeriodComboVisibility()
 
 	if (m_btnTrend.GetSafeHwnd())
 	{
-		m_btnTrend.ShowWindow((m_isKLineMode && !m_isOverviewMode) ? SW_SHOW : SW_HIDE);
+		m_btnTrend.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
 	}
 
 	if (m_btnMA.GetSafeHwnd())
 	{
-		m_btnMA.ShowWindow((m_isKLineMode && !m_isOverviewMode) ? SW_SHOW : SW_HIDE);
+		m_btnMA.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
 	}
 
 	if (m_btnMin5KLine.GetSafeHwnd())
@@ -5829,7 +6071,7 @@ void CFloatingWnd::UpdatePeriodComboVisibility()
 
 	if (m_btnBoll.GetSafeHwnd())
 	{
-		m_btnBoll.ShowWindow((m_isKLineMode && !m_isOverviewMode) ? SW_SHOW : SW_HIDE);
+		m_btnBoll.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
 	}
 }
 
@@ -5864,6 +6106,19 @@ BOOL CFloatingWnd::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	{
 		const int minVisible = 60;   // 最大放大：显示60分钟
 		const int maxVisible = 240;  // 最小：显示1天240分钟
+		// 获取实际数据点数
+		int totalPoints = 0;
+		{
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			auto stockData = g_data.GetStockData(m_stock_id);
+			if (stockData)
+			{
+				auto timelineData = stockData->getTimelineData();
+				if (timelineData)
+					totalPoints = static_cast<int>(timelineData->data.size());
+			}
+		}
+		int effectiveMax = min(maxVisible, max(totalPoints, minVisible));
 		int newCount = m_timelineVisibleCount;
 		if (zDelta > 0)
 		{
@@ -5873,13 +6128,13 @@ BOOL CFloatingWnd::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		else
 		{
 			// 向下滚：缩小（增加可见点数）
-			newCount = min(maxVisible, m_timelineVisibleCount + 20);
+			newCount = min(effectiveMax, m_timelineVisibleCount + 20);
 		}
 		if (newCount != m_timelineVisibleCount)
 		{
 			m_timelineVisibleCount = newCount;
 			// 缩放时以最新数据为边界：startIndex 设为最大偏移，保证最新数据可见
-			int maxOffset = max(0, maxVisible - m_timelineVisibleCount);
+			int maxOffset = max(0, totalPoints - m_timelineVisibleCount);
 			m_timelineScrollOffset = maxOffset;
 			Invalidate();
 		}
@@ -6043,6 +6298,7 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 	{
 		m_isOverviewMode = false;
 		m_isKLineMode = false;
+		m_showTrendView = false;
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
 		Invalidate();
@@ -6100,7 +6356,20 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 
 void CFloatingWnd::OnBnClickedTrendBtn()
 {
-	if (m_isKLineMode)
+	if (!m_isKLineMode)
+	{
+		// 分时模式下点击走势按钮：切换到K线走势视图
+		m_isKLineMode = true;
+		m_showTrendView = true;
+		if (m_btnTrend.GetSafeHwnd())
+		{
+			m_btnTrend.SetWindowText(_T("走势"));
+		}
+		UpdateModeButtons();
+		UpdatePeriodComboVisibility();
+		Invalidate();
+	}
+	else
 	{
 		m_showTrendView = !m_showTrendView;
 		if (m_btnTrend.GetSafeHwnd())
@@ -6114,15 +6383,12 @@ void CFloatingWnd::OnBnClickedTrendBtn()
 
 void CFloatingWnd::OnBnClickedMABtn()
 {
-	if (m_isKLineMode)
+	m_showMA = !m_showMA;
+	if (m_btnMA.GetSafeHwnd())
 	{
-		m_showMA = !m_showMA;
-		if (m_btnMA.GetSafeHwnd())
-		{
-			m_btnMA.SetButtonStyle(m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-		}
-		Invalidate();
+		m_btnMA.SetButtonStyle(m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
 	}
+	Invalidate();
 }
 
 void CFloatingWnd::OnBnClickedMin5KLineBtn()
@@ -6155,15 +6421,41 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 
 void CFloatingWnd::OnBnClickedBollBtn()
 {
-	if (m_isKLineMode)
+	m_showBollBands = !m_showBollBands;
+	if (m_btnBoll.GetSafeHwnd())
 	{
-		m_showBollBands = !m_showBollBands;
-		if (m_btnBoll.GetSafeHwnd())
-		{
-			m_btnBoll.SetButtonStyle(m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-		}
-		Invalidate();
+		m_btnBoll.SetButtonStyle(m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
 	}
+	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedZoomOutBtn()
+{
+	// 缩小：显示全部240分钟数据
+	m_timelineVisibleCount = 240;
+	m_timelineScrollOffset = 0;
+	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedZoomInBtn()
+{
+	// 放大：显示最新60分钟数据
+	m_timelineVisibleCount = 60;
+	// 滚动到最末尾
+	std::vector<STOCK::TimelinePoint> timelinePoint;
+	{
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		auto stockData = g_data.GetStockData(m_stock_id);
+		if (stockData)
+		{
+			auto timelineData = stockData->getTimelineData();
+			if (timelineData)
+				timelinePoint = timelineData->data;
+		}
+	}
+	int totalPoints = static_cast<int>(timelinePoint.size());
+	m_timelineScrollOffset = max(0, totalPoints - 60);
+	Invalidate();
 }
 
 UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)

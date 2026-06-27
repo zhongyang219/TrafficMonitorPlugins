@@ -35,7 +35,13 @@ namespace STOCK
 		TimePoint time;        // 时间点
 		Volume volume;         // 成交量
 		Price price;           // 价格
-		Price averagePrice;    // 均价
+		Price averagePrice;    // 均价（全天累计）
+		Amount amount;         // 成交额（price * volume）
+		Price ma5;             // 5分钟滚动均价
+		Price ma10;            // 10分钟滚动均价
+		Price ma20;            // 20分钟滚动均价
+
+		TimelinePoint() : volume(0), price(0), averagePrice(0), amount(0), ma5(0), ma10(0), ma20(0) {}
 	};
 
 	// 周期类型
