@@ -1306,7 +1306,7 @@ void CFloatingWnd::OnPaint()
 	int x = rect.left, y = rect.top, h = rect.Height(), w = rect.Width();
 
 	bool isIndex = (GetStockPriority(m_stock_id) < 200);
-	// 分时图模式下大盘与个股一致显示盘口和量柱图，仅日K图模式下大盘不显示
+	// 大盘在K线模式下不显示盘口
 	bool isIndexKLine = isIndex && m_isKLineMode;
 
 	const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
@@ -1315,47 +1315,12 @@ void CFloatingWnd::OnPaint()
 	const int yAxisWidth = g_data.RDPI(50);
 
 	const int headerHeight = g_data.RDPI(26);
-	const int maLineHeight = g_data.RDPI(18);
-	const int maTitleHeight = g_data.RDPI(20);
-	const int volumeTitleHeight = g_data.RDPI(20);
-	const int gapBetweenCharts = g_data.RDPI(18);
 	const int xAxisLabelHeight = g_data.RDPI(20);
-	// 持仓信息栏高度：分时图和5分钟K线模式不显示（0），日K模式显示
-	const int positionInfoHeight = isIndexKLine ? 0 : ((m_isKLineMode && !m_isMin5KLineMode) ? g_data.RDPI(22) : 0);
-	const int scrollBarHeight = g_data.RDPI(18);
 
-	int priceChartHeight, volumeChartHeight;
-	if (isIndexKLine)
-	{
-		// 大盘日K图：价格图表 + X轴标签 + 滚动条
-		priceChartHeight = h - headerHeight - xAxisLabelHeight - scrollBarHeight - g_data.RDPI(4);
-		volumeChartHeight = 0;
-	}
-	else if (m_isMin5KLineMode)
-	{
-		// 5分钟K线模式：K线图(1/2) + 成交量(1/4) + KDJ图(1/4)
-		int chartArea = h - headerHeight - xAxisLabelHeight;
-		priceChartHeight = chartArea / 2;
-		volumeChartHeight = chartArea / 4;
-	}
-	else if (m_showTrendView)
-	{
-		priceChartHeight = h * 2 / 3 - headerHeight - gapBetweenCharts / 2 - xAxisLabelHeight;
-		volumeChartHeight = h - priceChartHeight - headerHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight;
-	}
-	else if (!m_isKLineMode)
-	{
-		// 分时图模式：MA均线行(20) + 走势图 + 量柱图 + MACD图 + X轴标签行(20) + 底部持仓
-		// 分时走势占一半，量柱图和MACD图各占四分之一（标题栏已移至盘口，空间回收给图表）
-		int chartArea = h - headerHeight - xAxisLabelHeight - positionInfoHeight;
-		priceChartHeight = chartArea / 2;
-		volumeChartHeight = chartArea / 4;
-	}
-	else
-	{
-		priceChartHeight = h * 2 / 3 - headerHeight - maLineHeight - gapBetweenCharts / 2 - xAxisLabelHeight;
-		volumeChartHeight = h - priceChartHeight - headerHeight - maLineHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight;
-	}
+	// 统一布局：标题栏 + 走势图(1/2) + 量柱图(1/4) + 副图MACD/KDJ(1/4) + 时间标签
+	int chartArea = h - headerHeight - xAxisLabelHeight;
+	int priceChartHeight = chartArea / 2;
+	int volumeChartHeight = chartArea / 4;
 
 	const int priceChartTop = headerHeight;
 
@@ -1393,35 +1358,10 @@ void CFloatingWnd::OnPaint()
 		}
 	}
 
-	if (m_isKLineMode && !m_isMin5KLineMode && !klineData.empty())
-	{
-		if (!isIndexKLine)
-		{
-			int displayCount = min(m_klinePeriodDays, static_cast<int>(klineData.size()));
-			int maxVisibleKlines = min(displayCount, chartWidth / 3);
-			if (displayCount > maxVisibleKlines)
-			{
-				volumeChartHeight = h - priceChartHeight - headerHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight - scrollBarHeight;
-			}
-		}
-	}
-	else if (!isIndexKLine)
-	{
-		if (!m_isKLineMode)
-		{
-			// 分时图模式：分时走势占一半，量柱图和MACD图各占四分之一
-			int chartArea = h - headerHeight - xAxisLabelHeight - positionInfoHeight;
-			volumeChartHeight = chartArea / 4;
-		}
-		else
-		{
-			volumeChartHeight = h - priceChartHeight - headerHeight - maLineHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight;
-		}
-	}
-
 	if (!m_isOverviewMode)
 	{
-		if (!m_isKLineMode && m_hScrollBar.GetSafeHwnd())
+		// 始终隐藏滚动条（统一布局不再需要）
+		if (m_hScrollBar.GetSafeHwnd())
 			m_hScrollBar.ShowWindow(SW_HIDE);
 
 		if (m_isKLineMode && !klineData.empty())
@@ -1603,7 +1543,6 @@ void CFloatingWnd::OnPaint()
 	{
 		if (m_isMin5KLineMode)
 		{
-			// 5分钟K线模式：绘制K线柱状图（非走势曲线）
 			DrawKLineChart(memDC, yAxisWidth, priceChartTop, chartWidth - yAxisWidth, priceChartHeight, klineData, realtimeData);
 		}
 		else if (m_showTrendView)
@@ -1617,82 +1556,23 @@ void CFloatingWnd::OnPaint()
 
 		if (!isIndexKLine)
 		{
-			// 成交量图位置：5分钟模式紧贴K线图，其他模式保留gap
-			int volumeY = m_isMin5KLineMode
-				? (headerHeight + priceChartHeight)
-				: (headerHeight + priceChartHeight + gapBetweenCharts + g_data.RDPI(18));
+			// 统一布局：成交量图紧贴走势图，占1/4高度
+			int volumeY = headerHeight + priceChartHeight;
 			DrawKLineVolumeChart(memDC, yAxisWidth, volumeY, chartWidth - yAxisWidth, volumeChartHeight, klineData);
 
-			if (m_isMin5KLineMode)
+			// 副图（5分钟K线模式绘制KDJ，日K模式绘制MACD），占1/4高度
+			int subChartY = volumeY + volumeChartHeight;
+			int subChartHeight = chartArea - priceChartHeight - volumeChartHeight;
+			if (subChartHeight > 0)
 			{
-				// 5分钟K线模式：在成交量图下方绘制KDJ图（1/4高度）
-				int kdjY = volumeY + volumeChartHeight;
-				int kdjHeight = h - kdjY - xAxisLabelHeight;
-				if (kdjHeight > 0)
-				{
-					DrawKDJChart(memDC, yAxisWidth, kdjY, chartWidth - yAxisWidth, kdjHeight, klineData);
-				}
-			}
-			else
-			{
-				int positionY = volumeY + volumeChartHeight + g_data.RDPI(4);
-				DrawKLinePositionInfo(memDC, 0, positionY, chartWidth, realtimeData);
-				DrawKLineInfoPanel(memDC, chartWidth, w, positionY, realtimeData, klineData);
-			}
-
-			if (m_hScrollBar.GetSafeHwnd())
-			{
-				const int minBarWidth = 7;
-				const int gap = 1;
-				int displayCount = min(m_klinePeriodDays, static_cast<int>(klineData.size()));
-				int maxVisibleKlines = min(displayCount, chartWidth / (minBarWidth + gap));
-				int scrollRange = max(0, displayCount - maxVisibleKlines);
-				if (scrollRange > 0)
-				{
-					// 滚动条位置：5分钟模式在KDJ图下方，其他模式在持仓信息下方
-					int scrollBarY = m_isMin5KLineMode
-						? (h - xAxisLabelHeight - g_data.RDPI(16))
-						: (headerHeight + priceChartHeight + gapBetweenCharts + g_data.RDPI(18) + volumeChartHeight + g_data.RDPI(4) + positionInfoHeight + g_data.RDPI(2));
-					m_hScrollBar.MoveWindow(0, scrollBarY, chartWidth, g_data.RDPI(14), TRUE);
-					SCROLLINFO si = { sizeof(SCROLLINFO) };
-					si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
-					si.nMin = 0;
-					si.nMax = scrollRange + maxVisibleKlines;
-					si.nPage = maxVisibleKlines;
-					si.nPos = min(m_scrollOffset, scrollRange);
-					m_hScrollBar.SetScrollInfo(&si, FALSE);
-					m_hScrollBar.ShowWindow(SW_SHOW);
-				}
+				if (m_isMin5KLineMode)
+					DrawKDJChart(memDC, yAxisWidth, subChartY, chartWidth - yAxisWidth, subChartHeight, klineData);
 				else
 				{
-					m_hScrollBar.ShowWindow(SW_HIDE);
+					// 日K模式：计算MACD数据并绘制
+					auto macdData = CalculateKLineMACD(klineData);
+					DrawMACDChart(memDC, yAxisWidth, subChartY, chartWidth - yAxisWidth, subChartHeight, klineData, macdData);
 				}
-			}
-		}
-		else if (m_hScrollBar.GetSafeHwnd())
-		{
-			// 大盘日K图也需要滚动条
-			const int minBarWidth = 7;
-			const int gap = 1;
-			int displayCount = min(m_klinePeriodDays, static_cast<int>(klineData.size()));
-			int maxVisibleKlines = min(displayCount, chartWidth / (minBarWidth + gap));
-			int scrollRange = max(0, displayCount - maxVisibleKlines);
-			if (scrollRange > 0)
-			{
-				int scrollBarY = headerHeight + priceChartHeight + xAxisLabelHeight + g_data.RDPI(2);
-				m_hScrollBar.MoveWindow(0, scrollBarY, chartWidth, g_data.RDPI(14), TRUE);
-				SCROLLINFO si = { sizeof(SCROLLINFO) };
-				si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
-				si.nMin = 0;
-				si.nMax = scrollRange + maxVisibleKlines;
-				si.nPage = maxVisibleKlines;
-				si.nPos = min(m_scrollOffset, scrollRange);
-				m_hScrollBar.SetScrollInfo(&si, FALSE);
-				m_hScrollBar.ShowWindow(SW_SHOW);
-			}
-			else
-			{
-				m_hScrollBar.ShowWindow(SW_HIDE);
 			}
 		}
 
@@ -1894,6 +1774,55 @@ std::vector<CFloatingWnd::MACDData> CFloatingWnd::CalculateTimelineMACD(const st
 		dea[i] = dif[i] * 2.0 / 11.0 + dea[i - 1] * 9.0 / 11.0;
 
 	// 计算MACD柱 = (DIF - DEA) * 2，所有数据点均有效
+	for (int i = 0; i < n; i++)
+	{
+		result[i].dif = dif[i];
+		result[i].dea = dea[i];
+		result[i].bar = (dif[i] - dea[i]) * 2.0;
+		result[i].valid = true;
+	}
+
+	return result;
+}
+
+std::vector<CFloatingWnd::MACDData> CFloatingWnd::CalculateKLineMACD(const std::vector<STOCK::KLinePoint>& klineData)
+{
+	std::vector<MACDData> result;
+	int n = static_cast<int>(klineData.size());
+	if (n == 0)
+		return result;
+
+	result.resize(n);
+
+	// 提取收盘价
+	std::vector<double> closes(n);
+	for (int i = 0; i < n; i++)
+		closes[i] = klineData[i].close;
+
+	// 计算EMA12
+	std::vector<double> ema12(n);
+	ema12[0] = closes[0];
+	for (int i = 1; i < n; i++)
+		ema12[i] = closes[i] * 2.0 / 13.0 + ema12[i - 1] * 11.0 / 13.0;
+
+	// 计算EMA26
+	std::vector<double> ema26(n);
+	ema26[0] = closes[0];
+	for (int i = 1; i < n; i++)
+		ema26[i] = closes[i] * 2.0 / 27.0 + ema26[i - 1] * 25.0 / 27.0;
+
+	// 计算DIF = EMA12 - EMA26
+	std::vector<double> dif(n);
+	for (int i = 0; i < n; i++)
+		dif[i] = ema12[i] - ema26[i];
+
+	// 计算DEA（DIF的9周期EMA）
+	std::vector<double> dea(n);
+	dea[0] = dif[0];
+	for (int i = 1; i < n; i++)
+		dea[i] = dif[i] * 2.0 / 11.0 + dea[i - 1] * 9.0 / 11.0;
+
+	// 计算MACD柱 = (DIF - DEA) * 2
 	for (int i = 0; i < n; i++)
 	{
 		result[i].dif = dif[i];
@@ -2483,6 +2412,115 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		memDC.SelectObject(pOldDotPen);
 	}
 	memDC.SetBkMode(oldBkMode);
+}
+
+void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData, const std::vector<MACDData>& macdData, int startIndex /* = 0 */, int visibleCount /* = -1 */)
+{
+	if (klineData.empty() || macdData.empty())
+		return;
+
+	// 计算可见范围
+	int total = static_cast<int>(macdData.size());
+	int endIdx = total;
+	if (visibleCount > 0)
+	{
+		endIdx = (std::min)(total, startIndex + visibleCount);
+		startIndex = (std::max)(0, (std::min)(startIndex, total - 1));
+		if (endIdx <= startIndex) endIdx = startIndex + 1;
+	}
+	else
+	{
+		startIndex = 0;
+	}
+
+	// 找到最大绝对值用于缩放
+	double maxAbs = 0;
+	for (const auto& m : macdData)
+	{
+		if (m.valid)
+		{
+			maxAbs = (std::max)(maxAbs, std::abs(m.dif));
+			maxAbs = (std::max)(maxAbs, std::abs(m.dea));
+			maxAbs = (std::max)(maxAbs, std::abs(m.bar));
+		}
+	}
+	if (maxAbs == 0)
+		return;
+
+	// 零轴位置（中间）
+	int zeroY = y + height / 2;
+	float unitY = (height / 2.0f - g_data.RDPI(2)) / static_cast<float>(maxAbs);
+
+	// 绘制零轴
+	CPen zeroPen(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
+	CPen* pOldPen = memDC.SelectObject(&zeroPen);
+	memDC.MoveTo(x, zeroY);
+	memDC.LineTo(x + width, zeroY);
+
+	// 使用K线数据的displayCount计算柱宽
+	int displayCount = min(m_klinePeriodDays, static_cast<int>(klineData.size()));
+	int maxVisibleKlines = min(displayCount, width / 3);
+	int finalStartIndex = max(0, static_cast<int>(klineData.size()) - maxVisibleKlines - m_scrollOffset);
+	finalStartIndex = max(0, min(finalStartIndex, static_cast<int>(klineData.size()) - maxVisibleKlines));
+
+	int totalVisible = static_cast<int>(klineData.size()) - finalStartIndex;
+	if (totalVisible <= 0) { memDC.SelectObject(pOldPen); return; }
+
+	int slotWidth = width / totalVisible;
+	int barWidth = max(2, slotWidth - 1);
+
+	// 调整startIndex和endIdx到可见范围
+	int drawStart = max(startIndex, finalStartIndex);
+	int drawEnd = min(endIdx, static_cast<int>(macdData.size()));
+
+	// 绘制MACD柱
+	for (int i = drawStart; i < drawEnd; i++)
+	{
+		if (!macdData[i].valid)
+			continue;
+
+		int barX = x + (i - finalStartIndex) * slotWidth;
+		double barVal = macdData[i].bar;
+		int barHeight = static_cast<int>(std::abs(barVal) * unitY);
+		barHeight = max(1, barHeight);
+
+		COLORREF color = (barVal >= 0) ? COLOR_RED_UP : COLOR_GREEN_DOWN;
+		CBrush brush(color);
+		int barY = (barVal >= 0) ? zeroY - barHeight : zeroY;
+		memDC.FillRect(CRect(barX, barY, barX + barWidth, zeroY + (barVal >= 0 ? 0 : barHeight)), &brush);
+	}
+
+	// 绘制DIF线
+	CPen difPen(PS_SOLID, 1, COLOR_DARK_GRAY_BORDER);
+	memDC.SelectObject(&difPen);
+	bool difFirst = true;
+	for (int i = drawStart; i < drawEnd; i++)
+	{
+		if (!macdData[i].valid)
+			continue;
+
+		int pointX = x + (i - finalStartIndex) * slotWidth + slotWidth / 2;
+		int pointY = zeroY - static_cast<int>(macdData[i].dif * unitY);
+		if (difFirst) { memDC.MoveTo(pointX, pointY); difFirst = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	// 绘制DEA线
+	CPen deaPen(PS_SOLID, 1, COLOR_GOLDEN);
+	memDC.SelectObject(&deaPen);
+	bool deaFirst = true;
+	for (int i = drawStart; i < drawEnd; i++)
+	{
+		if (!macdData[i].valid)
+			continue;
+
+		int pointX = x + (i - finalStartIndex) * slotWidth + slotWidth / 2;
+		int pointY = zeroY - static_cast<int>(macdData[i].dea * unitY);
+		if (deaFirst) { memDC.MoveTo(pointX, pointY); deaFirst = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	memDC.SelectObject(pOldPen);
 }
 
 void CFloatingWnd::DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx)
@@ -5654,38 +5692,12 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 	const int chartWidth = rect.Width() - orderBookWidth;
 	const int yAxisWidth = g_data.RDPI(50);
 	const int headerHeight = g_data.RDPI(26);
-	const int maLineHeight = g_data.RDPI(18);
-	const int maTitleHeight = g_data.RDPI(20);
-	const int volumeTitleHeight = g_data.RDPI(20);
-	const int gapBetweenCharts = g_data.RDPI(18);
 	const int xAxisLabelHeight = g_data.RDPI(20);
-	// 持仓信息栏高度：分时图和5分钟K线模式不显示（0），日K模式显示
-	const int positionInfoHeight = isIndexKLine ? 0 : ((m_isKLineMode && !m_isMin5KLineMode) ? g_data.RDPI(22) : 0);
-	const int scrollBarHeight = g_data.RDPI(18);
 
-	int priceChartHeight, volumeChartHeight;
-	if (isIndexKLine)
-	{
-		priceChartHeight = rect.Height() - headerHeight - xAxisLabelHeight - g_data.RDPI(4);
-		volumeChartHeight = 0;
-	}
-	else if (m_showTrendView)
-	{
-		priceChartHeight = rect.Height() * 2 / 3 - headerHeight - gapBetweenCharts / 2 - xAxisLabelHeight;
-		volumeChartHeight = rect.Height() - priceChartHeight - headerHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight;
-	}
-	else if (!m_isKLineMode)
-	{
-		// 分时图模式：分时走势占一半，量柱图和MACD图各占四分之一
-		int chartArea = rect.Height() - headerHeight - xAxisLabelHeight - positionInfoHeight;
-		priceChartHeight = chartArea / 2;
-		volumeChartHeight = chartArea / 4;
-	}
-	else
-	{
-		priceChartHeight = rect.Height() * 2 / 3 - headerHeight - maLineHeight - gapBetweenCharts / 2 - xAxisLabelHeight;
-		volumeChartHeight = rect.Height() - priceChartHeight - headerHeight - maLineHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight;
-	}
+	// 统一布局：标题栏 + 走势图(1/2) + 量柱图(1/4) + 副图(1/4) + 时间标签
+	int chartArea = rect.Height() - headerHeight - xAxisLabelHeight;
+	int priceChartHeight = chartArea / 2;
+	int volumeChartHeight = chartArea / 4;
 
 	m_isHoveringVolume = false;
 	int prevHoveredBarIndex = m_hoveredBarIndex;
@@ -5718,17 +5730,6 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			// 使用与绘制完全一致的参数计算（x从yAxisWidth开始，宽度为chartWidth-yAxisWidth）
 			const int paddingY = g_data.RDPI(10);
 			KLineDrawData drawData = PrepareKLineDrawData(yAxisWidth, headerHeight + paddingY, chartWidth - yAxisWidth, priceChartHeight - paddingY * 2, klineData);
-
-			// K线模式下调整volumeChartHeight（与OnPaint一致）
-			if (!isIndexKLine)
-			{
-				int displayCount = min(m_klinePeriodDays, static_cast<int>(klineData.size()));
-				int maxVisibleKlines = min(displayCount, chartWidth / 3);
-				if (displayCount > maxVisibleKlines)
-				{
-					volumeChartHeight = rect.Height() - priceChartHeight - headerHeight - gapBetweenCharts - xAxisLabelHeight - positionInfoHeight - scrollBarHeight;
-				}
-			}
 
 			if (point.y >= headerHeight && point.y < headerHeight + priceChartHeight)
 			{
@@ -5767,7 +5768,8 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			}
 			else
 			{
-				int volumeY = headerHeight + priceChartHeight + gapBetweenCharts + g_data.RDPI(18);
+				// 统一布局：成交量图紧贴走势图
+				int volumeY = headerHeight + priceChartHeight;
 				if (point.y >= volumeY && point.y < volumeY + volumeChartHeight)
 				{
 					// 鼠标在量柱图上 - 使用与绘制一致的参数定位
