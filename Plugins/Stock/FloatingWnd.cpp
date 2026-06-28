@@ -137,7 +137,9 @@ enum {
 	IDC_ZOOM_IN_BTN = 1011,
 	IDC_INDICATOR_MACD_BTN = 1012,
 	IDC_INDICATOR_KDJ_BTN = 1013,
-	IDC_MIN30_KLINE_BTN = 1014
+	IDC_MIN30_KLINE_BTN = 1014,
+	IDC_INDICATOR_WR_BTN = 1015,
+	IDC_INDICATOR_RSI_BTN = 1016
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -169,6 +171,8 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_ZOOM_IN_BTN, &CFloatingWnd::OnBnClickedZoomInBtn)
 	ON_BN_CLICKED(IDC_INDICATOR_MACD_BTN, &CFloatingWnd::OnBnClickedIndicatorMACDBtn)
 	ON_BN_CLICKED(IDC_INDICATOR_KDJ_BTN, &CFloatingWnd::OnBnClickedIndicatorKDJBtn)
+	ON_BN_CLICKED(IDC_INDICATOR_WR_BTN, &CFloatingWnd::OnBnClickedIndicatorWRBtn)
+	ON_BN_CLICKED(IDC_INDICATOR_RSI_BTN, &CFloatingWnd::OnBnClickedIndicatorRSIBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -226,8 +230,12 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// MACD/KDJ指标切换按钮（初始隐藏，在OnPaint中定位）
 	m_btnIndicatorMACD.Create(_T("MACD"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_MACD_BTN);
 	m_btnIndicatorKDJ.Create(_T("KDJ"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_KDJ_BTN);
+	m_btnIndicatorWR.Create(_T("W&R"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_WR_BTN);
+	m_btnIndicatorRSI.Create(_T("RSI"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_RSI_BTN);
 	m_btnIndicatorMACD.ShowWindow(SW_HIDE);
 	m_btnIndicatorKDJ.ShowWindow(SW_HIDE);
+	m_btnIndicatorWR.ShowWindow(SW_HIDE);
+	m_btnIndicatorRSI.ShowWindow(SW_HIDE);
 
 	m_hScrollBar.Create(WS_CHILD | SBS_HORZ, CRect(0, 0, 0, 0), this, 0);
 	m_hScrollBar.ShowWindow(SW_HIDE);
@@ -783,7 +791,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	// MA5/MA10/MA20均线（仅当m_showMA开启时绘制）
 	if (m_showMA)
 	{
-		const COLORREF ma5Color  = RGB(0, 0, 230);       // 蓝色
+		const COLORREF ma5Color = RGB(0, 0, 230);       // 蓝色
 		const COLORREF ma10Color = RGB(0, 166, 235);     // 青色
 		const COLORREF ma20Color = RGB(169, 102, 186);   // 紫色
 
@@ -815,7 +823,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawMALine(5, ma5Color);
 		drawMALine(10, ma10Color);
@@ -864,7 +872,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 
 		auto priceToY = [&](double price) -> int {
 			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
-		};
+			};
 
 		// 绘制上轨（金色）
 		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
@@ -886,7 +894,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawBandLine(upperBand, COLOR_RED_UP);
 		drawBandLine(middleBand, RGB(0, 0, 230));
@@ -970,8 +978,8 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 						}
 					}
 					i = bestIdx + MIN_SIGNAL_GAP - 1;
+				}
 			}
-		}
 
 			// 跨信号排他：买卖信号在MIN_SIGNAL_GAP内同时出现时的处理
 			for (int i = 0; i < totalPoints; i++)
@@ -1249,7 +1257,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 
 	auto priceToY = [&](STOCK::Price price) -> int {
 		return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
-	};
+		};
 
 	// 最新一天K线背景高亮（5分钟/30分钟K线模式）
 	{
@@ -1362,7 +1370,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 	// 绘制MA5/MA10/MA20均线（与分时模式一致）
 	if (m_showMA)
 	{
-		const COLORREF ma5Color  = RGB(0, 0, 230);
+		const COLORREF ma5Color = RGB(0, 0, 230);
 		const COLORREF ma10Color = RGB(0, 166, 235);
 		const COLORREF ma20Color = RGB(169, 102, 186);
 
@@ -1394,7 +1402,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawMALine(5, ma5Color);
 		drawMALine(10, ma10Color);
@@ -1441,7 +1449,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 
 		auto bandPriceToY = [&](double price) -> int {
 			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
-		};
+			};
 
 		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
 			CPen bandPen(PS_SOLID, 1, color);
@@ -1462,7 +1470,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawBandLine(upperBand, COLOR_RED_UP);
 		drawBandLine(middleBand, RGB(0, 0, 230));
@@ -1577,7 +1585,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 
 	auto priceToY = [&](STOCK::Price price) -> int {
 		return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
-	};
+		};
 
 	// 绘制K线柱
 	STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
@@ -1636,7 +1644,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 	// 绘制MA5/MA10/MA20均线
 	if (m_showMA)
 	{
-		const COLORREF ma5Color  = RGB(0, 0, 230);
+		const COLORREF ma5Color = RGB(0, 0, 230);
 		const COLORREF ma10Color = RGB(0, 166, 235);
 		const COLORREF ma20Color = RGB(169, 102, 186);
 
@@ -1668,7 +1676,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawMALine(5, ma5Color);
 		drawMALine(10, ma10Color);
@@ -1715,7 +1723,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 
 		auto bandPriceToY = [&](double price) -> int {
 			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
-		};
+			};
 
 		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
 			CPen bandPen(PS_SOLID, 1, color);
@@ -1736,7 +1744,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 					memDC.LineTo(pointX, py);
 				}
 			}
-		};
+			};
 
 		drawBandLine(upperBand, COLOR_RED_UP);
 		drawBandLine(middleBand, RGB(0, 0, 230));
@@ -2264,6 +2272,10 @@ void CFloatingWnd::OnPaint()
 			DrawTimelineVolumeSection(memDC, ctx);
 			if (m_timelineIndicator == TimelineIndicator::KDJ)
 				DrawTimelineKDJSection(memDC, ctx);
+			else if (m_timelineIndicator == TimelineIndicator::WR)
+				DrawTimelineWRSection(memDC, ctx);
+			else if (m_timelineIndicator == TimelineIndicator::RSI)
+				DrawTimelineRSISection(memDC, ctx);
 			else
 				DrawTimelineMACDSection(memDC, ctx);
 			// 标题栏用原始 top 绘制（在图表绘图区上方）
@@ -2284,14 +2296,16 @@ void CFloatingWnd::OnPaint()
 				m_btnZoomOut.SetWindowPos(nullptr, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
 			}
 
-			// MACD/KDJ指标按钮（MACD图左侧50像素Y轴预留区域，从上往下排列）
+			// MACD/KDJ/W&R/RSI指标按钮（MACD图左侧Y轴预留区域，四等分排列）
 			{
 				int btnW = yAxisWidth - g_data.RDPI(4);
 				int btnH = g_data.RDPI(16);
 				int btnX = g_data.RDPI(2);
 				int macdH = ctx.macdChartHeight;
-				int btn1Y = origMacdTop + titleH + (macdH / 2 - btnH) / 2;
-				int btn2Y = origMacdTop + titleH + macdH / 2 + (macdH / 2 - btnH) / 2;
+				int btn1Y = origMacdTop + titleH + (macdH / 4 - btnH) / 2;
+				int btn2Y = origMacdTop + titleH + macdH / 4 + (macdH / 4 - btnH) / 2;
+				int btn3Y = origMacdTop + titleH + macdH * 2 / 4 + (macdH / 4 - btnH) / 2;
+				int btn4Y = origMacdTop + titleH + macdH * 3 / 4 + (macdH / 4 - btnH) / 2;
 				if (m_btnIndicatorMACD.GetSafeHwnd())
 				{
 					m_btnIndicatorMACD.SetWindowPos(nullptr, btnX, btn1Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
@@ -2305,6 +2319,20 @@ void CFloatingWnd::OnPaint()
 					if (!m_btnIndicatorKDJ.IsWindowVisible())
 						m_btnIndicatorKDJ.ShowWindow(SW_SHOW);
 					m_btnIndicatorKDJ.SetButtonStyle(m_timelineIndicator == TimelineIndicator::KDJ ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+				}
+				if (m_btnIndicatorWR.GetSafeHwnd())
+				{
+					m_btnIndicatorWR.SetWindowPos(nullptr, btnX, btn3Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
+					if (!m_btnIndicatorWR.IsWindowVisible())
+						m_btnIndicatorWR.ShowWindow(SW_SHOW);
+					m_btnIndicatorWR.SetButtonStyle(m_timelineIndicator == TimelineIndicator::WR ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+				}
+				if (m_btnIndicatorRSI.GetSafeHwnd())
+				{
+					m_btnIndicatorRSI.SetWindowPos(nullptr, btnX, btn4Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
+					if (!m_btnIndicatorRSI.IsWindowVisible())
+						m_btnIndicatorRSI.ShowWindow(SW_SHOW);
+					m_btnIndicatorRSI.SetButtonStyle(m_timelineIndicator == TimelineIndicator::RSI ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
 				}
 			}
 
@@ -2413,7 +2441,7 @@ void CFloatingWnd::CalcAllRollingAvgPrices(std::vector<STOCK::TimelinePoint>& ti
 				}
 			}
 		}
-	};
+		};
 
 	calcWindow(5, 5);
 	calcWindow(10, 10);
@@ -3358,7 +3386,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	auto valueToY = [&](double val) {
 		double ratio = (val - minVal) / (maxVal - minVal);
 		return y + padding + static_cast<int>((1.0 - ratio) * drawHeight);
-	};
+		};
 
 	// 绘制20、50、80参考虚线
 	CPen refPen(PS_DOT, 1, COLOR_GRAY_GRID);
@@ -3417,6 +3445,561 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	}
 
 	memDC.SelectObject(pOldPen);
+}
+
+// ========== W&R威廉指标 ==========
+
+std::vector<CFloatingWnd::WRData> CFloatingWnd::CalculateTimelineWR(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 /* = 6 */, int period2 /* = 14 */)
+{
+	std::vector<WRData> result;
+	result.reserve(timelinePoint.size());
+	if (timelinePoint.empty() || period1 <= 0 || period2 <= 0)
+		return result;
+
+	int maxPeriod = (std::max)(period1, period2);
+
+	for (int i = 0; i < static_cast<int>(timelinePoint.size()); i++)
+	{
+		WRData wr;
+		wr.wr1 = 0;
+		wr.wr2 = 0;
+		wr.valid = false;
+
+		// 计算WR1（短期，如N=6）
+		if (i >= period1 - 1)
+		{
+			STOCK::Price highest = 0;
+			STOCK::Price lowest = (std::numeric_limits<STOCK::Price>::max)();
+			bool hasValid = false;
+			for (int j = i - period1 + 1; j <= i; j++)
+			{
+				STOCK::Price price = timelinePoint[j].price;
+				if (price > 0)
+				{
+					highest = (std::max)(highest, price);
+					lowest = (std::min)(lowest, price);
+					hasValid = true;
+				}
+			}
+			if (hasValid && highest > lowest && timelinePoint[i].price > 0)
+			{
+				wr.wr1 = (static_cast<double>(highest) - timelinePoint[i].price) / (highest - lowest) * 100.0;
+				if (wr.wr1 < 0) wr.wr1 = 0;
+				if (wr.wr1 > 100) wr.wr1 = 100;
+			}
+			else if (hasValid && highest == lowest && timelinePoint[i].price > 0)
+			{
+				wr.wr1 = 0;  // 最高=最低时WR=0
+			}
+		}
+
+		// 计算WR2（长期，如N=14）
+		if (i >= period2 - 1)
+		{
+			STOCK::Price highest = 0;
+			STOCK::Price lowest = (std::numeric_limits<STOCK::Price>::max)();
+			bool hasValid = false;
+			for (int j = i - period2 + 1; j <= i; j++)
+			{
+				STOCK::Price price = timelinePoint[j].price;
+				if (price > 0)
+				{
+					highest = (std::max)(highest, price);
+					lowest = (std::min)(lowest, price);
+					hasValid = true;
+				}
+			}
+			if (hasValid && highest > lowest && timelinePoint[i].price > 0)
+			{
+				wr.wr2 = (static_cast<double>(highest) - timelinePoint[i].price) / (highest - lowest) * 100.0;
+				if (wr.wr2 < 0) wr.wr2 = 0;
+				if (wr.wr2 > 100) wr.wr2 = 100;
+			}
+			else if (hasValid && highest == lowest && timelinePoint[i].price > 0)
+			{
+				wr.wr2 = 0;
+			}
+		}
+
+		wr.valid = (i >= maxPeriod - 1);
+		result.push_back(wr);
+	}
+
+	return result;
+}
+
+std::vector<CFloatingWnd::WRData> CFloatingWnd::CalculateKLineWR(const std::vector<STOCK::KLinePoint>& klineData, int period1 /* = 6 */, int period2 /* = 14 */)
+{
+	std::vector<WRData> result;
+	result.reserve(klineData.size());
+	if (klineData.empty() || period1 <= 0 || period2 <= 0)
+		return result;
+
+	int maxPeriod = (std::max)(period1, period2);
+
+	for (int i = 0; i < static_cast<int>(klineData.size()); i++)
+	{
+		WRData wr;
+		wr.wr1 = 0;
+		wr.wr2 = 0;
+		wr.valid = false;
+
+		// 计算WR1（短期，如N=6）—— 使用K线的high/low
+		if (i >= period1 - 1)
+		{
+			STOCK::Price highest = 0;
+			STOCK::Price lowest = (std::numeric_limits<STOCK::Price>::max)();
+			bool hasValid = false;
+			for (int j = i - period1 + 1; j <= i; j++)
+			{
+				if (klineData[j].high > 0 && klineData[j].low > 0)
+				{
+					highest = (std::max)(highest, klineData[j].high);
+					lowest = (std::min)(lowest, klineData[j].low);
+					hasValid = true;
+				}
+			}
+			if (hasValid && highest > lowest && klineData[i].close > 0)
+			{
+				wr.wr1 = (static_cast<double>(highest) - klineData[i].close) / (highest - lowest) * 100.0;
+				if (wr.wr1 < 0) wr.wr1 = 0;
+				if (wr.wr1 > 100) wr.wr1 = 100;
+			}
+			else if (hasValid && highest == lowest && klineData[i].close > 0)
+			{
+				wr.wr1 = 0;
+			}
+		}
+
+		// 计算WR2（长期，如N=14）—— 使用K线的high/low
+		if (i >= period2 - 1)
+		{
+			STOCK::Price highest = 0;
+			STOCK::Price lowest = (std::numeric_limits<STOCK::Price>::max)();
+			bool hasValid = false;
+			for (int j = i - period2 + 1; j <= i; j++)
+			{
+				if (klineData[j].high > 0 && klineData[j].low > 0)
+				{
+					highest = (std::max)(highest, klineData[j].high);
+					lowest = (std::min)(lowest, klineData[j].low);
+					hasValid = true;
+				}
+			}
+			if (hasValid && highest > lowest && klineData[i].close > 0)
+			{
+				wr.wr2 = (static_cast<double>(highest) - klineData[i].close) / (highest - lowest) * 100.0;
+				if (wr.wr2 < 0) wr.wr2 = 0;
+				if (wr.wr2 > 100) wr.wr2 = 100;
+			}
+			else if (hasValid && highest == lowest && klineData[i].close > 0)
+			{
+				wr.wr2 = 0;
+			}
+		}
+
+		wr.valid = (i >= maxPeriod - 1);
+		result.push_back(wr);
+	}
+
+	return result;
+}
+
+void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex /* = 0 */)
+{
+	if (timelinePoint.empty() || wrData.empty())
+		return;
+
+	// W&R 指标范围 [0, 100]
+	double minVal = 0;
+	double maxVal = 100;
+
+	const int padding = g_data.RDPI(4);
+	int drawHeight = height - padding * 2;
+	if (drawHeight <= 0) return;
+
+	auto valueToY = [&](double val) {
+		double ratio = (val - minVal) / (maxVal - minVal);
+		return y + padding + static_cast<int>((1.0 - ratio) * drawHeight);
+		};
+
+	// 绘制20、50、80参考虚线
+	CPen refPen(PS_DOT, 1, COLOR_GRAY_GRID);
+	CPen* pOldPen = memDC.SelectObject(&refPen);
+	double refValues[] = { 20.0, 50.0, 80.0 };
+	for (double v : refValues)
+	{
+		int gy = valueToY(v);
+		memDC.MoveTo(x, gy);
+		memDC.LineTo(x + width, gy);
+	}
+	memDC.SelectObject(pOldPen);
+
+	const int totalPts = static_cast<int>(timelinePoint.size());
+
+	// 绘制WR1线（短期，蓝色）
+	CPen wr1Pen(PS_SOLID, 1, RGB(0, 68, 204));
+	memDC.SelectObject(&wr1Pen);
+	bool wr1First = true;
+	for (int i = 0; i < totalPts && (startIndex + i) < static_cast<int>(wrData.size()); i++)
+	{
+		int idx = startIndex + i;
+		if (!wrData[idx].valid) continue;
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointY = valueToY(wrData[idx].wr1);
+		if (wr1First) { memDC.MoveTo(pointX, pointY); wr1First = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	// 绘制WR2线（长期，暗红色）
+	CPen wr2Pen(PS_SOLID, 1, RGB(204, 34, 34));
+	memDC.SelectObject(&wr2Pen);
+	bool wr2First = true;
+	for (int i = 0; i < totalPts && (startIndex + i) < static_cast<int>(wrData.size()); i++)
+	{
+		int idx = startIndex + i;
+		if (!wrData[idx].valid) continue;
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointY = valueToY(wrData[idx].wr2);
+		if (wr2First) { memDC.MoveTo(pointX, pointY); wr2First = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	memDC.SelectObject(pOldPen);
+}
+
+void CFloatingWnd::DrawTimelineWRSection(CDC& memDC, const TimelineDrawContext& ctx)
+{
+	const auto& timelinePoint = *ctx.timelinePoint;
+
+	// 5分钟/30分钟K线模式使用klineData计算（有high/low），其他模式使用timelinePoint
+	std::vector<WRData> wrData;
+	if ((m_isMin5KLineMode || m_isMin30KLineMode) && ctx.klineData)
+	{
+		wrData = CalculateKLineWR(*ctx.klineData);
+	}
+	else if (m_isKLineMode && !m_isMin5KLineMode && !m_isMin30KLineMode)
+	{
+		// 日K线模式使用klineData
+		if (ctx.klineData)
+			wrData = CalculateKLineWR(*ctx.klineData);
+	}
+	else
+	{
+		// 分时模式使用完整分时数据计算，避免缩放/拖动时前N-1个点无效
+		const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
+		wrData = CalculateTimelineWR(fullData);
+	}
+
+	DrawTimelineWRChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, wrData, ctx.startIndex);
+
+	// 绘制网格线
+	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
+	CPen* pOldPen = memDC.SelectObject(&pGrid);
+
+	int macdY = ctx.macdChartTop;
+	memDC.MoveTo(0, macdY);
+	memDC.LineTo(ctx.chartWidth, macdY);
+	memDC.MoveTo(0, macdY + ctx.macdChartHeight);
+	memDC.LineTo(ctx.chartWidth, macdY + ctx.macdChartHeight);
+
+	// 时间竖线：4等分可见数据范围
+	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int numVLines = 4;
+	if (totalPts > 0)
+	{
+		for (int i = 0; i <= numVLines; i++)
+		{
+			int xPos = ctx.chartWidth * i / numVLines;
+			memDC.MoveTo(xPos, macdY);
+			memDC.LineTo(xPos, macdY + ctx.macdChartHeight);
+		}
+	}
+	memDC.SelectObject(pOldPen);
+
+	// 绘制时间标签（X轴）在WR图下方：4等分位置对应的时间
+	memDC.SetTextColor(COLOR_GRAY_TEXT);
+	if (totalPts > 0)
+	{
+		for (int i = 0; i <= numVLines; i++)
+		{
+			int idx = totalPts * i / numVLines;
+			if (idx >= totalPts) idx = totalPts - 1;
+			int xPos = ctx.chartWidth * i / numVLines;
+			CString timeLabel(timelinePoint[idx].time.c_str());
+			if (timeLabel.GetLength() >= 5) timeLabel = timeLabel.Left(5);
+			CSize labelSize = memDC.GetTextExtent(timeLabel);
+			int labelX = max(0, min(xPos - labelSize.cx / 2, ctx.chartWidth - labelSize.cx));
+			memDC.TextOut(labelX, ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2), timeLabel);
+		}
+	}
+}
+
+// ========== RSI相对强弱指标 ==========
+
+std::vector<CFloatingWnd::RSIData> CFloatingWnd::CalculateTimelineRSI(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 /* = 6 */, int period2 /* = 14 */)
+{
+	std::vector<RSIData> result;
+	result.reserve(timelinePoint.size());
+	if (timelinePoint.size() < 2 || period1 <= 1 || period2 <= 1)
+		return result;
+
+	int maxPeriod = (std::max)(period1, period2);
+
+	// 辅助lambda：计算指定周期的RSI序列
+	auto calcRSI = [&](int period) -> std::vector<double> {
+		std::vector<double> rsiValues(timelinePoint.size(), 0);
+		// 初始AU/AD：前period根K线的平均涨跌幅
+		double au = 0, ad = 0;
+		int count = 0;
+		for (int i = 1; i <= period && i < static_cast<int>(timelinePoint.size()); i++)
+		{
+			double delta = timelinePoint[i].price - timelinePoint[i - 1].price;
+			if (delta > 0)
+				au += delta;
+			else
+				ad += (-delta);
+			count++;
+		}
+		if (count > 0)
+		{
+			au /= count;
+			ad /= count;
+		}
+
+		// 第period根的RSI
+		if (period < static_cast<int>(timelinePoint.size()))
+		{
+			if (au == 0 && ad == 0)
+				rsiValues[period] = 50.0;
+			else
+				rsiValues[period] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
+		}
+
+		// 从第period+1根开始，使用SMA平滑
+		for (int i = period + 1; i < static_cast<int>(timelinePoint.size()); i++)
+		{
+			double delta = timelinePoint[i].price - timelinePoint[i - 1].price;
+			double up = (delta > 0) ? delta : 0.0;
+			double dn = (delta < 0) ? (-delta) : 0.0;
+			au = (au * (period - 1) + up) / period;
+			ad = (ad * (period - 1) + dn) / period;
+			if (au == 0 && ad == 0)
+				rsiValues[i] = 50.0;
+			else
+				rsiValues[i] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
+		}
+		return rsiValues;
+	};
+
+	auto rsi1Values = calcRSI(period1);
+	auto rsi2Values = calcRSI(period2);
+
+	for (int i = 0; i < static_cast<int>(timelinePoint.size()); i++)
+	{
+		RSIData rd;
+		rd.rsi1 = rsi1Values[i];
+		rd.rsi2 = rsi2Values[i];
+		rd.valid = (i >= maxPeriod);
+		result.push_back(rd);
+	}
+
+	return result;
+}
+
+std::vector<CFloatingWnd::RSIData> CFloatingWnd::CalculateKLineRSI(const std::vector<STOCK::KLinePoint>& klineData, int period1 /* = 6 */, int period2 /* = 14 */)
+{
+	std::vector<RSIData> result;
+	result.reserve(klineData.size());
+	if (klineData.size() < 2 || period1 <= 1 || period2 <= 1)
+		return result;
+
+	int maxPeriod = (std::max)(period1, period2);
+
+	// 辅助lambda：计算指定周期的RSI序列
+	auto calcRSI = [&](int period) -> std::vector<double> {
+		std::vector<double> rsiValues(klineData.size(), 0);
+		double au = 0, ad = 0;
+		int count = 0;
+		for (int i = 1; i <= period && i < static_cast<int>(klineData.size()); i++)
+		{
+			double delta = klineData[i].close - klineData[i - 1].close;
+			if (delta > 0)
+				au += delta;
+			else
+				ad += (-delta);
+			count++;
+		}
+		if (count > 0)
+		{
+			au /= count;
+			ad /= count;
+		}
+
+		if (period < static_cast<int>(klineData.size()))
+		{
+			if (au == 0 && ad == 0)
+				rsiValues[period] = 50.0;
+			else
+				rsiValues[period] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
+		}
+
+		for (int i = period + 1; i < static_cast<int>(klineData.size()); i++)
+		{
+			double delta = klineData[i].close - klineData[i - 1].close;
+			double up = (delta > 0) ? delta : 0.0;
+			double dn = (delta < 0) ? (-delta) : 0.0;
+			au = (au * (period - 1) + up) / period;
+			ad = (ad * (period - 1) + dn) / period;
+			if (au == 0 && ad == 0)
+				rsiValues[i] = 50.0;
+			else
+				rsiValues[i] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
+		}
+		return rsiValues;
+	};
+
+	auto rsi1Values = calcRSI(period1);
+	auto rsi2Values = calcRSI(period2);
+
+	for (int i = 0; i < static_cast<int>(klineData.size()); i++)
+	{
+		RSIData rd;
+		rd.rsi1 = rsi1Values[i];
+		rd.rsi2 = rsi2Values[i];
+		rd.valid = (i >= maxPeriod);
+		result.push_back(rd);
+	}
+
+	return result;
+}
+
+void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex /* = 0 */)
+{
+	if (timelinePoint.empty() || rsiData.empty())
+		return;
+
+	// RSI 指标范围 [0, 100]
+	double minVal = 0;
+	double maxVal = 100;
+
+	const int padding = g_data.RDPI(4);
+	int drawHeight = height - padding * 2;
+	if (drawHeight <= 0) return;
+
+	auto valueToY = [&](double val) {
+		double ratio = (val - minVal) / (maxVal - minVal);
+		return y + padding + static_cast<int>((1.0 - ratio) * drawHeight);
+	};
+
+	// 绘制30、50、70参考虚线
+	CPen refPen(PS_DOT, 1, COLOR_GRAY_GRID);
+	CPen* pOldPen = memDC.SelectObject(&refPen);
+	double refValues[] = { 30.0, 50.0, 70.0 };
+	for (double v : refValues)
+	{
+		int gy = valueToY(v);
+		memDC.MoveTo(x, gy);
+		memDC.LineTo(x + width, gy);
+	}
+	memDC.SelectObject(pOldPen);
+
+	const int totalPts = static_cast<int>(timelinePoint.size());
+
+	// 绘制RSI1线（短期，蓝色）
+	CPen rsi1Pen(PS_SOLID, 1, RGB(0, 68, 204));
+	memDC.SelectObject(&rsi1Pen);
+	bool rsi1First = true;
+	for (int i = 0; i < totalPts && (startIndex + i) < static_cast<int>(rsiData.size()); i++)
+	{
+		int idx = startIndex + i;
+		if (!rsiData[idx].valid) continue;
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointY = valueToY(rsiData[idx].rsi1);
+		if (rsi1First) { memDC.MoveTo(pointX, pointY); rsi1First = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	// 绘制RSI2线（长期，暗红色）
+	CPen rsi2Pen(PS_SOLID, 1, RGB(204, 34, 34));
+	memDC.SelectObject(&rsi2Pen);
+	bool rsi2First = true;
+	for (int i = 0; i < totalPts && (startIndex + i) < static_cast<int>(rsiData.size()); i++)
+	{
+		int idx = startIndex + i;
+		if (!rsiData[idx].valid) continue;
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointY = valueToY(rsiData[idx].rsi2);
+		if (rsi2First) { memDC.MoveTo(pointX, pointY); rsi2First = false; }
+		else memDC.LineTo(pointX, pointY);
+	}
+
+	memDC.SelectObject(pOldPen);
+}
+
+void CFloatingWnd::DrawTimelineRSISection(CDC& memDC, const TimelineDrawContext& ctx)
+{
+	const auto& timelinePoint = *ctx.timelinePoint;
+
+	// 5分钟/30分钟K线模式使用klineData计算，其他模式使用timelinePoint
+	std::vector<RSIData> rsiData;
+	if ((m_isMin5KLineMode || m_isMin30KLineMode) && ctx.klineData)
+	{
+		rsiData = CalculateKLineRSI(*ctx.klineData);
+	}
+	else if (m_isKLineMode && !m_isMin5KLineMode && !m_isMin30KLineMode)
+	{
+		if (ctx.klineData)
+			rsiData = CalculateKLineRSI(*ctx.klineData);
+	}
+	else
+	{
+		const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
+		rsiData = CalculateTimelineRSI(fullData);
+	}
+
+	DrawTimelineRSIChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, rsiData, ctx.startIndex);
+
+	// 绘制网格线
+	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
+	CPen* pOldPen = memDC.SelectObject(&pGrid);
+
+	int macdY = ctx.macdChartTop;
+	memDC.MoveTo(0, macdY);
+	memDC.LineTo(ctx.chartWidth, macdY);
+	memDC.MoveTo(0, macdY + ctx.macdChartHeight);
+	memDC.LineTo(ctx.chartWidth, macdY + ctx.macdChartHeight);
+
+	// 时间竖线：4等分可见数据范围
+	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int numVLines = 4;
+	if (totalPts > 0)
+	{
+		for (int i = 0; i <= numVLines; i++)
+		{
+			int xPos = ctx.chartWidth * i / numVLines;
+			memDC.MoveTo(xPos, macdY);
+			memDC.LineTo(xPos, macdY + ctx.macdChartHeight);
+		}
+	}
+	memDC.SelectObject(pOldPen);
+
+	// 绘制时间标签（X轴）在RSI图下方
+	memDC.SetTextColor(COLOR_GRAY_TEXT);
+	if (totalPts > 0)
+	{
+		for (int i = 0; i <= numVLines; i++)
+		{
+			int idx = totalPts * i / numVLines;
+			if (idx >= totalPts) idx = totalPts - 1;
+			int xPos = ctx.chartWidth * i / numVLines;
+			CString timeLabel(timelinePoint[idx].time.c_str());
+			if (timeLabel.GetLength() >= 5) timeLabel = timeLabel.Left(5);
+			CSize labelSize = memDC.GetTextExtent(timeLabel);
+			int labelX = max(0, min(xPos - labelSize.cx / 2, ctx.chartWidth - labelSize.cx));
+			memDC.TextOut(labelX, ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2), timeLabel);
+		}
+	}
 }
 
 void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo /* = nullptr */, int startIndex /* = 0 */, int visibleCount /* = -1 */)
@@ -6140,7 +6723,7 @@ void CFloatingWnd::DrawKDJChart(CDC& memDC, int x, int y, int width, int height,
 	auto valueToY = [&](double val) {
 		double ratio = (val - minVal) / (maxVal - minVal);
 		return y + padding + static_cast<int>((1.0 - ratio) * drawHeight);
-	};
+		};
 
 	int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 
@@ -6186,7 +6769,7 @@ void CFloatingWnd::DrawKDJChart(CDC& memDC, int x, int y, int width, int height,
 
 	auto indexToX = [&](int i) {
 		return x + (i - finalStartIndex) * (barWidth + gap) + barWidth / 2;
-	};
+		};
 
 	// 绘制 K 线（绿/红，参考 DrawKLineBars）
 	for (int i = finalStartIndex; i < endIndex; i++)
@@ -6244,7 +6827,7 @@ void CFloatingWnd::DrawKDJChart(CDC& memDC, int x, int y, int width, int height,
 				memDC.LineTo(px, py);
 			}
 		}
-	};
+		};
 
 	// K 线：白色/灰色（在白色背景上用深灰显示）
 	drawLine(0, COLOR_DARK_GRAY_BORDER, &KDJData::k);
@@ -6308,7 +6891,7 @@ void CFloatingWnd::DrawBollBands(CDC& memDC, const KLineDrawData& drawData)
 	// 使用 drawData 的 unitY 进行坐标转换
 	auto priceToY = [&](double price) {
 		return drawData.y + static_cast<int>((drawData.maxPrice - price) * drawData.unitY);
-	};
+		};
 
 	// 绘制上轨（金色）
 	auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
@@ -6330,7 +6913,7 @@ void CFloatingWnd::DrawBollBands(CDC& memDC, const KLineDrawData& drawData)
 				memDC.LineTo(barX, py);
 			}
 		}
-	};
+		};
 
 	drawBandLine(upperBand, COLOR_GOLDEN);
 	drawBandLine(middleBand, COLOR_GRAY_PURPLE);
@@ -6488,7 +7071,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 				CSize vs = memDC.GetTextExtent(valStr);
 				memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
 				xPos += vs.cx + g_data.RDPI(4);
-			};
+				};
 
 			drawKLineLabel(_T("开:"), kp.open, COLOR_BLACK, (kp.open >= prevClose ? COLOR_RED_UP : COLOR_GREEN_DOWN));
 			drawKLineLabel(_T("收:"), kp.close, COLOR_BLACK, (kp.close >= prevClose ? COLOR_RED_UP : COLOR_GREEN_DOWN));
@@ -6533,7 +7116,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 				CSize vs = memDC.GetTextExtent(valStr);
 				memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
 				xPos += vs.cx + g_data.RDPI(4);
-			};
+				};
 
 			drawKLineLabel(_T("开:"), kp.open, COLOR_BLACK, (kp.open >= prevClose ? COLOR_RED_UP : COLOR_GREEN_DOWN));
 			drawKLineLabel(_T("收:"), kp.close, COLOR_BLACK, (kp.close >= prevClose ? COLOR_RED_UP : COLOR_GREEN_DOWN));
@@ -6579,7 +7162,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			}
 			memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
 			xPos += vs.cx + g_data.RDPI(4);
-		};
+			};
 
 		// 辅助lambda：绘制"标签:数值+箭头"，箭头由当前值与前一分钟值比较决定
 		auto drawLabelValueArrow = [&](const CString& labelText, STOCK::Price curVal, STOCK::Price prevVal, COLORREF labelColor, COLORREF valueColor, bool highlight) {
@@ -6625,7 +7208,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 				xPos += as.cx;
 			}
 			xPos += g_data.RDPI(4);
-		};
+			};
 
 		// 与昨收比较的颜色
 		auto cmpPrevClose = [prevClose](STOCK::Price p) -> COLORREF {
@@ -6633,14 +7216,14 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			if (p > prevClose) return COLOR_RED_UP;
 			if (p < prevClose) return COLOR_GREEN_DOWN;
 			return COLOR_BLACK;
-		};
+			};
 		// 与现价比较的颜色
 		auto cmpCurPrice = [dispPrice](STOCK::Price p) -> COLORREF {
 			if (dispPrice <= 0) return COLOR_BLACK;
 			if (p > dispPrice) return COLOR_RED_UP;
 			if (p < dispPrice) return COLOR_GREEN_DOWN;
 			return COLOR_BLACK;
-		};
+			};
 
 		// 昨收（标签黑色，数字按与昨收比较，hover不高亮）
 		drawLabelValue(_T("昨收:"), prevClose, COLOR_BLACK, cmpPrevClose(prevClose), false);
@@ -6649,8 +7232,8 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 		drawLabelValue(_T("现价:"), dispPrice, COLOR_BLACK, cmpPrevClose(dispPrice), isHovering);
 
 		// MA标签颜色定义
-		const COLORREF ma1Color  = RGB(255, 165, 0);     // 橙色
-		const COLORREF ma5Color  = RGB(0, 0, 230);       // 蓝色
+		const COLORREF ma1Color = RGB(255, 165, 0);     // 橙色
+		const COLORREF ma5Color = RGB(0, 0, 230);       // 蓝色
 		const COLORREF ma10Color = RGB(0, 166, 235);     // 青色
 		const COLORREF ma20Color = RGB(169, 102, 186);   // 紫色
 
@@ -6722,7 +7305,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 		}
 		memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
 		xPos += vs.cx + g_data.RDPI(4);
-	};
+		};
 
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
 	drawLabelValueHL(_T("总量:"), totalVolStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, false);
@@ -6733,7 +7316,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 	if (!perAmtStr.IsEmpty())
 		drawLabelValueHL(_T("分额:"), perAmtStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, isVolHovering);
 
-	// MACD/KDJ 图标题栏
+	// MACD/KDJ/W&R/RSI 图标题栏
 	CRect macdTitleRect(0, macdChartTop, ctx.chartWidth, macdChartTop + timelineTitleHeight);
 	memDC.FillSolidRect(macdTitleRect, RGB(245, 245, 245));
 	if (m_timelineIndicator == TimelineIndicator::KDJ)
@@ -6747,7 +7330,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			CSize ts = memDC.GetTextExtent(text);
 			memDC.TextOut(xPos, centerY - ts.cy / 2, text);
 			xPos += ts.cx + g_data.RDPI(4);
-		};
+			};
 		if (!m_timelineKdjTitleTip.IsEmpty())
 		{
 			// 悬停提示格式: K:xx D:xx J:xx，按空格分段着色
@@ -6767,6 +7350,68 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			drawKDJLabel(_T("K:"), _T(""), RGB(0, 68, 204));
 			drawKDJLabel(_T("D:"), _T(""), RGB(204, 34, 34));
 			drawKDJLabel(_T("J:"), _T(""), RGB(0, 136, 34));
+		}
+	}
+	else if (m_timelineIndicator == TimelineIndicator::WR)
+	{
+		// WR标题栏：分段绘制，颜色与线条一致
+		int xPos = g_data.RDPI(4);
+		int centerY = macdChartTop + timelineTitleHeight / 2;
+		auto drawWRLabel = [&](const CString& label, const CString& value, COLORREF color) {
+			memDC.SetTextColor(color);
+			CString text = label + value;
+			CSize ts = memDC.GetTextExtent(text);
+			memDC.TextOut(xPos, centerY - ts.cy / 2, text);
+			xPos += ts.cx + g_data.RDPI(4);
+			};
+		if (!m_timelineWrTitleTip.IsEmpty())
+		{
+			CString tip = m_timelineWrTitleTip;
+			int pos = 0;
+			CString token;
+			COLORREF colors[] = { RGB(0, 68, 204), RGB(204, 34, 34) };
+			int colorIdx = 0;
+			while ((token = tip.Tokenize(_T(" "), pos)) != _T(""))
+			{
+				drawWRLabel(_T(""), token, colors[min(colorIdx, 1)]);
+				colorIdx++;
+			}
+		}
+		else
+		{
+			drawWRLabel(_T("WR6:"), _T(""), RGB(0, 68, 204));
+			drawWRLabel(_T("WR14:"), _T(""), RGB(204, 34, 34));
+		}
+	}
+	else if (m_timelineIndicator == TimelineIndicator::RSI)
+	{
+		// RSI标题栏：分段绘制，颜色与线条一致
+		int xPos = g_data.RDPI(4);
+		int centerY = macdChartTop + timelineTitleHeight / 2;
+		auto drawRSILabel = [&](const CString& label, const CString& value, COLORREF color) {
+			memDC.SetTextColor(color);
+			CString text = label + value;
+			CSize ts = memDC.GetTextExtent(text);
+			memDC.TextOut(xPos, centerY - ts.cy / 2, text);
+			xPos += ts.cx + g_data.RDPI(4);
+			};
+		if (!m_timelineRsiTitleTip.IsEmpty())
+		{
+			CString tip = m_timelineRsiTitleTip;
+			int pos = 0;
+			CString token;
+			COLORREF colors[] = { RGB(0, 68, 204), RGB(204, 34, 34) };
+			int colorIdx = 0;
+			while ((token = tip.Tokenize(_T(" "), pos)) != _T(""))
+			{
+				drawRSILabel(_T(""), token, colors[min(colorIdx, 1)]);
+				colorIdx++;
+			}
+		}
+		else
+		{
+			drawRSILabel(_T("RSI6:"), _T(""), RGB(0, 68, 204));
+			drawRSILabel(_T("RSI14:"), _T(""), RGB(204, 34, 34));
 		}
 	}
 	else
@@ -7206,7 +7851,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 				// 设置量柱图标题栏悬停提示：显示鼠标指向位置的分量和分额
 				m_timelineVolumeTitleTip.Format(_T("分量:%s 分额:%s"), volumeStr, amountStr);
 
-				// 设置MACD/KDJ标题栏悬停提示
+				// 设置MACD/KDJ/W&R/RSI标题栏悬停提示
 				if (m_timelineIndicator == TimelineIndicator::KDJ)
 				{
 					auto kdjData = CalculateTimelineKDJ(subTimeline);
@@ -7215,6 +7860,31 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 						m_timelineKdjTitleTip.Format(_T("K:%.1f D:%.1f J:%.1f"), kdjData[relIndex].k, kdjData[relIndex].d, kdjData[relIndex].j);
 					}
 					m_timelineMacdTitleTip.Empty();
+					m_timelineWrTitleTip.Empty();
+					m_timelineRsiTitleTip.Empty();
+				}
+				else if (m_timelineIndicator == TimelineIndicator::WR)
+				{
+					// WR悬停提示
+					auto wrData = CalculateTimelineWR(subTimeline);
+					if (relIndex < static_cast<int>(wrData.size()) && wrData[relIndex].valid)
+					{
+						m_timelineWrTitleTip.Format(_T("WR6:%.1f WR14:%.1f"), wrData[relIndex].wr1, wrData[relIndex].wr2);
+					}
+					m_timelineMacdTitleTip.Empty();
+					m_timelineKdjTitleTip.Empty();
+					m_timelineRsiTitleTip.Empty();
+				}
+				else if (m_timelineIndicator == TimelineIndicator::RSI)
+				{
+					auto rsiData = CalculateTimelineRSI(subTimeline);
+					if (relIndex < static_cast<int>(rsiData.size()) && rsiData[relIndex].valid)
+					{
+						m_timelineRsiTitleTip.Format(_T("RSI6:%.1f RSI14:%.1f"), rsiData[relIndex].rsi1, rsiData[relIndex].rsi2);
+					}
+					m_timelineMacdTitleTip.Empty();
+					m_timelineKdjTitleTip.Empty();
+					m_timelineWrTitleTip.Empty();
 				}
 				else
 				{
@@ -7224,6 +7894,8 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 						m_timelineMacdTitleTip.Format(_T("DIF:%.3f DEA:%.3f MACD:%.3f"), macdData[relIndex].dif, macdData[relIndex].dea, macdData[relIndex].bar);
 					}
 					m_timelineKdjTitleTip.Empty();
+					m_timelineWrTitleTip.Empty();
+					m_timelineRsiTitleTip.Empty();
 				}
 			}
 			else
@@ -7234,6 +7906,8 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 				m_timelineVolumeTitleTip.Empty();
 				m_timelineMacdTitleTip.Empty();
 				m_timelineKdjTitleTip.Empty();
+				m_timelineWrTitleTip.Empty();
+				m_timelineRsiTitleTip.Empty();
 				m_hoverMa1 = 0; m_hoverMa5 = 0; m_hoverMa10 = 0; m_hoverMa20 = 0;
 				m_hoverPrevMa1 = 0; m_hoverPrevMa5 = 0; m_hoverPrevMa10 = 0; m_hoverPrevMa20 = 0;
 			}
@@ -7415,7 +8089,7 @@ void CFloatingWnd::UpdateModeButtons()
 			else
 				m_btnZoomIn.ShowWindow(SW_HIDE);
 		}
-		// MACD/KDJ指标按钮在所有模式下显示（除总览模式外）
+		// MACD/KDJ/WR指标按钮在所有模式下显示（除总览模式外）
 		if (m_btnIndicatorMACD.GetSafeHwnd())
 		{
 			if (!m_isOverviewMode)
@@ -7429,6 +8103,20 @@ void CFloatingWnd::UpdateModeButtons()
 				m_btnIndicatorKDJ.ShowWindow(SW_SHOW);
 			else
 				m_btnIndicatorKDJ.ShowWindow(SW_HIDE);
+		}
+		if (m_btnIndicatorWR.GetSafeHwnd())
+		{
+			if (!m_isOverviewMode)
+				m_btnIndicatorWR.ShowWindow(SW_SHOW);
+			else
+				m_btnIndicatorWR.ShowWindow(SW_HIDE);
+		}
+		if (m_btnIndicatorRSI.GetSafeHwnd())
+		{
+			if (!m_isOverviewMode)
+				m_btnIndicatorRSI.ShowWindow(SW_SHOW);
+			else
+				m_btnIndicatorRSI.ShowWindow(SW_HIDE);
 		}
 	}
 }
@@ -8006,6 +8694,8 @@ void CFloatingWnd::OnBnClickedIndicatorMACDBtn()
 	m_timelineIndicator = TimelineIndicator::MACD;
 	m_timelineMacdTitleTip.Empty();
 	m_timelineKdjTitleTip.Empty();
+	m_timelineWrTitleTip.Empty();
+	m_timelineRsiTitleTip.Empty();
 	Invalidate();
 }
 
@@ -8014,6 +8704,28 @@ void CFloatingWnd::OnBnClickedIndicatorKDJBtn()
 	m_timelineIndicator = TimelineIndicator::KDJ;
 	m_timelineMacdTitleTip.Empty();
 	m_timelineKdjTitleTip.Empty();
+	m_timelineWrTitleTip.Empty();
+	m_timelineRsiTitleTip.Empty();
+	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedIndicatorWRBtn()
+{
+	m_timelineIndicator = TimelineIndicator::WR;
+	m_timelineMacdTitleTip.Empty();
+	m_timelineKdjTitleTip.Empty();
+	m_timelineWrTitleTip.Empty();
+	m_timelineRsiTitleTip.Empty();
+	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedIndicatorRSIBtn()
+{
+	m_timelineIndicator = TimelineIndicator::RSI;
+	m_timelineMacdTitleTip.Empty();
+	m_timelineKdjTitleTip.Empty();
+	m_timelineWrTitleTip.Empty();
+	m_timelineRsiTitleTip.Empty();
 	Invalidate();
 }
 

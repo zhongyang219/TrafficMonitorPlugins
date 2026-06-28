@@ -50,6 +50,8 @@ protected:
 	afx_msg void OnBnClickedZoomInBtn();
 	afx_msg void OnBnClickedIndicatorMACDBtn();
 	afx_msg void OnBnClickedIndicatorKDJBtn();
+	afx_msg void OnBnClickedIndicatorWRBtn();
+	afx_msg void OnBnClickedIndicatorRSIBtn();
 
 private:
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
@@ -132,6 +134,8 @@ private:
 	void DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineKDJSection(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawTimelineWRSection(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawTimelineRSISection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
@@ -206,6 +210,26 @@ private:
 	void DrawKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
 	void DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex = 0);
 
+	// W&R威廉指标计算与绘制
+	struct WRData {
+		double wr1;   // WR6（短期）
+		double wr2;   // WR14（长期）
+		bool valid;
+	};
+	std::vector<WRData> CalculateTimelineWR(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
+	std::vector<WRData> CalculateKLineWR(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
+	void DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex = 0);
+
+	// RSI相对强弱指标计算与绘制
+	struct RSIData {
+		double rsi1;   // RSI6（短期）
+		double rsi2;   // RSI14（长期）
+		bool valid;
+	};
+	std::vector<RSIData> CalculateTimelineRSI(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
+	std::vector<RSIData> CalculateKLineRSI(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
+	void DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex = 0);
+
 	// 走势图绘制
 	void DrawKLineTrendCurve(CDC& memDC, const KLineDrawData& drawData, std::vector<CPoint>& outPoints);
 	// 布林带绘制（5分钟K线模式）
@@ -248,6 +272,8 @@ private:
 	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
 	CButton m_btnIndicatorMACD;  // MACD指标按钮
 	CButton m_btnIndicatorKDJ;   // KDJ指标按钮
+	CButton m_btnIndicatorWR;    // W&R指标按钮
+	CButton m_btnIndicatorRSI;   // RSI指标按钮
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
@@ -263,7 +289,7 @@ private:
 	int m_vScrollOffset{ 0 };
 
 	// 分时图指标类型
-	enum class TimelineIndicator { MACD, KDJ };
+	enum class TimelineIndicator { MACD, KDJ, WR, RSI };
 	TimelineIndicator m_timelineIndicator{ TimelineIndicator::MACD };
 
 	// 分时图鼠标拖动滚动
@@ -295,6 +321,8 @@ private:
 	CString m_timelineVolumeTitleTip;  // 量柱图标题栏：成交量/成交额
 	CString m_timelineMacdTitleTip;    // MACD标题栏：DIF/DEA/MACD
 	CString m_timelineKdjTitleTip;     // KDJ标题栏：K/D/J
+	CString m_timelineWrTitleTip;      // WR标题栏：WR1/WR2
+	CString m_timelineRsiTitleTip;     // RSI标题栏：RSI1/RSI2
 
 	// 双击检测
 	DWORD m_lastClickTime{};
