@@ -89,6 +89,72 @@ namespace STOCK
 		Volume volume;        // 成交量
 	};
 
+	// ========== 智能分析模块：统一K线基础结构体 ==========
+	// 每一根K线统一存储，用于30min/5min周期指标计算
+	struct Bar
+	{
+		double open;     // 开盘
+		double high;     // 最高
+		double low;      // 最低
+		double close;    // 收盘
+		double volume;   // 成交量
+		long   time;     // 时间戳，区分30min/5min周期
+
+		Bar() : open(0), high(0), low(0), close(0), volume(0), time(0) {}
+		Bar(double o, double h, double l, double c, double v, long t)
+			: open(o), high(h), low(l), close(c), volume(v), time(t) {}
+
+		// 从KLinePoint转换（日K/5minK/30minK通用）
+		static Bar FromKLinePoint(const KLinePoint& kp, long timestamp = 0)
+		{
+			return Bar(kp.open, kp.high, kp.low, kp.close, static_cast<double>(kp.volume), timestamp);
+		}
+	};
+
+	// 30分钟趋势状态
+	enum class TrendState30m
+	{
+		STATE_WEAK,    // 弱势：仅反T，禁止加仓正T
+		STATE_STRONG,  // 强势：回踩可低吸正T
+		STATE_SHAKE    // 震荡：正反T均可
+	};
+
+	// 5分钟共振信号
+	enum class Signal5m
+	{
+		SIG_SELL,  // 卖出信号
+		SIG_BUY,   // 买入信号
+		SIG_NONE   // 无信号
+	};
+
+	// 布林带计算结果
+	struct BollResult
+	{
+		double mid;       // 中轨（MA20）
+		double up;        // 上轨
+		double dn;        // 下轨
+		double bandwidth; // 带宽
+		BollResult() : mid(0), up(0), dn(0), bandwidth(0) {}
+	};
+
+	// MACD计算结果
+	struct MACDResult
+	{
+		double dif;      // DIF
+		double dea;      // DEA
+		double macd_bar; // MACD柱值
+		MACDResult() : dif(0), dea(0), macd_bar(0) {}
+	};
+
+	// KDJ计算结果
+	struct KDJResult
+	{
+		double k;
+		double d;
+		double j;
+		KDJResult() : k(0), d(0), j(0) {}
+	};
+
 	// K线历史数据
 	class KLineData : public HistoricalDataBase
 	{

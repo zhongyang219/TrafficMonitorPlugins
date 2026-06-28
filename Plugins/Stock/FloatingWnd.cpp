@@ -2,6 +2,7 @@
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
+#include <map>
 #include "Common.h"
 #include "DataManager.h"
 #include <Stock.h>
@@ -230,7 +231,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// MACD/KDJ指标切换按钮（初始隐藏，在OnPaint中定位）
 	m_btnIndicatorMACD.Create(_T("MACD"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_MACD_BTN);
 	m_btnIndicatorKDJ.Create(_T("KDJ"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_KDJ_BTN);
-	m_btnIndicatorWR.Create(_T("W&R"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_WR_BTN);
+	m_btnIndicatorWR.Create(_T("W&&R"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_WR_BTN);
 	m_btnIndicatorRSI.Create(_T("RSI"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_RSI_BTN);
 	m_btnIndicatorMACD.ShowWindow(SW_HIDE);
 	m_btnIndicatorKDJ.ShowWindow(SW_HIDE);
@@ -901,166 +902,142 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
-	// 绘制T+0买卖点标记
+	// 绘制智能分析买卖点标记（基于5min/30min K线共振判定）
 	{
-		auto macdData = CalculateTimelineMACD(timelinePoint);
-		if (macdData.size() >= 10)
+		auto stockData = g_data.GetStockData(m_stock_id);
+		if (stockData)
 		{
-			auto buySignals = std::vector<bool>(totalPoints, false);
-			auto sellSignals = std::vector<bool>(totalPoints, false);
-			auto buyStrengths = std::vector<int>(totalPoints, 0);
-			auto sellStrengths = std::vector<int>(totalPoints, 0);
+			auto min5KLineObj = stockData->getMin5KLineData();
+			auto min30KLineObj = stockData->getMin30KLineData();
 
-			// 检测买点
-			for (int i = 10; i < totalPoints; i++)
+			if (min5KLineObj && min5KLineObj->data.size() >= 22 &&
+				min30KLineObj && min30KLineObj->data.size() >= 22)
 			{
-				// 取到i为止的子序列做判断
-				std::vector<STOCK::TimelinePoint> subTp(timelinePoint.begin(), timelinePoint.begin() + i + 1);
-				std::vector<MACDData> subMacd(macdData.begin(), macdData.begin() + i + 1);
+				// 将KLinePoint转换为Bar
+				std::vector<STOCK::Bar> bars5, bars30;
+				bars5.reserve(min5KLineObj->data.size());
+				for (const auto& kp : min5KLineObj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+				bars30.reserve(min30KLineObj->data.size());
+				for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 
-				auto t0Buy = DetectBuySignal(subTp, subMacd);
-				auto t0Sell = DetectSellSignal(subTp, subMacd);
+				// 批量检测信号（一次性计算全部指标序列，高效）
+				auto signals = BatchDetectSignals(bars5, bars30);
 
-				if (t0Buy.valid && t0Buy.strength >= 2)
+				// 构建分时时间→索引查找表（支持HH:MM和HH:MM:SS格式）
+				std::map<std::string, int> timeIndexMap;
+				for (int k = 0; k < totalPoints; k++)
 				{
-					buySignals[i] = true;
-					buyStrengths[i] = t0Buy.strength;
+					const auto& t = timelinePoint[k].time;
+					// 同时存原始格式和截断到HH:MM的格式
+					timeIndexMap[t] = k;
+					if (t.length() > 5 && t[5] == ':')
+						timeIndexMap[t.substr(0, 5)] = k;
 				}
-				if (t0Sell.valid && t0Sell.strength >= 2)
-				{
-					sellSignals[i] = true;
-					sellStrengths[i] = t0Sell.strength;
-				}
-			}
 
-			// 信号去重：同类型信号之间至少间隔15根K线，保留strength最高的
-			const int MIN_SIGNAL_GAP = 15;
-			for (int i = 0; i < totalPoints; i++)
-			{
-				if (buySignals[i])
+				// 将5分钟K线信号映射到分时数据点
+				auto buySignals = std::vector<bool>(totalPoints, false);
+				auto sellSignals = std::vector<bool>(totalPoints, false);
+				auto forbidSignals = std::vector<bool>(totalPoints, false);
+				auto buyReasons = std::vector<CString>(totalPoints);
+				auto sellReasons = std::vector<CString>(totalPoints);
+
+				for (const auto& sig : signals)
 				{
-					// 向后查找间隔内的最强买点
-					int bestIdx = i;
-					int bestStr = buyStrengths[i];
-					for (int j = i + 1; j < min(i + MIN_SIGNAL_GAP, totalPoints); j++)
+					const auto& bar5Time = min5KLineObj->data[sig.barIndex].day;
+					// 提取 "HH:MM" 部分
+					std::string timeStr;
+					auto spacePos = bar5Time.find(' ');
+					if (spacePos != std::string::npos && bar5Time.length() > spacePos + 5)
+						timeStr = bar5Time.substr(spacePos + 1, 5);
+					else if (bar5Time.length() >= 5 && bar5Time[2] == ':')
+						timeStr = bar5Time.substr(0, 5);
+					else
+						timeStr = bar5Time;
+
+					// 在查找表中匹配
+					auto it = timeIndexMap.find(timeStr);
+					if (it == timeIndexMap.end() && timeStr.length() >= 8)
 					{
-						if (buySignals[j] && buyStrengths[j] > bestStr)
+						// 尝试截断 "HH:MM:SS" → "HH:MM"
+						it = timeIndexMap.find(timeStr.substr(0, 5));
+					}
+					if (it != timeIndexMap.end())
+					{
+						int k = it->second;
+						if (sig.isForbid)
+							forbidSignals[k] = true;
+						else if (sig.isBuy)
 						{
-							buySignals[bestIdx] = false;
-							bestIdx = j;
-							bestStr = buyStrengths[j];
+							buySignals[k] = true;
+							buyReasons[k] = sig.reason;
 						}
 						else
 						{
-							buySignals[j] = false;
+							sellSignals[k] = true;
+							sellReasons[k] = sig.reason;
 						}
 					}
-					i = bestIdx + MIN_SIGNAL_GAP - 1; // 跳过间隔
 				}
-			}
-			for (int i = 0; i < totalPoints; i++)
-			{
-				if (sellSignals[i])
+
+				// 绘制买卖点标记
+				const int dotR = g_data.RDPI(3);
+				const int labelOff = g_data.RDPI(2);
+				int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+
+				for (int i = 0; i < totalPoints; i++)
 				{
-					int bestIdx = i;
-					int bestStr = sellStrengths[i];
-					for (int j = i + 1; j < min(i + MIN_SIGNAL_GAP, totalPoints); j++)
+					if (!buySignals[i] && !sellSignals[i] && !forbidSignals[i])
+						continue;
+					if (i >= static_cast<int>(dataPoints.size()))
+						continue;
+
+					int ptX = dataPoints[i].x;
+					int ptY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[i].y;
+
+					if (buySignals[i])
 					{
-						if (sellSignals[j] && sellStrengths[j] > bestStr)
-						{
-							sellSignals[bestIdx] = false;
-							bestIdx = j;
-							bestStr = sellStrengths[j];
-						}
-						else
-						{
-							sellSignals[j] = false;
-						}
+						CBrush brush(COLOR_GREEN_DOWN);
+						CPen pen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+						CBrush* pOldB = memDC.SelectObject(&brush);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
+						memDC.SetTextColor(COLOR_GREEN_DOWN);
+						CString label = buyReasons[i].IsEmpty() ? _T("B") : buyReasons[i];
+						CSize sz = memDC.GetTextExtent(label);
+						memDC.TextOut(ptX - sz.cx / 2, ptY + dotR + labelOff, label);
+						memDC.SelectObject(pOldB);
+						memDC.SelectObject(pOldP);
 					}
-					i = bestIdx + MIN_SIGNAL_GAP - 1;
-				}
-			}
 
-			// 跨信号排他：买卖信号在MIN_SIGNAL_GAP内同时出现时的处理
-			for (int i = 0; i < totalPoints; i++)
-			{
-				if (!buySignals[i]) continue;
-				for (int j = max(0, i - MIN_SIGNAL_GAP); j <= min(totalPoints - 1, i + MIN_SIGNAL_GAP); j++)
-				{
-					if (!sellSignals[j]) continue;
-					double buyPrice = timelinePoint[i].price;
-					double sellPrice = timelinePoint[j].price;
-					int dist = abs(i - j);
-
-					if (dist == 0 || buyPrice >= sellPrice)
+					if (sellSignals[i])
 					{
-						// 同一根K线同时买卖，或买高卖低，矛盾，都移除
-						buySignals[i] = false;
-						sellSignals[j] = false;
-						break;
+						CBrush brush(COLOR_RED_UP);
+						CPen pen(PS_SOLID, 1, COLOR_RED_UP);
+						CBrush* pOldB = memDC.SelectObject(&brush);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
+						memDC.SetTextColor(COLOR_RED_UP);
+						CString label = sellReasons[i].IsEmpty() ? _T("S") : sellReasons[i];
+						CSize sz = memDC.GetTextExtent(label);
+						memDC.TextOut(ptX - sz.cx / 2, ptY - dotR - labelOff - sz.cy, label);
+						memDC.SelectObject(pOldB);
+						memDC.SelectObject(pOldP);
 					}
-					else if (dist < 5)
+
+					if (forbidSignals[i])
 					{
-						// 距离太近（<5根），即使价格合理也只保留强度更高的
-						if (buyStrengths[i] >= sellStrengths[j])
-							sellSignals[j] = false;
-						else
-						{
-							buySignals[i] = false;
-							break;
-						}
+						CPen pen(PS_SOLID, 2, COLOR_GRAY_TEXT);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						int r = g_data.RDPI(4);
+						memDC.MoveTo(ptX - r, ptY - r);
+						memDC.LineTo(ptX + r, ptY + r);
+						memDC.MoveTo(ptX + r, ptY - r);
+						memDC.LineTo(ptX - r, ptY + r);
+						memDC.SelectObject(pOldP);
 					}
-					// dist >= 5 且 buyPrice < sellPrice：买低卖高且距离足够，都保留
 				}
+				memDC.SetBkMode(oldBkMode);
 			}
-
-			const int dotR = g_data.RDPI(3);
-			const int labelOff = g_data.RDPI(2);
-			int oldBkMode = memDC.SetBkMode(TRANSPARENT);
-
-			for (int i = 0; i < totalPoints; i++)
-			{
-				if (!buySignals[i] && !sellSignals[i])
-					continue;
-				if (i >= static_cast<int>(dataPoints.size()))
-					continue;
-
-				int ptX = dataPoints[i].x;
-				int ptY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[i].y;
-
-				if (buySignals[i])
-				{
-					// 买点：绿色圆点 + 上方"B"
-					CBrush brush(COLOR_GREEN_DOWN);
-					CPen pen(PS_SOLID, 1, COLOR_GREEN_DOWN);
-					CBrush* pOldB = memDC.SelectObject(&brush);
-					CPen* pOldP = memDC.SelectObject(&pen);
-					memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
-					memDC.SetTextColor(COLOR_GREEN_DOWN);
-					CString label = _T("B");
-					CSize sz = memDC.GetTextExtent(label);
-					memDC.TextOut(ptX - sz.cx / 2, ptY - dotR - labelOff - sz.cy, label);
-					memDC.SelectObject(pOldB);
-					memDC.SelectObject(pOldP);
-				}
-
-				if (sellSignals[i])
-				{
-					// 卖点：红色圆点 + 上方"S"
-					CBrush brush(COLOR_RED_UP);
-					CPen pen(PS_SOLID, 1, COLOR_RED_UP);
-					CBrush* pOldB = memDC.SelectObject(&brush);
-					CPen* pOldP = memDC.SelectObject(&pen);
-					memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
-					memDC.SetTextColor(COLOR_RED_UP);
-					CString label = _T("S");
-					CSize sz = memDC.GetTextExtent(label);
-					memDC.TextOut(ptX - sz.cx / 2, ptY - dotR - labelOff - sz.cy, label);
-					memDC.SelectObject(pOldB);
-					memDC.SelectObject(pOldP);
-				}
-			}
-			memDC.SetBkMode(oldBkMode);
 		}
 	}
 }
@@ -1538,6 +1515,84 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 			}
 			memDC.SetTextColor(loPrice > prevClose ? COLOR_RED_UP : (loPrice < prevClose ? COLOR_GREEN_DOWN : COLOR_BLACK));
 			memDC.TextOut(labelX, labelY, loStr);
+		}
+	}
+
+	// 智能分析买卖点标记（仅5分钟K线模式，30分钟K线模式不绘制）
+	if (m_isMin5KLineMode && !m_isMin30KLineMode)
+	{
+		auto stockData = g_data.GetStockData(m_stock_id);
+		if (stockData)
+		{
+			auto min5KLineObj = stockData->getMin5KLineData();
+			auto min30KLineObj = stockData->getMin30KLineData();
+			if (min5KLineObj && min5KLineObj->data.size() >= 22 &&
+				min30KLineObj && min30KLineObj->data.size() >= 22)
+			{
+				std::vector<STOCK::Bar> bars5, bars30;
+				bars5.reserve(min5KLineObj->data.size());
+				for (const auto& kp : min5KLineObj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+				bars30.reserve(min30KLineObj->data.size());
+				for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
+
+				auto signals = BatchDetectSignals(bars5, bars30);
+				int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+
+				for (const auto& sig : signals)
+				{
+					int klineIdx = sig.barIndex;
+					// 只绘制可见范围内的信号
+					if (klineIdx < klineStartIdx || klineIdx >= klineEndIdx)
+						continue;
+
+					int visibleIdx = klineIdx - klineStartIdx;
+					int barX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * visibleIdx) + static_cast<int>(barTotalWidth / 2);
+
+					if (sig.isForbid)
+					{
+						int barY = priceToY(klineData[klineIdx].close);
+						CPen pen(PS_SOLID, 2, COLOR_GRAY_TEXT);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						int r = g_data.RDPI(3);
+						memDC.MoveTo(barX - r, barY - r); memDC.LineTo(barX + r, barY + r);
+						memDC.MoveTo(barX + r, barY - r); memDC.LineTo(barX - r, barY + r);
+						memDC.SelectObject(pOldP);
+						continue;
+					}
+
+					if (sig.isBuy)
+					{
+						int barY = priceToY(klineData[klineIdx].low) + g_data.RDPI(2);
+						CBrush brush(COLOR_GREEN_DOWN);
+						CPen pen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+						CBrush* pOldB = memDC.SelectObject(&brush);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						int r = g_data.RDPI(3);
+						memDC.Ellipse(barX - r, barY, barX + r, barY + 2 * r);
+						memDC.SetTextColor(COLOR_GREEN_DOWN);
+						CSize sz = memDC.GetTextExtent(sig.reason);
+						memDC.TextOut(barX - sz.cx / 2, barY + 2 * r + g_data.RDPI(1), sig.reason);
+						memDC.SelectObject(pOldB);
+						memDC.SelectObject(pOldP);
+					}
+					else
+					{
+						int barY = priceToY(klineData[klineIdx].high) - g_data.RDPI(2);
+						CBrush brush(COLOR_RED_UP);
+						CPen pen(PS_SOLID, 1, COLOR_RED_UP);
+						CBrush* pOldB = memDC.SelectObject(&brush);
+						CPen* pOldP = memDC.SelectObject(&pen);
+						int r = g_data.RDPI(3);
+						memDC.Ellipse(barX - r, barY - 2 * r, barX + r, barY);
+						memDC.SetTextColor(COLOR_RED_UP);
+						CSize sz = memDC.GetTextExtent(sig.reason);
+						memDC.TextOut(barX - sz.cx / 2, barY - 2 * r - sz.cy - g_data.RDPI(1), sig.reason);
+						memDC.SelectObject(pOldB);
+						memDC.SelectObject(pOldP);
+					}
+				}
+				memDC.SetBkMode(oldBkMode);
+			}
 		}
 	}
 }
@@ -3790,7 +3845,7 @@ std::vector<CFloatingWnd::RSIData> CFloatingWnd::CalculateTimelineRSI(const std:
 				rsiValues[i] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
 		}
 		return rsiValues;
-	};
+		};
 
 	auto rsi1Values = calcRSI(period1);
 	auto rsi2Values = calcRSI(period2);
@@ -3857,7 +3912,7 @@ std::vector<CFloatingWnd::RSIData> CFloatingWnd::CalculateKLineRSI(const std::ve
 				rsiValues[i] = 100.0 - 100.0 / (1.0 + au / (ad > 0 ? ad : 1e-10));
 		}
 		return rsiValues;
-	};
+		};
 
 	auto rsi1Values = calcRSI(period1);
 	auto rsi2Values = calcRSI(period2);
@@ -3890,7 +3945,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	auto valueToY = [&](double val) {
 		double ratio = (val - minVal) / (maxVal - minVal);
 		return y + padding + static_cast<int>((1.0 - ratio) * drawHeight);
-	};
+		};
 
 	// 绘制30、50、70参考虚线
 	CPen refPen(PS_DOT, 1, COLOR_GRAY_GRID);
@@ -8830,6 +8885,683 @@ LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
 	dlg.SetTradeInfo(m_pendingTradeTime, m_pendingTradePrice, CString(m_stock_id.c_str()));
 	dlg.DoModal();
 	return 0;
+}
+
+// ========== 智能分析模块：基础工具函数 ==========
+
+double CFloatingWnd::CalcMA(const std::vector<double>& values, int N)
+{
+	if (static_cast<int>(values.size()) < N || N <= 0)
+		return 0.0;
+	double sum = 0.0;
+	for (int i = static_cast<int>(values.size()) - N; i < static_cast<int>(values.size()); i++)
+		sum += values[i];
+	return sum / N;
+}
+
+double CFloatingWnd::CalcEMA(const std::vector<double>& values, int N)
+{
+	if (values.empty() || N <= 0)
+		return 0.0;
+	double k = 2.0 / (N + 1.0);
+	double ema = values[0];
+	for (size_t i = 1; i < values.size(); i++)
+		ema = values[i] * k + ema * (1.0 - k);
+	return ema;
+}
+
+double CFloatingWnd::CalcSMA(const std::vector<double>& values, int N, double M /* = 1.0 */)
+{
+	if (values.empty() || N <= 0)
+		return 0.0;
+	// SMA(X,N,M) = (M*X + (N-M)*Y') / N，Y'为上一周期SMA值
+	// 初始值取第一个值
+	double sma = values[0];
+	for (size_t i = 1; i < values.size(); i++)
+		sma = (M * values[i] + (N - M) * sma) / N;
+	return sma;
+}
+
+double CFloatingWnd::CalcStdDev(const std::vector<double>& values)
+{
+	if (values.empty())
+		return 0.0;
+	double mean = 0.0;
+	for (double v : values)
+		mean += v;
+	mean /= values.size();
+	double sumSq = 0.0;
+	for (double v : values)
+		sumSq += (v - mean) * (v - mean);
+	return sqrt(sumSq / values.size());
+}
+
+// ========== 智能分析模块：5个核心指标计算函数 ==========
+
+STOCK::BollResult CFloatingWnd::CalcBoll(const std::vector<STOCK::Bar>& bars, int N /* = 20 */)
+{
+	STOCK::BollResult result;
+	if (static_cast<int>(bars.size()) < N)
+		return result;
+
+	std::vector<double> closes;
+	closes.reserve(N);
+	for (int i = static_cast<int>(bars.size()) - N; i < static_cast<int>(bars.size()); i++)
+		closes.push_back(bars[i].close);
+
+	double mid = CalcMA(closes, N);
+	double stdDev = CalcStdDev(closes);
+	result.mid = mid;
+	result.up = mid + 2.0 * stdDev;
+	result.dn = mid - 2.0 * stdDev;
+	result.bandwidth = result.up - result.dn;
+	return result;
+}
+
+STOCK::MACDResult CFloatingWnd::CalcMACD(const std::vector<STOCK::Bar>& bars)
+{
+	STOCK::MACDResult result;
+	if (bars.size() < 26)
+		return result;
+
+	// 提取收盘价序列
+	std::vector<double> closes;
+	closes.reserve(bars.size());
+	for (const auto& bar : bars)
+		closes.push_back(bar.close);
+
+	// 计算EMA12和EMA26完整序列
+	double k12 = 2.0 / 13.0;
+	double k26 = 2.0 / 27.0;
+	std::vector<double> ema12(closes.size());
+	std::vector<double> ema26(closes.size());
+	ema12[0] = closes[0];
+	ema26[0] = closes[0];
+	for (size_t i = 1; i < closes.size(); i++)
+	{
+		ema12[i] = closes[i] * k12 + ema12[i - 1] * (1.0 - k12);
+		ema26[i] = closes[i] * k26 + ema26[i - 1] * (1.0 - k26);
+	}
+
+	// DIF序列
+	std::vector<double> difSeq(closes.size());
+	for (size_t i = 0; i < closes.size(); i++)
+		difSeq[i] = ema12[i] - ema26[i];
+
+	// DEA：对DIF序列求EMA9
+	double k9 = 2.0 / 10.0;
+	std::vector<double> deaSeq(difSeq.size());
+	deaSeq[0] = difSeq[0];
+	for (size_t i = 1; i < difSeq.size(); i++)
+		deaSeq[i] = difSeq[i] * k9 + deaSeq[i - 1] * (1.0 - k9);
+
+	// 取最新值
+	size_t last = closes.size() - 1;
+	result.dif = difSeq[last];
+	result.dea = deaSeq[last];
+	result.macd_bar = 2.0 * (difSeq[last] - deaSeq[last]);
+	return result;
+}
+
+STOCK::KDJResult CFloatingWnd::CalcKDJ(const std::vector<STOCK::Bar>& bars, int N /* = 9 */)
+{
+	STOCK::KDJResult result;
+	if (static_cast<int>(bars.size()) < N)
+		return result;
+
+	// 取最近N根计算HHV/LLV
+	double llv = bars[bars.size() - N].low;
+	double hhv = bars[bars.size() - N].high;
+	for (int i = bars.size() - N + 1; i < static_cast<int>(bars.size()); i++)
+	{
+		if (bars[i].low < llv) llv = bars[i].low;
+		if (bars[i].high > hhv) hhv = bars[i].high;
+	}
+
+	double close = bars.back().close;
+	double rsv = (hhv != llv) ? (close - llv) / (hhv - llv) * 100.0 : 50.0;
+
+	// 对RSV序列做SMA得到K，对K序列做SMA得到D
+	// 需要历史RSV序列才能正确递推
+	std::vector<double> rsvSeq;
+	for (int start = static_cast<int>(bars.size()) - N - N + 1; start <= static_cast<int>(bars.size()) - N; start++)
+	{
+		if (start < 0) continue;
+		double lowN = bars[start].low;
+		double highN = bars[start].high;
+		for (int j = start + 1; j < start + N && j < static_cast<int>(bars.size()); j++)
+		{
+			if (bars[j].low < lowN) lowN = bars[j].low;
+			if (bars[j].high > highN) highN = bars[j].high;
+		}
+		int endIdx = min(start + N - 1, static_cast<int>(bars.size()) - 1);
+		double c = bars[endIdx].close;
+		double r = (highN != lowN) ? (c - lowN) / (highN - lowN) * 100.0 : 50.0;
+		rsvSeq.push_back(r);
+	}
+
+	// 用SMA(3)递推K和D
+	double k = 50.0, d = 50.0;  // K、D初始值50
+	for (double rsv_val : rsvSeq)
+	{
+		k = (2.0 / 3.0) * k + (1.0 / 3.0) * rsv_val;   // SMA(RSV,3,1)
+		d = (2.0 / 3.0) * d + (1.0 / 3.0) * k;          // SMA(K,3,1)
+	}
+	// 最后用当前RSV再推一次
+	k = (2.0 / 3.0) * k + (1.0 / 3.0) * rsv;
+	d = (2.0 / 3.0) * d + (1.0 / 3.0) * k;
+
+	result.k = k;
+	result.d = d;
+	result.j = 3.0 * k - 2.0 * d;
+	return result;
+}
+
+double CFloatingWnd::CalcRSI(const std::vector<STOCK::Bar>& bars, int N)
+{
+	if (static_cast<int>(bars.size()) < 2)
+		return 50.0;
+
+	// 计算涨跌序列
+	std::vector<double> upList, dnList;
+	for (size_t i = 1; i < bars.size(); i++)
+	{
+		double delta = bars[i].close - bars[i - 1].close;
+		upList.push_back(max(delta, 0.0));
+		dnList.push_back(max(-delta, 0.0));
+	}
+
+	if (static_cast<int>(upList.size()) < N)
+		return 50.0;
+
+	// 用SMA平滑AU、AD
+	double au = CalcSMA(upList, N);
+	double ad = CalcSMA(dnList, N);
+
+	if (ad == 0.0)
+		return 99.99;
+
+	double rs = au / ad;
+	return 100.0 - 100.0 / (1.0 + rs);
+}
+
+double CFloatingWnd::CalcWR(const std::vector<STOCK::Bar>& bars, int N)
+{
+	if (static_cast<int>(bars.size()) < N || N <= 0)
+		return 50.0;
+
+	double hhv = bars[bars.size() - N].high;
+	double llv = bars[bars.size() - N].low;
+	for (int i = bars.size() - N + 1; i < static_cast<int>(bars.size()); i++)
+	{
+		if (bars[i].high > hhv) hhv = bars[i].high;
+		if (bars[i].low < llv) llv = bars[i].low;
+	}
+
+	double c = bars.back().close;
+	if (hhv == llv)
+		return 50.0;
+
+	return 100.0 * (hhv - c) / (hhv - llv);
+}
+
+// ========== 智能分析模块：30分钟趋势判定 ==========
+// 输入：完整历史30分钟K线数组 bars30
+// 输出：STATE_WEAK(仅反T) / STATE_STRONG(可正T) / STATE_SHAKE(震荡双向)
+
+STOCK::TrendState30m CFloatingWnd::Get30mTrendState(const std::vector<STOCK::Bar>& bars30)
+{
+	// 至少需要21根30min K线才能计算当前和前一根的BOLL
+	if (bars30.size() < 22)
+		return STOCK::TrendState30m::STATE_SHAKE;
+
+	// 1. 计算30min全部指标
+	STOCK::BollResult boll = CalcBoll(bars30, 20);
+	double mid = boll.mid;
+	double up = boll.up;
+	double dn = boll.dn;
+	(void)up; (void)dn;  // 当前模块未直接使用上下轨
+
+	const STOCK::Bar& lastBar = bars30.back();
+
+	// 计算前一根BOLL的中轨（取bars30[-21:-1]）
+	std::vector<STOCK::Bar> prevBars(bars30.end() - 21, bars30.end() - 1);
+	STOCK::BollResult prevBoll = CalcBoll(prevBars, 20);
+	double prevMid = prevBoll.mid;
+
+	// BOLL条件
+	bool bollDown = (mid < prevMid) && (lastBar.close < mid);
+	bool bollUp = (mid > prevMid) && (lastBar.close > mid);
+
+	// RSI14
+	double rsi14 = CalcRSI(bars30, 14);
+	bool rsiWeak = rsi14 < 50;
+	bool rsiStrong = rsi14 > 50;
+
+	// MACD
+	STOCK::MACDResult macd = CalcMACD(bars30);
+	bool macBelow = macd.dif < 0;
+	bool macAbove = macd.dif > 0;
+
+	// 判定行情
+	bool condWeak = bollDown && rsiWeak && macBelow;
+	bool condStrong = bollUp && rsiStrong && macAbove;
+
+	if (condWeak)
+		return STOCK::TrendState30m::STATE_WEAK;    // 弱势：只做反T，禁止加仓正T
+	else if (condStrong)
+		return STOCK::TrendState30m::STATE_STRONG;  // 强势：回踩可低吸正T
+	else
+		return STOCK::TrendState30m::STATE_SHAKE;   // 震荡：正反T均可
+}
+
+// ========== 智能分析模块：5分钟共振买卖判定 ==========
+// 输入：完整5分钟K线 bars5
+// 输出：SIG_SELL/SIG_BUY/SIG_NONE
+// 规则：5项条件满足≥4项才出信号
+
+STOCK::Signal5m CFloatingWnd::Get5mSignal(const std::vector<STOCK::Bar>& bars5)
+{
+	if (bars5.size() < 22)
+		return STOCK::Signal5m::SIG_NONE;
+
+	const STOCK::Bar& last = bars5.back();
+
+	// 1. 指标批量计算
+	STOCK::BollResult boll = CalcBoll(bars5, 20);
+	STOCK::MACDResult macd = CalcMACD(bars5);
+	STOCK::KDJResult kdj = CalcKDJ(bars5, 9);
+	double rsi6 = CalcRSI(bars5, 6);
+	double wr6 = CalcWR(bars5, 6);
+
+	// 计算前一根bars5的MACD和KDJ（用于对比）
+	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
+	STOCK::MACDResult prevMacd = CalcMACD(prevBars);
+	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, 9);
+
+	// ========== 卖出5个条件 ==========
+	int sellCount = 0;
+
+	// 卖1: 触及布林上轨
+	if (last.high >= boll.up)
+		sellCount++;
+
+	// 卖2: MACD红柱缩短 or 顶背离
+	{
+		bool redShrink = (macd.macd_bar > 0) && (macd.macd_bar < prevMacd.macd_bar);
+		bool priceNewHigh = last.high > bars5[bars5.size() - 2].high;
+		bool difNotHigh = macd.dif < prevMacd.dif;
+		if (redShrink || (priceNewHigh && difNotHigh))
+			sellCount++;
+	}
+
+	// 卖3: KDJ超买拐头 (K>80, D>80, J拐头向下)
+	if (kdj.k > 80 && kdj.d > 80 && kdj.j < prevKdj.j)
+		sellCount++;
+
+	// 卖4: RSI6超买
+	if (rsi6 > 70)
+		sellCount++;
+
+	// 卖5: WR超买极值
+	if (wr6 < 20)
+		sellCount++;
+
+	// ========== 买入5个条件 ==========
+	int buyCount = 0;
+
+	// 买1: 触及布林下轨
+	if (last.low <= boll.dn)
+		buyCount++;
+
+	// 买2: MACD绿柱缩短 or 底背离
+	{
+		bool greenShrink = (macd.macd_bar < 0) && (macd.macd_bar > prevMacd.macd_bar);
+		bool priceNewLow = last.low < bars5[bars5.size() - 2].low;
+		bool difNotLow = macd.dif > prevMacd.dif;
+		if (greenShrink || (priceNewLow && difNotLow))
+			buyCount++;
+	}
+
+	// 买3: KDJ超卖拐头 (K<20, D<20, J拐头向上)
+	if (kdj.k < 20 && kdj.d < 20 && kdj.j > prevKdj.j)
+		buyCount++;
+
+	// 买4: RSI6超卖
+	if (rsi6 < 30)
+		buyCount++;
+
+	// 买5: WR超卖极值
+	if (wr6 > 80)
+		buyCount++;
+
+	// 信号输出
+	if (sellCount >= 4)
+		return STOCK::Signal5m::SIG_SELL;
+	else if (buyCount >= 4)
+		return STOCK::Signal5m::SIG_BUY;
+	else
+		return STOCK::Signal5m::SIG_NONE;
+}
+
+// ========== 智能分析模块：单边钝化风控过滤器 ==========
+// 只要触发禁止操作，直接忽略上面买卖信号
+
+// ========== 智能分析模块：完整买卖点判定函数 ==========
+// 严格按执行顺序：30min趋势 → 风控过滤 → 5min共振信号 → 趋势分支处理
+
+CFloatingWnd::T0Signal CFloatingWnd::DetectSmartSignal(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30)
+{
+	T0Signal signal;
+
+	// ===== 第1步：获取30分钟全局趋势 =====
+	STOCK::TrendState30m trendState = Get30mTrendState(bars30);
+	signal.trendState = trendState;
+
+	// ===== 第2步：先判断是否禁止交易（风控过滤） =====
+	if (IsForbidTrade(bars5))
+	{
+		signal.isForbid = true;
+		signal.valid = false;
+		signal.reason = _T("单边钝化，停止滚动做T");
+		return signal;
+	}
+
+	// ===== 第3步：获取5分钟共振买卖信号 =====
+	STOCK::Signal5m sig = Get5mSignal(bars5);
+
+	if (sig == STOCK::Signal5m::SIG_NONE)
+	{
+		signal.valid = false;
+		return signal;
+	}
+
+	// ===== 第4步：分趋势分支处理信号 =====
+	signal.valid = true;
+	signal.price = bars5.back().close;
+	signal.strength = 3;  // 共振信号强度固定为3（5项≥4项共振，高置信度）
+
+	if (trendState == STOCK::TrendState30m::STATE_WEAK)
+	{
+		// 弱势：只允许卖出（反T高抛），买入仅用来等量接回，禁止加仓
+		if (sig == STOCK::Signal5m::SIG_SELL)
+		{
+			signal.isBuy = false;
+			signal.reason = _T("反T卖出");
+		}
+		else if (sig == STOCK::Signal5m::SIG_BUY)
+		{
+			signal.isBuy = true;
+			signal.reason = _T("反T买回");
+		}
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_STRONG)
+	{
+		// 强势：买入可加仓做正T，卖出止盈
+		if (sig == STOCK::Signal5m::SIG_BUY)
+		{
+			signal.isBuy = true;
+			signal.reason = _T("正T买入");
+		}
+		else if (sig == STOCK::Signal5m::SIG_SELL)
+		{
+			signal.isBuy = false;
+			signal.reason = _T("正T卖出");
+		}
+	}
+	else  // STATE_SHAKE
+	{
+		// 震荡：买卖信号自由执行
+		if (sig == STOCK::Signal5m::SIG_BUY)
+		{
+			signal.isBuy = true;
+			signal.reason = _T("正T买入");
+		}
+		else if (sig == STOCK::Signal5m::SIG_SELL)
+		{
+			signal.isBuy = false;
+			signal.reason = _T("正T卖出");
+		}
+	}
+
+	return signal;
+}
+
+bool CFloatingWnd::IsForbidTrade(const std::vector<STOCK::Bar>& bars5)
+{
+	if (bars5.size() < 23)
+		return false;
+
+	// 布林带宽放大检测（1.5倍以上才算单边行情）
+	STOCK::BollResult boll = CalcBoll(bars5, 20);
+	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
+	STOCK::BollResult prevBoll = CalcBoll(prevBars, 20);
+	bool bandExpand = boll.bandwidth > prevBoll.bandwidth * 1.5;
+
+	// KDJ钝化：连续3根在极端区域且指标停滞不变化
+	std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
+	STOCK::KDJResult kdj = CalcKDJ(bars5, 9);
+	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, 9);
+	STOCK::KDJResult prevPrevKdj = CalcKDJ(prevPrevBars, 9);
+	bool kdjTopPass = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
+		&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
+	bool kdjBottomPass = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
+		&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
+
+	// WR钝化：连续3根在极端区域且指标停滞
+	double wr6 = CalcWR(bars5, 6);
+	double wrPrev = CalcWR(prevBars, 6);
+	double wrPrevPrev = CalcWR(prevPrevBars, 6);
+	bool wrTopPass = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
+		&& wr6 > wrPrev && wrPrev > wrPrevPrev);
+	bool wrBottomPass = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
+		&& wr6 < wrPrev && wrPrev < wrPrevPrev);
+
+	// 任意一条满足，禁止交易
+	return bandExpand || kdjTopPass || kdjBottomPass || wrTopPass || wrBottomPass;
+}
+
+// ========== 智能分析模块：MACD批量序列计算 ==========
+void CFloatingWnd::CalcMACDSeries(const std::vector<STOCK::Bar>& bars, std::vector<double>& difSeq, std::vector<double>& deaSeq, std::vector<double>& barSeq)
+{
+	difSeq.clear(); deaSeq.clear(); barSeq.clear();
+	size_t n = bars.size();
+	if (n < 2) { difSeq.resize(n, 0); deaSeq.resize(n, 0); barSeq.resize(n, 0); return; }
+
+	std::vector<double> ema12(n), ema26(n);
+	ema12[0] = bars[0].close;
+	ema26[0] = bars[0].close;
+	double k12 = 2.0 / 13.0;
+	double k26 = 2.0 / 27.0;
+	for (size_t i = 1; i < n; i++)
+	{
+		ema12[i] = bars[i].close * k12 + ema12[i - 1] * (1.0 - k12);
+		ema26[i] = bars[i].close * k26 + ema26[i - 1] * (1.0 - k26);
+	}
+
+	difSeq.resize(n); deaSeq.resize(n); barSeq.resize(n);
+	deaSeq[0] = difSeq[0];
+	for (size_t i = 0; i < n; i++)
+		difSeq[i] = ema12[i] - ema26[i];
+
+	double k9 = 2.0 / 10.0;
+	deaSeq[0] = difSeq[0];
+	for (size_t i = 1; i < n; i++)
+		deaSeq[i] = difSeq[i] * k9 + deaSeq[i - 1] * (1.0 - k9);
+
+	for (size_t i = 0; i < n; i++)
+		barSeq[i] = 2.0 * (difSeq[i] - deaSeq[i]);
+}
+
+// ========== 智能分析模块：批量信号检测 ==========
+// 一次性计算全部指标序列，然后逐根判定信号
+
+std::vector<CFloatingWnd::SmartSignalPoint> CFloatingWnd::BatchDetectSignals(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30)
+{
+	std::vector<SmartSignalPoint> result;
+	size_t n = bars5.size();
+	if (n < 22) return result;
+
+	// 1. 30分钟趋势（一次性）
+	STOCK::TrendState30m trendState = Get30mTrendState(bars30);
+
+	// 2. 批量计算5分钟指标序列
+	// BOLL序列
+	std::vector<double> bollMid(n, 0), bollUp(n, 0), bollDn(n, 0), bollBand(n, 0);
+	for (size_t i = 19; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - 19; j <= i; j++) closes.push_back(bars5[j].close);
+		double mid = CalcMA(closes, 20);
+		double sd = CalcStdDev(closes);
+		bollMid[i] = mid;
+		bollUp[i] = mid + 2.0 * sd;
+		bollDn[i] = mid - 2.0 * sd;
+		bollBand[i] = 4.0 * sd;
+	}
+
+	// MACD序列
+	std::vector<double> difSeq, deaSeq, macdBarSeq;
+	CalcMACDSeries(bars5, difSeq, deaSeq, macdBarSeq);
+
+	// KDJ序列
+	std::vector<double> kSeq(n, 50), dSeq(n, 50), jSeq(n, 50);
+	for (size_t i = 8; i < n; i++)
+	{
+		double llv = bars5[i - 8].low, hhv = bars5[i - 8].high;
+		for (size_t j = i - 7; j <= i; j++) { if (bars5[j].low < llv) llv = bars5[j].low; if (bars5[j].high > hhv) hhv = bars5[j].high; }
+		double rsv = (hhv != llv) ? (bars5[i].close - llv) / (hhv - llv) * 100.0 : 50.0;
+		double prevK = (i > 0) ? kSeq[i - 1] : 50.0;
+		double prevD = (i > 0) ? dSeq[i - 1] : 50.0;
+		kSeq[i] = 2.0 / 3.0 * prevK + 1.0 / 3.0 * rsv;
+		dSeq[i] = 2.0 / 3.0 * prevD + 1.0 / 3.0 * kSeq[i];
+		jSeq[i] = 3.0 * kSeq[i] - 2.0 * dSeq[i];
+	}
+
+	// RSI6序列
+	std::vector<double> rsi6Seq(n, 50);
+	{
+		if (n >= 7)
+		{
+			std::vector<double> upList, dnList;
+			for (size_t i = 1; i < n; i++) { double d = bars5[i].close - bars5[i - 1].close; upList.push_back(max(d, 0.0)); dnList.push_back(max(-d, 0.0)); }
+			double au = 0, ad = 0;
+			for (size_t i = 0; i < 6 && i < upList.size(); i++) { au += upList[i]; ad += dnList[i]; }
+			au /= 6.0; ad /= 6.0;
+			if (ad == 0) rsi6Seq[6] = 99.99; else rsi6Seq[6] = 100.0 - 100.0 / (1.0 + au / ad);
+			for (size_t i = 6; i < upList.size(); i++)
+			{
+				au = (upList[i] + 5.0 * au) / 6.0;
+				ad = (dnList[i] + 5.0 * ad) / 6.0;
+				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+			}
+		}
+	}
+
+	// WR6序列
+	std::vector<double> wr6Seq(n, 50);
+	for (size_t i = 5; i < n; i++)
+	{
+		double hhv = bars5[i - 5].high, llv = bars5[i - 5].low;
+		for (size_t j = i - 4; j <= i; j++) { if (bars5[j].high > hhv) hhv = bars5[j].high; if (bars5[j].low < llv) llv = bars5[j].low; }
+		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars5[i].close) / (hhv - llv) : 50.0;
+	}
+
+	// 3. 逐根K线检测信号（使用预计算序列，O(1)查表）
+	for (size_t i = 21; i < n; i++)
+	{
+		// 先判断风控 — 真正的"钝化"定义：指标在极端区域停滞不变化
+		// 布林带宽放大1.5倍以上（从窄幅突然膨胀）
+		bool bandExpand = (bollBand[i] > 0 && bollBand[i - 1] > 0 && bollBand[i] > bollBand[i - 1] * 1.5);
+		// KDJ高位钝化：K>85持续3根，且K值逐根下降（指标跟不上价格创新高）
+		bool kdjTopPass = (i >= 2 && kSeq[i] > 85 && kSeq[i - 1] > 85 && kSeq[i - 2] > 85
+			&& kSeq[i] < kSeq[i - 1] && kSeq[i - 1] < kSeq[i - 2]);
+		// KDJ低位钝化：K<15持续3根，且K值逐根上升（指标跟不上价格创新低）
+		bool kdjBottomPass = (i >= 2 && kSeq[i] < 15 && kSeq[i - 1] < 15 && kSeq[i - 2] < 15
+			&& kSeq[i] > kSeq[i - 1] && kSeq[i - 1] > kSeq[i - 2]);
+		// WR高位钝化：WR<18持续3根，且逐根上升（WR在超买区停滞回升=价格还在涨但指标跟不上）
+		bool wrTopPass = (i >= 2 && wr6Seq[i] < 18 && wr6Seq[i - 1] < 18 && wr6Seq[i - 2] < 18
+			&& wr6Seq[i] > wr6Seq[i - 1] && wr6Seq[i - 1] > wr6Seq[i - 2]);
+		// WR低位钝化：WR>82持续3根，且逐根下降（WR在超卖区停滞回落=价格还在跌但指标跟不上）
+		bool wrBottomPass = (i >= 2 && wr6Seq[i] > 82 && wr6Seq[i - 1] > 82 && wr6Seq[i - 2] > 82
+			&& wr6Seq[i] < wr6Seq[i - 1] && wr6Seq[i - 1] < wr6Seq[i - 2]);
+		bool forbid = bandExpand || kdjTopPass || kdjBottomPass || wrTopPass || wrBottomPass;
+
+		if (forbid)
+		{
+			result.push_back({ static_cast<int>(i), false, true, trendState, _T("禁止做T") });
+			continue;
+		}
+
+		// 卖出5条件
+		int sellCount = 0;
+		if (bars5[i].high >= bollUp[i]) sellCount++;
+		{
+			bool redShrink = (macdBarSeq[i] > 0) && (macdBarSeq[i] < macdBarSeq[i - 1]);
+			bool priceNewHigh = bars5[i].high > bars5[i - 1].high;
+			bool difNotHigh = difSeq[i] < difSeq[i - 1];
+			if (redShrink || (priceNewHigh && difNotHigh)) sellCount++;
+		}
+		if (kSeq[i] > 80 && dSeq[i] > 80 && jSeq[i] < jSeq[i - 1]) sellCount++;
+		if (rsi6Seq[i] > 70) sellCount++;
+		if (wr6Seq[i] < 20) sellCount++;
+
+		// 买入5条件
+		int buyCount = 0;
+		if (bars5[i].low <= bollDn[i]) buyCount++;
+		{
+			bool greenShrink = (macdBarSeq[i] < 0) && (macdBarSeq[i] > macdBarSeq[i - 1]);
+			bool priceNewLow = bars5[i].low < bars5[i - 1].low;
+			bool difNotLow = difSeq[i] > difSeq[i - 1];
+			if (greenShrink || (priceNewLow && difNotLow)) buyCount++;
+		}
+		if (kSeq[i] < 20 && dSeq[i] < 20 && jSeq[i] > jSeq[i - 1]) buyCount++;
+		if (rsi6Seq[i] < 30) buyCount++;
+		if (wr6Seq[i] > 80) buyCount++;
+
+		bool isBuy = false;
+		bool hasSignal = false;
+
+		if (sellCount >= 4) { hasSignal = true; isBuy = false; }
+		else if (buyCount >= 4) { hasSignal = true; isBuy = true; }
+
+		if (!hasSignal) continue;
+
+		CString reason;
+		if (trendState == STOCK::TrendState30m::STATE_WEAK)
+			reason = isBuy ? _T("反T买回") : _T("反T卖出");
+		else if (trendState == STOCK::TrendState30m::STATE_STRONG)
+			reason = isBuy ? _T("正T买入") : _T("正T卖出");
+		else
+			reason = isBuy ? _T("正T买入") : _T("正T卖出");
+
+		result.push_back({ static_cast<int>(i), isBuy, false, trendState, reason });
+	}
+
+	// 4. 信号去重
+	const int MIN_GAP = 5;
+	for (int i = 0; i < static_cast<int>(result.size()); i++)
+	{
+		if (result[i].isForbid) continue;
+		for (int j = i + 1; j < static_cast<int>(result.size()); j++)
+		{
+			if (result[j].isForbid) continue;
+			if (result[j].barIndex - result[i].barIndex < MIN_GAP) { result.erase(result.begin() + j); j--; }
+			else break;
+		}
+	}
+	for (int i = 0; i < static_cast<int>(result.size()); i++)
+	{
+		if (result[i].isForbid) continue;
+		for (int j = i + 1; j < static_cast<int>(result.size()); j++)
+		{
+			if (result[j].isForbid) continue;
+			if (result[j].barIndex - result[i].barIndex < MIN_GAP) { result.erase(result.begin() + j); j--; }
+			else break;
+		}
+	}
+
+	return result;
 }
 
 void CFloatingWnd::OnDestroy()

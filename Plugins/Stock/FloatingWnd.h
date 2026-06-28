@@ -23,6 +23,26 @@ public:
 	void RequestData();
 	void ToggleKLineMode(); // 切换分时/日K模式
 
+	// T+0日内买卖信号
+	struct T0Signal {
+		bool valid;         // 是否有有效信号
+		bool isBuy;         // true=买点, false=卖点
+		int strength;       // 信号强度 1-3
+		CString reason;     // 信号原因描述
+		double price;       // 信号价格
+		CString time;       // 信号时间
+		STOCK::TrendState30m trendState; // 30分钟趋势状态
+		bool isForbid;      // 风控禁止交易标志
+
+		T0Signal() : valid(false), isBuy(false), strength(0), price(0),
+			trendState(STOCK::TrendState30m::STATE_SHAKE), isForbid(false) {
+		}
+	};
+
+	// 智能分析买卖点检测：基于5min/30min K线的完整执行顺序
+	// 输入5分钟K线Bar数组和30分钟K线Bar数组，返回信号
+	static T0Signal DetectSmartSignal(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30);
+
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnPaint();
@@ -108,16 +128,6 @@ private:
 		None,       // 无信号
 		GoldenCross,// 金叉：DIF从下往上穿过DEA
 		DeathCross  // 死叉：DIF从上往下跌破DEA
-	};
-
-	// T+0日内买卖信号
-	struct T0Signal {
-		bool valid;         // 是否有有效信号
-		bool isBuy;         // true=买点, false=卖点
-		int strength;       // 信号强度 1-3
-		CString reason;     // 信号原因描述
-		double price;       // 信号价格
-		CString time;       // 信号时间
 	};
 
 	void DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight);
@@ -242,6 +252,53 @@ private:
 	void DrawKLineInfoPanel(CDC& memDC, int left, int right, int bottomY, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
 	void DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int vScrollOffset = 0, int totalHeight = 0);
 	void DrawIndexSection(CDC& memDC, int x, int y, int w, const std::vector<std::pair<std::wstring, STOCK::StockInfo>>& indices);
+
+	// ========== 智能分析模块：基础工具函数 ==========
+	// MA：简单移动平均
+	static double CalcMA(const std::vector<double>& values, int N);
+	// EMA：指数移动平均（返回最新值）
+	static double CalcEMA(const std::vector<double>& values, int N);
+	// SMA：平滑移动平均（RSI专用，M=1）
+	static double CalcSMA(const std::vector<double>& values, int N, double M = 1.0);
+	// StandardDeviation：标准差
+	static double CalcStdDev(const std::vector<double>& values);
+
+	// ========== 智能分析模块：5个核心指标计算函数 ==========
+	// BOLL布林带（N=20）
+	static STOCK::BollResult CalcBoll(const std::vector<STOCK::Bar>& bars, int N = 20);
+	// MACD（12,26,9）- 批量版：返回每根K线的完整序列
+	static void CalcMACDSeries(const std::vector<STOCK::Bar>& bars, std::vector<double>& difSeq, std::vector<double>& deaSeq, std::vector<double>& barSeq);
+	// MACD（12,26,9）- 单值版
+	static STOCK::MACDResult CalcMACD(const std::vector<STOCK::Bar>& bars);
+	// KDJ（9,3,3）
+	static STOCK::KDJResult CalcKDJ(const std::vector<STOCK::Bar>& bars, int N = 9);
+	// RSI（N周期）
+	static double CalcRSI(const std::vector<STOCK::Bar>& bars, int N);
+	// WR威廉指标（N周期）
+	static double CalcWR(const std::vector<STOCK::Bar>& bars, int N);
+
+	// ========== 智能分析模块：30分钟趋势判定 ==========
+	// 输入完整历史30分钟K线数组，输出三种状态
+	static STOCK::TrendState30m Get30mTrendState(const std::vector<STOCK::Bar>& bars30);
+
+	// ========== 智能分析模块：5分钟共振买卖判定 ==========
+	// 输入完整5分钟K线，输出信号类型（5项条件满足≥4项才出信号）
+	static STOCK::Signal5m Get5mSignal(const std::vector<STOCK::Bar>& bars5);
+
+	// ========== 智能分析模块：单边钝化风控过滤器 ==========
+	// 触发任意条件则禁止交易，直接忽略买卖信号
+	static bool IsForbidTrade(const std::vector<STOCK::Bar>& bars5);
+
+	// ========== 智能分析模块：批量信号检测 ==========
+	// 一次性对bars5每根K线计算全部指标并检测信号，避免逐根重复计算
+	struct SmartSignalPoint {
+		int barIndex;               // bars5中的索引
+		bool isBuy;                 // true=买, false=卖
+		bool isForbid;              // 风控禁止
+		STOCK::TrendState30m trendState; // 30分钟趋势
+		CString reason;             // 信号原因
+	};
+	static std::vector<SmartSignalPoint> BatchDetectSignals(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30);
 
 	// 总览表行信息（用于双击处理）
 	struct OverviewRowInfo {
