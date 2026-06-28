@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -41,14 +41,14 @@ protected:
 	afx_msg void OnBnClickedTimeLineBtn();
 	afx_msg void OnBnClickedKLineBtn();
 	afx_msg void OnBnClickedMin5KLineBtn();
-	afx_msg void OnCbnSelChangeKLinePeriod();
 	afx_msg void OnBnClickedTrendBtn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
 	afx_msg void OnBnClickedBollBtn();
 	afx_msg void OnBnClickedZoomOutBtn();
 	afx_msg void OnBnClickedZoomInBtn();
-	afx_msg void OnBnClickedOverviewBtn();
+	afx_msg void OnBnClickedIndicatorMACDBtn();
+	afx_msg void OnBnClickedIndicatorKDJBtn();
 
 private:
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
@@ -77,7 +77,8 @@ private:
 		STOCK::Price minPrice{ 0 };   // 可见区间最小价（含内边距）
 		float unitY{ 0 };             // Y轴缩放（像素/价格）
 		STOCK::StockInfo realtimeData;
-		const std::vector<STOCK::TimelinePoint>* timelinePoint;
+		const std::vector<STOCK::TimelinePoint>* timelinePoint;    // 可见范围子集（subTimeline）
+		const std::vector<STOCK::TimelinePoint>* fullTimeline{ nullptr };  // 完整分时数据（用于布林带等需要历史回溯的指标）
 		const std::vector<STOCK::KLinePoint>* klineData;
 		// 滚动均价（最新数据点的值）
 		STOCK::Price ma1{ 0 };    // MA1（1分钟均价 = 当前价格）
@@ -127,6 +128,7 @@ private:
 	void DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawTimelineKDJSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
@@ -197,7 +199,9 @@ private:
 		bool valid;
 	};
 	std::vector<KDJData> CalculateKDJ(const std::vector<STOCK::KLinePoint>& klineData, int period = 9);
+	std::vector<KDJData> CalculateTimelineKDJ(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period = 9);
 	void DrawKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
+	void DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex = 0);
 
 	// 走势图绘制
 	void DrawKLineTrendCurve(CDC& memDC, const KLineDrawData& drawData, std::vector<CPoint>& outPoints);
@@ -229,7 +233,6 @@ private:
 	void UpdatePeriodComboVisibility();
 
 	CTransparentWnd m_CTransparentWnd;
-	CButton m_btnOverview;
 	CButton m_btnTimeLine;
 	CButton m_btnKLine;
 	CButton m_btnMin5KLine;
@@ -239,7 +242,8 @@ private:
 	CButton m_btnClose;
 	CButton m_btnZoomOut;  // 缩小按钮（显示240分钟）
 	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
-	CComboBox m_comboKLinePeriod;
+	CButton m_btnIndicatorMACD;  // MACD指标按钮
+	CButton m_btnIndicatorKDJ;   // KDJ指标按钮
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
@@ -252,6 +256,10 @@ private:
 	int m_timelineScrollOffset{ 0 };  // 分时图水平滚动偏移
 	int m_timelineVisibleCount{ 60 };  // 分时图可见数据点数（240=1天，最小60）
 	int m_vScrollOffset{ 0 };
+
+	// 分时图指标类型
+	enum class TimelineIndicator { MACD, KDJ };
+	TimelineIndicator m_timelineIndicator{ TimelineIndicator::MACD };
 
 	// 分时图鼠标拖动滚动
 	bool m_isTimelineDragging{ false };
@@ -281,6 +289,7 @@ private:
 	CString m_timelinePriceTitleTip;   // 走势图标题栏：现价/均价/MA5/MA10...
 	CString m_timelineVolumeTitleTip;  // 量柱图标题栏：成交量/成交额
 	CString m_timelineMacdTitleTip;    // MACD标题栏：DIF/DEA/MACD
+	CString m_timelineKdjTitleTip;     // KDJ标题栏：K/D/J
 
 	// 双击检测
 	DWORD m_lastClickTime{};

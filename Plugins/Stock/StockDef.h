@@ -207,6 +207,13 @@ namespace STOCK
 	public:
 		StockInfo info;
 
+		// 买一/卖一累计停留时间（秒）
+		int ask1AccumSeconds{ 0 };    // 现价等于卖一价的累计秒数
+		int bid1AccumSeconds{ 0 };    // 现价等于买一价的累计秒数
+		Price prevAsk1Price{ 0 };     // 上一次卖一价（用于检测变化后清零）
+		Price prevBid1Price{ 0 };     // 上一次买一价（用于检测变化后清零）
+		time_t lastAccumUpdateTime{ 0 };  // 上次累计时间更新的时间戳
+
 		// 使用智能指针管理历史数据
 		std::map<Period, std::shared_ptr<HistoricalDataBase>> historicalData;
 

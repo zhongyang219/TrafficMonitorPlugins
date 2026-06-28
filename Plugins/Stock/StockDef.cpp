@@ -74,6 +74,25 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 		std::vector<std::string> data_arr = CCommon::split(data, ",");
 
 		stockData->info.Load(key, data_arr);
+
+		// 买一/卖一价格变化时清零累计时间
+		{
+			Price curAsk1 = stockData->info.askLevels[0].price;
+			Price curBid1 = stockData->info.bidLevels[0].price;
+
+			// 卖一价变化则清零
+			if (curAsk1 != stockData->prevAsk1Price)
+			{
+				stockData->ask1AccumSeconds = 0;
+				stockData->prevAsk1Price = curAsk1;
+			}
+			// 买一价变化则清零
+			if (curBid1 != stockData->prevBid1Price)
+			{
+				stockData->bid1AccumSeconds = 0;
+				stockData->prevBid1Price = curBid1;
+			}
+		}
 	}
 }
 
