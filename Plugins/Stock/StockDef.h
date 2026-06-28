@@ -52,7 +52,8 @@ namespace STOCK
 		WEEK,      // 周线
 		MONTH,     // 月线
 		YEAR,      // 年线
-		MIN5       // 5分钟线
+		MIN5,      // 5分钟线
+		MIN30      // 30分钟线
 	};
 
 	// 历史数据基类
@@ -130,6 +131,13 @@ namespace STOCK
 	{
 	public:
 		Period GetPeriod() const override { return Period::MIN5; }
+	};
+
+	// 30分钟K线历史数据（继承自KLineData，复用CalculateMA等方法）
+	class Min30KLineData : public KLineData
+	{
+	public:
+		Period GetPeriod() const override { return Period::MIN30; }
 	};
 
 	// 股票基础信息
@@ -295,6 +303,26 @@ namespace STOCK
 			return MakesureHistoricalData<Min5KLineData>(Period::MIN5).get();
 		}
 
+		void clearMin30KLineData()
+		{
+			auto klineData = MakesureHistoricalData<Min30KLineData>(Period::MIN30);
+			klineData->Clear();
+		}
+
+		void addMin30KLinePoint(const KLinePoint& point)
+		{
+			auto klineData = MakesureHistoricalData<Min30KLineData>(Period::MIN30);
+			klineData->data.push_back(point);
+		}
+
+		void addMin30KLineData(const CString& json_data);
+
+		// 获取30分钟K线数据
+		STOCK::Min30KLineData* getMin30KLineData()
+		{
+			return MakesureHistoricalData<Min30KLineData>(Period::MIN30).get();
+		}
+
 		std::wstring GetCurrentDisplay(bool include_name) const;
 
 		// 买一/卖一等于现价的累计计时（持久保存，窗口关闭不清零）
@@ -354,6 +382,7 @@ namespace STOCK
 		void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
 		void LoadKLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
+		void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadInnerOuterData(std::string data);
 
 		void ClearRealtimeData()

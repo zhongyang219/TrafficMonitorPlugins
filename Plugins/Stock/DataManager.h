@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <map>
 #include "resource.h"
@@ -60,6 +60,7 @@ public:
 	void RequestTimelineData(std::wstring stock_id);
 	void RequestKLineData(std::wstring stock_id, int days = 250);
 	void RequestMin5KLineData(std::wstring stock_id, int datalen = 250);
+	void RequestMin30KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
 
 	SettingData m_setting_data;

@@ -362,6 +362,7 @@ void Stock::PreloadAllKLineData()
 		{
 			g_data.RequestKLineData(code, 750);
 			g_data.RequestMin5KLineData(code, 250);
+			g_data.RequestMin30KLineData(code, 250);
 		}
 		delete pCodes;
 		return 0;
@@ -1451,9 +1452,9 @@ namespace T0Helper {
 			bool lowVol = isShrinking;
 			bool macdDown = macd[last].valid && macd[last].dif < 0 && macd[last].bar < 0;
 			if (decline && lowVol && macdDown) return sig;
-	}
+		}
 
-	// 量柱信号（需量能确认）
+		// 量柱信号（需量能确认）
 		{
 			int lb = min(10, n - 1);
 			int greenCnt = 0;
@@ -1571,10 +1572,10 @@ namespace T0Helper {
 					if (tp[i].volume < tp[i - 1].volume) { volUp = false; break; }
 				}
 				if (volUp) return sig;
+			}
 		}
-	}
 
-	// 量柱信号（需量能确认）
+		// 量柱信号（需量能确认）
 		{
 			int lb = min(10, n - 1);
 			// 检查近期是否有放量冲高（使用前三根均值判定放量）

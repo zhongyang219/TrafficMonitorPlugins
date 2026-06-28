@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -41,6 +41,7 @@ protected:
 	afx_msg void OnBnClickedTimeLineBtn();
 	afx_msg void OnBnClickedKLineBtn();
 	afx_msg void OnBnClickedMin5KLineBtn();
+	afx_msg void OnBnClickedMin30KLineBtn();
 	afx_msg void OnBnClickedTrendBtn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
@@ -126,6 +127,8 @@ private:
 	void DrawTimelineCostAndProfitLines(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineGridAndLines(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext& ctx);
+	void DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineKDJSection(CDC& memDC, const TimelineDrawContext& ctx);
@@ -236,6 +239,7 @@ private:
 	CButton m_btnTimeLine;
 	CButton m_btnKLine;
 	CButton m_btnMin5KLine;
+	CButton m_btnMin30KLine;
 	CButton m_btnTrend;
 	CButton m_btnMA;
 	CButton m_btnBoll;
@@ -249,6 +253,7 @@ private:
 	bool m_is_thread_running{};
 	bool m_isKLineMode{};
 	bool m_isMin5KLineMode{};  // 5分钟K线模式（m_isKLineMode为true时的子模式）
+	bool m_isMin30KLineMode{};  // 30分钟K线模式（m_isKLineMode为true时的子模式）
 	bool m_isOverviewMode{};
 	bool m_klineDataLoaded{ false };
 	int m_klinePeriodDays{ 250 };

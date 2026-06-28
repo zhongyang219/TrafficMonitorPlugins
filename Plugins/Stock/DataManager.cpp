@@ -654,3 +654,51 @@ void CDataManager::RequestMin5KLineData(std::wstring stock_id, int datalen /*= 2
 		stockMarket.LoadMin5KLineDataByJson(stock_id, NULL);
 	}
 }
+
+void CDataManager::RequestMin30KLineData(std::wstring stock_id, int datalen /*= 250*/)
+{
+	try
+	{
+		TRACE(L"RequestMin30KLineData...\n");
+
+		std::wstring url{ L"http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?" };
+		std::vector<std::wstring> params;
+		params.push_back(L"symbol=" + stock_id);
+		params.push_back(L"scale=30");
+		params.push_back(L"ma=no");
+		params.push_back(L"datalen=" + std::to_wstring(datalen));
+
+		url += CCommon::vectorJoinString(params, L"&");
+
+		CString strHeaders = _T("Referer: http://finance.sina.com.cn");
+
+		CInternetSession* session = new CInternetSession(WEB_USERAGENT);
+		CHttpFile* pFile = (CHttpFile*)session->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_ASCII, strHeaders, strHeaders.GetLength());
+
+		DWORD dwStatusCode;
+		pFile->QueryInfoStatusCode(dwStatusCode);
+
+		if (dwStatusCode == HTTP_STATUS_OK)
+		{
+			CString strData;
+			char szBuffer[1025];
+			int nRead;
+			while ((nRead = pFile->Read(szBuffer, 1024)) > 0)
+			{
+				szBuffer[nRead] = 0;
+				strData += CString(szBuffer);
+			}
+
+			stockMarket.LoadMin30KLineDataByJson(stock_id, &strData);
+		}
+
+		pFile->Close();
+		delete pFile;
+		session->Close();
+	}
+	catch (CInternetException* e)
+	{
+		e->Delete();
+		stockMarket.LoadMin30KLineDataByJson(stock_id, NULL);
+	}
+}
