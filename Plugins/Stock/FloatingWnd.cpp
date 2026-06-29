@@ -7,6 +7,7 @@
 #include "DataManager.h"
 #include <Stock.h>
 #include <algorithm>
+#include <cstdlib>
 #include "OptionsDlg.h"
 #include "TradeRecordDialog.h"
 
@@ -83,6 +84,39 @@ bool CompareStockPriority(const std::wstring& a, const std::wstring& b)
 			return totalCostA > totalCostB;
 	}
 	return false;
+}
+
+CString TrendStateToText(STOCK::TrendState30m state)
+{
+	switch (state)
+	{
+	case STOCK::TrendState30m::STATE_WEAK:
+		return _T("弱势");
+	case STOCK::TrendState30m::STATE_STRONG:
+		return _T("强势");
+	case STOCK::TrendState30m::STATE_SHAKE:
+	default:
+		return _T("震荡");
+	}
+}
+
+CString Signal5mToText(STOCK::Signal5m signal)
+{
+	switch (signal)
+	{
+	case STOCK::Signal5m::SIG_BUY:
+		return _T("买入");
+	case STOCK::Signal5m::SIG_SELL:
+		return _T("卖出");
+	case STOCK::Signal5m::SIG_NONE:
+	default:
+		return _T("无信号");
+	}
+}
+
+CString BoolToText(bool value)
+{
+	return value ? _T("是") : _T("否");
 }
 
 // 颜色常量定义
@@ -201,7 +235,8 @@ enum {
 	IDC_INDICATOR_KDJ_BTN = 1013,
 	IDC_MIN30_KLINE_BTN = 1014,
 	IDC_INDICATOR_WR_BTN = 1015,
-	IDC_INDICATOR_RSI_BTN = 1016
+	IDC_INDICATOR_RSI_BTN = 1016,
+	IDC_T0_BTN = 1017
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -224,6 +259,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_TIMELINE_BTN, &CFloatingWnd::OnBnClickedTimeLineBtn)
 	ON_BN_CLICKED(IDC_KLINE_BTN, &CFloatingWnd::OnBnClickedKLineBtn)
 	ON_BN_CLICKED(IDC_TREND_BTN, &CFloatingWnd::OnBnClickedTrendBtn)
+	ON_BN_CLICKED(IDC_T0_BTN, &CFloatingWnd::OnBnClickedT0Btn)
 	ON_BN_CLICKED(IDC_CLOSE_BTN, &CFloatingWnd::OnBnClickedCloseBtn)
 	ON_BN_CLICKED(IDC_MA_BTN, &CFloatingWnd::OnBnClickedMABtn)
 	ON_BN_CLICKED(IDC_MIN5_KLINE_BTN, &CFloatingWnd::OnBnClickedMin5KLineBtn)
@@ -278,6 +314,9 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	CRect trendBtnRect(maBtnRect.left - rightBtnWidth, g_data.RDPI(2), maBtnRect.left, g_data.RDPI(2) + btnHeight);
 	m_btnTrend.Create(_T("K线"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, trendBtnRect, this, IDC_TREND_BTN);
+
+	CRect t0BtnRect(trendBtnRect.left - rightBtnWidth, g_data.RDPI(2), trendBtnRect.left, g_data.RDPI(2) + btnHeight);
+	m_btnT0.Create(_T("做T"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
 
 	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
 	const int zoomBtnWidth = g_data.RDPI(28);
@@ -937,6 +976,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	}
 
 	// 绘制智能分析买卖点标记（基于5min/30min K线共振判定）
+	if (m_showT0Markers)
 	{
 		auto stockData = g_data.GetStockData(m_stock_id);
 		if (stockData)
@@ -1553,7 +1593,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 	}
 
 	// 智能分析买卖点标记（仅5分钟K线模式，30分钟K线模式不绘制）
-	if (m_isMin5KLineMode && !m_isMin30KLineMode)
+	if (m_showT0Markers && m_isMin5KLineMode && !m_isMin30KLineMode)
 	{
 		auto stockData = g_data.GetStockData(m_stock_id);
 		if (stockData)
@@ -1901,6 +1941,83 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 void CFloatingWnd::DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx)
 {
 	DrawVolumeChart(memDC, 0, ctx.volumeChartTop, ctx.chartWidth, ctx.volumeChartHeight, *ctx.timelinePoint, &ctx.realtimeData);
+
+	// 5分钟K线量柱图：绘制成交量MA5/MA10（最近5/10根5分钟K成交量算术平均）
+	if (m_isMin5KLineMode && ctx.fullTimeline && !ctx.fullTimeline->empty() && ctx.timelinePoint && !ctx.timelinePoint->empty())
+	{
+		const auto& fullData = *ctx.fullTimeline;
+		const auto& visibleData = *ctx.timelinePoint;
+		const int totalPoints = static_cast<int>(visibleData.size());
+		const int fullCount = static_cast<int>(fullData.size());
+		const int startIndex = ctx.startIndex;
+		int endIndex = min(fullCount, startIndex + totalPoints);
+
+		STOCK::Volume maxVolume = 0;
+		for (int i = startIndex; i < endIndex; i++)
+		{
+			maxVolume = max(maxVolume, fullData[i].volume);
+		}
+
+		auto calcVolumeMA = [&](int globalIndex, int period) -> double {
+			if (globalIndex < period - 1)
+				return 0.0;
+
+			double sum = 0.0;
+			for (int i = globalIndex - period + 1; i <= globalIndex; i++)
+				sum += static_cast<double>(fullData[i].volume);
+			return sum / period;
+			};
+
+		std::vector<double> ma5(totalPoints, 0.0);
+		std::vector<double> ma10(totalPoints, 0.0);
+		for (int i = 0; i < totalPoints; i++)
+		{
+			int globalIndex = startIndex + i;
+			if (globalIndex >= 0 && globalIndex < fullCount)
+			{
+				ma5[i] = calcVolumeMA(globalIndex, 5);
+				ma10[i] = calcVolumeMA(globalIndex, 10);
+			}
+		}
+
+		if (maxVolume > 0)
+		{
+			auto volumeToY = [&](double volume) -> int {
+				int py = ctx.volumeChartTop + ctx.volumeChartHeight - static_cast<int>(volume / static_cast<double>(maxVolume) * ctx.volumeChartHeight);
+				return max(ctx.volumeChartTop, min(py, ctx.volumeChartTop + ctx.volumeChartHeight));
+				};
+
+			auto drawVolumeMALine = [&](const std::vector<double>& values, COLORREF color) {
+				CPen pen(PS_SOLID, 1, color);
+				CPen* pOldPen = memDC.SelectObject(&pen);
+				bool first = true;
+				for (int i = 0; i < totalPoints; i++)
+				{
+					if (values[i] <= 0)
+					{
+						first = true;
+						continue;
+					}
+
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int pointY = volumeToY(values[i]);
+					if (first)
+					{
+						memDC.MoveTo(pointX, pointY);
+						first = false;
+					}
+					else
+					{
+						memDC.LineTo(pointX, pointY);
+					}
+				}
+				memDC.SelectObject(pOldPen);
+				};
+
+			drawVolumeMALine(ma5, RGB(0, 0, 230));
+			drawVolumeMALine(ma10, RGB(0, 166, 235));
+		}
+	}
 
 	// 时间竖线和平均值参考线
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
@@ -6120,7 +6237,7 @@ void CFloatingWnd::DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int
 void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData)
 {
 	const int MAX_LEVEL = STOCK::StockInfo::MAX_LEVEL;
-	// 布局：0=空行(标题栏), 1-8=最高/卖三~卖一/买一~买三/最低按价格排序, 9=委比, 10=振幅, 11=振幅05, 12=内盘, 13=外盘, 14=换手率, 15-18=MA
+	// 布局：0=空行(标题栏), 1-8=最高/卖三~卖一/买一~买三/最低按价格排序, 9=委比, 10=振幅, 11=振幅05, 12=内盘, 13=外盘, 14=换手率, 15-18=净差
 	const int totalRows = 19;
 	const int rowHeight = height / totalRows;
 	const int topOffset = rowHeight;
@@ -6338,30 +6455,35 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		memDC.SetTextColor(COLOR_GRAY_TEXT);
 	memDC.TextOut(textX, topOffset + rowHeight * 14 + g_data.RDPI(2), turnoverTxt);
 
-	// MA5/MA13/MA34/MA55（行15-18）
+	// 净差1/5/10/30（行15-18）
 	auto stockDataPtr = g_data.GetStockData(m_stock_id);
-	auto* klinePtr = stockDataPtr ? stockDataPtr->getKLineData() : nullptr;
-	const int maPeriods[] = { 5, 13, 34, 55 };
-	for (int m = 0; m < 4; m++)
+	const int netPeriods[] = { 1, 5, 10, 30 };
+	for (int i = 0; i < 4; i++)
 	{
-		int days = maPeriods[m];
-		double ma = klinePtr ? klinePtr->CalculateMA(days) : 0;
-		CString maTxt;
-		COLORREF maColor = COLOR_GRAY_TEXT;
-		if (ma > 0)
+		STOCK::Volume diff = 0;
+		double ratio = 0;
+		CString netTxt;
+		COLORREF netColor = COLOR_GRAY_TEXT;
+		if (stockDataPtr && stockDataPtr->GetInnerOuterNetDiff(netPeriods[i], diff, ratio))
 		{
-			maTxt.Format(_T("MA%d: %s"), days, CCommon::FormatFloat(ma));
-			if (ma > stockInfo.currentPrice)
-				maColor = COLOR_RED_UP;
-			else if (ma < stockInfo.currentPrice)
-				maColor = COLOR_GREEN_DOWN;
+			CString diffStr = CCommon::FormatVolumeInt(std::abs(diff) / 100.0);
+			if (diff >= 0)
+			{
+				netTxt.Format(_T("净差%d: +%s +%.2f%%"), netPeriods[i], diffStr.GetString(), ratio);
+				netColor = COLOR_RED_UP;
+			}
+			else
+			{
+				netTxt.Format(_T("净差%d: -%s %.2f%%"), netPeriods[i], diffStr.GetString(), ratio);
+				netColor = COLOR_GREEN_DOWN;
+			}
 		}
 		else
 		{
-			maTxt.Format(_T("MA%d: --"), days);
+			netTxt.Format(_T("净差%d: -- --"), netPeriods[i]);
 		}
-		memDC.SetTextColor(maColor);
-		memDC.TextOut(textX, topOffset + rowHeight * (15 + m) + g_data.RDPI(2), maTxt);
+		memDC.SetTextColor(netColor);
+		memDC.TextOut(textX, topOffset + rowHeight * (15 + i) + g_data.RDPI(2), netTxt);
 	}
 }
 
@@ -6461,7 +6583,9 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		const int chartWidth = rect.Width() - orderBookWidth;
 		const int headerHeight = g_data.RDPI(26);
 
-		if (point.x >= 0 && point.x < chartWidth && point.y >= headerHeight)
+		const int yAxisWidth = g_data.RDPI(50);
+
+		if (point.x >= yAxisWidth && point.x < chartWidth && point.y >= headerHeight)
 		{
 			std::vector<STOCK::TimelinePoint> timelinePoint;
 			{
@@ -6542,16 +6666,25 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 
 			if (!timelinePoint.empty())
 			{
-				int countX = static_cast<int>(point.x * timelinePoint.size() / chartWidth);
-				if (countX >= timelinePoint.size())
-				{
-					countX = timelinePoint.size() - 1;
-				}
+				int totalPoints = static_cast<int>(timelinePoint.size());
+				int visibleCount = min(m_timelineVisibleCount, totalPoints);
+				int maxOffset = max(0, totalPoints - visibleCount);
+				if (m_timelineScrollOffset < 0 || m_timelineScrollOffset >= maxOffset)
+					m_timelineScrollOffset = maxOffset;
+				int startIndex = max(0, min(m_timelineScrollOffset, maxOffset));
+
+				int adjX = point.x - yAxisWidth;
+				int effectiveWidth = chartWidth - yAxisWidth;
+				int relIndex = static_cast<int>(adjX * static_cast<float>(visibleCount) / effectiveWidth);
+				relIndex = max(0, min(relIndex, visibleCount - 1));
+				int countX = startIndex + relIndex;
+				countX = max(0, min(countX, totalPoints - 1));
 
 				const auto& item = timelinePoint[countX];
 				m_pendingTradeTime = item.time.c_str();
 				m_pendingTradePrice = item.price;
-				PostMessage(FWND_MSG_SHOW_TRADE_DLG);
+				// PostMessage(FWND_MSG_SHOW_TRADE_DLG);  // 测试买卖点检测时暂时屏蔽交易记录弹窗
+				TestSmartSignalOnDoubleClick(countX);
 				return;
 			}
 		}
@@ -7332,34 +7465,38 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 
 	CRect volumeTitleRect(0, volumeChartTop, ctx.chartWidth, volumeChartTop + timelineTitleHeight);
 	memDC.FillSolidRect(volumeTitleRect, RGB(245, 245, 245));
-	bool isVolHovering = !m_timelineVolumeTitleTip.IsEmpty();
-
-	// 计算总量和总额（始终显示，不随悬停变化）
-	STOCK::Volume totalVolume = 0;
-	for (const auto& item : timelinePoint)
-		totalVolume += item.volume;
-	STOCK::Volume totalVolumeInLots = totalVolume / 100;
-	CString totalVolStr = CCommon::FormatVolumeInt(totalVolumeInLots);
-	CString totalAmtStr;
-	if (ctx.realtimeData.turnover > 0)
-		totalAmtStr = CCommon::FormatAmount(ctx.realtimeData.turnover);
-
 	// 分量和分额：悬停时显示鼠标指向位置，否则显示最新时间点
 	CString perVolStr, perAmtStr;
-	if (isVolHovering && m_hoveredBarIndex >= 0 && m_hoveredBarIndex < (int)timelinePoint.size())
+	bool isVolHovering = !m_timelineVolumeTitleTip.IsEmpty();
+	int displayVolIdx = isVolHovering ? m_hoveredBarIndex : static_cast<int>(timelinePoint.size()) - 1;
+	displayVolIdx = max(0, min(displayVolIdx, static_cast<int>(timelinePoint.size()) - 1));
+	if (displayVolIdx >= 0 && displayVolIdx < static_cast<int>(timelinePoint.size()))
 	{
-		const auto& hoverPt = timelinePoint[m_hoveredBarIndex];
-		perVolStr = CCommon::FormatVolumeInt(hoverPt.volume / 100);
-		double hoverAmount = static_cast<double>(hoverPt.volume) * hoverPt.price;
-		perAmtStr = CCommon::FormatAmount(hoverAmount);
+		const auto& displayPt = timelinePoint[displayVolIdx];
+		perVolStr = CCommon::FormatVolumeInt(displayPt.volume / 100);
+		double displayAmount = static_cast<double>(displayPt.volume) * displayPt.price;
+		perAmtStr = CCommon::FormatAmount(displayAmount);
 	}
-	else if (!timelinePoint.empty())
-	{
-		const auto& last = timelinePoint.back();
-		perVolStr = CCommon::FormatVolumeInt(last.volume / 100);
-		double lastAmount = static_cast<double>(last.volume) * last.price;
-		perAmtStr = CCommon::FormatAmount(lastAmount);
-	}
+
+	auto calcVolumeMA = [&](int globalIndex, int period) -> double {
+		if (!ctx.fullTimeline || globalIndex < period - 1 || globalIndex >= static_cast<int>(ctx.fullTimeline->size()))
+			return 0.0;
+
+		double sum = 0.0;
+		for (int i = globalIndex - period + 1; i <= globalIndex; i++)
+			sum += static_cast<double>((*ctx.fullTimeline)[i].volume);
+		return sum / period;
+		};
+
+	auto formatVolumeMA = [](double volume) -> CString {
+		return CCommon::FormatVolumeInt(volume / 100.0);
+		};
+
+	const int globalVolIdx = ctx.startIndex + displayVolIdx;
+	double volMa5 = calcVolumeMA(globalVolIdx, 5);
+	double prevVolMa5 = calcVolumeMA(globalVolIdx - 1, 5);
+	double volMa10 = calcVolumeMA(globalVolIdx, 10);
+	double prevVolMa10 = calcVolumeMA(globalVolIdx - 1, 10);
 
 	// 逐段绘制，分量/分额数值部分浅蓝色背景高亮
 	int xPos = g_data.RDPI(4);
@@ -7382,14 +7519,38 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 		xPos += vs.cx + g_data.RDPI(4);
 		};
 
+	auto drawVolumeMA = [&](const CString& labelText, double maValue, double prevMaValue, COLORREF maColor) {
+		if (maValue <= 0)
+			return;
+
+		CString valueText = formatVolumeMA(maValue);
+		memDC.SetTextColor(maColor);
+		CString text = labelText + valueText;
+		CSize textSize = memDC.GetTextExtent(text);
+		memDC.TextOut(xPos, centerY - textSize.cy / 2, text);
+		xPos += textSize.cx;
+
+		if (prevMaValue > 0 && maValue != prevMaValue)
+		{
+			CString arrowText = maValue > prevMaValue ? _T("↑") : _T("↓");
+			memDC.SetTextColor(maValue > prevMaValue ? COLOR_RED_UP : COLOR_GREEN_DOWN);
+			CSize arrowSize = memDC.GetTextExtent(arrowText);
+			memDC.TextOut(xPos, centerY - arrowSize.cy / 2, arrowText);
+			xPos += arrowSize.cx;
+		}
+		xPos += g_data.RDPI(4);
+		};
+
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
-	drawLabelValueHL(_T("总量:"), totalVolStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, false);
-	if (!totalAmtStr.IsEmpty())
-		drawLabelValueHL(_T("总额:"), totalAmtStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, false);
 	if (!perVolStr.IsEmpty())
 		drawLabelValueHL(_T("分量:"), perVolStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, isVolHovering);
 	if (!perAmtStr.IsEmpty())
 		drawLabelValueHL(_T("分额:"), perAmtStr, COLOR_GRAY_TEXT, COLOR_GRAY_TEXT, isVolHovering);
+	if (m_isMin5KLineMode)
+	{
+		drawVolumeMA(_T("MA5:"), volMa5, prevVolMa5, RGB(0, 0, 230));
+		drawVolumeMA(_T("MA10:"), volMa10, prevVolMa10, RGB(0, 166, 235));
+	}
 
 	// MACD/KDJ/W&R/RSI 图标题栏
 	CRect macdTitleRect(0, macdChartTop, ctx.chartWidth, macdChartTop + timelineTitleHeight);
@@ -8106,6 +8267,11 @@ void CFloatingWnd::UpdateModeButtons()
 			}
 		}
 
+		if (m_btnT0.GetSafeHwnd())
+		{
+			m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+		}
+
 		if (m_btnMA.GetSafeHwnd())
 		{
 			if (m_showMA)
@@ -8596,6 +8762,14 @@ void CFloatingWnd::OnBnClickedTrendBtn()
 	}
 }
 
+void CFloatingWnd::OnBnClickedT0Btn()
+{
+	m_showT0Markers = !m_showT0Markers;
+	if (m_btnT0.GetSafeHwnd())
+		m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+	Invalidate();
+}
+
 void CFloatingWnd::OnBnClickedMABtn()
 {
 	m_showMA = !m_showMA;
@@ -8884,12 +9058,311 @@ LRESULT CFloatingWnd::OnShowAddDialog(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+void CFloatingWnd::TestSmartSignalOnDoubleClick(int timelineIndex)
+{
+	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	std::vector<STOCK::Bar> allBars5, allBars30;
+	std::vector<std::string> allBars5Time;
+	CString dataStatus;
+	{
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		auto stockData = g_data.GetStockData(m_stock_id);
+		if (!stockData)
+		{
+			MessageBox(_T("未获取到当前股票数据，无法测试买卖点检测。"), _T("买卖点检测测试"), MB_ICONINFORMATION);
+			return;
+		}
+
+		auto min5KLineObj = stockData->getMin5KLineData();
+		auto min30KLineObj = stockData->getMin30KLineData();
+		if (min5KLineObj)
+		{
+			allBars5.reserve(min5KLineObj->data.size());
+			allBars5Time.reserve(min5KLineObj->data.size());
+			for (const auto& kp : min5KLineObj->data)
+			{
+				allBars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+				allBars5Time.push_back(kp.day);
+			}
+		}
+		if (min30KLineObj)
+		{
+			allBars30.reserve(min30KLineObj->data.size());
+			for (const auto& kp : min30KLineObj->data)
+				allBars30.push_back(STOCK::Bar::FromKLinePoint(kp));
+		}
+	}
+
+	if (allBars5.empty() || allBars30.empty())
+	{
+		dataStatus.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu\r\n30分钟K线数量：%zu\r\n双击价格：%.3f\r\n双击时间：%s\r\n"),
+			CString(m_stock_id.c_str()), allBars5.size(), allBars30.size(), static_cast<double>(m_pendingTradePrice), m_pendingTradeTime.GetString());
+		CString msg = dataStatus + _T("\r\n测试结果：缺少5分钟或30分钟K线数据，无法调用买卖点检测函数。\r\n原因：SignalAnalyzer 需要 bars5 与 bars30 同时存在。 ");
+		MessageBox(msg, _T("买卖点检测测试"), MB_ICONINFORMATION);
+		return;
+	}
+
+	auto extractDatePart = [](const std::string& timeText) -> std::string {
+		auto spacePos = timeText.find(' ');
+		return spacePos != std::string::npos ? timeText.substr(0, spacePos) : std::string();
+		};
+	auto extractTimeMinute = [](const std::string& timeText) -> int {
+		std::string t = timeText;
+		auto spacePos = t.find(' ');
+		if (spacePos != std::string::npos)
+			t = t.substr(spacePos + 1);
+		if (t.length() < 5)
+			return -1;
+		int hour = -1;
+		int minute = -1;
+		if (sscanf_s(t.substr(0, 5).c_str(), "%d:%d", &hour, &minute) != 2)
+			return -1;
+		if (hour < 0 || minute < 0 || minute >= 60)
+			return -1;
+		return hour * 60 + minute;
+		};
+
+	CStringA pendingTradeTimeA(m_pendingTradeTime);
+	int clickedMinute = extractTimeMinute(std::string(pendingTradeTimeA.GetString()));
+	std::string latestDate;
+	for (auto it = allBars5Time.rbegin(); it != allBars5Time.rend(); ++it)
+	{
+		latestDate = extractDatePart(*it);
+		if (!latestDate.empty())
+			break;
+	}
+	int barIndex = -1;
+	if (m_isMin5KLineMode)
+	{
+		barIndex = max(0, min(timelineIndex, static_cast<int>(allBars5.size()) - 1));
+	}
+	else if (clickedMinute >= 0)
+	{
+		for (int i = 0; i < static_cast<int>(allBars5Time.size()); i++)
+		{
+			if (!latestDate.empty() && extractDatePart(allBars5Time[i]) != latestDate)
+				continue;
+			int barMinute = extractTimeMinute(allBars5Time[i]);
+			if (barMinute < 0)
+				continue;
+			if (barMinute <= clickedMinute)
+				barIndex = i;
+			else
+				break;
+		}
+	}
+	if (barIndex < 0)
+		barIndex = static_cast<int>(allBars5.size()) - 1;
+	barIndex = max(0, min(barIndex, static_cast<int>(allBars5.size()) - 1));
+
+	std::vector<STOCK::Bar> bars5(allBars5.begin(), allBars5.begin() + barIndex + 1);
+	std::vector<STOCK::Bar> bars30 = allBars30;
+
+	CString mappedBarTime;
+	if (barIndex >= 0 && barIndex < static_cast<int>(allBars5Time.size()))
+		mappedBarTime = CString(allBars5Time[barIndex].c_str());
+	dataStatus.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu / 全部%zu\r\n30分钟K线数量：%zu\r\n双击分时索引：%d\r\n双击分钟：%d\r\n匹配交易日：%s\r\n映射5分钟K线索引：%d\r\n映射5分钟K线时间：%s\r\n双击价格：%.3f\r\n双击时间：%s\r\n"),
+		CString(m_stock_id.c_str()), bars5.size(), allBars5.size(), bars30.size(), timelineIndex, clickedMinute, CString(latestDate.c_str()).GetString(), barIndex, mappedBarTime.GetString(), static_cast<double>(m_pendingTradePrice), m_pendingTradeTime.GetString());
+
+	STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30);
+	STOCK::Signal5m sig5m = CSignalAnalyzer::Get5mSignal(bars5, trendState);
+	bool forbid = CSignalAnalyzer::IsForbidTrade(bars5, trendState);
+	CSignalAnalyzer::T0Signal smartSignal = CSignalAnalyzer::DetectSmartSignal(bars5, bars30);
+	auto batchSignals = CSignalAnalyzer::BatchDetectSignals(allBars5, bars30);
+	const CSignalAnalyzer::SmartSignalPoint* clickedBatchSignal = nullptr;
+	for (const auto& item : batchSignals)
+	{
+		if (item.barIndex == barIndex)
+		{
+			clickedBatchSignal = &item;
+			break;
+		}
+	}
+
+	int buyCount = 0;
+	int sellCount = 0;
+	int forbidCount = 0;
+	for (const auto& item : batchSignals)
+	{
+		if (item.isForbid)
+			forbidCount++;
+		else if (item.isBuy)
+			buyCount++;
+		else
+			sellCount++;
+	}
+
+	CString riskDetail;
+	if (bars5.size() < 60)
+	{
+		riskDetail = _T("风控未运行：5分钟K线不足60根。\r\n");
+	}
+	else
+	{
+		std::vector<double> bollBandSeq(bars5.size(), 0.0);
+		for (size_t i = 19; i < bars5.size(); i++)
+		{
+			std::vector<double> closes;
+			closes.reserve(20);
+			for (size_t j = i - 19; j <= i; j++)
+				closes.push_back(bars5[j].close);
+			bollBandSeq[i] = 4.0 * CSignalAnalyzer::CalcStdDev(closes);
+		}
+
+		size_t lastIndex = bars5.size() - 1;
+		bool bandExpand = false;
+		bool bandHighPercentile = false;
+		if (lastIndex > 0 && bollBandSeq[lastIndex] > 0 && bollBandSeq[lastIndex - 1] > 0)
+		{
+			bandExpand = bollBandSeq[lastIndex] > bollBandSeq[lastIndex - 1] * 1.4;
+			size_t start = lastIndex > 60 ? lastIndex - 60 : 0;
+			int validCount = 0;
+			int lowerOrEqualCount = 0;
+			for (size_t i = start; i < lastIndex; i++)
+			{
+				if (bollBandSeq[i] <= 0)
+					continue;
+				validCount++;
+				if (bollBandSeq[lastIndex] >= bollBandSeq[i])
+					lowerOrEqualCount++;
+			}
+			bandHighPercentile = validCount >= 20 && lowerOrEqualCount * 100 >= validCount * 90;
+		}
+
+		STOCK::BollResult boll = CSignalAnalyzer::CalcBoll(bars5, 20);
+		double bandRatio = boll.mid > 0 ? boll.bandwidth / boll.mid : 0.0;
+		size_t avgStart = lastIndex + 1 > 10 ? lastIndex + 1 - 10 : 0;
+		double avgBollBandwidth = 0.0;
+		size_t avgBollCount = 0;
+		for (size_t i = avgStart; i <= lastIndex; i++)
+		{
+			if (bollBandSeq[i] <= 0)
+				continue;
+			avgBollBandwidth += bollBandSeq[i];
+			avgBollCount++;
+		}
+		if (avgBollCount > 0)
+			avgBollBandwidth /= avgBollCount;
+		double absNarrowThreshold = boll.mid > 0 && boll.mid < 1.5 ? 0.05 : 0.03;
+		double relativeNarrowThreshold = boll.mid > 0 ? boll.mid * 0.005 : 0.0;
+		double narrowThreshold = max(relativeNarrowThreshold, absNarrowThreshold);
+		bool narrowBand = avgBollBandwidth > 0 && avgBollBandwidth < narrowThreshold;
+
+		std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
+		std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
+		STOCK::KDJResult kdj = CSignalAnalyzer::CalcKDJ(bars5, 9);
+		STOCK::KDJResult prevKdj = CSignalAnalyzer::CalcKDJ(prevBars, 9);
+		STOCK::KDJResult prevPrevKdj = CSignalAnalyzer::CalcKDJ(prevPrevBars, 9);
+		bool kdjTopPassive = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
+			&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
+		bool kdjBottomPassive = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
+			&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
+
+		double wr6 = CSignalAnalyzer::CalcWR(bars5, 6);
+		double wrPrev = CSignalAnalyzer::CalcWR(prevBars, 6);
+		double wrPrevPrev = CSignalAnalyzer::CalcWR(prevPrevBars, 6);
+		bool wrTopPassive = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
+			&& wr6 > wrPrev && wrPrev > wrPrevPrev);
+		bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
+			&& wr6 < wrPrev && wrPrev < wrPrevPrev);
+
+		bool bollRiskActive = trendState == STOCK::TrendState30m::STATE_SHAKE && (bandExpand || bandHighPercentile || narrowBand);
+		bool kdjBottomActive = trendState == STOCK::TrendState30m::STATE_STRONG || trendState == STOCK::TrendState30m::STATE_SHAKE;
+		bool wrBottomActive = trendState != STOCK::TrendState30m::STATE_WEAK;
+
+		CString line;
+		line.Format(_T("BOLL带宽快速扩张：%s（当前=%.4f，上一根=%.4f，阈值=1.4，仅震荡趋势限制买入）\r\n"), BoolToText(bandExpand).GetString(), bollBandSeq[lastIndex], bollBandSeq[lastIndex - 1]);
+		riskDetail += line;
+		line.Format(_T("BOLL带宽历史高分位：%s（阈值=90，仅震荡趋势限制买入）\r\n"), BoolToText(bandHighPercentile).GetString());
+		riskDetail += line;
+		line.Format(_T("BOLL极窄：%s（当前带宽=%.4f，近10根平均带宽=%.4f，中轨=%.4f，当前带宽/中轨=%.4f%%，阈值=%.4f，低价阈值=%s，仅震荡趋势限制买入）\r\n"),
+			BoolToText(narrowBand).GetString(), boll.bandwidth, avgBollBandwidth, boll.mid, bandRatio * 100.0, narrowThreshold,
+			boll.mid > 0 && boll.mid < 1.5 ? _T("0.05") : _T("0.03"));
+		riskDetail += line;
+		line.Format(_T("KDJ高位钝化：%s（K=%.2f，前K=%.2f，前前K=%.2f，当前策略不作为拦截项）\r\n"), BoolToText(kdjTopPassive).GetString(), kdj.k, prevKdj.k, prevPrevKdj.k);
+		riskDetail += line;
+		line.Format(_T("KDJ低位钝化：%s（K=%.2f，前K=%.2f，前前K=%.2f，当前趋势%s）\r\n"), BoolToText(kdjBottomPassive).GetString(), kdj.k, prevKdj.k, prevPrevKdj.k, kdjBottomActive ? _T("会拦截") : _T("不拦截"));
+		riskDetail += line;
+		line.Format(_T("WR高位钝化：%s（WR6=%.2f，前=%.2f，前前=%.2f，当前策略不作为拦截项）\r\n"), BoolToText(wrTopPassive).GetString(), wr6, wrPrev, wrPrevPrev);
+		riskDetail += line;
+		line.Format(_T("WR低位钝化：%s（WR6=%.2f，前=%.2f，前前=%.2f，当前趋势%s）\r\n"), BoolToText(wrBottomPassive).GetString(), wr6, wrPrev, wrPrevPrev, wrBottomActive ? _T("会拦截") : _T("不拦截"));
+		riskDetail += line;
+		line.Format(_T("实际参与拦截：BOLL=%s，KDJ低位=%s，WR低位=%s（风控仅限制买入，不屏蔽卖出）\r\n"),
+			BoolToText(bollRiskActive).GetString(),
+			BoolToText(kdjBottomActive && kdjBottomPassive).GetString(),
+			BoolToText(wrBottomActive && wrBottomPassive).GetString());
+		riskDetail += line;
+	}
+
+	CString clickedBatchText;
+	if (clickedBatchSignal)
+	{
+		clickedBatchText.Format(_T("%s（趋势=%s，原因=%s）"),
+			clickedBatchSignal->isForbid ? _T("风控禁止") : (clickedBatchSignal->isBuy ? _T("买入") : _T("卖出")),
+			TrendStateToText(clickedBatchSignal->trendState).GetString(),
+			clickedBatchSignal->reason.GetString());
+	}
+	else
+	{
+		clickedBatchText = _T("该K线无批量绘制信号");
+	}
+
+	CString latestSignalText;
+	if (smartSignal.isForbid)
+		latestSignalText = _T("风控禁止");
+	else if (!smartSignal.valid)
+		latestSignalText = _T("无有效综合信号");
+	else
+		latestSignalText = smartSignal.isBuy ? _T("买入") : _T("卖出");
+
+	CString msg;
+	msg.Format(_T("%s\r\n")
+		_T("一、单项信号测试结果\r\n")
+		_T("图上该K线绘制信号：%s\r\n")
+		_T("30分钟趋势：%s\r\n")
+		_T("5分钟买卖信号：%s\r\n")
+		_T("\r\n二、风险运行结果\r\n")
+		_T("是否触发风控禁止：%s\r\n")
+		_T("风控明细：\r\n%s")
+		_T("\r\n三、综合判定结果\r\n")
+		_T("有效：%s\r\n")
+		_T("方向：%s\r\n")
+		_T("价格：%.3f\r\n")
+		_T("强度：%d\r\n")
+		_T("原因：%s\r\n")
+		_T("\r\n四、批量信号测试结果\r\n")
+		_T("总信号数：%zu\r\n")
+		_T("买入信号：%d\r\n")
+		_T("卖出信号：%d\r\n")
+		_T("风控禁止：%d\r\n"),
+		dataStatus.GetString(),
+		clickedBatchText.GetString(),
+		TrendStateToText(trendState).GetString(),
+		Signal5mToText(sig5m).GetString(),
+		BoolToText(forbid).GetString(),
+		riskDetail.GetString(),
+		BoolToText(smartSignal.valid).GetString(),
+		latestSignalText.GetString(),
+		static_cast<double>(smartSignal.price),
+		smartSignal.strength,
+		smartSignal.reason.IsEmpty() ? _T("无") : smartSignal.reason.GetString(),
+		batchSignals.size(),
+		buyCount,
+		sellCount,
+		forbidCount);
+
+	MessageBox(msg, _T("买卖点检测测试"), MB_ICONINFORMATION);
+}
+
 LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+	/* 测试买卖点检测时暂时屏蔽交易记录弹窗
 	CTradeRecordDialog dlg(this);
 	dlg.SetTradeInfo(m_pendingTradeTime, m_pendingTradePrice, CString(m_stock_id.c_str()));
 	dlg.DoModal();
+	*/
 	return 0;
 }
 

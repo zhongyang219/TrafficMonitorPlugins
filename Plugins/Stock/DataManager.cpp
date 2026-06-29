@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include <vector>
@@ -118,6 +118,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	}
 
 	InitDatabase();
+	LoadTodayInnerOuterSnapshots();
 }
 
 void CDataManager::InitDatabase()
@@ -157,6 +158,20 @@ void CDataManager::InitDatabase()
 	{
 		sqlite3_free(errMsg);
 	}
+
+	const char* innerOuterSql = "CREATE TABLE IF NOT EXISTS inner_outer_snapshots ("
+		"stock_code TEXT NOT NULL,"
+		"snapshot_time INTEGER NOT NULL,"
+		"inner_volume INTEGER NOT NULL,"
+		"outer_volume INTEGER NOT NULL,"
+		"PRIMARY KEY(stock_code, snapshot_time)"
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, innerOuterSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK)
+	{
+		sqlite3_free(errMsg);
+	}
 }
 
 bool CDataManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
@@ -182,6 +197,69 @@ bool CDataManager::SaveTradeRecord(const std::wstring& stockCode, const std::wst
 	sqlite3_finalize(stmt);
 
 	return rc == SQLITE_DONE;
+}
+
+bool CDataManager::SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume)
+{
+	if (m_db == nullptr) return false;
+
+	const char* sql = "INSERT OR REPLACE INTO inner_outer_snapshots(stock_code, snapshot_time, inner_volume, outer_volume) VALUES(?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(timestamp));
+	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(innerVolume));
+	sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(outerVolume));
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+void CDataManager::LoadTodayInnerOuterSnapshots()
+{
+	if (m_db == nullptr) return;
+
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	std::tm todayTm = {};
+	todayTm.tm_year = st.wYear - 1900;
+	todayTm.tm_mon = st.wMonth - 1;
+	todayTm.tm_mday = st.wDay;
+	time_t dayStart = std::mktime(&todayTm);
+	if (dayStart <= 0) return;
+	time_t dayEnd = dayStart + 24 * 60 * 60;
+
+	const char* sql = "SELECT snapshot_time, inner_volume, outer_volume FROM inner_outer_snapshots "
+		"WHERE stock_code = ? AND snapshot_time >= ? AND snapshot_time < ? ORDER BY snapshot_time ASC;";
+
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		auto stockData = GetStockData(code);
+		if (!stockData) continue;
+		stockData->clearVolumeSnapshots();
+
+		sqlite3_stmt* stmt = nullptr;
+		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+		if (rc != SQLITE_OK) continue;
+
+		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(dayStart));
+		sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(dayEnd));
+
+		while (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			time_t timestamp = static_cast<time_t>(sqlite3_column_int64(stmt, 0));
+			STOCK::Volume innerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
+			STOCK::Volume outerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 2));
+			stockData->addVolumeSnapshot(timestamp, innerVolume, outerVolume);
+		}
+
+		sqlite3_finalize(stmt);
+	}
 }
 
 void CDataManager::SaveConfig()

@@ -8,10 +8,15 @@ namespace
 	constexpr double MACD_DIF_PRICE_RATIO = 0.001;
 	constexpr double MIN_SIGNAL_PRICE_RATIO = 0.003;
 	constexpr double MIN_SIGNAL_ATR_RATIO = 0.2;
-	constexpr double NARROW_BOLL_RATIO = 0.008;
-	constexpr double NARROW_BOLL_ABS_THRESHOLD = 0.05;
-	constexpr double BOLL_EXPAND_RATIO = 1.2;
-	constexpr int BOLL_HIGH_PERCENTILE = 85;
+	constexpr double NARROW_BOLL_RATIO = 0.005;
+	constexpr double NARROW_BOLL_LOW_PRICE_ABS_THRESHOLD = 0.05;
+	constexpr double NARROW_BOLL_ABS_THRESHOLD = 0.03;
+	constexpr double NARROW_BOLL_LOW_PRICE_LIMIT = 1.5;
+	constexpr size_t NARROW_BOLL_AVG_PERIOD = 10;
+	constexpr double BOLL_EXPAND_RATIO = 1.4;
+	constexpr int BOLL_HIGH_PERCENTILE = 90;
+	constexpr double SELL_KDJ_D_OVERBUY = 70.0;
+	constexpr double SELL_WR_OVERBUY = 30.0;
 	constexpr double KDJ_OVERBUY = 80.0;
 	constexpr double KDJ_OVERSELL = 20.0;
 	constexpr int MIN_SIGNAL_BAR_GAP = 5;
@@ -53,14 +58,37 @@ namespace
 		return atrThreshold > priceThreshold ? atrThreshold : priceThreshold;
 	}
 
-	bool IsNarrowBoll(double mid, double bandwidth)
+	double GetNarrowBollThreshold(double mid)
 	{
-		if (bandwidth <= 0)
+		double absThreshold = mid > 0 && mid < NARROW_BOLL_LOW_PRICE_LIMIT ? NARROW_BOLL_LOW_PRICE_ABS_THRESHOLD : NARROW_BOLL_ABS_THRESHOLD;
+		double relativeThreshold = mid > 0 ? mid * NARROW_BOLL_RATIO : 0.0;
+		return relativeThreshold > absThreshold ? relativeThreshold : absThreshold;
+	}
+
+	double CalcAverageBollBandwidth(const std::vector<double>& bollBand, size_t index, size_t period = NARROW_BOLL_AVG_PERIOD)
+	{
+		if (index >= bollBand.size() || period == 0)
+			return 0.0;
+
+		size_t start = index + 1 > period ? index + 1 - period : 0;
+		double sum = 0.0;
+		size_t count = 0;
+		for (size_t i = start; i <= index; i++)
+		{
+			if (bollBand[i] <= 0)
+				continue;
+			sum += bollBand[i];
+			count++;
+		}
+		return count > 0 ? sum / count : 0.0;
+	}
+
+	bool IsNarrowBoll(double mid, double avgBandwidth)
+	{
+		if (avgBandwidth <= 0)
 			return false;
 
-		double relativeThreshold = mid > 0 ? mid * NARROW_BOLL_RATIO : 0.0;
-		double threshold = relativeThreshold > NARROW_BOLL_ABS_THRESHOLD ? relativeThreshold : NARROW_BOLL_ABS_THRESHOLD;
-		return bandwidth < threshold;
+		return avgBandwidth < GetNarrowBollThreshold(mid);
 	}
 
 	bool IsBollBandwidthHighPercentile(const std::vector<double>& bollBand, size_t index, size_t lookback = 60)
@@ -307,8 +335,8 @@ double CSignalAnalyzer::CalcWR(const std::vector<STOCK::Bar>& bars, int N)
 
 STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::Bar>& bars30)
 {
-	// 至少需要61根30min K线才能计算当前/前一根BOLL和EMA60
-	if (bars30.size() < 61)
+	// 至少需要30根30min K线才能计算当前/前一根BOLL；EMA60 在数据不足时按现有序列递推
+	if (bars30.size() < 30)
 		return STOCK::TrendState30m::STATE_SHAKE;
 
 	// 1. 计算30min全部指标
@@ -351,9 +379,11 @@ STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::
 	bool maStrong = ema20 > ema60 && ema20 > prevEma20 && lastBar.close > ema20;
 	bool maWeak = ema20 < ema60 && ema20 < prevEma20 && lastBar.close < ema20;
 
-	// 判定行情
-	bool condWeak = bollDown && rsiWeak && macBelow && maWeak;
-	bool condStrong = bollUp && rsiStrong && macAbove && maStrong;
+	// 判定行情：强势允许BOLL/RSI/MACD/均线中满足3项即可，避免强趋势被误判为震荡
+	int weakScore = (bollDown ? 1 : 0) + (rsiWeak ? 1 : 0) + (macBelow ? 1 : 0) + (maWeak ? 1 : 0);
+	int strongScore = (bollUp ? 1 : 0) + (rsiStrong ? 1 : 0) + (macAbove ? 1 : 0) + (maStrong ? 1 : 0);
+	bool condWeak = weakScore >= 3 && weakScore > strongScore;
+	bool condStrong = strongScore >= 3 && strongScore >= weakScore;
 
 	if (condWeak)
 		return STOCK::TrendState30m::STATE_WEAK;    // 弱势：只做反T，禁止加仓正T
@@ -370,7 +400,7 @@ STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::
 
 STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
 {
-	if (bars5.size() < 120)
+	if (bars5.size() < 60)
 		return STOCK::Signal5m::SIG_NONE;
 
 	const int barCount = static_cast<int>(bars5.size());
@@ -407,29 +437,27 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 	double rsi6 = CalcRSI(bars5, 6);
 	double wr6 = CalcWR(bars5, 6);
 
-	double macdDifThreshold = GetMacdDifThreshold(last.close);
-
 	// ========== 卖出判定（必要条件组+辅助条件组） ==========
-	// 必要条件组：价格触及轨道(S1) + MACD信号(S2) 至少满足1个
-	bool sellS1 = (last.high >= boll.up);
-	bool sellS2_redShrink = (macd.macd_bar > 0) && (macd.macd_bar < prevMacd.macd_bar) && fabs(macd.dif) > macdDifThreshold;
-	bool sellS2_topDiv = (last.high > bars5[barCount - 2].high) && (macd.dif < prevMacd.dif) && fabs(macd.dif) > macdDifThreshold;
+	// 必要条件组：价格突破轨道(S1) + MACD动量减弱(S2) 至少满足1个
+	bool sellS1 = (last.high >= boll.up) || (last.close > boll.up);
+	bool sellS2_redShrink = (macd.macd_bar > 0) && (macd.macd_bar < prevMacd.macd_bar);
+	bool sellS2_topDiv = (last.high > bars5[barCount - 2].high) && (macd.dif < prevMacd.dif);
 	bool sellS2 = sellS2_redShrink || sellS2_topDiv;
 	bool sellNecessary = (sellS1 || sellS2);
 
-	// 辅助条件组：KDJ/RSI/WR 三个超买指标至少满足2个
-	bool sellA1 = (kdj.k > KDJ_OVERBUY && kdj.d > KDJ_OVERBUY && kdj.j < prevKdj.j);
+	// 辅助条件组：KDJ/RSI/WR 三个超买指标满足1个即可触发卖出辅助
+	bool sellA1 = ((kdj.k > KDJ_OVERBUY && kdj.d > SELL_KDJ_D_OVERBUY && kdj.j < prevKdj.j) || kdj.j > 100.0);
 	bool sellA2 = (rsi6 > 70);
-	bool sellA3 = (wr6 < 20);
+	bool sellA3 = (wr6 < SELL_WR_OVERBUY);
 	int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0);
 
-	bool hasSell = sellNecessary && (sellAuxCount >= 2);
+	bool hasSell = sellNecessary && (sellAuxCount >= 1);
 
 	// ========== 买入判定（必要条件组+辅助条件组） ==========
 	// 必要条件组：价格触及轨道(B1) + MACD信号(B2) 至少满足1个
 	bool buyB1 = (last.low <= boll.dn);
-	bool buyB2_greenShrink = (macd.macd_bar < 0) && (macd.macd_bar > prevMacd.macd_bar) && fabs(macd.dif) > macdDifThreshold;
-	bool buyB2_bottomDiv = (last.low < bars5[barCount - 2].low) && (macd.dif > prevMacd.dif) && fabs(macd.dif) > macdDifThreshold;
+	bool buyB2_greenShrink = (macd.macd_bar < 0) && (macd.macd_bar > prevMacd.macd_bar) && fabs(macd.dif) > GetMacdDifThreshold(last.close);
+	bool buyB2_bottomDiv = (last.low < bars5[barCount - 2].low) && (macd.dif > prevMacd.dif) && fabs(macd.dif) > GetMacdDifThreshold(last.close);
 	bool buyB2 = buyB2_greenShrink || buyB2_bottomDiv;
 	bool buyNecessary = (buyB1 || buyB2);
 
@@ -444,16 +472,14 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 	// 信号输出
 	if (hasSell && hasBuy)
 	{
+		if (sellAuxCount >= buyAuxCount)
+			return STOCK::Signal5m::SIG_SELL;
 		if (trendState == STOCK::TrendState30m::STATE_STRONG)
 			return STOCK::Signal5m::SIG_BUY;
 		if (trendState == STOCK::TrendState30m::STATE_WEAK)
 			return STOCK::Signal5m::SIG_SELL;
 
-		if (buyAuxCount > sellAuxCount)
-			return STOCK::Signal5m::SIG_BUY;
-		if (sellAuxCount > buyAuxCount)
-			return STOCK::Signal5m::SIG_SELL;
-		return STOCK::Signal5m::SIG_NONE;
+		return STOCK::Signal5m::SIG_BUY;
 	}
 	if (hasSell) return STOCK::Signal5m::SIG_SELL;
 	if (hasBuy) return STOCK::Signal5m::SIG_BUY;
@@ -465,7 +491,7 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 
 bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
 {
-	if (bars5.size() < 120)
+	if (bars5.size() < 60)
 		return false;
 
 	// 布林带宽放大：使用当前带宽增长率或历史高分位，避免强制连续三根导致风控滞后
@@ -480,7 +506,8 @@ bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK:
 		bollBandSeq[i] = 4.0 * CalcStdDev(closes);
 	}
 	bool bandExpand = IsBollExpand(bollBandSeq, bars5.size() - 1);
-	bool narrowBand = IsNarrowBoll(boll.mid, boll.bandwidth);
+	double avgBollBandwidth = CalcAverageBollBandwidth(bollBandSeq, bars5.size() - 1);
+	bool narrowBand = IsNarrowBoll(boll.mid, avgBollBandwidth);
 
 	// KDJ钝化
 	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
@@ -502,14 +529,12 @@ bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK:
 	bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
 		&& wr6 < wrPrev && wrPrev < wrPrevPrev);
 
-	// 风控判定：按趋势动态处理
-	if (bandExpand || narrowBand)
-		return true;
-	if (trendState == STOCK::TrendState30m::STATE_STRONG)
-		return kdjBottomPassive || wrTopPassive || wrBottomPassive;
+	// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
 	if (trendState == STOCK::TrendState30m::STATE_WEAK)
-		return kdjTopPassive || wrTopPassive || wrBottomPassive;
-	return kdjTopPassive || kdjBottomPassive || wrTopPassive || wrBottomPassive;
+		return false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		return kdjBottomPassive || wrBottomPassive;
+	return bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
 }
 
 // ========== 智能分析模块：完整买卖点判定函数 ==========
@@ -524,13 +549,7 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 	signal.trendState = trendState;
 
 	// ===== 第2步：先判断是否禁止交易（风控过滤） =====
-	if (IsForbidTrade(bars5, trendState))
-	{
-		signal.isForbid = true;
-		signal.valid = false;
-		signal.reason = _T("单边钝化，停止滚动做T");
-		return signal;
-	}
+	bool forbidTrade = IsForbidTrade(bars5, trendState);
 
 	// ===== 第3步：获取5分钟共振买卖信号 =====
 	STOCK::Signal5m sig = Get5mSignal(bars5, trendState);
@@ -538,6 +557,14 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 	if (sig == STOCK::Signal5m::SIG_NONE)
 	{
 		signal.valid = false;
+		return signal;
+	}
+
+	if (forbidTrade && sig != STOCK::Signal5m::SIG_SELL)
+	{
+		signal.isForbid = true;
+		signal.valid = false;
+		signal.reason = _T("风控限制买入，停止低吸做T");
 		return signal;
 	}
 
@@ -637,8 +664,8 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 {
 	std::vector<SmartSignalPoint> result;
 	size_t n = bars5.size();
-	// EMA稳定性：至少120根K线用于计算指标（EMA26需足够历史）
-	if (n < 120) return result;
+	// EMA稳定性：至少60根K线用于盘中短线检测
+	if (n < 60) return result;
 
 	// 1. 30分钟趋势（一次性）
 	STOCK::TrendState30m trendState = Get30mTrendState(bars30);
@@ -697,6 +724,7 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 
 	// 3. 逐根K线检测信号（使用预计算序列，缓存上一根指标结果）
 	double lastSignalPrice = 0;
+	int lastForbidBarIndex = -MIN_SIGNAL_BAR_GAP;
 	for (size_t i = 21; i < n; i++)
 	{
 		// ===== 风控过滤（优化版） =====
@@ -716,59 +744,47 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		bool wrBottomPassive = (i >= 2 && wr6Seq[i] > 82 && wr6Seq[i - 1] > 82 && wr6Seq[i - 2] > 82
 			&& wr6Seq[i] < wr6Seq[i - 1] && wr6Seq[i - 1] < wr6Seq[i - 2]);
 
-		// 风控判定：布林带宽快速放大或窄幅箱体直接禁止；KDJ/WR钝化按趋势动态处理
+		// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
 		bool forbid = false;
-		bool narrowBand = IsNarrowBoll(bollMid[i], bollBand[i]);
-		if (bandExpand || narrowBand)
+		bool narrowBand = IsNarrowBoll(bollMid[i], CalcAverageBollBandwidth(bollBand, i));
+		if (trendState == STOCK::TrendState30m::STATE_STRONG)
 		{
-			forbid = true;
+			forbid = kdjBottomPassive || wrBottomPassive;
 		}
-		else if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		else if (trendState == STOCK::TrendState30m::STATE_SHAKE)
 		{
-			// 强势：允许KDJ高位钝化（趋势延续正常），只禁止低位钝化和WR钝化
-			forbid = kdjBottomPassive || wrTopPassive || wrBottomPassive;
-		}
-		else if (trendState == STOCK::TrendState30m::STATE_WEAK)
-		{
-			// 弱势：允许KDJ低位钝化（下跌延续正常），只禁止高位钝化和WR钝化
-			forbid = kdjTopPassive || wrTopPassive || wrBottomPassive;
-		}
-		else
-		{
-			// 震荡：KDJ/WR钝化都禁止
-			forbid = kdjTopPassive || kdjBottomPassive || wrTopPassive || wrBottomPassive;
+			forbid = bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
 		}
 
-		if (forbid)
+		if (forbid && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
 		{
-			result.push_back({ static_cast<int>(i), false, true, trendState, _T("禁止做T") });
-			continue;
+			result.push_back({ static_cast<int>(i), false, true, trendState, _T("风控限制买入") });
+			lastForbidBarIndex = static_cast<int>(i);
 		}
 
 		// ===== 信号判定（优化版：必要条件组+辅助条件组，解决指标共线性） =====
 
 		// --- 卖出判定 ---
-		// 必要条件组：价格触及轨道(S1) + MACD信号(S2) 至少满足1个
-		bool sellS1 = (bars5[i].high >= bollUp[i]);
-		// MACD：红柱缩短 or 顶背离（DIF远离0轴才认定有效动量信号）
-		double macdDifThreshold = GetMacdDifThreshold(bars5[i].close);
-		bool sellS2_redShrink = (macdBarSeq[i] > 0) && (macdBarSeq[i] < macdBarSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
-		bool sellS2_topDiv = (bars5[i].high > bars5[i - 1].high) && (difSeq[i] < difSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
+		// 必要条件组：价格突破轨道(S1) + MACD动量减弱(S2) 至少满足1个
+		bool sellS1 = (bars5[i].high >= bollUp[i]) || (bars5[i].close > bollUp[i]);
+		bool sellS2_redShrink = (macdBarSeq[i] > 0) && (macdBarSeq[i] < macdBarSeq[i - 1]);
+		bool sellS2_topDiv = (bars5[i].high > bars5[i - 1].high) && (difSeq[i] < difSeq[i - 1]);
 		bool sellS2 = sellS2_redShrink || sellS2_topDiv;
 		bool sellNecessary = (sellS1 || sellS2);
 
-		// 辅助条件组：KDJ/RSI/WR 三个超买指标至少满足2个
-		bool sellA1 = (kSeq[i] > KDJ_OVERBUY && dSeq[i] > KDJ_OVERBUY && jSeq[i] < jSeq[i - 1]);
+		// 辅助条件组：KDJ/RSI/WR 三个超买指标满足1个即可触发卖出辅助
+		bool sellA1 = ((kSeq[i] > KDJ_OVERBUY && dSeq[i] > SELL_KDJ_D_OVERBUY && jSeq[i] < jSeq[i - 1]) || jSeq[i] > 100.0);
 		bool sellA2 = (rsi6Seq[i] > 70);
-		bool sellA3 = (wr6Seq[i] < 20);
+		bool sellA3 = (wr6Seq[i] < SELL_WR_OVERBUY);
 		int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0);
 
-		bool hasSell = sellNecessary && (sellAuxCount >= 2);
+		bool hasSell = sellNecessary && (sellAuxCount >= 1);
 
 		// --- 买入判定 ---
 		// 必要条件组：价格触及轨道(B1) + MACD信号(B2) 至少满足1个
 		bool buyB1 = (bars5[i].low <= bollDn[i]);
 		// MACD：绿柱缩短 or 底背离（DIF远离0轴才认定有效动量信号）
+		double macdDifThreshold = GetMacdDifThreshold(bars5[i].close);
 		bool buyB2_greenShrink = (macdBarSeq[i] < 0) && (macdBarSeq[i] > macdBarSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
 		bool buyB2_bottomDiv = (bars5[i].low < bars5[i - 1].low) && (difSeq[i] > difSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
 		bool buyB2 = buyB2_greenShrink || buyB2_bottomDiv;
@@ -783,18 +799,19 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		bool hasBuy = buyNecessary && (buyAuxCount >= 2);
 
 		if (!hasSell && !hasBuy) continue;
+		if (forbid && hasBuy && !hasSell)
+			continue;
 		if (lastSignalPrice > 0 && fabs(bars5[i].close - lastSignalPrice) < GetSignalPriceDiffThreshold(bars5, i))
 			continue;
 
-		// 买卖同时满足时，震荡且辅助条件数量相等则不输出信号
+		// 买卖同时满足时，卖出辅助不弱于买入则优先保留卖点
 		bool isBuy;
 		if (hasSell && hasBuy)
 		{
-			if (trendState == STOCK::TrendState30m::STATE_STRONG) isBuy = true;
+			if (sellAuxCount >= buyAuxCount) isBuy = false;
+			else if (trendState == STOCK::TrendState30m::STATE_STRONG) isBuy = true;
 			else if (trendState == STOCK::TrendState30m::STATE_WEAK) isBuy = false;
-			else if (buyAuxCount > sellAuxCount) isBuy = true;
-			else if (sellAuxCount > buyAuxCount) isBuy = false;
-			else continue;
+			else isBuy = true;
 		}
 		else
 		{

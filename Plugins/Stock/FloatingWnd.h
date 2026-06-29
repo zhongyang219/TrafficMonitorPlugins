@@ -44,6 +44,7 @@ protected:
 	afx_msg void OnBnClickedMin5KLineBtn();
 	afx_msg void OnBnClickedMin30KLineBtn();
 	afx_msg void OnBnClickedTrendBtn();
+	afx_msg void OnBnClickedT0Btn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
 	afx_msg void OnBnClickedBollBtn();
@@ -140,6 +141,7 @@ private:
 	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
 	CSignalAnalyzer::T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
 	CSignalAnalyzer::T0Signal DetectSellSignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
+	void TestSmartSignalOnDoubleClick(int timelineIndex);
 	void DrawTimelinePositionInfo(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContext& ctx);
 
@@ -255,6 +257,7 @@ private:
 	CButton m_btnKLine;
 	CButton m_btnMin5KLine;
 	CButton m_btnMin30KLine;
+	CButton m_btnT0;
 	CButton m_btnTrend;
 	CButton m_btnMA;
 	CButton m_btnBoll;
@@ -328,6 +331,7 @@ private:
 	bool m_isHoveringKLineVolume{ false };
 	bool m_isHoveringKDJ{ false };
 	bool m_showTrendView{ false };
+	bool m_showT0Markers{ false };
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };
 	int m_klineHoveredBarIndex{ -1 };

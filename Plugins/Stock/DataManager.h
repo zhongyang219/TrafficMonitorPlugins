@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <ctime>
 #include "resource.h"
 #include "StockDef.h"
 #include <mutex>
@@ -86,6 +87,8 @@ public:
 
 	// 交易记录数据库操作
 	bool SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total);
+	bool SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume);
+	void LoadTodayInnerOuterSnapshots();
 
 private:
 	void InitDatabase();

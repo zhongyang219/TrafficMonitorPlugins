@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -128,10 +128,12 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		{
 			stockData->info.innerVolume = { convert<Volume>(data_arr[8]) * 100 };
 			stockData->info.outerVolume = { convert<Volume>(data_arr[7]) * 100 };
-			// 保存内外盘快照
 			time_t now;
 			time(&now);
-			stockData->addVolumeSnapshot(now, stockData->info.innerVolume, stockData->info.outerVolume);
+			if (stockData->addVolumeSnapshot(now, stockData->info.innerVolume, stockData->info.outerVolume))
+			{
+				g_data.SaveInnerOuterSnapshot(key, stockData->volumeSnapshots.back().timestamp, stockData->info.innerVolume, stockData->info.outerVolume);
+			}
 		}
 		if (data_arr.size() >= 39)
 		{

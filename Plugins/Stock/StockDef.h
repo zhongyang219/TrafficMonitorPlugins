@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 #include <vector>
@@ -400,20 +400,63 @@ namespace STOCK
 		Price lastBid1Price{ 0 };    // 上次买一价格（变化时清零）
 		DWORD lastTickTime{ 0 };     // 上次计时的时间戳
 
-		// 内外盘历史快照（按时间保存，用于计算1分钟/5分钟内外盘差值）
+		// 内外盘分钟快照（按分钟保存，用于计算1/5/10/30分钟净差）
 		struct VolumeSnapshot {
 			time_t timestamp;
 			Volume innerVolume;
 			Volume outerVolume;
 		};
-		std::vector<VolumeSnapshot> volumeSnapshots;  // 按时间排序的快照
-		void addVolumeSnapshot(time_t t, Volume inner, Volume outer)
+		std::vector<VolumeSnapshot> volumeSnapshots;
+		time_t lastVolumeSnapshotMinute{ 0 };
+		void clearVolumeSnapshots()
 		{
-			volumeSnapshots.push_back({ t, inner, outer });
-			// 只保留最近10分钟的数据
-			time_t cutoff = t - 600;
+			volumeSnapshots.clear();
+			lastVolumeSnapshotMinute = 0;
+		}
+		bool addVolumeSnapshot(time_t t, Volume inner, Volume outer)
+		{
+			time_t minuteTime = t - t % 60;
+			if (minuteTime <= 0 || minuteTime == lastVolumeSnapshotMinute)
+				return false;
+
+			volumeSnapshots.push_back({ minuteTime, inner, outer });
+			lastVolumeSnapshotMinute = minuteTime;
+			time_t cutoff = minuteTime - 30 * 60;
 			while (!volumeSnapshots.empty() && volumeSnapshots.front().timestamp < cutoff)
 				volumeSnapshots.erase(volumeSnapshots.begin());
+			return true;
+		}
+
+		bool GetInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
+		{
+			if (minutes <= 0 || volumeSnapshots.empty())
+				return false;
+
+			time_t endTime = volumeSnapshots.back().timestamp;
+			time_t startTime = endTime - minutes * 60;
+			const VolumeSnapshot* startSnapshot = nullptr;
+			for (const auto& snapshot : volumeSnapshots)
+			{
+				if (snapshot.timestamp <= startTime)
+					startSnapshot = &snapshot;
+				else
+					break;
+			}
+			if (startSnapshot == nullptr && volumeSnapshots.size() >= static_cast<size_t>(minutes + 1))
+				startSnapshot = &volumeSnapshots[volumeSnapshots.size() - minutes - 1];
+			if (startSnapshot == nullptr)
+				return false;
+
+			const auto& endSnapshot = volumeSnapshots.back();
+			Volume inner = endSnapshot.innerVolume - startSnapshot->innerVolume;
+			Volume outer = endSnapshot.outerVolume - startSnapshot->outerVolume;
+			if (inner < 0 || outer < 0)
+				return false;
+
+			diff = outer - inner;
+			Volume total = inner + outer;
+			ratio = total > 0 ? static_cast<double>(diff) / total * 100 : 0;
+			return total > 0;
 		}
 
 		// 持仓盈亏计算（需要外部传入成本价和持股数）
