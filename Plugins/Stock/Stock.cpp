@@ -1684,11 +1684,11 @@ void Stock::CheckT0AlertForStock(const std::wstring& code)
 	for (const auto& kp : min30KLineObj->data)
 		bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 
-	// 使用CFloatingWnd的智能分析函数
-	auto sig = CFloatingWnd::DetectSmartSignal(bars5, bars30);
-
 	time_t now = time(nullptr);
 	auto& state = m_t0_alert_state[code];
+
+	// 使用CFloatingWnd的智能分析函数
+	auto sig = CSignalAnalyzer::DetectSmartSignal(bars5, bars30, state.last_signal_price);
 
 	// 风控禁止告警
 	if (sig.isForbid && !state.last_buy_signal && !state.last_sell_signal)
@@ -1716,10 +1716,10 @@ void Stock::CheckT0AlertForStock(const std::wstring& code)
 			default:                                 trendStr = _T("震荡"); break;
 			}
 			// 将简短标记转为可读描述
-			if (sig.reason == _T("正T买入"))  actionStr = _T("正T买入");
-			else if (sig.reason == _T("正T卖出")) actionStr = _T("正T卖出");
-			else if (sig.reason == _T("反T卖出")) actionStr = _T("反T卖出");
-			else if (sig.reason == _T("反T买回")) actionStr = _T("反T买回");
+			if (sig.reason == _T("正买"))  actionStr = _T("正买");
+			else if (sig.reason == _T("正卖")) actionStr = _T("正卖");
+			else if (sig.reason == _T("反卖")) actionStr = _T("反卖");
+			else if (sig.reason == _T("反买")) actionStr = _T("反买");
 			else                              actionStr = sig.reason;
 			alert_msg.Format(_T("%s (%s):\n【%s】\n当前价格: %.3f\n30分钟趋势: %s"),
 				stock_data->info.displayName.c_str(),
@@ -1735,6 +1735,8 @@ void Stock::CheckT0AlertForStock(const std::wstring& code)
 		}
 	}
 	state.last_buy_signal = (sig.valid && sig.isBuy);
+	if (sig.valid)
+		state.last_signal_price = sig.price;
 
 	// 卖点告警
 	if (sig.valid && !sig.isBuy && !state.last_sell_signal)

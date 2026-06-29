@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64EC">
@@ -252,6 +252,7 @@
     <ClInclude Include="Common.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="FloatingWnd.h" />
+    <ClInclude Include="SignalAnalyzer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ManagerDialog.h" />
     <ClInclude Include="OptionsDlg.h" />
@@ -268,6 +269,7 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="FloatingWnd.cpp" />
+    <ClCompile Include="SignalAnalyzer.cpp" />
     <ClCompile Include="ManagerDialog.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="源文件">
@@ -27,6 +27,9 @@
     </Filter>
     <Filter Include="FloatingWnd">
       <UniqueIdentifier>{bc94a766-d2ab-42d5-9671-72960500d3d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SignalAnalyzer">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -59,6 +62,9 @@
     </ClInclude>
     <ClInclude Include="FloatingWnd.h">
       <Filter>FloatingWnd</Filter>
+    </ClInclude>
+    <ClInclude Include="SignalAnalyzer.h">
+      <Filter>SignalAnalyzer</Filter>
     </ClInclude>
     <ClInclude Include="StockDef.h">
       <Filter>DataManager</Filter>
@@ -97,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="FloatingWnd.cpp">
       <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="SignalAnalyzer.cpp">
+      <Filter>SignalAnalyzer</Filter>
     </ClCompile>
     <ClCompile Include="StockDef.cpp">
       <Filter>DataManager</Filter>

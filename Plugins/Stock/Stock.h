@@ -182,6 +182,7 @@ private:
 		time_t last_buy_alert_time = 0;  // 上一次买点告警时间
 		time_t last_sell_alert_time = 0; // 上一次卖点告警时间
 		static constexpr int COOLDOWN_SECONDS = 120; // 同方向告警冷却时间（秒）
+		double last_signal_price = 0.0; // 上一次有效T0信号价格
 	};
 
 	std::map<std::wstring, T0AlertState> m_t0_alert_state;
