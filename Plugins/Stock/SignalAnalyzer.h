@@ -34,12 +34,12 @@ public:
 	// ========== 基础工具函数 ==========
 	static double CalcMA(const std::vector<double>& values, int N);
 	static double CalcEMA(const std::vector<double>& values, int N);
+	static void CalcMACDSeries(const std::vector<STOCK::Bar>& bars, std::vector<double>& difSeq, std::vector<double>& deaSeq, std::vector<double>& barSeq);
 	static double CalcSMA(const std::vector<double>& values, int N, double M = 1.0);
 	static double CalcStdDev(const std::vector<double>& values);
 
 	// ========== 5个核心指标计算函数 ==========
 	static STOCK::BollResult CalcBoll(const std::vector<STOCK::Bar>& bars, int N = 20);
-	static void CalcMACDSeries(const std::vector<STOCK::Bar>& bars, std::vector<double>& difSeq, std::vector<double>& deaSeq, std::vector<double>& barSeq);
 	static STOCK::MACDResult CalcMACD(const std::vector<STOCK::Bar>& bars);
 	static STOCK::KDJResult CalcKDJ(const std::vector<STOCK::Bar>& bars, int N = 9);
 	static double CalcRSI(const std::vector<STOCK::Bar>& bars, int N);

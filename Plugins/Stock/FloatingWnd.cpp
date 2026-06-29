@@ -798,22 +798,27 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		// 均价线
 		CPen avgLinePen(PS_SOLID, 1, COLOR_GOLDEN);
 		CPen* pOldAvgPen = memDC.SelectObject(&avgLinePen);
-
-		std::vector<CPoint> avgPoints;
-		avgPoints.reserve(timelinePoint.size());
+		bool firstAvgPoint = true;
 		for (int i = 0; i < totalPoints; i++)
 		{
 			const auto& item = timelinePoint[i];
+			if (item.averagePrice <= 0)
+			{
+				firstAvgPoint = true;
+				continue;
+			}
 			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-			float yVal = (item.averagePrice - minPrice) * unitY;
-			avgPoints.push_back(CPoint(pointX, (int)yVal));
-		}
-
-		if (!avgPoints.empty())
-		{
-			memDC.MoveTo(avgPoints[0].x, ctx.priceChartTop + ctx.priceChartHeight - avgPoints[0].y);
-			for (int i = 1; i < static_cast<int>(avgPoints.size()); i++)
-				memDC.LineTo(avgPoints[i].x, ctx.priceChartTop + ctx.priceChartHeight - avgPoints[i].y);
+			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((item.averagePrice - minPrice) * unitY);
+			py = max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
+			if (firstAvgPoint)
+			{
+				memDC.MoveTo(pointX, py);
+				firstAvgPoint = false;
+			}
+			else
+			{
+				memDC.LineTo(pointX, py);
+			}
 		}
 		memDC.SelectObject(pOldAvgPen);
 	}
@@ -2192,6 +2197,9 @@ void CFloatingWnd::OnPaint()
 
 		if (!timelinePoint.empty())
 		{
+			// 先基于完整分时数据计算MA，避免缩放/拖动后只用可见区间导致均线与其他APP不一致
+			CalcAllRollingAvgPrices(timelinePoint);
+
 			// 计算可见范围：m_timelineVisibleCount控制缩放，m_timelineScrollOffset控制拖动
 			int totalPoints = static_cast<int>(timelinePoint.size());
 			int visibleCount = min(m_timelineVisibleCount, totalPoints);
@@ -2234,10 +2242,9 @@ void CFloatingWnd::OnPaint()
 			ctx.visibleCount = visibleCount;
 			ctx.klineData = &klineData;
 
-			// 计算滚动均价（为每个可见数据点填充MA5/MA10/MA20）
+			// 使用完整数据中已计算好的MA值
 			if (!subTimeline.empty())
 			{
-				CalcAllRollingAvgPrices(subTimeline);
 				const auto& lastPt = subTimeline.back();
 				ctx.ma1 = lastPt.price;
 				ctx.ma5 = lastPt.ma5;
@@ -2267,6 +2274,11 @@ void CFloatingWnd::OnPaint()
 						visMax = (std::max)(visMax, tp.price);
 						visMin = (std::min)(visMin, tp.price);
 					}
+					if (!m_isKLineMode && tp.averagePrice > 0)
+					{
+						visMax = (std::max)(visMax, tp.averagePrice);
+						visMin = (std::min)(visMin, tp.averagePrice);
+					}
 				}
 				// K线模式：Y轴范围需要包含K线柱的high/low
 				if (m_isKLineMode && ctx.klineData)
@@ -2291,6 +2303,7 @@ void CFloatingWnd::OnPaint()
 				}
 
 				// Y轴固定6等分7根横线：至少保留上下各1格边距，最小刻度0.001
+				// 以可见最高/最低价的中点作为Y轴中线，再向上下对称扩展，避免走势线贴底/贴顶
 				const double DIV_COUNT = 6.0;
 				const double MIN_STEP = 0.001;
 				double range = visMax - visMin;
@@ -2307,18 +2320,10 @@ void CFloatingWnd::OnPaint()
 				else niceStep = 10.0 * mag;
 				niceStep = (std::max)(niceStep, MIN_STEP);
 
-				double calcMin = floor(visMin / niceStep) * niceStep - niceStep;
-				double calcMax = calcMin + DIV_COUNT * niceStep;
-				while (calcMax < visMax - niceStep * 1e-6)
-				{
-					calcMin += niceStep;
-					calcMax += niceStep;
-				}
-				if (calcMin > visMin)
-				{
-					calcMin -= niceStep;
-					calcMax -= niceStep;
-				}
+				double centerPrice = (visMin + visMax) / 2.0;
+				double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
+				double calcMin = centerPrice - halfAxisRange;
+				double calcMax = centerPrice + halfAxisRange;
 
 				ctx.maxPrice = calcMax;
 				ctx.minPrice = calcMin;
@@ -6250,7 +6255,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 	std::stable_sort(priceRows.begin(), priceRows.end(), [](const OrderBookRow& a, const OrderBookRow& b) {
 		return a.price > b.price;
-	});
+		});
 
 	for (int i = 0; i < static_cast<int>(priceRows.size()); i++)
 	{
@@ -7880,10 +7885,10 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			int startIndex = max(0, min(m_timelineScrollOffset, maxOffset));
 
 			// 构建可见子向量并计算MA值（与OnPaint一致）
+			CalcAllRollingAvgPrices(timelinePoint);
 			auto subStart = timelinePoint.begin() + startIndex;
 			auto subEnd = timelinePoint.begin() + startIndex + visibleCount;
 			std::vector<STOCK::TimelinePoint> subTimeline(subStart, subEnd);
-			CalcAllRollingAvgPrices(subTimeline);
 
 			// 鼠标坐标减去Y轴宽度，对应到分时图内部坐标
 			int adjX = point.x - yAxisWidth;
