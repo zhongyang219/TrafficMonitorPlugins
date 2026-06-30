@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "StockDef.h"
 
 class CSignalAnalyzer
@@ -47,6 +47,20 @@ public:
 
 	// ========== 30分钟趋势判定 ==========
 	static STOCK::TrendState30m Get30mTrendState(const std::vector<STOCK::Bar>& bars30);
+
+	// ========== 双周期共振趋势判定（5分钟+30分钟K线） ==========
+	// 30分钟波段结构判定
+	static bool Calc30UpStruct(const std::vector<STOCK::Bar>& bars30);
+	static bool Calc30DownStruct(const std::vector<STOCK::Bar>& bars30);
+	static bool Calc30SideStruct(const std::vector<STOCK::Bar>& bars30);
+	// 5分钟短线多空判定
+	static bool Calc5MinUp(const std::vector<STOCK::Bar>& bars5);
+	static bool Calc5MinDown(const std::vector<STOCK::Bar>& bars5);
+	// 内外盘净比计算
+	static double CalcOuterInnerRatio(STOCK::Volume outerVol, STOCK::Volume innerVol);
+	// 完整趋势判定主函数
+	static STOCK::TrendResult CalcTrend(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30,
+		STOCK::Volume outerVol = 0, STOCK::Volume innerVol = 0);
 
 	// ========== 5分钟共振买卖判定 ==========
 	static STOCK::Signal5m Get5mSignal(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState);

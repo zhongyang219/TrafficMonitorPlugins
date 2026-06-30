@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include <vector>
@@ -51,6 +51,27 @@ bool CDataManager::IsMarketOpen()
 	if (minutes > 15 * 60)              // 15:00之后
 		return false;
 	return true;
+}
+
+int CDataManager::GetTradingMinute(int hour, int minute)
+{
+	int totalMinutes = hour * 60 + minute;
+	if (totalMinutes < 9 * 60 + 30)
+		return -1;
+	if (totalMinutes <= 11 * 60 + 30)
+		return totalMinutes - (9 * 60 + 30);
+	if (totalMinutes < 13 * 60)
+		return 120;  // 午休期间映射到11:30的位置
+	if (totalMinutes <= 15 * 60)
+		return 120 + (totalMinutes - 13 * 60);
+	return -1;
+}
+
+int CDataManager::GetTradingMinute(time_t t)
+{
+	std::tm tm = {};
+	localtime_s(&tm, &t);
+	return GetTradingMinute(tm.tm_hour, tm.tm_min);
 }
 
 void CDataManager::ResetText()
@@ -119,6 +140,29 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
 	InitDatabase();
 	LoadTodayInnerOuterSnapshots();
+
+	// 清理数据库中非今天的快照数据
+	if (m_db != nullptr)
+	{
+		SYSTEMTIME st;
+		GetLocalTime(&st);
+		std::tm todayTm = {};
+		todayTm.tm_year = st.wYear - 1900;
+		todayTm.tm_mon = st.wMonth - 1;
+		todayTm.tm_mday = st.wDay;
+		time_t dayStart = std::mktime(&todayTm);
+		if (dayStart > 0)
+		{
+			const char* cleanSql = "DELETE FROM inner_outer_snapshots WHERE snapshot_time < ?;";
+			sqlite3_stmt* stmt = nullptr;
+			if (sqlite3_prepare_v2(m_db, cleanSql, -1, &stmt, nullptr) == SQLITE_OK)
+			{
+				sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(dayStart));
+				sqlite3_step(stmt);
+				sqlite3_finalize(stmt);
+			}
+		}
+	}
 }
 
 void CDataManager::InitDatabase()
@@ -240,7 +284,7 @@ void CDataManager::LoadTodayInnerOuterSnapshots()
 	{
 		auto stockData = GetStockData(code);
 		if (!stockData) continue;
-		stockData->clearVolumeSnapshots();
+		stockData->ClearVolumePools();
 
 		sqlite3_stmt* stmt = nullptr;
 		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
@@ -255,7 +299,11 @@ void CDataManager::LoadTodayInnerOuterSnapshots()
 			time_t timestamp = static_cast<time_t>(sqlite3_column_int64(stmt, 0));
 			STOCK::Volume innerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
 			STOCK::Volume outerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 2));
-			stockData->addVolumeSnapshot(timestamp, innerVolume, outerVolume);
+			int tradingMinute = GetTradingMinute(timestamp);
+			if (tradingMinute >= 0)
+				stockData->AddVolumeSample(timestamp, innerVolume, outerVolume);
+			stockData->info.innerVolume = innerVolume;
+			stockData->info.outerVolume = outerVolume;
 		}
 
 		sqlite3_finalize(stmt);

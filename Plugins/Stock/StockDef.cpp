@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -24,6 +24,9 @@ constexpr auto _DATA_LEN_NF = 16;
 constexpr auto _DATA_LEN_HF = 14;
 
 using namespace STOCK;
+
+const int StockData::POOL_SIZES[4] = { 12, 60, 120, 240 };
+const int StockData::POOL_MINUTES[4] = { 1, 5, 10, 20 };
 
 void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 {
@@ -124,18 +127,27 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 			values.pop_back();
 
 		std::vector<std::string> data_arr = CCommon::split(values, "~");
-		if (data_arr.size() >= 9)
+		if (data_arr.size() >= 9 && !data_arr[7].empty() && !data_arr[8].empty())
 		{
-			stockData->info.innerVolume = { convert<Volume>(data_arr[8]) * 100 };
-			stockData->info.outerVolume = { convert<Volume>(data_arr[7]) * 100 };
-			time_t now;
-			time(&now);
-			if (stockData->addVolumeSnapshot(now, stockData->info.innerVolume, stockData->info.outerVolume))
+			Volume innerVolume = convert<Volume>(data_arr[8]) * 100;
+			Volume outerVolume = convert<Volume>(data_arr[7]) * 100;
+			if (innerVolume > 0 || outerVolume > 0)
 			{
-				g_data.SaveInnerOuterSnapshot(key, stockData->volumeSnapshots.back().timestamp, stockData->info.innerVolume, stockData->info.outerVolume);
+				stockData->info.innerVolume = innerVolume;
+				stockData->info.outerVolume = outerVolume;
+				time_t now;
+				time(&now);
+				int tradingMinute = CDataManager::GetTradingMinute(now);
+				if (tradingMinute >= 0)
+				{
+					if (stockData->AddVolumeSample(now, stockData->info.innerVolume, stockData->info.outerVolume))
+					{
+						g_data.SaveInnerOuterSnapshot(key, now, stockData->info.innerVolume, stockData->info.outerVolume);
+					}
+				}
 			}
 		}
-		if (data_arr.size() >= 39)
+		if (data_arr.size() >= 39 && !data_arr[38].empty())
 		{
 			stockData->info.turnoverRate = { convert<Amount>(data_arr[38]) };
 		}

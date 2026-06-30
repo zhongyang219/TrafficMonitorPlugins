@@ -21,6 +21,13 @@ namespace
 	constexpr double KDJ_OVERSELL = 20.0;
 	constexpr int MIN_SIGNAL_BAR_GAP = 5;
 
+	// 双周期共振趋势判定参数
+	constexpr size_t TREND_30M_LOOKBACK = 25;      // 30分钟K线回看根数
+	constexpr size_t TREND_5M_LOOKBACK = 20;       // 5分钟K线回看根数
+	constexpr double MA20_SLOPE_THRESHOLD = 0.001;  // MA20斜率阈值，低于此视为走平
+	constexpr size_t SWING_MIN_BARS = 3;            // 波段极值最小间隔K线数
+	constexpr double VOL_RATIO_THRESHOLD = 1.3;     // 量比阈值（上涨放量/回调缩量）
+
 	double GetMacdDifThreshold(double price)
 	{
 		return price > 0 ? price * MACD_DIF_PRICE_RATIO : 0.0;
@@ -391,6 +398,453 @@ STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::
 		return STOCK::TrendState30m::STATE_STRONG;  // 强势：回踩可低吸正T
 	else
 		return STOCK::TrendState30m::STATE_SHAKE;   // 震荡：正反T均可
+}
+
+// ========== 双周期共振趋势判定模块 ==========
+
+namespace
+{
+	// 波段极值点结构
+	struct SwingPoint {
+		size_t index;   // K线索引
+		double value;   // 极值价格
+		bool isHigh;    // true=高点, false=低点
+	};
+
+	// 提取波段高低点序列：遍历K线，局部极大值为高点，局部极小值为低点
+	// minBars: 两侧至少minBars根K线才能确认极值
+	std::vector<SwingPoint> ExtractSwingPoints(const std::vector<STOCK::Bar>& bars, size_t minBars = SWING_MIN_BARS)
+	{
+		std::vector<SwingPoint> points;
+		if (bars.size() < 2 * minBars + 1)
+			return points;
+
+		for (size_t i = minBars; i < bars.size() - minBars; i++)
+		{
+			// 检查是否为局部高点
+			bool isHigh = true;
+			for (size_t j = i - minBars; j < i; j++)
+			{
+				if (bars[j].high >= bars[i].high) { isHigh = false; break; }
+			}
+			if (isHigh)
+			{
+				for (size_t j = i + 1; j <= i + minBars; j++)
+				{
+					if (bars[j].high >= bars[i].high) { isHigh = false; break; }
+				}
+			}
+			if (isHigh)
+			{
+				// 避免连续同类型极值点，只保留更高的
+				if (!points.empty() && points.back().isHigh && points.back().value >= bars[i].high)
+					continue;
+				if (!points.empty() && points.back().isHigh && points.back().value < bars[i].high)
+					points.back() = { i, bars[i].high, true };
+				else
+					points.push_back({ i, bars[i].high, true });
+				continue;
+			}
+
+			// 检查是否为局部低点
+			bool isLow = true;
+			for (size_t j = i - minBars; j < i; j++)
+			{
+				if (bars[j].low <= bars[i].low) { isLow = false; break; }
+			}
+			if (isLow)
+			{
+				for (size_t j = i + 1; j <= i + minBars; j++)
+				{
+					if (bars[j].low <= bars[i].low) { isLow = false; break; }
+				}
+			}
+			if (isLow)
+			{
+				// 避免连续同类型极值点，只保留更低的
+				if (!points.empty() && !points.back().isHigh && points.back().value <= bars[i].low)
+					continue;
+				if (!points.empty() && !points.back().isHigh && points.back().value > bars[i].low)
+					points.back() = { i, bars[i].low, false };
+				else
+					points.push_back({ i, bars[i].low, false });
+			}
+		}
+		return points;
+	}
+
+	// 从波段点中分别提取高点序列和低点序列
+	void SeparateSwingPoints(const std::vector<SwingPoint>& swings,
+		std::vector<double>& highs, std::vector<double>& lows)
+	{
+		highs.clear();
+		lows.clear();
+		for (const auto& p : swings)
+		{
+			if (p.isHigh)
+				highs.push_back(p.value);
+			else
+				lows.push_back(p.value);
+		}
+	}
+
+	// 判断序列是否逐次抬高（至少3个点，每个点 > 前一个点）
+	bool IsAscending(const std::vector<double>& vals)
+	{
+		if (vals.size() < 3) return false;
+		size_t n = vals.size();
+		return vals[n - 1] > vals[n - 2] && vals[n - 2] > vals[n - 3];
+	}
+
+	// 判断序列是否逐次降低（至少3个点，每个点 < 前一个点）
+	bool IsDescending(const std::vector<double>& vals)
+	{
+		if (vals.size() < 3) return false;
+		size_t n = vals.size();
+		return vals[n - 1] < vals[n - 2] && vals[n - 2] < vals[n - 3];
+	}
+
+	// 计算MA20斜率：用最近两根MA20的差值除以价格归一化
+	double CalcMA20Slope(const std::vector<STOCK::Bar>& bars)
+	{
+		if (bars.size() < 22) return 0.0;  // 至少需要21根算MA20，22根算斜率
+
+		// 当前MA20
+		std::vector<double> closes1;
+		closes1.reserve(20);
+		for (auto it = bars.end() - 20; it != bars.end(); ++it)
+			closes1.push_back(it->close);
+		double ma20_current = CSignalAnalyzer::CalcMA(closes1, 20);
+
+		// 前一根MA20
+		std::vector<double> closes2;
+		closes2.reserve(20);
+		for (auto it = bars.end() - 21; it != bars.end() - 1; ++it)
+			closes2.push_back(it->close);
+		double ma20_prev = CSignalAnalyzer::CalcMA(closes2, 20);
+
+		// 归一化斜率
+		double mid = (ma20_current + ma20_prev) / 2.0;
+		return mid > 0 ? (ma20_current - ma20_prev) / mid : 0.0;
+	}
+
+	// 判断高低点是否来回交叉（无持续抬高/降低）
+	bool IsSwingCrossing(const std::vector<double>& highs, const std::vector<double>& lows)
+	{
+		if (highs.size() < 3 || lows.size() < 3) return true;  // 数据不足视为交叉
+
+		// 高点既非逐次抬高也非逐次降低
+		bool highNoTrend = !IsAscending(highs) && !IsDescending(highs);
+		// 低点既非逐次抬高也非逐次降低
+		bool lowNoTrend = !IsAscending(lows) && !IsDescending(lows);
+
+		return highNoTrend && lowNoTrend;
+	}
+
+	// 计算价格穿越MA20的频率：在最近N根K线中，收盘价穿越MA20的次数
+	int CountMACrossings(const std::vector<STOCK::Bar>& bars, int period = 20)
+	{
+		if (static_cast<int>(bars.size()) < period + 1) return 0;
+
+		int crossings = 0;
+		for (int i = static_cast<int>(bars.size()) - period; i < static_cast<int>(bars.size()); i++)
+		{
+			if (i < 1) continue;
+			// 计算i和i-1位置的MA20
+			int start1 = (i - 19 > 0) ? i - 19 : 0;
+			int start0 = (i - 20 > 0) ? i - 20 : 0;
+			if (i - start1 + 1 < 20 || i - 1 - start0 + 1 < 20) continue;
+
+			std::vector<double> c1;
+			c1.reserve(20);
+			for (auto it = bars.begin() + start1; it != bars.begin() + i + 1; ++it)
+				c1.push_back(it->close);
+			std::vector<double> c0;
+			c0.reserve(20);
+			for (auto it = bars.begin() + start0; it != bars.begin() + i; ++it)
+				c0.push_back(it->close);
+			double ma1 = CSignalAnalyzer::CalcMA(c1, 20);
+			double ma0 = CSignalAnalyzer::CalcMA(c0, 20);
+			if (ma1 <= 0 || ma0 <= 0) continue;
+
+			// 收盘价从一侧穿越到另一侧
+			bool prevAbove = bars[i - 1].close > ma0;
+			bool currAbove = bars[i].close > ma1;
+			if (prevAbove != currAbove)
+				crossings++;
+		}
+		return crossings;
+	}
+
+	// 计算5分钟K线中上涨K线放量/回调缩量的特征
+	// 返回：上涨放量占比（0~1，越高越符合多头量能特征）
+	double CalcUpVolumeRatio(const std::vector<STOCK::Bar>& bars5)
+	{
+		if (bars5.size() < 6) return 0.5;
+
+		double upVol = 0, downVol = 0;
+		int upCount = 0, downCount = 0;
+
+		for (size_t i = bars5.size() - 6; i < bars5.size(); i++)
+		{
+			if (i < 1) continue;
+			bool isUp = bars5[i].close > bars5[i - 1].close;
+			if (isUp) { upVol += bars5[i].volume; upCount++; }
+			else { downVol += bars5[i].volume; downCount++; }
+		}
+
+		if (upCount == 0 || downCount == 0) return 0.5;
+		double avgUpVol = upVol / upCount;
+		double avgDownVol = downVol / downCount;
+		// 上涨平均量 > 回调平均量时，返回值 > 0.5
+		double total = avgUpVol + avgDownVol;
+		return total > 0 ? avgUpVol / total : 0.5;
+	}
+}
+
+// 30分钟上升结构判定
+bool CSignalAnalyzer::Calc30UpStruct(const std::vector<STOCK::Bar>& bars30)
+{
+	if (bars30.size() < TREND_30M_LOOKBACK)
+		return false;
+
+	// 取最近25根30分钟K线
+	std::vector<STOCK::Bar> recent(bars30.end() - TREND_30M_LOOKBACK, bars30.end());
+
+	// 提取波段高低点
+	auto swings = ExtractSwingPoints(recent);
+	std::vector<double> swingHighs, swingLows;
+	SeparateSwingPoints(swings, swingHighs, swingLows);
+
+	// 条件1：波段低点逐次抬高
+	bool lowAscending = IsAscending(swingLows);
+	// 条件2：波段高点逐次抬高
+	bool highAscending = IsAscending(swingHighs);
+	// 条件3：最新收盘价 > MA20，且MA20向上倾斜
+	double slope = CalcMA20Slope(recent);
+	std::vector<double> closes;
+	closes.reserve(20);
+	for (auto it = recent.end() - 20; it != recent.end(); ++it)
+		closes.push_back(it->close);
+	double ma20 = CalcMA(closes, 20);
+	bool priceAboveMA20 = recent.back().close > ma20;
+	bool ma20Up = slope > MA20_SLOPE_THRESHOLD;
+
+	return lowAscending && highAscending && priceAboveMA20 && ma20Up;
+}
+
+// 30分钟下跌结构判定
+bool CSignalAnalyzer::Calc30DownStruct(const std::vector<STOCK::Bar>& bars30)
+{
+	if (bars30.size() < TREND_30M_LOOKBACK)
+		return false;
+
+	std::vector<STOCK::Bar> recent(bars30.end() - TREND_30M_LOOKBACK, bars30.end());
+
+	auto swings = ExtractSwingPoints(recent);
+	std::vector<double> swingHighs, swingLows;
+	SeparateSwingPoints(swings, swingHighs, swingLows);
+
+	// 条件1：波段高点逐次降低
+	bool highDescending = IsDescending(swingHighs);
+	// 条件2：波段低点逐次降低
+	bool lowDescending = IsDescending(swingLows);
+	// 条件3：最新收盘价 < MA20，且MA20向下倾斜
+	double slope = CalcMA20Slope(recent);
+	std::vector<double> closes;
+	closes.reserve(20);
+	for (auto it = recent.end() - 20; it != recent.end(); ++it)
+		closes.push_back(it->close);
+	double ma20 = CalcMA(closes, 20);
+	bool priceBelowMA20 = recent.back().close < ma20;
+	bool ma20Down = slope < -MA20_SLOPE_THRESHOLD;
+
+	return highDescending && lowDescending && priceBelowMA20 && ma20Down;
+}
+
+// 30分钟震荡结构判定（满足任意两条即判定为震荡）
+bool CSignalAnalyzer::Calc30SideStruct(const std::vector<STOCK::Bar>& bars30)
+{
+	if (bars30.size() < TREND_30M_LOOKBACK)
+		return true;  // 数据不足默认震荡
+
+	std::vector<STOCK::Bar> recent(bars30.end() - TREND_30M_LOOKBACK, bars30.end());
+
+	// 条件1：MA20走平（斜率接近0）
+	double slope = CalcMA20Slope(recent);
+	bool ma20Flat = fabs(slope) <= MA20_SLOPE_THRESHOLD;
+
+	// 条件2：高低点来回交叉，无持续抬高/降低
+	auto swings = ExtractSwingPoints(recent);
+	std::vector<double> swingHighs, swingLows;
+	SeparateSwingPoints(swings, swingHighs, swingLows);
+	bool crossing = IsSwingCrossing(swingHighs, swingLows);
+
+	// 条件3：价格频繁穿越MA20均线
+	int crossings = CountMACrossings(recent, 20);
+	bool frequentCross = crossings >= 3;
+
+	int sideScore = (ma20Flat ? 1 : 0) + (crossing ? 1 : 0) + (frequentCross ? 1 : 0);
+	return sideScore >= 2;
+}
+
+// 5分钟短线多头判定
+bool CSignalAnalyzer::Calc5MinUp(const std::vector<STOCK::Bar>& bars5)
+{
+	if (bars5.size() < TREND_5M_LOOKBACK)
+		return false;
+
+	std::vector<STOCK::Bar> recent(bars5.end() - TREND_5M_LOOKBACK, bars5.end());
+
+	// 条件1：5分钟短期低点抬高
+	auto swings = ExtractSwingPoints(recent, 2);  // 5分钟用更短的极值间隔
+	std::vector<double> swingHighs, swingLows;
+	SeparateSwingPoints(swings, swingHighs, swingLows);
+	bool lowAscending = IsAscending(swingLows);
+
+	// 条件2：价格站稳5分钟MA5
+	std::vector<double> closes5;
+	closes5.reserve(5);
+	for (auto it = recent.end() - 5; it != recent.end(); ++it)
+		closes5.push_back(it->close);
+	double ma5 = CalcMA(closes5, 5);
+	bool aboveMA5 = recent.back().close > ma5;
+	// 近3根K线收盘价都在MA5上方
+	bool stableAboveMA5 = true;
+	for (int i = static_cast<int>(recent.size()) - 3; i < static_cast<int>(recent.size()); i++)
+	{
+		if (i < 0) continue;
+		std::vector<double> c;
+		c.reserve(5);
+		for (auto it = recent.begin() + (i - 4 > 0 ? i - 4 : 0); it != recent.begin() + i + 1; ++it)
+			c.push_back(it->close);
+		if (static_cast<int>(c.size()) >= 5)
+		{
+			double m = CalcMA(c, 5);
+			if (recent[i].close <= m) { stableAboveMA5 = false; break; }
+		}
+	}
+
+	// 条件3：上涨K线放量、回调缩量
+	double volRatio = CalcUpVolumeRatio(recent);
+	bool upVolDownShrink = volRatio > (1.0 / (1.0 + VOL_RATIO_THRESHOLD));
+
+	// 至少满足2条
+	int score = (lowAscending ? 1 : 0) + (aboveMA5 && stableAboveMA5 ? 1 : 0) + (upVolDownShrink ? 1 : 0);
+	return score >= 2;
+}
+
+// 5分钟短线空头判定
+bool CSignalAnalyzer::Calc5MinDown(const std::vector<STOCK::Bar>& bars5)
+{
+	if (bars5.size() < TREND_5M_LOOKBACK)
+		return false;
+
+	std::vector<STOCK::Bar> recent(bars5.end() - TREND_5M_LOOKBACK, bars5.end());
+
+	// 条件1：5分钟短期高点降低
+	auto swings = ExtractSwingPoints(recent, 2);
+	std::vector<double> swingHighs, swingLows;
+	SeparateSwingPoints(swings, swingHighs, swingLows);
+	bool highDescending = IsDescending(swingHighs);
+
+	// 条件2：价格持续在5分钟MA5下方
+	std::vector<double> closes5;
+	closes5.reserve(5);
+	for (auto it = recent.end() - 5; it != recent.end(); ++it)
+		closes5.push_back(it->close);
+	double ma5 = CalcMA(closes5, 5);
+	bool belowMA5 = recent.back().close < ma5;
+	// 近3根K线收盘价都在MA5下方
+	bool stableBelowMA5 = true;
+	for (int i = static_cast<int>(recent.size()) - 3; i < static_cast<int>(recent.size()); i++)
+	{
+		if (i < 0) continue;
+		std::vector<double> c;
+		c.reserve(5);
+		for (auto it = recent.begin() + (i - 4 > 0 ? i - 4 : 0); it != recent.begin() + i + 1; ++it)
+			c.push_back(it->close);
+		if (static_cast<int>(c.size()) >= 5)
+		{
+			double m = CalcMA(c, 5);
+			if (recent[i].close >= m) { stableBelowMA5 = false; break; }
+		}
+	}
+
+	// 条件3：下跌放量、反弹缩量（即上涨量 < 下跌量）
+	double volRatio = CalcUpVolumeRatio(recent);
+	bool downVolUpShrink = volRatio < (1.0 / (1.0 + VOL_RATIO_THRESHOLD));
+
+	int score = (highDescending ? 1 : 0) + (belowMA5 && stableBelowMA5 ? 1 : 0) + (downVolUpShrink ? 1 : 0);
+	return score >= 2;
+}
+
+// 内外盘净比计算
+double CSignalAnalyzer::CalcOuterInnerRatio(STOCK::Volume outerVol, STOCK::Volume innerVol)
+{
+	STOCK::Volume total = outerVol + innerVol;
+	if (total <= 0) return 0.0;
+	return static_cast<double>(outerVol - innerVol) / total;
+}
+
+// 完整趋势判定主函数：5分钟+30分钟双周期共振
+STOCK::TrendResult CSignalAnalyzer::CalcTrend(
+	const std::vector<STOCK::Bar>& bars5,
+	const std::vector<STOCK::Bar>& bars30,
+	STOCK::Volume outerVol,
+	STOCK::Volume innerVol)
+{
+	STOCK::TrendResult result;
+
+	// ===== 步骤1：30分钟波段结构判定 =====
+	bool b30Up = Calc30UpStruct(bars30);
+	bool b30Down = Calc30DownStruct(bars30);
+	bool b30Side = Calc30SideStruct(bars30);
+	(void)b30Side;  // 震荡标记已通过 baseDir=DIR_SIDE 间接使用
+
+	// ===== 步骤2：确定底层大方向 =====
+	STOCK::TrendDir baseDir;
+	if (b30Up)
+		baseDir = STOCK::TrendDir::DIR_UP;
+	else if (b30Down)
+		baseDir = STOCK::TrendDir::DIR_DOWN;
+	else
+		baseDir = STOCK::TrendDir::DIR_SIDE;
+
+	result.BaseDir = baseDir;
+
+	// ===== 步骤3：5分钟短线多空判定 =====
+	bool b5Up = Calc5MinUp(bars5);
+	bool b5Down = Calc5MinDown(bars5);
+	result.Is5Up = b5Up;
+	result.Is5Down = b5Down;
+
+	// ===== 步骤4：双周期共振合并 =====
+	if (baseDir == STOCK::TrendDir::DIR_UP)
+	{
+		result.FinalTrend = STOCK::TrendDir::DIR_UP;
+		result.IsShortPullback = b5Down;  // 5分钟空头标记短线回调
+	}
+	else if (baseDir == STOCK::TrendDir::DIR_DOWN)
+	{
+		result.FinalTrend = STOCK::TrendDir::DIR_DOWN;
+		result.IsShortRebound = b5Up;     // 5分钟多头标记短线反弹
+	}
+	else  // DIR_SIDE
+	{
+		result.FinalTrend = STOCK::TrendDir::DIR_SIDE;
+		if (b5Up)
+			result.SideTagValue = STOCK::SideTag::SIDE_LONG_POINT;   // 震荡下轨低吸点
+		else if (b5Down)
+			result.SideTagValue = STOCK::SideTag::SIDE_SHORT_POINT;  // 震荡上轨高抛点
+		else
+			result.SideTagValue = STOCK::SideTag::SIDE_MID;          // 震荡中间，观望
+	}
+
+	// ===== 步骤5：内外盘净比辅助校验 =====
+	result.OuterInnerRatio = CalcOuterInnerRatio(outerVol, innerVol);
+
+	return result;
 }
 
 // ========== 智能分析模块：5分钟共振买卖判定 ==========

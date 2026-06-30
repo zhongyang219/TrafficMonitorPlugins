@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <vector>
@@ -102,7 +102,8 @@ namespace STOCK
 
 		Bar() : open(0), high(0), low(0), close(0), volume(0), time(0) {}
 		Bar(double o, double h, double l, double c, double v, long t)
-			: open(o), high(h), low(l), close(c), volume(v), time(t) {}
+			: open(o), high(h), low(l), close(c), volume(v), time(t) {
+		}
 
 		// 从KLinePoint转换（日K/5minK/30minK通用）
 		static Bar FromKLinePoint(const KLinePoint& kp, long timestamp = 0)
@@ -125,6 +126,40 @@ namespace STOCK
 		SIG_SELL,  // 卖出信号
 		SIG_BUY,   // 买入信号
 		SIG_NONE   // 无信号
+	};
+
+	// 趋势方向（双周期共振判定结果）
+	enum class TrendDir
+	{
+		DIR_UP,    // 上涨
+		DIR_DOWN,  // 下跌
+		DIR_SIDE   // 震荡
+	};
+
+	// 震荡区间位置标记
+	enum class SideTag
+	{
+		SIDE_LONG_POINT,  // 震荡下轨低吸点
+		SIDE_SHORT_POINT, // 震荡上轨高抛点
+		SIDE_MID          // 震荡中间，观望
+	};
+
+	// 双周期共振趋势判定结果
+	struct TrendResult
+	{
+		TrendDir FinalTrend;      // 最终趋势: DIR_UP / DIR_DOWN / DIR_SIDE
+		TrendDir BaseDir;         // 30分钟底层方向
+		bool Is5Up;               // 5分钟短线多头
+		bool Is5Down;             // 5分钟短线空头
+		bool IsShortPullback;     // 上涨趋势中短线回调
+		bool IsShortRebound;      // 下跌趋势中短线反弹
+		SideTag SideTagValue;     // 震荡区间位置标记
+		double OuterInnerRatio;   // 内外盘净比 (外盘-内盘)/(外盘+内盘)
+
+		TrendResult() : FinalTrend(TrendDir::DIR_SIDE), BaseDir(TrendDir::DIR_SIDE),
+			Is5Up(false), Is5Down(false), IsShortPullback(false), IsShortRebound(false),
+			SideTagValue(SideTag::SIDE_MID), OuterInnerRatio(0.0) {
+		}
 	};
 
 	// 布林带计算结果
@@ -244,6 +279,9 @@ namespace STOCK
 			lowPrice(0.0),
 			volume(0),
 			turnover(0.0),
+			innerVolume(0),
+			outerVolume(0),
+			turnoverRate(0.0),
 			priceLimit(0.0)
 		{
 			// bidLevels.resize(MAX_LEVEL);
@@ -400,56 +438,113 @@ namespace STOCK
 		Price lastBid1Price{ 0 };    // 上次买一价格（变化时清零）
 		DWORD lastTickTime{ 0 };     // 上次计时的时间戳
 
-		// 内外盘分钟快照（按分钟保存，用于计算1/5/10/30分钟净差）
-		struct VolumeSnapshot {
-			time_t timestamp;
+		// 内外盘5秒快照环形缓存池
+		// 1分钟=12条, 5分钟=60条, 10分钟=120条, 20分钟=240条
+		struct VolumeSample {
+			time_t timestamp;       // 真实时间戳
 			Volume innerVolume;
 			Volume outerVolume;
 		};
-		std::vector<VolumeSnapshot> volumeSnapshots;
-		time_t lastVolumeSnapshotMinute{ 0 };
-		void clearVolumeSnapshots()
-		{
-			volumeSnapshots.clear();
-			lastVolumeSnapshotMinute = 0;
-		}
-		bool addVolumeSnapshot(time_t t, Volume inner, Volume outer)
-		{
-			time_t minuteTime = t - t % 60;
-			if (minuteTime <= 0 || minuteTime == lastVolumeSnapshotMinute)
-				return false;
+		static const int POOL_SIZES[4];  // {12, 60, 120, 240}
+		static const int POOL_MINUTES[4]; // {1, 5, 10, 20}
 
-			volumeSnapshots.push_back({ minuteTime, inner, outer });
-			lastVolumeSnapshotMinute = minuteTime;
-			time_t cutoff = minuteTime - 30 * 60;
-			while (!volumeSnapshots.empty() && volumeSnapshots.front().timestamp < cutoff)
-				volumeSnapshots.erase(volumeSnapshots.begin());
+		struct VolumePool {
+			std::vector<VolumeSample> samples;
+			int head{ 0 };       // 环形缓冲区头指针（最旧数据位置）
+			int count{ 0 };      // 当前有效数据量
+			int capacity{ 0 };   // 缓冲区容量
+			void Init(int cap)
+			{
+				capacity = cap;
+				samples.resize(capacity);
+				head = 0;
+				count = 0;
+			}
+			void Clear()
+			{
+				head = 0;
+				count = 0;
+			}
+			void Push(const VolumeSample& sample)
+			{
+				if (count < capacity)
+				{
+					samples[count] = sample;
+					count++;
+				}
+				else
+				{
+					samples[head] = sample;
+					head = (head + 1) % capacity;
+				}
+			}
+			// 获取最旧的有效样本
+			const VolumeSample* Oldest() const
+			{
+				if (count == 0) return nullptr;
+				return &samples[head];
+			}
+			// 获取最新的有效样本
+			const VolumeSample* Newest() const
+			{
+				if (count == 0) return nullptr;
+				int idx = (head + count - 1) % capacity;
+				return &samples[idx];
+			}
+		};
+
+		VolumePool volumePools[4];  // 1分钟/5分钟/10分钟/20分钟
+		time_t lastSampleTime{ 0 }; // 上次采样时间（5秒间隔去重）
+
+		void InitVolumePools()
+		{
+			for (int i = 0; i < 4; i++)
+				volumePools[i].Init(POOL_SIZES[i]);
+			lastSampleTime = 0;
+		}
+		void ClearVolumePools()
+		{
+			for (int i = 0; i < 4; i++)
+				volumePools[i].Clear();
+			lastSampleTime = 0;
+		}
+		// 添加5秒采样数据，同步更新4个缓存池
+		bool AddVolumeSample(time_t t, Volume inner, Volume outer)
+		{
+			// 5秒间隔去重
+			time_t sampleTime = t - t % 5;
+			if (sampleTime <= 0 || sampleTime == lastSampleTime)
+				return false;
+			lastSampleTime = sampleTime;
+
+			VolumeSample sample = { sampleTime, inner, outer };
+			for (int i = 0; i < 4; i++)
+				volumePools[i].Push(sample);
 			return true;
 		}
 
+		// 从缓存池获取净差和净比
 		bool GetInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
 		{
-			if (minutes <= 0 || volumeSnapshots.empty())
-				return false;
-
-			time_t endTime = volumeSnapshots.back().timestamp;
-			time_t startTime = endTime - minutes * 60;
-			const VolumeSnapshot* startSnapshot = nullptr;
-			for (const auto& snapshot : volumeSnapshots)
+			int poolIdx = -1;
+			for (int i = 0; i < 4; i++)
 			{
-				if (snapshot.timestamp <= startTime)
-					startSnapshot = &snapshot;
-				else
+				if (POOL_MINUTES[i] == minutes)
+				{
+					poolIdx = i;
 					break;
+				}
 			}
-			if (startSnapshot == nullptr && volumeSnapshots.size() >= static_cast<size_t>(minutes + 1))
-				startSnapshot = &volumeSnapshots[volumeSnapshots.size() - minutes - 1];
-			if (startSnapshot == nullptr)
+			if (poolIdx < 0) return false;
+
+			const VolumePool& pool = volumePools[poolIdx];
+			const VolumeSample* oldest = pool.Oldest();
+			const VolumeSample* newest = pool.Newest();
+			if (!oldest || !newest || oldest == newest)
 				return false;
 
-			const auto& endSnapshot = volumeSnapshots.back();
-			Volume inner = endSnapshot.innerVolume - startSnapshot->innerVolume;
-			Volume outer = endSnapshot.outerVolume - startSnapshot->outerVolume;
+			Volume inner = newest->innerVolume - oldest->innerVolume;
+			Volume outer = newest->outerVolume - oldest->outerVolume;
 			if (inner < 0 || outer < 0)
 				return false;
 
@@ -457,6 +552,61 @@ namespace STOCK
 			Volume total = inner + outer;
 			ratio = total > 0 ? static_cast<double>(diff) / total * 100 : 0;
 			return total > 0;
+		}
+
+		// 获取前一次净差（倒数第二个样本 vs 倒数第二个往前N个）
+		bool GetPreviousInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
+		{
+			int poolIdx = -1;
+			for (int i = 0; i < 4; i++)
+			{
+				if (POOL_MINUTES[i] == minutes)
+				{
+					poolIdx = i;
+					break;
+				}
+			}
+			if (poolIdx < 0) return false;
+
+			const VolumePool& pool = volumePools[poolIdx];
+			if (pool.count < 2) return false;
+
+			// 倒数第二个样本
+			int prevIdx = (pool.head + pool.count - 2) % pool.capacity;
+			const VolumeSample& prevNewest = pool.samples[prevIdx];
+
+			// 对应的"最旧"样本（往前推count-1个）
+			if (pool.count < 3) return false;
+			int prevOldestIdx;
+			if (pool.count - 1 <= pool.capacity)
+				prevOldestIdx = pool.head;
+			else
+				prevOldestIdx = (pool.head + 1) % pool.capacity;
+			const VolumeSample& prevOldest = pool.samples[prevOldestIdx];
+
+			Volume inner = prevNewest.innerVolume - prevOldest.innerVolume;
+			Volume outer = prevNewest.outerVolume - prevOldest.outerVolume;
+			if (inner < 0 || outer < 0)
+				return false;
+
+			diff = outer - inner;
+			Volume total = inner + outer;
+			ratio = total > 0 ? static_cast<double>(diff) / total * 100 : 0;
+			return total > 0;
+		}
+
+		bool GetPreviousInnerOuterTotalRatio(double& ratio) const
+		{
+			// 使用1分钟池的倒数第二个样本
+			const VolumePool& pool = volumePools[0];
+			if (pool.count < 2) return false;
+
+			int prevIdx = (pool.head + pool.count - 2) % pool.capacity;
+			const VolumeSample& prev = pool.samples[prevIdx];
+			Volume total = prev.innerVolume + prev.outerVolume;
+			if (total <= 0) return false;
+			ratio = static_cast<double>(prev.outerVolume - prev.innerVolume) / total * 100;
+			return true;
 		}
 
 		// 持仓盈亏计算（需要外部传入成本价和持股数）
@@ -499,6 +649,9 @@ namespace STOCK
 			for (const auto& it : stocks)
 			{
 				StockInfo data;
+				data.innerVolume = it.second->info.innerVolume;
+				data.outerVolume = it.second->info.outerVolume;
+				data.turnoverRate = it.second->info.turnoverRate;
 				it.second->info = data;
 			}
 		}
@@ -508,6 +661,7 @@ namespace STOCK
 		{
 			StockData stock;
 			stock.info.code = code;
+			stock.InitVolumePools();
 			stocks[code] = std::make_shared<StockData>(stock);
 			return stocks[code];
 		}
