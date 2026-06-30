@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <vector>
 #include <ctime>
 #include "resource.h"
 #include "StockDef.h"
@@ -67,6 +68,12 @@ public:
 	void RequestMin5KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestMin30KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
+	bool RequestChipDistributionData(std::wstring stock_id);
+	void RequestAllChipDistributionData();
+	bool RequestStockBasicData(std::wstring stock_id);
+	void RequestAllStockBasicData();
+	STOCK::Volume GetCirculatingAShares(const std::wstring& code);
+	const STOCK::ChipDistribution* GetChipDistribution(const std::wstring& code);
 
 	SettingData m_setting_data;
 	std::wstring m_log_path;
@@ -92,7 +99,11 @@ public:
 	// 交易记录数据库操作
 	bool SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total);
 	bool SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume);
+	bool SaveChipDistribution(const std::wstring& stockCode, const STOCK::ChipDistribution& chipData);
+	bool SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares);
 	void LoadTodayInnerOuterSnapshots();
+	void LoadChipDistributions();
+	void LoadStockBasicData();
 
 private:
 	void InitDatabase();

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Common.h"
 #include <afxinet.h>    //用于支持使用网络相关的类
 #include <sstream>
@@ -367,6 +367,24 @@ CString CCommon::FormatSignedValue(double value, const CString& format)
 		str.Format(format, value);
 	}
 	return str;
+}
+
+bool CCommon::IsFundCode(const std::wstring& code)
+{
+	std::wstring pureCode = code;
+	if (pureCode.size() >= 8 && iswalpha(pureCode[0]) && iswalpha(pureCode[1]))
+		pureCode = pureCode.substr(2);
+	if (pureCode.length() < 2)
+		return false;
+
+	std::wstring first2 = pureCode.substr(0, 2);
+	const std::vector<std::wstring> fundPrefixes = { L"50", L"51", L"56", L"15", L"16", L"18" };
+	for (const auto& prefix : fundPrefixes)
+	{
+		if (first2 == prefix)
+			return true;
+	}
+	return false;
 }
 
 COLORREF CCommon::GetProfitLossColor(double percent)

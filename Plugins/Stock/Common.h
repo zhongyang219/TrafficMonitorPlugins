@@ -108,6 +108,9 @@ public:
 	// 带正负号的数值格式化：正数带"+"前缀，负数不带额外符号
 	static CString FormatSignedValue(double value, const CString& format = _T("%.2f"));
 
+	// 判断股票代码是否为基金/ETF类标的
+	static bool IsFundCode(const std::wstring& code);
+
 	// 根据涨跌幅百分比获取颜色
 	// >= 5%: 紫色, 0%~5%: 红色, -5%~0%: 绿色, <= -5%: 墨绿色
 	static COLORREF GetProfitLossColor(double percent);

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -43,7 +43,6 @@ protected:
 	afx_msg void OnBnClickedKLineBtn();
 	afx_msg void OnBnClickedMin5KLineBtn();
 	afx_msg void OnBnClickedMin30KLineBtn();
-	afx_msg void OnBnClickedTrendBtn();
 	afx_msg void OnBnClickedT0Btn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
@@ -54,8 +53,10 @@ protected:
 	afx_msg void OnBnClickedIndicatorKDJBtn();
 	afx_msg void OnBnClickedIndicatorWRBtn();
 	afx_msg void OnBnClickedIndicatorRSIBtn();
+	afx_msg void OnBnClickedChipPeakBtn();
 
 private:
+	void EnsureChipPeakData();
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
 	CPoint Stock2Point(int x, int y, int w, int h, double unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
 	void DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
@@ -233,6 +234,7 @@ private:
 
 	void DrawKLinePositionInfo(CDC& memDC, int x, int y, int chartWidth, const STOCK::StockInfo& realtimeData);
 	void DrawKLineInfoPanel(CDC& memDC, int left, int right, int bottomY, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
+	void DrawChipPeakPanel(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const STOCK::ChipDistribution& chipData, const std::vector<STOCK::TimelinePoint>& timelinePoint);
 	void DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int vScrollOffset = 0, int totalHeight = 0);
 	void DrawIndexSection(CDC& memDC, int x, int y, int w, const std::vector<std::pair<std::wstring, STOCK::StockInfo>>& indices);
 
@@ -258,7 +260,6 @@ private:
 	CButton m_btnMin5KLine;
 	CButton m_btnMin30KLine;
 	CButton m_btnT0;
-	CButton m_btnTrend;
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
@@ -268,6 +269,8 @@ private:
 	CButton m_btnIndicatorKDJ;   // KDJ指标按钮
 	CButton m_btnIndicatorWR;    // W&R指标按钮
 	CButton m_btnIndicatorRSI;   // RSI指标按钮
+	CButton m_btnChipPeak;       // 筹码峰按钮
+	CFont m_chipPeakFont;        // 筹码峰按钮小字体
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
@@ -318,6 +321,7 @@ private:
 	CString m_timelineKdjTitleTip;     // KDJ标题栏：K/D/J
 	CString m_timelineWrTitleTip;      // WR标题栏：WR1/WR2
 	CString m_timelineRsiTitleTip;     // RSI标题栏：RSI1/RSI2
+	CString m_chipPeakTip;             // 筹码峰提示
 
 	// 双击检测
 	DWORD m_lastClickTime{};
@@ -331,6 +335,7 @@ private:
 	bool m_isHoveringKLineVolume{ false };
 	bool m_isHoveringKDJ{ false };
 	bool m_showTrendView{ false };
+	bool m_showChipPeak{ false };
 	bool m_showT0Markers{ false };
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };

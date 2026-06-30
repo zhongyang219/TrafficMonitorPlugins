@@ -1,14 +1,21 @@
 ﻿#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
+#include "Stock.h"
 #include <vector>
 #include <sstream>
 #include "../utilities/IniHelper.h"
 #include <iomanip>
 #include <afxinet.h>
 #include "sqlite3.h"
+#include "utilities/yyjson/yyjson.h"
+#include "utilities/JsonHelper.h"
+#include <algorithm>
+#include <cmath>
 
 constexpr auto WEB_USERAGENT = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0");
+
+static double GetJsonDoubleValue(yyjson_val* val);
 
 CDataManager CDataManager::m_instance;
 
@@ -140,24 +147,27 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
 	InitDatabase();
 	LoadTodayInnerOuterSnapshots();
+	LoadChipDistributions();
+	LoadStockBasicData();
 
-	// 清理数据库中非今天的快照数据
+	// 清理数据库中超过1个月的快照数据
 	if (m_db != nullptr)
 	{
 		SYSTEMTIME st;
 		GetLocalTime(&st);
-		std::tm todayTm = {};
-		todayTm.tm_year = st.wYear - 1900;
-		todayTm.tm_mon = st.wMonth - 1;
-		todayTm.tm_mday = st.wDay;
-		time_t dayStart = std::mktime(&todayTm);
-		if (dayStart > 0)
+		std::tm nowTm = {};
+		nowTm.tm_year = st.wYear - 1900;
+		nowTm.tm_mon = st.wMonth - 1;
+		nowTm.tm_mday = st.wDay;
+		time_t nowTime = std::mktime(&nowTm);
+		if (nowTime > 0)
 		{
+			time_t cutoffTime = nowTime - 30 * 24 * 60 * 60;  // 30天前
 			const char* cleanSql = "DELETE FROM inner_outer_snapshots WHERE snapshot_time < ?;";
 			sqlite3_stmt* stmt = nullptr;
 			if (sqlite3_prepare_v2(m_db, cleanSql, -1, &stmt, nullptr) == SQLITE_OK)
 			{
-				sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(dayStart));
+				sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(cutoffTime));
 				sqlite3_step(stmt);
 				sqlite3_finalize(stmt);
 			}
@@ -216,6 +226,38 @@ void CDataManager::InitDatabase()
 	{
 		sqlite3_free(errMsg);
 	}
+	const char* chipSql = "CREATE TABLE IF NOT EXISTS chip_distributions ("
+		"stock_code TEXT NOT NULL,"
+		"trade_date TEXT NOT NULL,"
+		"avg_cost REAL NOT NULL,"
+		"benefit_ratio REAL NOT NULL,"
+		"cost70_low REAL NOT NULL,"
+		"cost70_high REAL NOT NULL,"
+		"cost70_concentration REAL NOT NULL,"
+		"cost90_low REAL NOT NULL,"
+		"cost90_high REAL NOT NULL,"
+		"cost90_concentration REAL NOT NULL,"
+		"points_json TEXT NOT NULL,"
+		"updated_at INTEGER NOT NULL,"
+		"PRIMARY KEY(stock_code, trade_date)"
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, chipSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK)
+	{
+		sqlite3_free(errMsg);
+	}
+	const char* stockBasicSql = "CREATE TABLE IF NOT EXISTS stock_basic_data ("
+		"stock_code TEXT PRIMARY KEY,"
+		"circulating_a_shares INTEGER NOT NULL,"
+		"updated_at INTEGER NOT NULL"
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, stockBasicSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK)
+	{
+		sqlite3_free(errMsg);
+	}
 }
 
 bool CDataManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
@@ -263,22 +305,181 @@ bool CDataManager::SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t 
 	return rc == SQLITE_DONE;
 }
 
+bool CDataManager::SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares)
+{
+	if (m_db == nullptr || circulatingAShares <= 0) return false;
+
+	const char* sql = "INSERT OR REPLACE INTO stock_basic_data(stock_code, circulating_a_shares, updated_at) VALUES(?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(circulatingAShares));
+	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(time(nullptr)));
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+void CDataManager::LoadStockBasicData()
+{
+	if (m_db == nullptr) return;
+
+	const char* sql = "SELECT circulating_a_shares FROM stock_basic_data WHERE stock_code = ?;";
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		sqlite3_stmt* stmt = nullptr;
+		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+		if (rc != SQLITE_OK) continue;
+
+		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			STOCK::Volume circulatingAShares = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 0));
+			if (circulatingAShares > 0)
+			{
+				auto stockData = GetStockData(code);
+				if (stockData)
+				{
+					std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+					stockData->info.circulatingAShares = circulatingAShares;
+				}
+			}
+		}
+		sqlite3_finalize(stmt);
+	}
+}
+
+bool CDataManager::SaveChipDistribution(const std::wstring& stockCode, const STOCK::ChipDistribution& chipData)
+{
+	if (m_db == nullptr || !chipData.IsValid()) return false;
+
+	std::ostringstream pointsStream;
+	pointsStream << "[";
+	for (size_t i = 0; i < chipData.points.size(); ++i)
+	{
+		if (i > 0) pointsStream << ",";
+		pointsStream << "[" << chipData.points[i].price << "," << chipData.points[i].percent << "]";
+	}
+	pointsStream << "]";
+	std::string pointsJson = pointsStream.str();
+
+	const char* sql = "INSERT OR REPLACE INTO chip_distributions(stock_code, trade_date, avg_cost, benefit_ratio, cost70_low, cost70_high, cost70_concentration, cost90_low, cost90_high, cost90_concentration, points_json, updated_at) "
+		"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, chipData.tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_double(stmt, 3, chipData.avgCost);
+	sqlite3_bind_double(stmt, 4, chipData.benefitRatio);
+	sqlite3_bind_double(stmt, 5, chipData.cost70Low);
+	sqlite3_bind_double(stmt, 6, chipData.cost70High);
+	sqlite3_bind_double(stmt, 7, chipData.cost70Concentration);
+	sqlite3_bind_double(stmt, 8, chipData.cost90Low);
+	sqlite3_bind_double(stmt, 9, chipData.cost90High);
+	sqlite3_bind_double(stmt, 10, chipData.cost90Concentration);
+	sqlite3_bind_text(stmt, 11, pointsJson.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 12, static_cast<sqlite3_int64>(time(nullptr)));
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+void CDataManager::LoadChipDistributions()
+{
+	if (m_db == nullptr) return;
+
+	const char* sql = "SELECT trade_date, avg_cost, benefit_ratio, cost70_low, cost70_high, cost70_concentration, cost90_low, cost90_high, cost90_concentration, points_json "
+		"FROM chip_distributions WHERE stock_code = ? ORDER BY trade_date DESC LIMIT 1;";
+
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		sqlite3_stmt* stmt = nullptr;
+		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+		if (rc != SQLITE_OK) continue;
+
+		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			STOCK::ChipDistribution chipData;
+			const unsigned char* tradeDate = sqlite3_column_text(stmt, 0);
+			chipData.tradeDate = tradeDate ? reinterpret_cast<const char*>(tradeDate) : "";
+			chipData.avgCost = sqlite3_column_double(stmt, 1);
+			chipData.benefitRatio = sqlite3_column_double(stmt, 2);
+			chipData.cost70Low = sqlite3_column_double(stmt, 3);
+			chipData.cost70High = sqlite3_column_double(stmt, 4);
+			chipData.cost70Concentration = sqlite3_column_double(stmt, 5);
+			chipData.cost90Low = sqlite3_column_double(stmt, 6);
+			chipData.cost90High = sqlite3_column_double(stmt, 7);
+			chipData.cost90Concentration = sqlite3_column_double(stmt, 8);
+			const unsigned char* pointsJson = sqlite3_column_text(stmt, 9);
+			if (pointsJson != nullptr)
+			{
+				std::string pointsStr = reinterpret_cast<const char*>(pointsJson);
+				yyjson_doc* doc = yyjson_read(pointsStr.c_str(), pointsStr.size(), 0);
+				if (doc != nullptr)
+				{
+					yyjson_val* root = yyjson_doc_get_root(doc);
+					if (root != nullptr && yyjson_is_arr(root))
+					{
+						yyjson_val* item;
+						yyjson_arr_iter iter;
+						yyjson_arr_iter_init(root, &iter);
+						while ((item = yyjson_arr_iter_next(&iter)))
+						{
+							if (item != nullptr && yyjson_is_arr(item) && yyjson_arr_size(item) >= 2)
+							{
+								yyjson_val* priceVal = yyjson_arr_get(item, 0);
+								yyjson_val* percentVal = yyjson_arr_get(item, 1);
+								STOCK::ChipPoint point;
+								point.price = GetJsonDoubleValue(priceVal);
+								point.percent = GetJsonDoubleValue(percentVal);
+								chipData.points.push_back(point);
+							}
+						}
+					}
+					yyjson_doc_free(doc);
+				}
+			}
+
+			if (chipData.IsValid())
+			{
+				auto stockData = GetStockData(code);
+				if (stockData)
+				{
+					std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+					stockData->chipDistribution = chipData;
+				}
+			}
+		}
+		sqlite3_finalize(stmt);
+	}
+}
+
 void CDataManager::LoadTodayInnerOuterSnapshots()
 {
 	if (m_db == nullptr) return;
 
 	SYSTEMTIME st;
 	GetLocalTime(&st);
-	std::tm todayTm = {};
-	todayTm.tm_year = st.wYear - 1900;
-	todayTm.tm_mon = st.wMonth - 1;
-	todayTm.tm_mday = st.wDay;
-	time_t dayStart = std::mktime(&todayTm);
-	if (dayStart <= 0) return;
-	time_t dayEnd = dayStart + 24 * 60 * 60;
+	std::tm nowTm = {};
+	nowTm.tm_year = st.wYear - 1900;
+	nowTm.tm_mon = st.wMonth - 1;
+	nowTm.tm_mday = st.wDay;
+	time_t nowTime = std::mktime(&nowTm);
+	if (nowTime <= 0) return;
+	// 加载最近2天的数据，覆盖跨0点场景
+	time_t startTime = nowTime - 24 * 60 * 60;
 
 	const char* sql = "SELECT snapshot_time, inner_volume, outer_volume FROM inner_outer_snapshots "
-		"WHERE stock_code = ? AND snapshot_time >= ? AND snapshot_time < ? ORDER BY snapshot_time ASC;";
+		"WHERE stock_code = ? AND snapshot_time >= ? ORDER BY snapshot_time ASC;";
 
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
@@ -291,8 +492,7 @@ void CDataManager::LoadTodayInnerOuterSnapshots()
 		if (rc != SQLITE_OK) continue;
 
 		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(dayStart));
-		sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(dayEnd));
+		sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(startTime));
 
 		while (sqlite3_step(stmt) == SQLITE_ROW)
 		{
@@ -458,6 +658,20 @@ std::shared_ptr<StockData> CDataManager::GetStockData(const std::wstring& code)
 	return stockMarket.getStock(code);
 }
 
+const STOCK::ChipDistribution* CDataManager::GetChipDistribution(const std::wstring& code)
+{
+	auto stockData = GetStockData(code);
+	if (!stockData || !stockData->chipDistribution.IsValid())
+		return nullptr;
+	return &stockData->chipDistribution;
+}
+
+STOCK::Volume CDataManager::GetCirculatingAShares(const std::wstring& code)
+{
+	auto stockData = GetStockData(code);
+	return stockData ? stockData->info.circulatingAShares : 0;
+}
+
 double CDataManager::GetAlertLowPrice(const std::wstring& code)
 {
 	auto it = m_stock_alert_prices.find(code);
@@ -586,6 +800,275 @@ static double generateRandomDouble()
 	return random;
 }
 
+static double GetJsonDoubleValue(yyjson_val* val)
+{
+	if (val == nullptr) return 0.0;
+	if (yyjson_is_real(val)) return yyjson_get_real(val);
+	if (yyjson_is_sint(val)) return static_cast<double>(yyjson_get_sint(val));
+	if (yyjson_is_uint(val)) return static_cast<double>(yyjson_get_uint(val));
+	if (yyjson_is_str(val))
+	{
+		try
+		{
+			return std::stod(yyjson_get_str(val));
+		}
+		catch (...)
+		{
+			return 0.0;
+		}
+	}
+	return 0.0;
+}
+
+static bool TryParseDouble(const std::string& value, double& result)
+{
+	try
+	{
+		result = std::stod(value);
+		return true;
+	}
+	catch (...)
+	{
+		result = 0.0;
+		return false;
+	}
+}
+
+static std::wstring GetEastMoneySecId(const std::wstring& stockId)
+{
+	std::wstring code = stockId;
+	if (code.rfind(kSH, 0) == 0 || code.rfind(kSZ, 0) == 0 || code.rfind(kBJ, 0) == 0)
+		code = code.substr(2);
+
+	if (code.size() != 6)
+		return L"";
+
+	if (code[0] == L'6' || code[0] == L'5')
+		return L"1." + code;
+	if (code[0] == L'0' || code[0] == L'3' || code[0] == L'1')
+		return L"0." + code;
+	if (code[0] == L'8' || code[0] == L'4')
+		return L"0." + code;
+	return L"";
+}
+
+struct ChipKLinePoint
+{
+	std::string date;
+	double open{ 0.0 };
+	double close{ 0.0 };
+	double high{ 0.0 };
+	double low{ 0.0 };
+	double turnoverRate{ 0.0 };
+	STOCK::Volume volume{ 0 };
+};
+
+static double GetCostByChip(const std::vector<double>& chips, double minPrice, double accuracy, double targetChip)
+{
+	double sum = 0.0;
+	for (size_t i = 0; i < chips.size(); ++i)
+	{
+		if (sum + chips[i] > targetChip)
+			return minPrice + i * accuracy;
+		sum += chips[i];
+	}
+	return minPrice + (chips.empty() ? 0 : chips.size() - 1) * accuracy;
+}
+
+static void ComputePercentChips(const std::vector<double>& chips, double minPrice, double accuracy, double totalChips, double percent, double& low, double& high, double& concentration)
+{
+	double lowPercent = (1.0 - percent) / 2.0;
+	double highPercent = (1.0 + percent) / 2.0;
+	low = GetCostByChip(chips, minPrice, accuracy, totalChips * lowPercent);
+	high = GetCostByChip(chips, minPrice, accuracy, totalChips * highPercent);
+	concentration = (low + high == 0.0) ? 0.0 : (high - low) / (low + high);
+}
+
+static void FillChipDistributionFromShares(const std::vector<double>& chips, double minPrice, double accuracy, double totalShares, double currentPrice, const std::string& tradeDate, STOCK::ChipDistribution& chipData)
+{
+	chipData.Clear();
+	chipData.tradeDate = tradeDate;
+	if (chips.empty() || totalShares <= 0.0) return;
+
+	double benefitChips = 0.0;
+	double weightSum = 0.0;
+	for (size_t i = 0; i < chips.size(); ++i)
+	{
+		double price = minPrice + accuracy * i;
+		weightSum += price * chips[i];
+		if (currentPrice >= price)
+			benefitChips += chips[i];
+		STOCK::ChipPoint point;
+		point.price = round(price * 100.0) / 100.0;
+		point.percent = chips[i] / totalShares;
+		chipData.points.push_back(point);
+	}
+
+	chipData.avgCost = weightSum / totalShares;
+	ComputePercentChips(chips, minPrice, accuracy, totalShares, 0.7, chipData.cost70Low, chipData.cost70High, chipData.cost70Concentration);
+	ComputePercentChips(chips, minPrice, accuracy, totalShares, 0.9, chipData.cost90Low, chipData.cost90High, chipData.cost90Concentration);
+	chipData.benefitRatio = benefitChips / totalShares;
+}
+
+static void AddChipByRange(std::vector<double>& chips, double minPrice, double accuracy, double low, double high, double addShares)
+{
+	if (chips.empty() || addShares <= 0.0) return;
+	int lowIndex = static_cast<int>(ceil((low - minPrice) / accuracy));
+	int highIndex = static_cast<int>(floor((high - minPrice) / accuracy));
+	lowIndex = min(static_cast<int>(chips.size()) - 1, max(0, lowIndex));
+	highIndex = min(static_cast<int>(chips.size()) - 1, max(0, highIndex));
+	if (highIndex < lowIndex)
+		std::swap(highIndex, lowIndex);
+	int rangeCnt = highIndex - lowIndex + 1;
+	if (rangeCnt <= 0) return;
+	double perPriceShare = addShares / rangeCnt;
+	for (int i = lowIndex; i <= highIndex; ++i)
+		chips[i] += perPriceShare;
+}
+
+static void UpdateChipByKLine(std::vector<double>& chips, double minPrice, double accuracy, double totalShares, const ChipKLinePoint& bar)
+{
+	if (chips.empty() || totalShares <= 0.0 || bar.volume <= 0) return;
+	const double CHIP_ATTRITION_N = 1.3;
+	const double MAX_EFFECT_TURN = 0.85;
+	const double FLOAT_CORRECT_THRESHOLD = 0.01;
+
+	double minuteTurn = static_cast<double>(bar.volume) / totalShares;
+	double effTurn = min(MAX_EFFECT_TURN, minuteTurn * CHIP_ATTRITION_N);
+	double retainRate = 1.0 - effTurn;
+	double addTotalShare = effTurn * totalShares;
+	for (auto& val : chips)
+		val *= retainRate;
+	AddChipByRange(chips, minPrice, accuracy, bar.low, bar.high, addTotalShare);
+
+	double sumAll = 0.0;
+	for (double val : chips)
+		sumAll += val;
+	if (sumAll > 0.0 && fabs(sumAll - totalShares) > FLOAT_CORRECT_THRESHOLD)
+	{
+		double scale = totalShares / sumAll;
+		for (auto& val : chips)
+			val *= scale;
+	}
+}
+
+static bool CalculateEtfChipDistribution(const std::vector<ChipKLinePoint>& klines, STOCK::Volume totalShares, STOCK::ChipDistribution& chipData)
+{
+	if (klines.empty() || totalShares <= 0) return false;
+
+	const double PRICE_STEP = 0.01;
+	double minPrice = 999999.0;
+	double maxPrice = 0.0;
+	for (const auto& item : klines)
+	{
+		if (item.low > 0.0) minPrice = min(minPrice, item.low);
+		if (item.high > 0.0) maxPrice = max(maxPrice, item.high);
+	}
+	if (minPrice <= 0.0 || maxPrice < minPrice) return false;
+
+	minPrice = floor(minPrice * 100.0) / 100.0;
+	maxPrice = ceil(maxPrice * 100.0) / 100.0;
+	int gridCount = static_cast<int>(floor((maxPrice - minPrice) / PRICE_STEP + 0.5)) + 1;
+	if (gridCount <= 0) return false;
+	std::vector<double> chips(gridCount, 0.0);
+
+	const double CHIP_ATTRITION_N = 1.3;
+	const double MAX_EFFECT_TURN = 0.85;
+	const auto& first = klines.front();
+	double firstTurn = static_cast<double>(first.volume) / static_cast<double>(totalShares);
+	double firstEffTurn = min(MAX_EFFECT_TURN, firstTurn * CHIP_ATTRITION_N);
+	AddChipByRange(chips, minPrice, PRICE_STEP, first.low, first.high, firstEffTurn * totalShares);
+
+	for (size_t i = 1; i < klines.size(); ++i)
+		UpdateChipByKLine(chips, minPrice, PRICE_STEP, static_cast<double>(totalShares), klines[i]);
+
+	FillChipDistributionFromShares(chips, minPrice, PRICE_STEP, static_cast<double>(totalShares), klines.back().close, klines.back().date, chipData);
+	return chipData.IsValid();
+}
+
+static bool CalculateChipDistribution(const std::vector<ChipKLinePoint>& klines, STOCK::ChipDistribution& chipData)
+{
+	if (klines.empty()) return false;
+
+	const int factor = 150;
+	int index = static_cast<int>(klines.size()) - 1;
+	int start = max(0, index - 120 + 1);
+	double maxPrice = 0.0;
+	double minPrice = 0.0;
+	for (int i = start; i <= index; ++i)
+	{
+		maxPrice = maxPrice == 0.0 ? klines[i].high : max(maxPrice, klines[i].high);
+		minPrice = minPrice == 0.0 ? klines[i].low : min(minPrice, klines[i].low);
+	}
+	if (maxPrice <= 0.0 || minPrice <= 0.0 || maxPrice < minPrice) return false;
+
+	double accuracy = max(0.01, (maxPrice - minPrice) / (factor - 1));
+	std::vector<double> chips(factor, 0.0);
+	for (int i = start; i <= index; ++i)
+	{
+		const auto& item = klines[i];
+		double high = item.high;
+		double low = item.low;
+		double avg = (item.open + item.close + item.high + item.low) / 4.0;
+		double turnoverRate = min(1.0, item.turnoverRate / 100.0);
+		int highIndex = static_cast<int>(floor((high - minPrice) / accuracy));
+		int lowIndex = static_cast<int>(ceil((low - minPrice) / accuracy));
+		highIndex = min(factor - 1, max(0, highIndex));
+		lowIndex = min(factor - 1, max(0, lowIndex));
+		int avgIndex = min(factor - 1, max(0, static_cast<int>(floor((avg - minPrice) / accuracy))));
+		double gPoint = high == low ? factor - 1.0 : 2.0 / (high - low);
+
+		for (double& chip : chips)
+			chip *= (1.0 - turnoverRate);
+
+		if (high == low)
+		{
+			chips[avgIndex] += gPoint * turnoverRate / 2.0;
+		}
+		else
+		{
+			for (int j = lowIndex; j <= highIndex; ++j)
+			{
+				double curPrice = minPrice + accuracy * j;
+				if (curPrice <= avg)
+				{
+					chips[j] += fabs(avg - low) < 1e-8 ? gPoint * turnoverRate : (curPrice - low) / (avg - low) * gPoint * turnoverRate;
+				}
+				else
+				{
+					chips[j] += fabs(high - avg) < 1e-8 ? gPoint * turnoverRate : (high - curPrice) / (high - avg) * gPoint * turnoverRate;
+				}
+			}
+		}
+	}
+
+	double totalChips = 0.0;
+	for (double chip : chips)
+		totalChips += chip;
+	if (totalChips <= 0.0) return false;
+
+	chipData.Clear();
+	chipData.tradeDate = klines.back().date;
+	chipData.avgCost = GetCostByChip(chips, minPrice, accuracy, totalChips * 0.5);
+	ComputePercentChips(chips, minPrice, accuracy, totalChips, 0.7, chipData.cost70Low, chipData.cost70High, chipData.cost70Concentration);
+	ComputePercentChips(chips, minPrice, accuracy, totalChips, 0.9, chipData.cost90Low, chipData.cost90High, chipData.cost90Concentration);
+
+	double benefitChips = 0.0;
+	double currentPrice = klines.back().close;
+	for (int i = 0; i < factor; ++i)
+	{
+		double price = minPrice + accuracy * i;
+		if (currentPrice >= price)
+			benefitChips += chips[i];
+		STOCK::ChipPoint point;
+		point.price = round(price * 100.0) / 100.0;
+		point.percent = chips[i] / totalChips;
+		chipData.points.push_back(point);
+	}
+	chipData.benefitRatio = benefitChips / totalChips;
+	return true;
+}
+
 void CDataManager::RequestRealtimeData()
 {
 	TRACE(L"RequestRealtimeData...\n");
@@ -623,6 +1106,203 @@ void CDataManager::RequestInnerOuterData()
 	{
 		stockMarket.LoadInnerOuterData(stock_data);
 	}
+}
+
+void CDataManager::RequestAllStockBasicData()
+{
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		RequestStockBasicData(code);
+	}
+}
+
+bool CDataManager::RequestStockBasicData(std::wstring stock_id)
+{
+	std::wstring secId = GetEastMoneySecId(stock_id);
+	if (secId.empty()) return false;
+
+	try
+	{
+		TRACE(L"RequestStockBasicData...\n");
+		std::wstring url{ L"https://push2.eastmoney.com/api/qt/stock/get?" };
+		std::vector<std::wstring> params;
+		params.push_back(L"secid=" + secId);
+		params.push_back(L"fields=f43,f44,f45,f46,f47,f48,f49,f50,f51,f57,f58,f60,f85,f116,f117");
+		url += CCommon::vectorJoinString(params, L"&");
+
+		CString strHeaders = _T("Referer: https://quote.eastmoney.com");
+		std::string response;
+		if (!CCommon::GetURL(url, response, true, WEB_USERAGENT, strHeaders, strHeaders.GetLength()) || response.empty())
+			return false;
+
+		yyjson_doc* doc = yyjson_read(response.c_str(), response.size(), 0);
+		if (doc == nullptr) return false;
+
+		STOCK::Volume circulatingAShares = 0;
+		yyjson_val* root = yyjson_doc_get_root(doc);
+		yyjson_val* data = root ? yyjson_obj_get(root, "data") : nullptr;
+		if (data != nullptr)
+		{
+			circulatingAShares = static_cast<STOCK::Volume>(GetJsonDoubleValue(yyjson_obj_get(data, "f85")));
+		}
+		yyjson_doc_free(doc);
+
+		if (circulatingAShares <= 0)
+			return false;
+
+		{
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			auto stockData = GetStockData(stock_id);
+			if (!stockData) return false;
+			stockData->info.circulatingAShares = circulatingAShares;
+		}
+		SaveStockBasicData(stock_id, circulatingAShares);
+		return true;
+	}
+	catch (CInternetException* e)
+	{
+		e->Delete();
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+
+void CDataManager::RequestAllChipDistributionData()
+{
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		RequestChipDistributionData(code);
+	}
+}
+
+bool CDataManager::RequestChipDistributionData(std::wstring stock_id)
+{
+	std::wstring secId = GetEastMoneySecId(stock_id);
+	if (secId.empty()) return false;
+
+	try
+	{
+		TRACE(L"RequestChipDistributionData...\n");
+		std::wstring url{ L"https://push2his.eastmoney.com/api/qt/stock/kline/get?" };
+		std::vector<std::wstring> params;
+		params.push_back(L"secid=" + secId);
+		params.push_back(L"fields1=f1,f2,f3,f4,f5,f6");
+		params.push_back(L"fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61");
+		params.push_back(L"klt=101");
+		params.push_back(L"fqt=0");
+		SYSTEMTIME st;
+		GetLocalTime(&st);
+		wchar_t dateBuf[16];
+		swprintf_s(dateBuf, L"%04d%02d%02d", st.wYear, st.wMonth, st.wDay);
+		params.push_back(L"end=" + std::wstring(dateBuf));
+		params.push_back(L"lmt=750");
+		url += CCommon::vectorJoinString(params, L"&");
+
+		CString strHeaders = _T("Referer: https://quote.eastmoney.com");
+		std::string response;
+		if (!CCommon::GetURL(url, response, true, WEB_USERAGENT, strHeaders, strHeaders.GetLength()) || response.empty())
+			return false;
+
+		yyjson_doc* doc = yyjson_read(response.c_str(), response.size(), 0);
+		if (doc == nullptr) return false;
+
+		std::vector<ChipKLinePoint> klines;
+		yyjson_val* root = yyjson_doc_get_root(doc);
+		yyjson_val* data = yyjson_obj_get(root, "data");
+		yyjson_val* klineArr = data ? yyjson_obj_get(data, "klines") : nullptr;
+		if (klineArr != nullptr && yyjson_is_arr(klineArr))
+		{
+			yyjson_val* item;
+			yyjson_arr_iter iter;
+			yyjson_arr_iter_init(klineArr, &iter);
+			while ((item = yyjson_arr_iter_next(&iter)))
+			{
+				const char* line = yyjson_get_str(item);
+				if (line == nullptr) continue;
+				std::vector<std::string> values = CCommon::split(line, ',');
+				if (values.size() < 11) continue;
+
+				double open = 0.0, close = 0.0, high = 0.0, low = 0.0, volumeHands = 0.0, turnoverRate = 0.0;
+				if (!TryParseDouble(values[1], open) || !TryParseDouble(values[2], close) || !TryParseDouble(values[3], high) || !TryParseDouble(values[4], low))
+					continue;
+				TryParseDouble(values[5], volumeHands);
+				TryParseDouble(values[10], turnoverRate);
+				if (high <= 0.0 || low <= 0.0 || volumeHands <= 0.0)
+					continue;
+
+				ChipKLinePoint point;
+				point.date = values[0];
+				point.open = open;
+				point.close = close;
+				point.high = high;
+				point.low = low;
+				point.turnoverRate = turnoverRate;
+				point.volume = static_cast<STOCK::Volume>(volumeHands * 100.0);
+				klines.push_back(point);
+			}
+		}
+		yyjson_doc_free(doc);
+
+		if (klines.empty())
+			return false;
+
+		bool isFund = false;
+		STOCK::Volume totalShares = 0;
+		{
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			auto stockData = GetStockData(stock_id);
+			if (stockData)
+			{
+				isFund = CCommon::IsFundCode(stock_id);
+				totalShares = stockData->info.circulatingAShares;
+			}
+		}
+
+		STOCK::ChipDistribution chipData;
+		if (isFund)
+		{
+			if (totalShares <= 0)
+			{
+				RequestStockBasicData(stock_id);
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				auto stockData = GetStockData(stock_id);
+				if (stockData)
+					totalShares = stockData->info.circulatingAShares;
+			}
+			if (!CalculateEtfChipDistribution(klines, totalShares, chipData))
+				return false;
+		}
+		else if (!CalculateChipDistribution(klines, chipData))
+		{
+			if (totalShares <= 0)
+			{
+				RequestStockBasicData(stock_id);
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				auto stockData = GetStockData(stock_id);
+				if (stockData)
+					totalShares = stockData->info.circulatingAShares;
+			}
+			if (!CalculateEtfChipDistribution(klines, totalShares, chipData))
+				return false;
+		}
+
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		auto stockData = GetStockData(stock_id);
+		if (!stockData) return false;
+		stockData->chipDistribution = chipData;
+		SaveChipDistribution(stock_id, chipData);
+		return true;
+	}
+	catch (CInternetException* e)
+	{
+		e->Delete();
+	}
+	catch (...)
+	{
+	}
+	return false;
 }
 
 void CDataManager::RequestTimelineData(std::wstring stock_id)

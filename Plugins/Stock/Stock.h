@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Stock.h"
 #include "StockItem.h"
 #include <string>
@@ -52,6 +52,8 @@ public:
 	void DestroyFloatingWnd();
 	void UpdateKLine();
 	void PreloadAllKLineData();
+	void PreloadAllChipDistributionData();
+	void PreloadAllStockBasicData();
 
 	bool IsPriceInSafeZone(double current_price, double bid1_price, double ask1_price, double low, double high);
 	void CheckPriceAlertForStock(const std::wstring& code);

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -7,6 +7,7 @@
 #include "DataManager.h"
 #include <Stock.h>
 #include <algorithm>
+#include <set>
 #include <cstdlib>
 #include "OptionsDlg.h"
 #include "TradeRecordDialog.h"
@@ -222,7 +223,6 @@ void DrawPricePointLabel(CDC& memDC, int pointX, int pointY, int chartLeft, int 
 enum {
 	IDC_TIMELINE_BTN = 1001,
 	IDC_KLINE_BTN = 1002,
-	IDC_TREND_BTN = 1004,
 	IDC_CLOSE_BTN = 1005,
 	IDM_CLOSE_WINDOW = 1006,
 	IDC_MA_BTN = 1007,
@@ -235,7 +235,8 @@ enum {
 	IDC_MIN30_KLINE_BTN = 1014,
 	IDC_INDICATOR_WR_BTN = 1015,
 	IDC_INDICATOR_RSI_BTN = 1016,
-	IDC_T0_BTN = 1017
+	IDC_T0_BTN = 1017,
+	IDC_CHIP_PEAK_BTN = 1018
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -257,7 +258,6 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_MESSAGE(IDM_CLOSE_WINDOW, OnCloseWindow)
 	ON_BN_CLICKED(IDC_TIMELINE_BTN, &CFloatingWnd::OnBnClickedTimeLineBtn)
 	ON_BN_CLICKED(IDC_KLINE_BTN, &CFloatingWnd::OnBnClickedKLineBtn)
-	ON_BN_CLICKED(IDC_TREND_BTN, &CFloatingWnd::OnBnClickedTrendBtn)
 	ON_BN_CLICKED(IDC_T0_BTN, &CFloatingWnd::OnBnClickedT0Btn)
 	ON_BN_CLICKED(IDC_CLOSE_BTN, &CFloatingWnd::OnBnClickedCloseBtn)
 	ON_BN_CLICKED(IDC_MA_BTN, &CFloatingWnd::OnBnClickedMABtn)
@@ -270,6 +270,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_INDICATOR_KDJ_BTN, &CFloatingWnd::OnBnClickedIndicatorKDJBtn)
 	ON_BN_CLICKED(IDC_INDICATOR_WR_BTN, &CFloatingWnd::OnBnClickedIndicatorWRBtn)
 	ON_BN_CLICKED(IDC_INDICATOR_RSI_BTN, &CFloatingWnd::OnBnClickedIndicatorRSIBtn)
+	ON_BN_CLICKED(IDC_CHIP_PEAK_BTN, &CFloatingWnd::OnBnClickedChipPeakBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -294,7 +295,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect klineRect(min30KLineRect.right + btnGap, g_data.RDPI(2), min30KLineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
 	m_btnKLine.Create(_T("日K"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, klineRect, this, IDC_KLINE_BTN);
 
-	// 右侧按钮：关闭、BOLL、MA、走势（从右往左排列，无间隙）
+	// 右侧按钮：关闭、BOLL、MA、筹码峰、做T（从右往左排列，无间隙）
 	const int closeBtnWidth = g_data.RDPI(20);
 	const int closeBtnHeight = g_data.RDPI(18);
 	const int cx = lpCreateStruct->cx;
@@ -308,13 +309,13 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnBoll.Create(_T("BOLL"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
 	m_btnBoll.ShowWindow(SW_HIDE);
 
-	CRect maBtnRect(bollBtnRect.left - rightBtnWidth, g_data.RDPI(2), bollBtnRect.left, g_data.RDPI(2) + btnHeight);
+	CRect chipPeakBtnRect(bollBtnRect.left - rightBtnWidth, g_data.RDPI(2), bollBtnRect.left, g_data.RDPI(2) + btnHeight);
+	m_btnChipPeak.Create(_T("筹码"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, chipPeakBtnRect, this, IDC_CHIP_PEAK_BTN);
+
+	CRect maBtnRect(chipPeakBtnRect.left - rightBtnWidth, g_data.RDPI(2), chipPeakBtnRect.left, g_data.RDPI(2) + btnHeight);
 	m_btnMA.Create(_T("MA"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, maBtnRect, this, IDC_MA_BTN);
 
-	CRect trendBtnRect(maBtnRect.left - rightBtnWidth, g_data.RDPI(2), maBtnRect.left, g_data.RDPI(2) + btnHeight);
-	m_btnTrend.Create(_T("K线"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, trendBtnRect, this, IDC_TREND_BTN);
-
-	CRect t0BtnRect(trendBtnRect.left - rightBtnWidth, g_data.RDPI(2), trendBtnRect.left, g_data.RDPI(2) + btnHeight);
+	CRect t0BtnRect(maBtnRect.left - rightBtnWidth, g_data.RDPI(2), maBtnRect.left, g_data.RDPI(2) + btnHeight);
 	m_btnT0.Create(_T("做T"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
 
 	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
@@ -637,8 +638,8 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 		int labelCount = static_cast<int>(round(priceRange / ctx.niceStep));
 		for (int i = 0; i <= labelCount; i++)
 		{
-			double labelPrice = ctx.minPrice + i * ctx.niceStep;
-			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
+			double labelPrice = round((ctx.minPrice + i * ctx.niceStep) * 1000.0) / 1000.0;
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((labelPrice - ctx.minPrice) * unitY));
 			memDC.MoveTo(0, y);
 			memDC.LineTo(ctx.chartWidth, y);
 		}
@@ -650,7 +651,7 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	{
 		CPen pMiddleLine(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
 		memDC.SelectObject(&pMiddleLine);
-		int prevCloseY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((ctx.realtimeData.prevClosePrice - ctx.minPrice) * ctx.unitY);
+		int prevCloseY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((ctx.realtimeData.prevClosePrice - ctx.minPrice) * ctx.unitY));
 		prevCloseY = max(ctx.priceChartTop, min(prevCloseY, ctx.priceChartTop + ctx.priceChartHeight));
 		memDC.MoveTo(0, prevCloseY);
 		memDC.LineTo(ctx.chartWidth, prevCloseY);
@@ -674,8 +675,8 @@ void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext
 		int labelCount = static_cast<int>(round(priceRange / ctx.niceStep));
 		for (int i = 0; i <= labelCount; i++)
 		{
-			double labelPrice = ctx.minPrice + i * ctx.niceStep;
-			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
+			double labelPrice = round((ctx.minPrice + i * ctx.niceStep) * 1000.0) / 1000.0;
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((labelPrice - ctx.minPrice) * unitY));
 			CString priceTxt = CCommon::FormatFloat(labelPrice);
 			CSize sz = memDC.GetTextExtent(priceTxt);
 			int labelX = -sz.cx - g_data.RDPI(4);
@@ -697,7 +698,7 @@ void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext
 			memDC.SetTextColor(COLOR_GRAY_PURPLE);
 			CString prevTxt = CCommon::FormatFloat(ctx.realtimeData.prevClosePrice);
 			CSize prevSize = memDC.GetTextExtent(prevTxt);
-			int prevY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((ctx.realtimeData.prevClosePrice - ctx.minPrice) * unitY);
+			int prevY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((ctx.realtimeData.prevClosePrice - ctx.minPrice) * unitY));
 			int labelY = prevY - prevSize.cy / 2;
 			memDC.TextOut(-prevSize.cx - g_data.RDPI(4), labelY, prevTxt);
 		}
@@ -786,7 +787,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		const auto& item = timelinePoint[i];
 		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
 		double yVal = (item.price - minPrice) * unitY;
-		dataPoints.push_back(CPoint(pointX, (int)yVal));
+		dataPoints.push_back(CPoint(pointX, static_cast<int>(round(yVal))));
 	}
 
 	if (!dataPoints.empty())
@@ -846,7 +847,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				continue;
 			}
 			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((item.averagePrice - minPrice) * unitY);
+			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.averagePrice - minPrice) * unitY));
 			py = max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
 			if (firstAvgPoint)
 			{
@@ -885,7 +886,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				if (maVal <= 0) { first = true; continue; }
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
 				double yVal = (maVal - minPrice) * unitY;
-				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
+				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round(yVal));
 				if (first)
 				{
 					memDC.MoveTo(pointX, py);
@@ -944,7 +945,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		}
 
 		auto priceToY = [&](double price) -> int {
-			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
+			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
 			};
 
 		// 绘制上轨（金色）
@@ -1171,7 +1172,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	const auto& item = timelinePoint[m_hoveredBarIndex];
 	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
 
-	int dotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((item.price - minPrice) * unitY);
+	int dotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.price - minPrice) * unitY));
 
 	COLORREF dotColor = (item.price >= ctx.realtimeData.prevClosePrice) ? COLOR_RED_UP : COLOR_GREEN_DOWN;
 
@@ -1184,7 +1185,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	{
 		// 均价圆点
 		double avgPrice = item.averagePrice;
-		int avgDotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((avgPrice - minPrice) * unitY);
+		int avgDotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((avgPrice - minPrice) * unitY));
 		COLORREF avgDotColor = (avgPrice >= ctx.realtimeData.prevClosePrice) ? COLOR_RED_UP : COLOR_GREEN_DOWN;
 		CPen avgDotPen(PS_SOLID, 4, avgDotColor);
 		memDC.SelectObject(&avgDotPen);
@@ -1370,6 +1371,9 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 
 					// MACD图区域高亮
 					memDC.FillRect(CRect(xLeft, ctx.macdChartTop, xRight, ctx.macdChartTop + ctx.macdChartHeight), &highlightBrush);
+
+					// 价格图网格线在调用本函数前已绘制，今日背景会覆盖它；背景绘制后补画一次价格图区网格
+					DrawTimelineGridLines(memDC, ctx);
 				}
 			}
 		}
@@ -1511,7 +1515,8 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 		}
 
 		auto bandPriceToY = [&](double price) -> int {
-			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
+			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
+			return max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
 			};
 
 		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
@@ -1858,7 +1863,8 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 		}
 
 		auto bandPriceToY = [&](double price) -> int {
-			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
+			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
+			return max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
 			};
 
 		auto drawBandLine = [&](const std::vector<double>& band, COLORREF color) {
@@ -2191,6 +2197,7 @@ void CFloatingWnd::OnPaint()
 	const int priceChartTop = headerHeight;
 
 	STOCK::StockInfo realtimeData;
+	STOCK::ChipDistribution chipData;
 	std::vector<STOCK::TimelinePoint> timelinePoint;
 	std::vector<STOCK::KLinePoint> klineData;
 	{
@@ -2199,6 +2206,7 @@ void CFloatingWnd::OnPaint()
 		if (stockData)
 		{
 			realtimeData = stockData->info;
+			chipData = stockData->chipDistribution;
 			if (m_isKLineMode && !m_isMin5KLineMode && !m_isMin30KLineMode)
 			{
 				auto klineObj = stockData->getKLineData();
@@ -2398,6 +2406,39 @@ void CFloatingWnd::OnPaint()
 						}
 					}
 				}
+
+				// K线模式开启BOLL时，Y轴范围同时包含可见区间的布林上下轨，避免涨停等窄幅区间下BOLL被映射到价格图区外
+				if (m_isKLineMode && m_showBollBands && !timelinePoint.empty())
+				{
+					const int N = 20;
+					const int K = 2;
+					const int totalCount = static_cast<int>(timelinePoint.size());
+					for (int i = 0; i < visibleCount && (startIndex + i) < totalCount; i++)
+					{
+						int globalIdx = startIndex + i;
+						if (globalIdx < N - 1)
+							continue;
+
+						double sum = 0;
+						for (int j = globalIdx - N + 1; j <= globalIdx; j++)
+							sum += timelinePoint[j].price;
+						double ma = sum / N;
+
+						double variance = 0;
+						for (int j = globalIdx - N + 1; j <= globalIdx; j++)
+						{
+							double diff = timelinePoint[j].price - ma;
+							variance += diff * diff;
+						}
+						double stddev = std::sqrt(variance / N);
+						double upperBand = ma + K * stddev;
+						double lowerBand = ma - K * stddev;
+						if (upperBand > 0)
+							visMax = (std::max)(visMax, upperBand);
+						if (lowerBand > 0)
+							visMin = (std::min)(visMin, lowerBand);
+					}
+				}
 				if (visMin == (std::numeric_limits<STOCK::Price>::max)() || visMax <= visMin)
 				{
 					// 数据无效，回退到涨跌停范围
@@ -2407,7 +2448,7 @@ void CFloatingWnd::OnPaint()
 				}
 
 				// Y轴固定6等分7根横线：至少保留上下各1格边距，最小刻度0.001
-				// 以可见最高/最低价的中点作为Y轴中线，再向上下对称扩展，避免走势线贴底/贴顶
+				// 先把轴边界对齐到实际显示的价格刻度，再让网格线、标签、曲线共用同一组刻度值，避免标签四舍五入后与曲线位置错位
 				const double DIV_COUNT = 6.0;
 				const double MIN_STEP = 0.001;
 				double range = visMax - visMin;
@@ -2425,12 +2466,22 @@ void CFloatingWnd::OnPaint()
 				niceStep = (std::max)(niceStep, MIN_STEP);
 
 				double centerPrice = (visMin + visMax) / 2.0;
-				double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
-				double calcMin = centerPrice - halfAxisRange;
-				double calcMax = centerPrice + halfAxisRange;
+				double axisRange = DIV_COUNT * niceStep;
+				double centeredMin = centerPrice - axisRange / 2.0;
+				double lowerBound = visMax - (DIV_COUNT - 1.0) * niceStep;
+				double upperBound = visMin - niceStep;
+				double axisMin = round(centeredMin / niceStep) * niceStep;
+				if (axisMin < lowerBound)
+					axisMin = ceil((lowerBound - niceStep * 1e-9) / niceStep) * niceStep;
+				if (axisMin > upperBound)
+					axisMin = floor((upperBound + niceStep * 1e-9) / niceStep) * niceStep;
 
-				ctx.maxPrice = calcMax;
-				ctx.minPrice = calcMin;
+				// 与FormatFloat的三位小数显示精度保持一致，确保标签值就是网格线和曲线映射使用的实际值
+				axisMin = round(axisMin * 1000.0) / 1000.0;
+				double axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
+
+				ctx.maxPrice = axisMax;
+				ctx.minPrice = axisMin;
 				ctx.niceStep = niceStep;
 				ctx.unitY = ctx.priceChartHeight / (ctx.maxPrice - ctx.minPrice);
 			}
@@ -2482,16 +2533,19 @@ void CFloatingWnd::OnPaint()
 				m_btnZoomOut.SetWindowPos(nullptr, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
 			}
 
-			// MACD/KDJ/W&R/RSI指标按钮（MACD图左侧Y轴预留区域，四等分排列）
+			// MACD/KDJ/W&R/RSI按钮（左侧Y轴预留区域，占用副图到X轴时间标签区域，不超过底部状态栏）
 			{
 				int btnW = yAxisWidth - g_data.RDPI(4);
-				int btnH = g_data.RDPI(16);
 				int btnX = g_data.RDPI(2);
-				int macdH = ctx.macdChartHeight;
-				int btn1Y = origMacdTop + titleH + (macdH / 4 - btnH) / 2;
-				int btn2Y = origMacdTop + titleH + macdH / 4 + (macdH / 4 - btnH) / 2;
-				int btn3Y = origMacdTop + titleH + macdH * 2 / 4 + (macdH / 4 - btnH) / 2;
-				int btn4Y = origMacdTop + titleH + macdH * 3 / 4 + (macdH / 4 - btnH) / 2;
+				int btnAreaTop = origMacdTop + titleH;
+				int btnAreaBottom = h - indexBarHeight - g_data.RDPI(2);
+				int btnAreaH = max(1, btnAreaBottom - btnAreaTop);
+				int btnGap = g_data.RDPI(1);
+				int btnH = max(g_data.RDPI(16), (btnAreaH - btnGap * 3) / 4);
+				int btn1Y = btnAreaTop;
+				int btn2Y = btn1Y + btnH + btnGap;
+				int btn3Y = btn2Y + btnH + btnGap;
+				int btn4Y = min(btn3Y + btnH + btnGap, btnAreaBottom - btnH);
 				if (m_btnIndicatorMACD.GetSafeHwnd())
 				{
 					m_btnIndicatorMACD.SetWindowPos(nullptr, btnX, btn1Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
@@ -2523,7 +2577,10 @@ void CFloatingWnd::OnPaint()
 			}
 
 			// 右侧盘口用原始坐标系（全宽）
-			DrawOrderBook(memDC, chartWidth, w, h - headerHeight - indexBarHeight, realtimeData, klineData);
+			if (m_showChipPeak)
+				DrawChipPeakPanel(memDC, chartWidth, w, h - headerHeight - indexBarHeight, realtimeData, chipData, timelinePoint);
+			else
+				DrawOrderBook(memDC, chartWidth, w, h - headerHeight - indexBarHeight, realtimeData, klineData);
 		}
 		else
 		{
@@ -6522,7 +6579,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		if (absRatioValue <= 30) return 0;
 		if (absRatioValue <= 60) return 1;
 		return 2;
-	};
+		};
 
 	auto DrawNetRatioBarText = [&](int x, int y, int h, const CString& text) {
 		CFont* oldFont = memDC.GetCurrentFont();
@@ -6535,7 +6592,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		memDC.SetTextColor(RGB(255, 255, 255));
 		memDC.TextOut(x, y + max(0, (h - memDC.GetTextExtent(text).cy) / 2), text);
 		memDC.SelectObject(oldFont);
-	};
+		};
 
 	auto DrawRatioBar = [&](int x, int y, int w, int h, double ratio, STOCK::Volume diff) {
 		if (w <= 0)
@@ -6565,7 +6622,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		memDC.Rectangle(x, y, x + w, y + h);
 		memDC.SelectObject(oldBrush);
 		memDC.SelectObject(oldPen);
-	};
+		};
 
 	// 委比（行9）
 	STOCK::Volume bidTotal = 0;
@@ -6871,6 +6928,225 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	memDC.TextOut(textX, topOffset + rowHeight * 17 + g_data.RDPI(2), turnoverTxt);
 }
 
+void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const STOCK::ChipDistribution& chipData, const std::vector<STOCK::TimelinePoint>& timelinePoint)
+{
+	const int topOffset = g_data.RDPI(26);
+	const int panelW = right - left;
+	const int panelH = height - topOffset;
+	if (panelW <= 0 || panelH <= 0)
+		return;
+
+	memDC.FillSolidRect(left, topOffset, panelW, panelH, RGB(250, 250, 250));
+	memDC.SetBkMode(TRANSPARENT);
+	memDC.SetTextColor(COLOR_BLACK);
+	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(4), _T("筹码峰"));
+
+	if (!chipData.IsValid())
+	{
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+		memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(28), _T("暂无筹码数据"));
+		return;
+	}
+
+	std::vector<STOCK::ChipPoint> points = chipData.points;
+	if (!m_isKLineMode && stockInfo.circulatingAShares > 0 && !timelinePoint.empty())
+	{
+		const double CHIP_ATTRITION_N = 1.3;
+		const double MAX_EFFECT_TURN = 0.85;
+		const double PRICE_STEP = 0.01;
+		const double FLOAT_CORRECT_THRESHOLD = 0.01;
+
+		double yMin = 999999.0;
+		double yMax = 0.0;
+		for (const auto& point : chipData.points)
+		{
+			if (point.price > 0)
+			{
+				yMin = min(yMin, point.price);
+				yMax = max(yMax, point.price);
+			}
+		}
+
+		double limitDown = stockInfo.prevClosePrice > 0 && stockInfo.priceLimit > 0 ? stockInfo.prevClosePrice - stockInfo.priceLimit : yMin;
+		double limitUp = stockInfo.prevClosePrice > 0 && stockInfo.priceLimit > 0 ? stockInfo.prevClosePrice + stockInfo.priceLimit : yMax;
+		double gridMin = floor(min(yMin, limitDown) * 100.0) / 100.0;
+		double gridMax = ceil(max(yMax, limitUp) * 100.0) / 100.0;
+		if (gridMax > gridMin)
+		{
+			std::vector<double> priceLevels;
+			for (double cur = gridMin; cur <= gridMax + PRICE_STEP / 2; cur += PRICE_STEP)
+				priceLevels.push_back(round(cur * 100.0) / 100.0);
+			std::vector<double> chipArray(priceLevels.size(), 0.0);
+			auto findPriceIndex = [&](double price) -> int {
+				auto it = std::lower_bound(priceLevels.begin(), priceLevels.end(), round(price * 100.0) / 100.0);
+				return static_cast<int>(it - priceLevels.begin());
+				};
+
+			for (const auto& point : chipData.points)
+			{
+				int idx = findPriceIndex(point.price);
+				if (idx >= 0 && idx < static_cast<int>(chipArray.size()))
+					chipArray[idx] += point.percent * stockInfo.circulatingAShares;
+			}
+
+			std::set<std::string> processedMinuteSet;
+			for (const auto& item : timelinePoint)
+			{
+				if (item.volume <= 0 || processedMinuteSet.find(item.time) != processedMinuteSet.end())
+					continue;
+				processedMinuteSet.insert(item.time);
+
+				double minuteTurn = static_cast<double>(item.volume) / static_cast<double>(stockInfo.circulatingAShares);
+				double effTurn = min(MAX_EFFECT_TURN, minuteTurn * CHIP_ATTRITION_N);
+				double retainRate = 1.0 - effTurn;
+				double addTotalShare = effTurn * stockInfo.circulatingAShares;
+				for (auto& val : chipArray)
+					val *= retainRate;
+
+				double price = item.price > 0 ? item.price : item.averagePrice;
+				int idx = findPriceIndex(price);
+				if (idx >= 0 && idx < static_cast<int>(chipArray.size()))
+					chipArray[idx] += addTotalShare;
+
+				double sumAll = 0.0;
+				for (auto val : chipArray)
+					sumAll += val;
+				if (sumAll > 0 && fabs(sumAll - stockInfo.circulatingAShares) > FLOAT_CORRECT_THRESHOLD)
+				{
+					double scale = static_cast<double>(stockInfo.circulatingAShares) / sumAll;
+					for (auto& val : chipArray)
+						val *= scale;
+				}
+			}
+
+			double totalShares = static_cast<double>(stockInfo.circulatingAShares);
+			points.clear();
+			points.reserve(priceLevels.size());
+			double weightSum = 0.0;
+			double profitShare = 0.0;
+			double currentPrice = stockInfo.currentPrice > 0 ? stockInfo.currentPrice : stockInfo.prevClosePrice;
+			for (size_t i = 0; i < priceLevels.size(); ++i)
+			{
+				weightSum += priceLevels[i] * chipArray[i];
+				if (priceLevels[i] < currentPrice)
+					profitShare += chipArray[i];
+				STOCK::ChipPoint point;
+				point.price = priceLevels[i];
+				point.percent = totalShares > 0 ? chipArray[i] / totalShares : 0.0;
+				points.push_back(point);
+			}
+		}
+	}
+
+	double totalPercent = 0.0;
+	double weightSum = 0.0;
+	double profitPercent = 0.0;
+	double maxPercent = 0.0;
+	double currentPrice = stockInfo.currentPrice > 0 ? stockInfo.currentPrice : stockInfo.prevClosePrice;
+	for (const auto& point : points)
+	{
+		if (point.percent <= 0) continue;
+		totalPercent += point.percent;
+		weightSum += point.price * point.percent;
+		if (point.price < currentPrice)
+			profitPercent += point.percent;
+		maxPercent = max(maxPercent, point.percent);
+	}
+	if (totalPercent <= 0 || maxPercent <= 0)
+		return;
+
+	double avgCost = weightSum / totalPercent;
+	double cumPercent = 0.0;
+	double chip90Low = 0.0;
+	double chip90High = 0.0;
+	bool findLow = false;
+	std::sort(points.begin(), points.end(), [](const STOCK::ChipPoint& a, const STOCK::ChipPoint& b) { return a.price < b.price; });
+	for (const auto& point : points)
+	{
+		cumPercent += point.percent;
+		if (!findLow && cumPercent >= totalPercent * 0.05)
+		{
+			chip90Low = point.price;
+			findLow = true;
+		}
+		if (cumPercent >= totalPercent * 0.95)
+		{
+			chip90High = point.price;
+			break;
+		}
+	}
+
+	CString infoTxt;
+	infoTxt.Format(_T("均:%s 获:%.1f%%"), CCommon::FormatFloat(avgCost), profitPercent / totalPercent * 100.0);
+	memDC.SetTextColor(COLOR_GRAY_TEXT);
+	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(22), infoTxt);
+	CString rangeTxt;
+	rangeTxt.Format(_T("90%%:%s-%s"), CCommon::FormatFloat(chip90Low), CCommon::FormatFloat(chip90High));
+	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(40), rangeTxt);
+
+	const int chartTop = topOffset + g_data.RDPI(60);
+	const int chartBottom = height - g_data.RDPI(8);
+	const int chartLeft = left + g_data.RDPI(6);
+	const int chartRight = right - g_data.RDPI(6);
+	const int chartH = chartBottom - chartTop;
+	const int chartW = chartRight - chartLeft;
+	if (chartH <= 0 || chartW <= 0)
+		return;
+
+	double minPrice = points.front().price;
+	double maxPrice = points.back().price;
+	if (maxPrice <= minPrice)
+		return;
+
+	CPen borderPen(PS_SOLID, 1, RGB(220, 220, 220));
+	CPen* oldPen = memDC.SelectObject(&borderPen);
+	memDC.Rectangle(chartLeft, chartTop, chartRight, chartBottom);
+	memDC.SelectObject(oldPen);
+
+	auto priceToY = [&](double price) -> int {
+		return chartBottom - static_cast<int>((price - minPrice) / (maxPrice - minPrice) * chartH);
+		};
+
+	for (const auto& point : points)
+	{
+		if (point.percent <= 0) continue;
+		int y = priceToY(point.price);
+		int barW = max(1, static_cast<int>(point.percent / maxPercent * chartW));
+		COLORREF color = point.price < currentPrice ? COLOR_RED_UP : COLOR_GREEN_DOWN;
+		memDC.FillSolidRect(chartLeft, y, barW, max(1, g_data.RDPI(1)), color);
+	}
+
+	if (currentPrice > minPrice && currentPrice < maxPrice)
+	{
+		int y = priceToY(currentPrice);
+		CPen curPen(PS_DOT, 1, RGB(80, 80, 80));
+		oldPen = memDC.SelectObject(&curPen);
+		memDC.MoveTo(chartLeft, y);
+		memDC.LineTo(chartRight, y);
+		memDC.SelectObject(oldPen);
+		CString priceTxt;
+		priceTxt.Format(_T("现 %s"), CCommon::FormatFloat(currentPrice));
+		CSize txtSize = memDC.GetTextExtent(priceTxt);
+		int paddingX = g_data.RDPI(4);
+		int paddingY = g_data.RDPI(2);
+		int labelW = txtSize.cx + paddingX * 2;
+		int labelH = txtSize.cy + paddingY * 2;
+		int labelLeft = chartRight - labelW - g_data.RDPI(2);
+		int labelTop = min(max(chartTop, y - labelH / 2), chartBottom - labelH);
+		CRect labelRect(labelLeft, labelTop, labelLeft + labelW, labelTop + labelH);
+		memDC.SetTextColor(COLOR_BLACK);
+		memDC.TextOut(labelRect.left + paddingX, labelRect.top + paddingY, priceTxt);
+	}
+
+	CString highTxt;
+	highTxt = CCommon::FormatFloat(maxPrice);
+	CString lowTxt;
+	lowTxt = CCommon::FormatFloat(minPrice);
+	memDC.SetTextColor(COLOR_GRAY_TEXT);
+	memDC.TextOut(chartRight - memDC.GetTextExtent(highTxt).cx, chartTop, highTxt);
+	memDC.TextOut(chartRight - memDC.GetTextExtent(lowTxt).cx, chartBottom - memDC.GetTextExtent(lowTxt).cy, lowTxt);
+}
+
 BOOL CFloatingWnd::OnEraseBkgnd(CDC* pDC)
 {
 	return TRUE; // 不擦除背景
@@ -6923,6 +7199,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 					m_isKLineMode = false;
 					m_isMin5KLineMode = false;
 					m_isMin30KLineMode = false;
+					m_showChipPeak = false;
 					m_stock_id = rowInfo.code;
 					UpdateModeButtons();
 					UpdatePeriodComboVisibility();
@@ -8046,6 +8323,7 @@ void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
 		m_isKLineMode = false;
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
+		m_showChipPeak = false;
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
 		Invalidate();
@@ -8056,6 +8334,7 @@ void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
 		m_isKLineMode = false;
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
+		m_showChipPeak = false;
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
 		Invalidate();
@@ -8559,6 +8838,7 @@ void CFloatingWnd::ToggleKLineMode()
 	m_timelineScrollOffset = -1;  // 自动滚动到末尾
 	m_timelineVisibleCount = 40;  // 切回分时显示最新走势
 	m_showTrendView = m_isKLineMode;	// 切回分时模式时重置为false，避免布局计算走入m_showTrendView分支
+	m_showChipPeak = false;
 	m_showMA = false;
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
@@ -8616,34 +8896,6 @@ void CFloatingWnd::UpdateModeButtons()
 			m_btnKLine.SetButtonStyle(BS_FLAT, TRUE);
 		}
 
-		if (m_btnTrend.GetSafeHwnd())
-		{
-			if (m_isMin5KLineMode || m_isMin30KLineMode)
-			{
-				// 5分钟/30分钟K线模式：走势按钮显示"K线"并高亮
-				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-				m_btnTrend.SetWindowText(_T("K线"));
-			}
-			else if (m_isKLineMode && !m_showTrendView)
-			{
-				// 日K线K线柱模式：走势按钮显示"K线"并高亮
-				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-				m_btnTrend.SetWindowText(_T("K线"));
-			}
-			else if (m_isKLineMode && m_showTrendView)
-			{
-				// 日K线走势模式：走势按钮显示"走势"并高亮
-				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-				m_btnTrend.SetWindowText(_T("走势"));
-			}
-			else
-			{
-				// 分时模式：走势按钮高亮
-				m_btnTrend.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-				m_btnTrend.SetWindowText(_T("走势"));
-			}
-		}
-
 		if (m_btnT0.GetSafeHwnd())
 		{
 			m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
@@ -8697,6 +8949,11 @@ void CFloatingWnd::UpdateModeButtons()
 			}
 		}
 
+		if (m_btnChipPeak.GetSafeHwnd())
+		{
+			m_btnChipPeak.SetButtonStyle(m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+		}
+
 		// 缩放按钮在所有模式下显示（除总览模式外）
 		if (m_btnZoomOut.GetSafeHwnd())
 		{
@@ -8746,11 +9003,6 @@ void CFloatingWnd::UpdateModeButtons()
 
 void CFloatingWnd::UpdatePeriodComboVisibility()
 {
-	if (m_btnTrend.GetSafeHwnd())
-	{
-		m_btnTrend.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
-	}
-
 	if (m_btnMA.GetSafeHwnd())
 	{
 		m_btnMA.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
@@ -8771,6 +9023,10 @@ void CFloatingWnd::UpdatePeriodComboVisibility()
 	if (m_btnBoll.GetSafeHwnd())
 	{
 		m_btnBoll.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
+	}
+	if (m_btnChipPeak.GetSafeHwnd())
+	{
+		m_btnChipPeak.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
 	}
 }
 
@@ -9008,6 +9264,7 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
 		m_showTrendView = false;
+		m_showChipPeak = false;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 显示最新走势
 		UpdateModeButtons();
@@ -9022,6 +9279,7 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		m_isMin30KLineMode = false;
 		m_showTrendView = false;
 		m_showBollBands = true;
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;
@@ -9053,6 +9311,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_isMin30KLineMode = false;
 		m_scrollOffset = 0;
 		m_showTrendView = false;  // 日K默认显示K线图
+		m_showChipPeak = false;
 		m_showMA = false;
 		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -9080,6 +9339,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
 		m_showTrendView = false;  // 日K默认显示K线图
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -9102,45 +9362,6 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 	else if (m_showTrendView)
 	{
 		m_showTrendView = false;
-		UpdateModeButtons();
-		Invalidate();
-	}
-}
-
-void CFloatingWnd::OnBnClickedTrendBtn()
-{
-	if (m_isMin5KLineMode || m_isMin30KLineMode)
-	{
-		// 5分钟/30分钟K线模式下：走势按钮不切换（K线模式固定显示K线图）
-		return;
-	}
-	else if (!m_isKLineMode)
-	{
-		// 分时模式下点击走势按钮：切换到日K线走势视图
-		m_isKLineMode = true;
-		m_isMin5KLineMode = false;
-		m_isMin30KLineMode = false;
-		m_showTrendView = true;
-		m_timelineScrollOffset = -1;  // 自动滚动到末尾
-		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
-		if (m_btnTrend.GetSafeHwnd())
-		{
-			m_btnTrend.SetWindowText(_T("走势"));
-		}
-		UpdateModeButtons();
-		UpdatePeriodComboVisibility();
-		Invalidate();
-		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
-	}
-	else
-	{
-		// 日K线模式下：切换K线柱/走势线
-		m_showTrendView = !m_showTrendView;
-		if (m_btnTrend.GetSafeHwnd())
-		{
-			m_btnTrend.SetWindowText(m_showTrendView ? _T("走势") : _T("K线"));
-		}
-		UpdateModeButtons();
 		Invalidate();
 	}
 }
@@ -9151,6 +9372,46 @@ void CFloatingWnd::OnBnClickedT0Btn()
 	if (m_btnT0.GetSafeHwnd())
 		m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
 	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedChipPeakBtn()
+{
+	m_showChipPeak = !m_showChipPeak;
+	if (m_btnChipPeak.GetSafeHwnd())
+		m_btnChipPeak.SetButtonStyle(m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+
+	EnsureChipPeakData();
+	Invalidate();
+}
+
+void CFloatingWnd::EnsureChipPeakData()
+{
+	if (m_showChipPeak)
+	{
+		bool needRequest = true;
+		{
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			auto stockData = g_data.GetStockData(m_stock_id);
+			needRequest = !stockData || !stockData->chipDistribution.IsValid() || stockData->info.circulatingAShares <= 0;
+		}
+
+		if (needRequest)
+		{
+			auto requestThread = [](LPVOID pParam) -> UINT {
+				auto param = static_cast<std::pair<HWND, std::wstring>*>(pParam);
+				HWND hWnd = param->first;
+				std::wstring stockId = param->second;
+				delete param;
+
+				g_data.RequestStockBasicData(stockId);
+				g_data.RequestChipDistributionData(stockId);
+				if (::IsWindow(hWnd))
+					::PostMessage(hWnd, FWND_MSG_UPDATE_STATUS, 0, 0);
+				return 0;
+				};
+			AfxBeginThread(requestThread, new std::pair<HWND, std::wstring>(GetSafeHwnd(), m_stock_id));
+		}
+	}
 }
 
 void CFloatingWnd::OnBnClickedMABtn()
@@ -9178,6 +9439,7 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isMin5KLineMode = true;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
+		m_showChipPeak = true;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 初始化缩放，显示最新40个数据点
@@ -9201,6 +9463,7 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
 		m_showTrendView = false;
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;
@@ -9218,6 +9481,7 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 	}
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
+	EnsureChipPeakData();
 	Invalidate();
 	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 }
@@ -9231,6 +9495,7 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = true;
 		m_showBollBands = true;
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 初始化缩放，显示最新40个数据点
@@ -9254,6 +9519,7 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
 		m_showTrendView = false;
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;

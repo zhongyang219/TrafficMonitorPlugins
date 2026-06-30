@@ -44,6 +44,43 @@ namespace STOCK
 		TimelinePoint() : volume(0), price(0), averagePrice(0), amount(0), ma5(0), ma10(0), ma20(0) {}
 	};
 
+	// 筹码分布数据点
+	struct ChipPoint
+	{
+		Price price{ 0.0 };      // 价格档位
+		double percent{ 0.0 };   // 对应筹码占比
+	};
+
+	// 筹码峰数据
+	struct ChipDistribution
+	{
+		std::string tradeDate;
+		double avgCost{ 0.0 };
+		double benefitRatio{ 0.0 };
+		double cost70Low{ 0.0 };
+		double cost70High{ 0.0 };
+		double cost70Concentration{ 0.0 };
+		double cost90Low{ 0.0 };
+		double cost90High{ 0.0 };
+		double cost90Concentration{ 0.0 };
+		std::vector<ChipPoint> points;
+
+		void Clear()
+		{
+			tradeDate.clear();
+			avgCost = 0.0;
+			benefitRatio = 0.0;
+			cost70Low = 0.0;
+			cost70High = 0.0;
+			cost70Concentration = 0.0;
+			cost90Low = 0.0;
+			cost90High = 0.0;
+			cost90Concentration = 0.0;
+			points.clear();
+		}
+		bool IsValid() const { return !tradeDate.empty() && !points.empty(); }
+	};
+
 	// 周期类型
 	enum class Period
 	{
@@ -260,6 +297,7 @@ namespace STOCK
 		Volume innerVolume;   // 内盘(股) - 主动卖出
 		Volume outerVolume;   // 外盘(股) - 主动买入
 		Amount turnoverRate;  // 换手率(%)
+		Volume circulatingAShares; // 无限售流通A股(股)
 
 		std::wstring displayPrice = L" --";
 		std::wstring displayFluctuationDiff = L"+--";  // 涨跌额
@@ -282,6 +320,7 @@ namespace STOCK
 			innerVolume(0),
 			outerVolume(0),
 			turnoverRate(0.0),
+			circulatingAShares(0),
 			priceLimit(0.0)
 		{
 			// bidLevels.resize(MAX_LEVEL);
@@ -318,6 +357,7 @@ namespace STOCK
 	{
 	public:
 		StockInfo info;
+		ChipDistribution chipDistribution;
 
 		// 买一/卖一累计停留时间（秒）
 		int ask1AccumSeconds{ 0 };    // 现价等于卖一价的累计秒数

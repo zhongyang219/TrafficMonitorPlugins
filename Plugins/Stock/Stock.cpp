@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <cmath>
 
 #include "Stock.h"
@@ -207,8 +207,10 @@ void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
 			std::lock_guard<std::mutex> lock(m_instance.m_alert_mutex);
 			m_instance.m_last_alert_price.clear();
 		}
-		// 程序启动后异步预加载所有股票的日K数据
+		// 程序启动后异步预加载所有股票的日K数据、筹码峰数据和基础行情数据
 		m_instance.PreloadAllKLineData();
+		m_instance.PreloadAllChipDistributionData();
+		m_instance.PreloadAllStockBasicData();
 		break;
 	case ITMPlugin::EI_TASKBAR_WND_VALUE_RIGHT_ALIGN:
 		// 获取TrafficMonitor任务栏窗口中“数值右对齐”设置
@@ -363,6 +365,46 @@ void Stock::PreloadAllKLineData()
 			g_data.RequestKLineData(code, 750);
 			g_data.RequestMin5KLineData(code, 250);
 			g_data.RequestMin30KLineData(code, 250);
+		}
+		delete pCodes;
+		return 0;
+		};
+
+	std::vector<std::wstring>* pCodes = new std::vector<std::wstring>(codes);
+	AfxBeginThread(preloadThread, pCodes);
+}
+
+void Stock::PreloadAllChipDistributionData()
+{
+	std::vector<std::wstring> codes = g_data.m_setting_data.m_stock_codes;
+	if (codes.empty())
+		return;
+
+	auto preloadThread = [](LPVOID pParam) -> UINT {
+		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
+		for (const auto& code : *pCodes)
+		{
+			g_data.RequestChipDistributionData(code);
+		}
+		delete pCodes;
+		return 0;
+		};
+
+	std::vector<std::wstring>* pCodes = new std::vector<std::wstring>(codes);
+	AfxBeginThread(preloadThread, pCodes);
+}
+
+void Stock::PreloadAllStockBasicData()
+{
+	std::vector<std::wstring> codes = g_data.m_setting_data.m_stock_codes;
+	if (codes.empty())
+		return;
+
+	auto preloadThread = [](LPVOID pParam) -> UINT {
+		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
+		for (const auto& code : *pCodes)
+		{
+			g_data.RequestStockBasicData(code);
 		}
 		delete pCodes;
 		return 0;
@@ -1073,19 +1115,7 @@ void Stock::TrendAlertData::record_alert(AlertType type)
 
 double Stock::GetTickValue(const std::wstring& code)
 {
-	if (code.length() < 2)
-		return 0.01;
-
-	std::wstring first2 = code.substr(2, 2);
-	const std::vector<std::wstring> etf_prefixes = { L"50", L"51", L"56", L"15", L"16", L"18" };
-
-	for (const auto& prefix : etf_prefixes)
-	{
-		if (first2 == prefix)
-			return 0.001;
-	}
-
-	return 0.01;
+	return CCommon::IsFundCode(code) ? 0.001 : 0.01;
 }
 
 double Stock::CalculateMinorFluctuationThreshold(double price, double tick)
