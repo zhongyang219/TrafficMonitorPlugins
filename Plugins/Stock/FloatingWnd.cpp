@@ -160,8 +160,7 @@ COLORREF GetCellBgColor(double percent)
 void DrawPricePointLabel(CDC& memDC, int pointX, int pointY, int chartLeft, int chartTop, int chartWidth, int chartHeight,
 	STOCK::Price price, bool isHigh, COLORREF color)
 {
-	CString label;
-	label.Format(_T("%.3f"), static_cast<double>(price));
+	CString label = CCommon::FormatFloat(price);
 	CSize labelSize = memDC.GetTextExtent(label);
 	const int gap = g_data.RDPI(4);
 	const int arrowGap = g_data.RDPI(10);
@@ -176,13 +175,13 @@ void DrawPricePointLabel(CDC& memDC, int pointX, int pointY, int chartLeft, int 
 	{
 		if (pointX < chartLeft + chartWidth / 2)
 		{
-			label.Format(_T("\u2190%.3f"), static_cast<double>(price));
+			label.Format(_T("\u2190%s"), CCommon::FormatFloat(price));
 			labelSize = memDC.GetTextExtent(label);
 			labelX = pointX + gap;
 		}
 		else
 		{
-			label.Format(_T("%.3f\u2192"), static_cast<double>(price));
+			label.Format(_T("%s\u2192"), CCommon::FormatFloat(price));
 			labelSize = memDC.GetTextExtent(label);
 			labelX = pointX - labelSize.cx - gap;
 		}
@@ -475,7 +474,7 @@ BOOL CFloatingWnd::Create(CFont* font, CPoint pt, std::wstring stock_id)
 	return TRUE;
 }
 
-CPoint CFloatingWnd::Stock2Point(int x, int y, int w, int h, float unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice)
+CPoint CFloatingWnd::Stock2Point(int x, int y, int w, int h, double unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice)
 {
 	CPoint p = CPoint();
 	std::vector<std::string> time_arr = CCommon::split(item.time, ":");
@@ -634,9 +633,11 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 		CPen pGridLine(PS_DOT, 1, COLOR_GRAY_GRID);
 		memDC.SelectObject(&pGridLine);
 		double priceRange = ctx.maxPrice - ctx.minPrice;
-		float unitY = ctx.priceChartHeight / static_cast<float>(priceRange);
-		for (double labelPrice = ctx.minPrice; labelPrice <= ctx.maxPrice + ctx.niceStep * 0.01; labelPrice += ctx.niceStep)
+		double unitY = ctx.unitY;
+		int labelCount = static_cast<int>(round(priceRange / ctx.niceStep));
+		for (int i = 0; i <= labelCount; i++)
 		{
+			double labelPrice = ctx.minPrice + i * ctx.niceStep;
 			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
 			memDC.MoveTo(0, y);
 			memDC.LineTo(ctx.chartWidth, y);
@@ -649,8 +650,7 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	{
 		CPen pMiddleLine(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
 		memDC.SelectObject(&pMiddleLine);
-		float prevCloseUnitY = ctx.priceChartHeight / static_cast<float>(ctx.maxPrice - ctx.minPrice);
-		int prevCloseY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((ctx.realtimeData.prevClosePrice - ctx.minPrice) * prevCloseUnitY);
+		int prevCloseY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((ctx.realtimeData.prevClosePrice - ctx.minPrice) * ctx.unitY);
 		prevCloseY = max(ctx.priceChartTop, min(prevCloseY, ctx.priceChartTop + ctx.priceChartHeight));
 		memDC.MoveTo(0, prevCloseY);
 		memDC.LineTo(ctx.chartWidth, prevCloseY);
@@ -667,10 +667,14 @@ void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext
 	{
 		int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 		double priceRange = ctx.maxPrice - ctx.minPrice;
-		float unitY = ctx.priceChartHeight / static_cast<float>(priceRange);
+		// 直接使用ctx.unitY，确保与网格线/悬停提示完全一致
+		double unitY = ctx.unitY;
 
-		for (double labelPrice = ctx.minPrice; labelPrice <= ctx.maxPrice + ctx.niceStep * 0.01; labelPrice += ctx.niceStep)
+		// 用整数循环替代浮点累加，避免精度误差导致标签重复或丢失
+		int labelCount = static_cast<int>(round(priceRange / ctx.niceStep));
+		for (int i = 0; i <= labelCount; i++)
 		{
+			double labelPrice = ctx.minPrice + i * ctx.niceStep;
 			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((labelPrice - ctx.minPrice) * unitY);
 			CString priceTxt = CCommon::FormatFloat(labelPrice);
 			CSize sz = memDC.GetTextExtent(priceTxt);
@@ -754,15 +758,11 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 
 	const int totalPoints = static_cast<int>(timelinePoint.size());
 
-	// Y轴范围：优先使用 ctx 中预计算的动态范围
-	STOCK::Price maxPrice;
-	STOCK::Price minPrice;
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
-	{
-		maxPrice = ctx.maxPrice;
-		minPrice = ctx.minPrice;
-	}
-	else
+	// Y轴范围：直接使用ctx中预计算的参数，确保与标签/网格线/悬停提示完全一致
+	STOCK::Price maxPrice = ctx.maxPrice;
+	STOCK::Price minPrice = ctx.minPrice;
+	double unitY = ctx.unitY;
+	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		// 回退：基于涨跌停限制
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
@@ -772,9 +772,8 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		double paddingPrice = (maxPrice - minPrice) * pricePaddingY / ctx.priceChartHeight;
 		maxPrice += paddingPrice;
 		minPrice -= paddingPrice;
+		unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 	}
-
-	float unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 
 	CPen pKLine(PS_SOLID, 2, COLOR_DARK_GRAY_BORDER);
 	memDC.SelectObject(&pKLine);
@@ -786,7 +785,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	{
 		const auto& item = timelinePoint[i];
 		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-		float yVal = (item.price - minPrice) * unitY;
+		double yVal = (item.price - minPrice) * unitY;
 		dataPoints.push_back(CPoint(pointX, (int)yVal));
 	}
 
@@ -885,7 +884,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				}
 				if (maVal <= 0) { first = true; continue; }
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-				float yVal = (maVal - minPrice) * unitY;
+				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
 				if (first)
 				{
@@ -1151,15 +1150,11 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	if (m_hoveredBarIndex >= static_cast<int>(timelinePoint.size()))
 		return;
 
-	// Y轴范围：优先使用 ctx 中预计算的动态范围（与 DrawTimelinePriceCurve 一致）
-	STOCK::Price maxPrice;
-	STOCK::Price minPrice;
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
-	{
-		maxPrice = ctx.maxPrice;
-		minPrice = ctx.minPrice;
-	}
-	else
+	// 直接使用ctx中预计算的Y轴参数，确保与标签/网格线完全一致
+	STOCK::Price maxPrice = ctx.maxPrice;
+	STOCK::Price minPrice = ctx.minPrice;
+	double unitY = ctx.unitY;
+	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		// 回退：基于涨跌停限制
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
@@ -1169,15 +1164,14 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 		double paddingPrice = (maxPrice - minPrice) * pricePaddingY / ctx.priceChartHeight;
 		maxPrice += paddingPrice;
 		minPrice -= paddingPrice;
+		unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 	}
-
-	float unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 
 	// 重新计算悬停点位置（按索引比例分配X坐标）
 	const auto& item = timelinePoint[m_hoveredBarIndex];
 	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
 
-	int dotY = ctx.priceChartTop + ctx.priceChartHeight - (int)((item.price - minPrice) * unitY);
+	int dotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((item.price - minPrice) * unitY);
 
 	COLORREF dotColor = (item.price >= ctx.realtimeData.prevClosePrice) ? COLOR_RED_UP : COLOR_GREEN_DOWN;
 
@@ -1189,8 +1183,8 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	if (!m_isKLineMode)
 	{
 		// 均价圆点
-		float avgPrice = item.averagePrice;
-		int avgDotY = ctx.priceChartTop + ctx.priceChartHeight - (int)((avgPrice - minPrice) * unitY);
+		double avgPrice = item.averagePrice;
+		int avgDotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((avgPrice - minPrice) * unitY);
 		COLORREF avgDotColor = (avgPrice >= ctx.realtimeData.prevClosePrice) ? COLOR_RED_UP : COLOR_GREEN_DOWN;
 		CPen avgDotPen(PS_SOLID, 4, avgDotColor);
 		memDC.SelectObject(&avgDotPen);
@@ -1203,19 +1197,16 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	memDC.MoveTo(hoverX, ctx.priceChartTop);
 	memDC.LineTo(hoverX, ctx.macdChartTop + ctx.macdChartHeight);
 
-	// 十字横虚线（在走势图区域内，从左端到右端）
+	// 十字横虚线：跟随真实价格位置
 	memDC.MoveTo(0, dotY);
 	memDC.LineTo(ctx.chartWidth, dotY);
 
 	// Y轴左侧预留区域显示悬停点价格，浅蓝色背景高亮
-	// 注意：走势图绘制区使用了视口偏移，当前坐标系原点在Y轴右边缘
-	// 需要恢复原始坐标系来在Y轴区域绘制
 	int yAxisW = g_data.RDPI(50);
 	CPoint origOrg = memDC.GetViewportOrg();
 	memDC.OffsetViewportOrg(-yAxisW, 0);  // 恢复原始坐标系
 
-	CString hoverPriceStr;
-	hoverPriceStr.Format(_T("%.3f"), static_cast<double>(item.price));
+	CString hoverPriceStr = CCommon::FormatFloat(item.price);
 	CSize hoverPriceSize = memDC.GetTextExtent(hoverPriceStr);
 	int priceLabelX = yAxisW - hoverPriceSize.cx - g_data.RDPI(3);
 	int priceLabelY = dotY - hoverPriceSize.cy / 2;
@@ -1291,15 +1282,11 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 
 	const int totalPoints = static_cast<int>(timelinePoint.size());
 
-	// Y轴范围：优先使用 ctx 中预计算的动态范围
-	STOCK::Price maxPrice;
-	STOCK::Price minPrice;
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice)
-	{
-		maxPrice = ctx.maxPrice;
-		minPrice = ctx.minPrice;
-	}
-	else
+	// Y轴范围：直接使用ctx中预计算的参数，确保与标签/网格线/悬停提示完全一致
+	STOCK::Price maxPrice = ctx.maxPrice;
+	STOCK::Price minPrice = ctx.minPrice;
+	double unitY = ctx.unitY;
+	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
@@ -1308,9 +1295,8 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 		double paddingPrice = (maxPrice - minPrice) * pricePaddingY / ctx.priceChartHeight;
 		maxPrice += paddingPrice;
 		minPrice -= paddingPrice;
+		unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 	}
-
-	float unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 
 	// 需要从5分钟K线原始数据获取OHLC
 	// 5分钟K线数据存储在ctx.klineData中
@@ -1467,7 +1453,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 				}
 				if (maVal <= 0) { first = true; continue; }
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-				float yVal = (maVal - minPrice) * unitY;
+				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
 				if (first)
 				{
@@ -1701,10 +1687,11 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 
 	const int totalPoints = static_cast<int>(timelinePoint.size());
 
-	// Y轴范围：使用ctx中预计算的动态范围（已包含K线high/low）
+	// Y轴范围：直接使用ctx中预计算的参数，确保与标签/网格线/悬停提示完全一致
 	STOCK::Price maxPrice = ctx.maxPrice;
 	STOCK::Price minPrice = ctx.minPrice;
-	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice)
+	double unitY = ctx.unitY;
+	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
@@ -1713,9 +1700,8 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 		double paddingPrice = (maxPrice - minPrice) * pricePaddingY / ctx.priceChartHeight;
 		maxPrice += paddingPrice;
 		minPrice -= paddingPrice;
+		unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 	}
-
-	float unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 
 	// 从日K线原始数据获取OHLC
 	const auto& klineData = *ctx.klineData;
@@ -1814,7 +1800,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 				}
 				if (maVal <= 0) { first = true; continue; }
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
-				float yVal = (maVal - minPrice) * unitY;
+				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
 				if (first)
 				{
@@ -2446,7 +2432,7 @@ void CFloatingWnd::OnPaint()
 				ctx.maxPrice = calcMax;
 				ctx.minPrice = calcMin;
 				ctx.niceStep = niceStep;
-				ctx.unitY = ctx.priceChartHeight / static_cast<float>(ctx.maxPrice - ctx.minPrice);
+				ctx.unitY = ctx.priceChartHeight / (ctx.maxPrice - ctx.minPrice);
 			}
 
 			// 使用视口偏移让分时图所有绘制自动向右偏移 yAxisWidth，实现左侧Y轴留白
@@ -4509,9 +4495,9 @@ void CFloatingWnd::DrawKLineGrid(CDC& memDC, const KLineDrawData& drawData)
 {
 	CPen gridPen(PS_SOLID, 1, COLOR_GRAY_GRID);
 	memDC.SelectObject(&gridPen);
-	for (int i = 0; i <= 4; i++)
+	for (int i = 0; i <= 6; i++)
 	{
-		int gridY = drawData.y + static_cast<int>(i * drawData.h / 4.0f);
+		int gridY = drawData.y + static_cast<int>(i * drawData.h / 6.0f);
 		memDC.MoveTo(drawData.x, gridY);
 		memDC.LineTo(drawData.x + drawData.w, gridY);
 	}
@@ -4623,11 +4609,20 @@ void CFloatingWnd::DrawCurrentPriceLine(CDC& memDC, const KLineDrawData& drawDat
 void CFloatingWnd::DrawPriceLabels(CDC& memDC, const KLineDrawData& drawData)
 {
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
-	CString maxPriceTxt = CCommon::FormatFloat(drawData.maxPrice);
-	memDC.TextOut(drawData.x + g_data.RDPI(2), drawData.y + g_data.RDPI(2), maxPriceTxt);
-
-	CString minPriceTxt = CCommon::FormatFloat(drawData.minPrice);
-	memDC.TextOut(drawData.x + g_data.RDPI(2), drawData.y + drawData.h - memDC.GetTextExtent(minPriceTxt).cy - g_data.RDPI(2), minPriceTxt);
+	double step = (drawData.maxPrice - drawData.minPrice) / 6.0;
+	for (int i = 0; i <= 6; i++)
+	{
+		double price = drawData.maxPrice - i * step;
+		CString priceTxt = CCommon::FormatFloat(price);
+		int y = drawData.y + static_cast<int>(i * drawData.h / 6.0f);
+		int textH = memDC.GetTextExtent(priceTxt).cy;
+		// 顶部标签紧贴网格线下方，底部标签紧贴网格线上方，中间居中
+		int labelY;
+		if (i == 0) labelY = y + g_data.RDPI(1);
+		else if (i == 6) labelY = y - textH - g_data.RDPI(1);
+		else labelY = y - textH / 2;
+		memDC.TextOut(drawData.x + g_data.RDPI(2), labelY, priceTxt);
+	}
 }
 
 void CFloatingWnd::DrawAverageLabels(CDC& memDC, const KLineDrawData& drawData)
@@ -4873,10 +4868,10 @@ void CFloatingWnd::DrawKLineChart(CDC& memDC, int x, int y, int w, int h, const 
 	KLineDrawData drawData = PrepareKLineDrawData(x, y + paddingY, w, h - paddingY * 2, klineData);
 	drawData.stockInfo = &stockInfo;
 
-	// 重新计算最高最低价，过滤无效价格，使用固定周期范围（不随滚动条变化）
+	// 只统计实际可见范围（finalStartIndex到末尾）的最高最低价，避免缩放后Y轴包含不可见数据导致走势被压缩
 	drawData.maxPrice = 0;
 	drawData.minPrice = (std::numeric_limits<STOCK::Price>::max)();
-	for (int i = drawData.startIndex; i < klineData.size(); i++)
+	for (int i = drawData.finalStartIndex; i < klineData.size(); i++)
 	{
 		if (klineData[i].high > 0)
 			drawData.maxPrice = max(drawData.maxPrice, klineData[i].high);
@@ -4889,13 +4884,29 @@ void CFloatingWnd::DrawKLineChart(CDC& memDC, int x, int y, int w, int h, const 
 	PeriodPoint periodLows[3] = {};
 	CalculatePeriodHighsLows(drawData, periodHighs, periodLows);
 
-	// 上下各预留20像素内部边距，通过扩大价格范围实现
+	// Y轴固定6等分7根横线：以可见最高/最低价的中点为Y轴中线，向上下对称扩展（与5分钟K线一致）
 	if (drawData.maxPrice > drawData.minPrice)
 	{
-		const int pricePaddingY = g_data.RDPI(20);
-		double paddingPrice = (drawData.maxPrice - drawData.minPrice) * pricePaddingY / drawData.h;
-		drawData.maxPrice += paddingPrice;
-		drawData.minPrice -= paddingPrice;
+		const double DIV_COUNT = 6.0;
+		const double MIN_STEP = 0.001;
+		double range = drawData.maxPrice - drawData.minPrice;
+		if (range <= 0) range = MIN_STEP;
+
+		double rawStep = range / (DIV_COUNT - 2.0);
+		if (rawStep <= 0) rawStep = MIN_STEP;
+		double mag = pow(10.0, floor(log10(rawStep)));
+		double norm = rawStep / mag;
+		double niceStep;
+		if (norm <= 1.0) niceStep = 1.0 * mag;
+		else if (norm <= 2.0) niceStep = 2.0 * mag;
+		else if (norm <= 5.0) niceStep = 5.0 * mag;
+		else niceStep = 10.0 * mag;
+		niceStep = (std::max)(niceStep, MIN_STEP);
+
+		double centerPrice = (drawData.minPrice + drawData.maxPrice) / 2.0;
+		double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
+		drawData.minPrice = centerPrice - halfAxisRange;
+		drawData.maxPrice = centerPrice + halfAxisRange;
 		drawData.unitY = drawData.h / (drawData.maxPrice - drawData.minPrice);
 	}
 
@@ -5169,10 +5180,10 @@ void CFloatingWnd::DrawKLineTrendChart(CDC& memDC, int x, int y, int w, int h, c
 	KLineDrawData drawData = PrepareKLineDrawData(x, y + paddingY, w, h - paddingY * 2, klineData);
 	drawData.stockInfo = &stockInfo;
 
-	// 重新计算最高最低价，过滤无效价格，使用固定周期范围（不随滚动条变化）
+	// 只统计实际可见范围（finalStartIndex到末尾）的最高最低价，避免缩放后Y轴包含不可见数据导致走势被压缩
 	drawData.maxPrice = 0;
 	drawData.minPrice = (std::numeric_limits<STOCK::Price>::max)();
-	for (int i = drawData.startIndex; i < klineData.size(); i++)
+	for (int i = drawData.finalStartIndex; i < klineData.size(); i++)
 	{
 		if (klineData[i].high > 0)
 			drawData.maxPrice = max(drawData.maxPrice, klineData[i].high);
@@ -5184,13 +5195,29 @@ void CFloatingWnd::DrawKLineTrendChart(CDC& memDC, int x, int y, int w, int h, c
 	PeriodPoint periodLows[3] = {};
 	CalculatePeriodHighsLows(drawData, periodHighs, periodLows, true);
 
-	// 上下各预留20像素内部边距，通过扩大价格范围实现
+	// Y轴固定6等分7根横线：以可见最高/最低价的中点为Y轴中线，向上下对称扩展（与5分钟K线一致）
 	if (drawData.maxPrice > drawData.minPrice)
 	{
-		const int pricePaddingY = g_data.RDPI(20);
-		double paddingPrice = (drawData.maxPrice - drawData.minPrice) * pricePaddingY / drawData.h;
-		drawData.maxPrice += paddingPrice;
-		drawData.minPrice -= paddingPrice;
+		const double DIV_COUNT = 6.0;
+		const double MIN_STEP = 0.001;
+		double range = drawData.maxPrice - drawData.minPrice;
+		if (range <= 0) range = MIN_STEP;
+
+		double rawStep = range / (DIV_COUNT - 2.0);
+		if (rawStep <= 0) rawStep = MIN_STEP;
+		double mag = pow(10.0, floor(log10(rawStep)));
+		double norm = rawStep / mag;
+		double niceStep;
+		if (norm <= 1.0) niceStep = 1.0 * mag;
+		else if (norm <= 2.0) niceStep = 2.0 * mag;
+		else if (norm <= 5.0) niceStep = 5.0 * mag;
+		else niceStep = 10.0 * mag;
+		niceStep = (std::max)(niceStep, MIN_STEP);
+
+		double centerPrice = (drawData.minPrice + drawData.maxPrice) / 2.0;
+		double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
+		drawData.minPrice = centerPrice - halfAxisRange;
+		drawData.maxPrice = centerPrice + halfAxisRange;
 		drawData.unitY = drawData.h / (drawData.maxPrice - drawData.minPrice);
 	}
 
@@ -7632,8 +7659,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
 
 			auto drawKLineLabel = [&](const CString& label, STOCK::Price value, COLORREF labelColor, COLORREF valueColor) {
-				CString valStr;
-				valStr.Format(_T("%.3f"), static_cast<double>(value));
+				CString valStr = CCommon::FormatFloat(value);
 				memDC.SetTextColor(labelColor);
 				CSize ls = memDC.GetTextExtent(label);
 				memDC.TextOut(xPos, centerY - ls.cy / 2, label);
@@ -7677,8 +7703,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
 
 			auto drawKLineLabel = [&](const CString& label, STOCK::Price value, COLORREF labelColor, COLORREF valueColor) {
-				CString valStr;
-				valStr.Format(_T("%.3f"), static_cast<double>(value));
+				CString valStr = CCommon::FormatFloat(value);
 				memDC.SetTextColor(labelColor);
 				CSize ls = memDC.GetTextExtent(label);
 				memDC.TextOut(xPos, centerY - ls.cy / 2, label);
@@ -7709,8 +7734,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 
 		// 辅助lambda：绘制"标签:数值"，标签和数值分别着色
 		auto drawLabelValue = [&](const CString& labelText, STOCK::Price value, COLORREF labelColor, COLORREF valueColor, bool highlight) {
-			CString valStr;
-			valStr.Format(_T("%.3f"), static_cast<double>(value));
+			CString valStr = CCommon::FormatFloat(value);
 			memDC.SetTextColor(labelColor);
 			CSize ls = memDC.GetTextExtent(labelText);
 			memDC.TextOut(xPos, centerY - ls.cy / 2, labelText);
@@ -7748,9 +7772,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 		int centerY = priceChartTop + timelineTitleHeight / 2;
 
 		auto formatPrice = [](STOCK::Price value) -> CString {
-			CString str;
-			str.Format(_T("%.3f"), static_cast<double>(value));
-			return str;
+			return CCommon::FormatFloat(value);
 			};
 		auto drawRightLabelValues = [&](const std::vector<std::pair<CString, COLORREF>>& items) {
 			if (items.empty())
@@ -8757,8 +8779,14 @@ BOOL CFloatingWnd::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	// 分时图模式/5分钟K线模式/日K线模式：滚轮缩放可见数据点数
 	if (!m_isOverviewMode)
 	{
-		const int minVisible = 40;   // 最大放大：显示40分钟
-		const int maxVisible = 240;  // 最小：显示1天240分钟
+		const int minVisible = 40;   // 最大放大：显示40个数据点
+		int maxVisible;              // 最小缩放上限：根据模式不同
+		if (m_isKLineMode && !m_isMin5KLineMode && !m_isMin30KLineMode)
+			maxVisible = 750;        // 日K线：最多显示约3年
+		else if (m_isMin5KLineMode || m_isMin30KLineMode)
+			maxVisible = 480;        // 5分/30分K线
+		else
+			maxVisible = 240;        // 分时：1天240分钟
 		// 获取实际数据点数
 		int totalPoints = 0;
 		{
@@ -9026,7 +9054,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_scrollOffset = 0;
 		m_showTrendView = false;  // 日K默认显示K线图
 		m_showMA = false;
-		m_timelineVisibleCount = 250;  // 日K线默认显示250根
+		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_isHoveringKLine = false;
 		m_isHoveringKLineVolume = false;
@@ -9053,7 +9081,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_showBollBands = true;
 		m_showTrendView = false;  // 日K默认显示K线图
 		m_scrollOffset = 0;
-		m_timelineVisibleCount = 250;
+		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_isHoveringKLine = false;
 		m_isHoveringKLineVolume = false;
@@ -9094,7 +9122,7 @@ void CFloatingWnd::OnBnClickedTrendBtn()
 		m_isMin30KLineMode = false;
 		m_showTrendView = true;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
-		m_timelineVisibleCount = 250;
+		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		if (m_btnTrend.GetSafeHwnd())
 		{
 			m_btnTrend.SetWindowText(_T("走势"));

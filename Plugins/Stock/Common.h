@@ -78,9 +78,9 @@ public:
 	static std::string removeChar(const std::string& str, char ch);
 	static std::string removeStr(const std::string str, const std::string del);
 
-	// 格式化 float 为 CString，至少保留2位小数，最多保留3位小数
+	// 格式化价格为 CString，至少保留2位小数，最多保留3位小数
 	// 当第三位为0时去掉，例如：1.234→"1.234", 1.230→"1.23", 1.2→"1.20"
-	static CString FormatFloat(float value);
+	static CString FormatFloat(double value);
 
 	// 格式化数字，最多保留指定小数位数，末尾0自动去除
 	// 例如：123.456→"123.46", 123.00→"123", 123.40→"123.4"

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Common.h"
 #include <afxinet.h>    //用于支持使用网络相关的类
 #include <sstream>
@@ -227,7 +227,7 @@ std::string CCommon::removeStr(const std::string str, const std::string del)
 	return result;
 }
 
-CString CCommon::FormatFloat(float value)
+CString CCommon::FormatFloat(double value)
 {
 	CString str;
 	str.Format(_T("%.3f"), value);

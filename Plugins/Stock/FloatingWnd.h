@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -57,7 +57,7 @@ protected:
 
 private:
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
-	CPoint Stock2Point(int x, int y, int w, int h, float unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
+	CPoint Stock2Point(int x, int y, int w, int h, double unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
 	void DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
 	void DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo = nullptr, int startIndex = 0, int visibleCount = -1);
 
@@ -80,7 +80,7 @@ private:
 		int scrollRange{ 0 };    // 滚动范围
 		STOCK::Price maxPrice{ 0 };   // 可见区间最大价（含内边距）
 		STOCK::Price minPrice{ 0 };   // 可见区间最小价（含内边距）
-		float unitY{ 0 };             // Y轴缩放（像素/价格）
+		double unitY{ 0 };            // Y轴缩放（像素/价格）
 		STOCK::StockInfo realtimeData;
 		const std::vector<STOCK::TimelinePoint>* timelinePoint;    // 可见范围子集（subTimeline）
 		const std::vector<STOCK::TimelinePoint>* fullTimeline{ nullptr };  // 完整分时数据（用于布林带等需要历史回溯的指标）
@@ -153,7 +153,7 @@ private:
 		int barWidth;
 		int gap;
 		STOCK::Price maxPrice, minPrice;
-		float unitY;
+		double unitY;
 		const std::vector<STOCK::KLinePoint>* klineData;
 		const STOCK::StockInfo* stockInfo;
 	};
