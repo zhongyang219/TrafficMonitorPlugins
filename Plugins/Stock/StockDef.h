@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 #include <vector>
@@ -55,6 +55,7 @@ namespace STOCK
 	struct ChipDistribution
 	{
 		std::string tradeDate;
+		time_t updatedAt{ 0 };
 		double avgCost{ 0.0 };
 		double benefitRatio{ 0.0 };
 		double cost70Low{ 0.0 };
@@ -68,6 +69,7 @@ namespace STOCK
 		void Clear()
 		{
 			tradeDate.clear();
+			updatedAt = 0;
 			avgCost = 0.0;
 			benefitRatio = 0.0;
 			cost70Low = 0.0;

@@ -362,9 +362,12 @@ void Stock::PreloadAllKLineData()
 		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
 		for (const auto& code : *pCodes)
 		{
-			g_data.RequestKLineData(code, 750);
-			g_data.RequestMin5KLineData(code, 250);
-			g_data.RequestMin30KLineData(code, 250);
+			if (!g_data.HasKLineCache(code, STOCK::Period::DAY))
+				g_data.RequestKLineData(code, 750);
+			if (!g_data.HasKLineCache(code, STOCK::Period::MIN5))
+				g_data.RequestMin5KLineData(code, 250);
+			if (!g_data.HasKLineCache(code, STOCK::Period::MIN30))
+				g_data.RequestMin30KLineData(code, 250);
 		}
 		delete pCodes;
 		return 0;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <string>
 #include <map>
 #include <vector>
@@ -72,6 +72,8 @@ public:
 	void RequestAllChipDistributionData();
 	bool RequestStockBasicData(std::wstring stock_id);
 	void RequestAllStockBasicData();
+	bool HasTimelineCache(const std::wstring& stockCode);
+	bool HasKLineCache(const std::wstring& stockCode, STOCK::Period period);
 	STOCK::Volume GetCirculatingAShares(const std::wstring& code);
 	const STOCK::ChipDistribution* GetChipDistribution(const std::wstring& code);
 
@@ -99,6 +101,7 @@ public:
 	// 交易记录数据库操作
 	bool SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total);
 	bool SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume);
+	bool LoadLatestChipDistribution(const std::wstring& stockCode, STOCK::ChipDistribution& chipData);
 	bool SaveChipDistribution(const std::wstring& stockCode, const STOCK::ChipDistribution& chipData);
 	bool SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares);
 	void LoadTodayInnerOuterSnapshots();
@@ -107,6 +110,10 @@ public:
 
 private:
 	void InitDatabase();
+	bool SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data);
+	bool SaveKLineCache(const std::wstring& stockCode, STOCK::Period period, const std::vector<STOCK::KLinePoint>& data);
+	void LoadTimelineCache();
+	void LoadKLineCache(STOCK::Period period);
 	sqlite3* m_db{ nullptr };
 	std::wstring m_db_path;
 	static CDataManager m_instance;

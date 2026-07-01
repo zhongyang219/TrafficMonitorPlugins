@@ -316,7 +316,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnMA.Create(_T("MA"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, maBtnRect, this, IDC_MA_BTN);
 
 	CRect t0BtnRect(maBtnRect.left - rightBtnWidth, g_data.RDPI(2), maBtnRect.left, g_data.RDPI(2) + btnHeight);
-	m_btnT0.Create(_T("做T"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
+	m_btnT0.Create(_T("T0"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
 
 	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
 	const int zoomBtnWidth = g_data.RDPI(28);
@@ -7116,6 +7116,16 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 		memDC.FillSolidRect(chartLeft, y, barW, max(1, g_data.RDPI(1)), color);
 	}
 
+	if (avgCost > minPrice && avgCost < maxPrice)
+	{
+		int avgY = priceToY(avgCost);
+		CPen avgPen(PS_DOT, 1, RGB(0, 0, 139));
+		oldPen = memDC.SelectObject(&avgPen);
+		memDC.MoveTo(chartLeft, avgY);
+		memDC.LineTo(chartRight, avgY);
+		memDC.SelectObject(oldPen);
+	}
+
 	if (currentPrice > minPrice && currentPrice < maxPrice)
 	{
 		int y = priceToY(currentPrice);
@@ -8837,8 +8847,8 @@ void CFloatingWnd::ToggleKLineMode()
 	m_scrollOffset = 0;
 	m_timelineScrollOffset = -1;  // 自动滚动到末尾
 	m_timelineVisibleCount = 40;  // 切回分时显示最新走势
-	m_showTrendView = m_isKLineMode;	// 切回分时模式时重置为false，避免布局计算走入m_showTrendView分支
-	m_showChipPeak = false;
+	m_showTrendView = false;
+	m_showChipPeak = m_isKLineMode;
 	m_showMA = false;
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
@@ -8858,6 +8868,7 @@ void CFloatingWnd::ToggleKLineMode()
 	if (m_isKLineMode)
 	{
 		// 不再重置m_klineDataLoaded，因为已在启动时预加载
+		EnsureChipPeakData();
 	}
 	Invalidate();
 	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
@@ -9296,6 +9307,7 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		m_timelineKdjTitleTip.Empty();
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
 		Invalidate();
 		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
@@ -9311,7 +9323,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_isMin30KLineMode = false;
 		m_scrollOffset = 0;
 		m_showTrendView = false;  // 日K默认显示K线图
-		m_showChipPeak = false;
+		m_showChipPeak = true;
 		m_showMA = false;
 		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -9328,6 +9340,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_timelineKdjTitleTip.Empty();
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
 		Invalidate();
 		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
@@ -9339,7 +9352,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
 		m_showTrendView = false;  // 日K默认显示K线图
-		m_showChipPeak = false;
+		m_showChipPeak = true;
 		m_scrollOffset = 0;
 		m_timelineVisibleCount = 40;  // 日K线初始缩放到最大，显示最新40根
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -9356,6 +9369,7 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_timelineKdjTitleTip.Empty();
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
 		Invalidate();
 		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
@@ -9439,7 +9453,7 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isMin5KLineMode = true;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
-		m_showChipPeak = true;
+		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 初始化缩放，显示最新40个数据点
@@ -9495,7 +9509,7 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = true;
 		m_showBollBands = true;
-		m_showChipPeak = false;
+		m_showChipPeak = true;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 初始化缩放，显示最新40个数据点
@@ -9537,6 +9551,7 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 	}
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
+	EnsureChipPeakData();
 	Invalidate();
 	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 }
