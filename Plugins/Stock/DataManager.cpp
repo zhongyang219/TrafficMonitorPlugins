@@ -92,6 +92,22 @@ bool CDataManager::IsMarketOpen()
 	return true;
 }
 
+bool CDataManager::IsTradingDaySession()
+{
+	SYSTEMTIME now;
+	GetLocalTime(&now);
+	// 周六日休市
+	if (now.wDayOfWeek == 0 || now.wDayOfWeek == 6)
+		return false;
+	// 交易日时段：9:30-15:00（含午休）
+	int minutes = now.wHour * 60 + now.wMinute;
+	if (minutes < 9 * 60 + 30)          // 9:30之前
+		return false;
+	if (minutes > 15 * 60)              // 15:00之后
+		return false;
+	return true;
+}
+
 int CDataManager::GetTradingMinute(int hour, int minute)
 {
 	int totalMinutes = hour * 60 + minute;
@@ -100,7 +116,7 @@ int CDataManager::GetTradingMinute(int hour, int minute)
 	if (totalMinutes <= 11 * 60 + 30)
 		return totalMinutes - (9 * 60 + 30);
 	if (totalMinutes < 13 * 60)
-		return 120;  // 午休期间映射到11:30的位置
+		return -1;  // 午休期间不采样
 	if (totalMinutes <= 15 * 60)
 		return 120 + (totalMinutes - 13 * 60);
 	return -1;
@@ -535,11 +551,36 @@ bool CDataManager::HasKLineCache(const std::wstring& stockCode, STOCK::Period pe
 	if (m_db == nullptr) return false;
 	std::wstring table = GetKLineCacheTableW(period);
 	if (table.empty()) return false;
-	std::wstring sql = L"SELECT 1 FROM " + table + L" WHERE stock_code = ? LIMIT 1;";
+
+	// 日K线：只要有缓存即可（历史数据不过期）
+	if (period == STOCK::Period::DAY)
+	{
+		std::wstring sql = L"SELECT 1 FROM " + table + L" WHERE stock_code = ? LIMIT 1;";
+		sqlite3_stmt* stmt = nullptr;
+		if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+		bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
+		sqlite3_finalize(stmt);
+		return hasCache;
+	}
+
+	// 5分钟/30分钟K线：缓存中最新数据必须包含今天才算有效
+	std::wstring sql = L"SELECT day FROM " + table + L" WHERE stock_code = ? ORDER BY day DESC LIMIT 1;";
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
 	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
+	bool hasCache = false;
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		const unsigned char* dayText = sqlite3_column_text(stmt, 0);
+		if (dayText)
+		{
+			// day格式为 "YYYY-MM-DD HH:MM" 或 "YYYY-MM-DD"，取前10字符比较日期
+			std::string dayStr = reinterpret_cast<const char*>(dayText);
+			std::string todayStr = GetTodayDateString();
+			hasCache = (dayStr.length() >= 10 && dayStr.substr(0, 10) == todayStr);
+		}
+	}
 	sqlite3_finalize(stmt);
 	return hasCache;
 }
@@ -548,6 +589,8 @@ void CDataManager::LoadTimelineCache()
 {
 	if (m_db == nullptr) return;
 	const char* sql = "SELECT time, volume, price, average_price, amount FROM timeline_cache WHERE stock_code = ? AND trade_date = ? ORDER BY time ASC;";
+	// 回退SQL：当今天没有缓存时，加载最近一个交易日的分时数据
+	const char* fallbackSql = "SELECT time, volume, price, average_price, amount FROM timeline_cache WHERE stock_code = ? AND trade_date = (SELECT trade_date FROM timeline_cache WHERE stock_code = ? ORDER BY trade_date DESC LIMIT 1) ORDER BY time ASC;";
 	std::string tradeDate = GetTodayDateString();
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
@@ -570,6 +613,27 @@ void CDataManager::LoadTimelineCache()
 			points.push_back(point);
 		}
 		sqlite3_finalize(stmt);
+
+		// 今天没有缓存时，回退加载最近交易日的分时数据
+		if (points.empty())
+		{
+			if (sqlite3_prepare_v2(m_db, fallbackSql, -1, &stmt, nullptr) != SQLITE_OK) continue;
+			sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
+			sqlite3_bind_text16(stmt, 2, code.c_str(), -1, SQLITE_TRANSIENT);
+			while (sqlite3_step(stmt) == SQLITE_ROW)
+			{
+				STOCK::TimelinePoint point;
+				const unsigned char* timeText = sqlite3_column_text(stmt, 0);
+				point.time = timeText ? reinterpret_cast<const char*>(timeText) : "";
+				point.volume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
+				point.price = sqlite3_column_double(stmt, 2);
+				point.averagePrice = sqlite3_column_double(stmt, 3);
+				point.amount = sqlite3_column_double(stmt, 4);
+				points.push_back(point);
+			}
+			sqlite3_finalize(stmt);
+		}
+
 		if (!points.empty())
 		{
 			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
@@ -609,6 +673,15 @@ void CDataManager::LoadKLineCache(STOCK::Period period)
 		sqlite3_finalize(stmt);
 		if (!points.empty())
 		{
+			// 5分钟/30分钟K线：如果缓存最新数据不是今天的，跳过加载（等网络请求更新）
+			if (period == STOCK::Period::MIN5 || period == STOCK::Period::MIN30)
+			{
+				std::string todayStr = GetTodayDateString();
+				const auto& lastPoint = points.back();
+				if (lastPoint.day.length() < 10 || lastPoint.day.substr(0, 10) != todayStr)
+					continue;
+			}
+
 			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 			if (period == STOCK::Period::DAY)
 			{

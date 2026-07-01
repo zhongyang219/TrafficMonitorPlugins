@@ -354,6 +354,14 @@ namespace STOCK
 		double GetAveragePrice() const { return volume > 0 ? turnover / volume : 0; }
 	};
 
+	// 盘口价格累计数据
+	struct OrderPriceAccum
+	{
+		Volume prevVolume{ 0 };       // 上一次该价格挂盘数量
+		Volume accumSellVolume{ 0 };  // 该价格挂盘数量减少累计
+		bool isAskSide{ true };       // true=卖方，false=买方
+	};
+
 	// 股票数据结构
 	class StockData
 	{
@@ -361,12 +369,8 @@ namespace STOCK
 		StockInfo info;
 		ChipDistribution chipDistribution;
 
-		// 买一/卖一累计停留时间（秒）
-		int ask1AccumSeconds{ 0 };    // 现价等于卖一价的累计秒数
-		int bid1AccumSeconds{ 0 };    // 现价等于买一价的累计秒数
-		Price prevAsk1Price{ 0 };     // 上一次卖一价（用于检测变化后清零）
-		Price prevBid1Price{ 0 };     // 上一次买一价（用于检测变化后清零）
-		time_t lastAccumUpdateTime{ 0 };  // 上次累计时间更新的时间戳
+		// 买一到买五、卖一到卖五按价格跟踪挂盘减少累计量（股）
+		std::map<Price, OrderPriceAccum> orderPriceAccumMap;
 
 		// 使用智能指针管理历史数据
 		std::map<Period, std::shared_ptr<HistoricalDataBase>> historicalData;
@@ -402,6 +406,9 @@ namespace STOCK
 		}
 
 		void addTimelinePoint(const CString& json_data);
+
+		// 将JSON解析的分时数据点追加到外部向量（不修改内部数据）
+		void addTimelinePointTo(const CString& json_data, std::vector<TimelinePoint>& outPoints);
 
 		// 获取分时走势数据
 		STOCK::TimelineData* getTimelineData()
@@ -480,15 +487,13 @@ namespace STOCK
 		Price lastBid1Price{ 0 };    // 上次买一价格（变化时清零）
 		DWORD lastTickTime{ 0 };     // 上次计时的时间戳
 
-		// 内外盘5秒快照环形缓存池
-		// 1分钟=12条, 5分钟=60条, 10分钟=120条, 20分钟=240条
+		// 内外盘5秒快照环形缓存池（20分钟=240条）
+		// 1分钟取最新12条, 5分钟取最新60条, 10分钟取最新120条, 20分钟取最新240条
 		struct VolumeSample {
 			time_t timestamp;       // 真实时间戳
 			Volume innerVolume;
 			Volume outerVolume;
 		};
-		static const int POOL_SIZES[4];  // {12, 60, 120, 240}
-		static const int POOL_MINUTES[4]; // {1, 5, 10, 20}
 
 		struct VolumePool {
 			std::vector<VolumeSample> samples;
@@ -520,37 +525,37 @@ namespace STOCK
 					head = (head + 1) % capacity;
 				}
 			}
-			// 获取最旧的有效样本
-			const VolumeSample* Oldest() const
-			{
-				if (count == 0) return nullptr;
-				return &samples[head];
-			}
-			// 获取最新的有效样本
+			// 获取最新样本
 			const VolumeSample* Newest() const
 			{
 				if (count == 0) return nullptr;
 				int idx = (head + count - 1) % capacity;
 				return &samples[idx];
 			}
+			// 获取倒数第N个样本（0=最新，1=次新，...）
+			const VolumeSample* FromEnd(int n) const
+			{
+				if (n < 0 || n >= count) return nullptr;
+				int idx = (head + count - 1 - n) % capacity;
+				if (idx < 0) idx += capacity;
+				return &samples[idx];
+			}
 		};
 
-		VolumePool volumePools[4];  // 1分钟/5分钟/10分钟/20分钟
+		VolumePool volumePool;  // 20分钟缓存池（245条，比240多5条缓冲）
 		time_t lastSampleTime{ 0 }; // 上次采样时间（5秒间隔去重）
 
 		void InitVolumePools()
 		{
-			for (int i = 0; i < 4; i++)
-				volumePools[i].Init(POOL_SIZES[i]);
+			volumePool.Init(240);
 			lastSampleTime = 0;
 		}
 		void ClearVolumePools()
 		{
-			for (int i = 0; i < 4; i++)
-				volumePools[i].Clear();
+			volumePool.Clear();
 			lastSampleTime = 0;
 		}
-		// 添加5秒采样数据，同步更新4个缓存池
+		// 添加5秒采样数据
 		bool AddVolumeSample(time_t t, Volume inner, Volume outer)
 		{
 			// 5秒间隔去重
@@ -559,30 +564,21 @@ namespace STOCK
 				return false;
 			lastSampleTime = sampleTime;
 
-			VolumeSample sample = { sampleTime, inner, outer };
-			for (int i = 0; i < 4; i++)
-				volumePools[i].Push(sample);
+			volumePool.Push({ sampleTime, inner, outer });
 			return true;
 		}
 
-		// 从缓存池获取净差和净比
+		// 从缓存池获取净差和净比（minutes: 1/5/10/20）
+		// 1分钟=12根(0~11), 5分钟=60根(0~59), 10分钟=120根(0~119), 20分钟=240根(0~239)
 		bool GetInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
 		{
-			int poolIdx = -1;
-			for (int i = 0; i < 4; i++)
-			{
-				if (POOL_MINUTES[i] == minutes)
-				{
-					poolIdx = i;
-					break;
-				}
-			}
-			if (poolIdx < 0) return false;
+			int sampleCount = minutes * 12;  // 每分钟12条（5秒1条）
+			if (volumePool.count < sampleCount)
+				return false;
 
-			const VolumePool& pool = volumePools[poolIdx];
-			const VolumeSample* oldest = pool.Oldest();
-			const VolumeSample* newest = pool.Newest();
-			if (!oldest || !newest || oldest == newest)
+			const VolumeSample* newest = volumePool.FromEnd(0);
+			const VolumeSample* oldest = volumePool.FromEnd(sampleCount - 1);
+			if (!newest || !oldest)
 				return false;
 
 			Volume inner = newest->innerVolume - oldest->innerVolume;
@@ -596,38 +592,20 @@ namespace STOCK
 			return total > 0;
 		}
 
-		// 获取前一次净差（倒数第二个样本 vs 倒数第二个往前N个）
+		// 获取前一次净差
 		bool GetPreviousInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
 		{
-			int poolIdx = -1;
-			for (int i = 0; i < 4; i++)
-			{
-				if (POOL_MINUTES[i] == minutes)
-				{
-					poolIdx = i;
-					break;
-				}
-			}
-			if (poolIdx < 0) return false;
+			int sampleCount = minutes * 12;
+			if (volumePool.count < sampleCount + 1)
+				return false;
 
-			const VolumePool& pool = volumePools[poolIdx];
-			if (pool.count < 2) return false;
+			const VolumeSample* prevNewest = volumePool.FromEnd(1);
+			const VolumeSample* prevOldest = volumePool.FromEnd(sampleCount);
+			if (!prevNewest || !prevOldest)
+				return false;
 
-			// 倒数第二个样本
-			int prevIdx = (pool.head + pool.count - 2) % pool.capacity;
-			const VolumeSample& prevNewest = pool.samples[prevIdx];
-
-			// 对应的"最旧"样本（往前推count-1个）
-			if (pool.count < 3) return false;
-			int prevOldestIdx;
-			if (pool.count - 1 <= pool.capacity)
-				prevOldestIdx = pool.head;
-			else
-				prevOldestIdx = (pool.head + 1) % pool.capacity;
-			const VolumeSample& prevOldest = pool.samples[prevOldestIdx];
-
-			Volume inner = prevNewest.innerVolume - prevOldest.innerVolume;
-			Volume outer = prevNewest.outerVolume - prevOldest.outerVolume;
+			Volume inner = prevNewest->innerVolume - prevOldest->innerVolume;
+			Volume outer = prevNewest->outerVolume - prevOldest->outerVolume;
 			if (inner < 0 || outer < 0)
 				return false;
 
@@ -639,15 +617,11 @@ namespace STOCK
 
 		bool GetPreviousInnerOuterTotalRatio(double& ratio) const
 		{
-			// 使用1分钟池的倒数第二个样本
-			const VolumePool& pool = volumePools[0];
-			if (pool.count < 2) return false;
-
-			int prevIdx = (pool.head + pool.count - 2) % pool.capacity;
-			const VolumeSample& prev = pool.samples[prevIdx];
-			Volume total = prev.innerVolume + prev.outerVolume;
+			const VolumeSample* prev = volumePool.FromEnd(1);
+			if (!prev) return false;
+			Volume total = prev->innerVolume + prev->outerVolume;
 			if (total <= 0) return false;
-			ratio = static_cast<double>(prev.outerVolume - prev.innerVolume) / total * 100;
+			ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
 			return true;
 		}
 

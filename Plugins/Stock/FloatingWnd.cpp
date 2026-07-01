@@ -295,7 +295,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect klineRect(min30KLineRect.right + btnGap, g_data.RDPI(2), min30KLineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
 	m_btnKLine.Create(_T("日K"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, klineRect, this, IDC_KLINE_BTN);
 
-	// 右侧按钮：关闭、BOLL、MA、筹码峰、做T（从右往左排列，无间隙）
+	// 右侧按钮：关闭、筹码峰（T0/MA/BOLL 在走势图标题栏右侧定位）
 	const int closeBtnWidth = g_data.RDPI(20);
 	const int closeBtnHeight = g_data.RDPI(18);
 	const int cx = lpCreateStruct->cx;
@@ -303,20 +303,21 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnClose.Create(_T("X"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, closeBtnRect, this, IDC_CLOSE_BTN);
 
 	const int rightBtnWidth = g_data.RDPI(40);
-	const int rightBtnGap = 0;  // 右侧按钮之间不留缝隙
 
-	CRect bollBtnRect(closeBtnRect.left - rightBtnWidth, g_data.RDPI(2), closeBtnRect.left, g_data.RDPI(2) + btnHeight);
+	CRect chipPeakBtnRect(closeBtnRect.left - rightBtnWidth, g_data.RDPI(2), closeBtnRect.left, g_data.RDPI(2) + btnHeight);
+	m_btnChipPeak.Create(_T("筹码"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, chipPeakBtnRect, this, IDC_CHIP_PEAK_BTN);
+
+	CRect bollBtnRect(0, 0, rightBtnWidth, btnHeight);
 	m_btnBoll.Create(_T("BOLL"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
 	m_btnBoll.ShowWindow(SW_HIDE);
 
-	CRect chipPeakBtnRect(bollBtnRect.left - rightBtnWidth, g_data.RDPI(2), bollBtnRect.left, g_data.RDPI(2) + btnHeight);
-	m_btnChipPeak.Create(_T("筹码"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, chipPeakBtnRect, this, IDC_CHIP_PEAK_BTN);
+	CRect maBtnRect(0, 0, rightBtnWidth, btnHeight);
+	m_btnMA.Create(_T("MA"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, maBtnRect, this, IDC_MA_BTN);
+	m_btnMA.ShowWindow(SW_HIDE);
 
-	CRect maBtnRect(chipPeakBtnRect.left - rightBtnWidth, g_data.RDPI(2), chipPeakBtnRect.left, g_data.RDPI(2) + btnHeight);
-	m_btnMA.Create(_T("MA"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, maBtnRect, this, IDC_MA_BTN);
-
-	CRect t0BtnRect(maBtnRect.left - rightBtnWidth, g_data.RDPI(2), maBtnRect.left, g_data.RDPI(2) + btnHeight);
-	m_btnT0.Create(_T("T0"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
+	CRect t0BtnRect(0, 0, rightBtnWidth, btnHeight);
+	m_btnT0.Create(_T("T0"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, t0BtnRect, this, IDC_T0_BTN);
+	m_btnT0.ShowWindow(SW_HIDE);
 
 	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
 	const int zoomBtnWidth = g_data.RDPI(28);
@@ -785,7 +786,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	for (int i = 0; i < totalPoints; i++)
 	{
 		const auto& item = timelinePoint[i];
-		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 		double yVal = (item.price - minPrice) * unitY;
 		dataPoints.push_back(CPoint(pointX, static_cast<int>(round(yVal))));
 	}
@@ -846,7 +847,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				firstAvgPoint = true;
 				continue;
 			}
-			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.averagePrice - minPrice) * unitY));
 			py = max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
 			if (firstAvgPoint)
@@ -884,7 +885,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				case 20: maVal = item.ma20; break;
 				}
 				if (maVal <= 0) { first = true; continue; }
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round(yVal));
 				if (first)
@@ -956,7 +957,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 			for (int i = 0; i < totalPoints; i++)
 			{
 				if (band[i] <= 0) continue;
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				int py = priceToY(band[i]);
 				if (first)
 				{
@@ -1170,7 +1171,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 
 	// 重新计算悬停点位置（按索引比例分配X坐标）
 	const auto& item = timelinePoint[m_hoveredBarIndex];
-	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex);
+	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex + ctx.chartWidth / static_cast<float>(timelinePoint.size()) / 2);
 
 	int dotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.price - minPrice) * unitY));
 
@@ -1456,7 +1457,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 				case 20: maVal = item.ma20; break;
 				}
 				if (maVal <= 0) { first = true; continue; }
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
 				if (first)
@@ -1526,7 +1527,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 			for (int i = 0; i < totalPoints; i++)
 			{
 				if (band[i] <= 0) continue;
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				int py = bandPriceToY(band[i]);
 				if (first)
 				{
@@ -1804,7 +1805,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 				case 20: maVal = item.ma20; break;
 				}
 				if (maVal <= 0) { first = true; continue; }
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(yVal);
 				if (first)
@@ -1874,7 +1875,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 			for (int i = 0; i < totalPoints; i++)
 			{
 				if (band[i] <= 0) continue;
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
 				int py = bandPriceToY(band[i]);
 				if (first)
 				{
@@ -2307,6 +2308,28 @@ void CFloatingWnd::OnPaint()
 		if (m_hScrollBar.GetSafeHwnd())
 			m_hScrollBar.ShowWindow(SW_HIDE);
 
+		// 数据加载前也先把顶部按钮定位到目标标题栏，避免停留在初始坐标
+		{
+			const int titleH = g_data.RDPI(16);
+			int toolBtnW = g_data.RDPI(36);
+			int toolBtnH = min(titleH, g_data.RDPI(16));
+			int toolTop = priceChartTop + (titleH - toolBtnH) / 2;
+			if (m_btnBoll.GetSafeHwnd())
+				m_btnBoll.SetWindowPos(nullptr, chartWidth - toolBtnW, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			if (m_btnMA.GetSafeHwnd())
+				m_btnMA.SetWindowPos(nullptr, chartWidth - toolBtnW * 2, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			if (m_btnT0.GetSafeHwnd())
+				m_btnT0.SetWindowPos(nullptr, chartWidth - toolBtnW * 3, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+
+			int closeBtnW = g_data.RDPI(20);
+			int closeBtnH = g_data.RDPI(18);
+			int headerBtnTop = g_data.RDPI(2);
+			if (m_btnClose.GetSafeHwnd())
+				m_btnClose.SetWindowPos(nullptr, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			if (m_btnChipPeak.GetSafeHwnd())
+				m_btnChipPeak.SetWindowPos(nullptr, w - closeBtnW - g_data.RDPI(40), headerBtnTop, g_data.RDPI(40), closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+		}
+
 		if (!timelinePoint.empty())
 		{
 			// 先基于完整分时数据计算MA，避免缩放/拖动后只用可见区间导致均线与其他APP不一致
@@ -2531,6 +2554,31 @@ void CFloatingWnd::OnPaint()
 				int btnTop = origVolTop + (titleH - zoomBtnH) / 2;
 				m_btnZoomIn.SetWindowPos(nullptr, rightEdge - zoomBtnW - zoomGap, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
 				m_btnZoomOut.SetWindowPos(nullptr, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			}
+
+			// T0/MA/BOLL按钮放到走势图标题栏右侧，靠右紧贴排列
+			{
+				int toolBtnW = g_data.RDPI(36);
+				int toolBtnH = min(titleH, g_data.RDPI(16));
+				int rightEdge = chartWidth;
+				int btnTop = origPriceTop + (titleH - toolBtnH) / 2;
+				if (m_btnBoll.GetSafeHwnd())
+					m_btnBoll.SetWindowPos(nullptr, rightEdge - toolBtnW, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				if (m_btnMA.GetSafeHwnd())
+					m_btnMA.SetWindowPos(nullptr, rightEdge - toolBtnW * 2, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				if (m_btnT0.GetSafeHwnd())
+					m_btnT0.SetWindowPos(nullptr, rightEdge - toolBtnW * 3, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			}
+
+			// 主标题栏右侧按钮定位（关闭、筹码峰从右往左排列，无间隙）
+			{
+				int closeBtnW = g_data.RDPI(20);
+				int closeBtnH = g_data.RDPI(18);
+				int top = g_data.RDPI(2);
+				if (m_btnClose.GetSafeHwnd())
+					m_btnClose.SetWindowPos(nullptr, w - closeBtnW, top, closeBtnW, closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				if (m_btnChipPeak.GetSafeHwnd())
+					m_btnChipPeak.SetWindowPos(nullptr, w - closeBtnW - g_data.RDPI(40), top, g_data.RDPI(40), closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
 			}
 
 			// MACD/KDJ/W&R/RSI按钮（左侧Y轴预留区域，占用副图到X轴时间标签区域，不超过底部状态栏）
@@ -3340,12 +3388,13 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 	const int fixedGap = 1;
 	int slotWidth = totalPts > 0 ? width / totalPts : 1;
 	int barWidth = max(2, slotWidth - fixedGap);
+	int halfSlot = slotWidth / 2;
 	for (int i = startIndex; i < endIdx && i < static_cast<int>(macdData.size()); i++)
 	{
 		if (!macdData[i].valid)
 			continue;
 
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot - barWidth / 2;
 
 		double barVal = macdData[i].bar;
 		int barHeight = static_cast<int>(std::abs(barVal) * unitY);
@@ -3366,7 +3415,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dif * unitY);
 		if (difFirst)
@@ -3389,7 +3438,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dea * unitY);
 		if (deaFirst)
@@ -3417,7 +3466,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 			continue;
 
 		// 计算交叉点X坐标
-		int markX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int markX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
 
 		// 交叉点Y坐标（DIF≈DEA处）
 		int markY = zeroY - static_cast<int>(macdData[i].dif * unitY);
@@ -3504,6 +3553,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 
 	int slotWidth = width / totalVisible;
 	int barWidth = max(2, slotWidth - 1);
+	int halfSlot = slotWidth / 2;
 
 	// 调整startIndex和endIdx到可见范围
 	int drawStart = max(startIndex, finalStartIndex);
@@ -3515,7 +3565,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int barX = x + (i - finalStartIndex) * slotWidth;
+		int barX = x + (i - finalStartIndex) * slotWidth + halfSlot - barWidth / 2;
 		double barVal = macdData[i].bar;
 		int barHeight = static_cast<int>(std::abs(barVal) * unitY);
 		barHeight = max(1, barHeight);
@@ -3711,7 +3761,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(kdjData[idx].k);
 		if (kFirst) { memDC.MoveTo(pointX, pointY); kFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -3725,7 +3775,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(kdjData[idx].d);
 		if (dFirst) { memDC.MoveTo(pointX, pointY); dFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -3739,7 +3789,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(kdjData[idx].j);
 		if (jFirst) { memDC.MoveTo(pointX, pointY); jFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -3946,7 +3996,7 @@ void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int 
 	{
 		int idx = startIndex + i;
 		if (!wrData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(wrData[idx].wr1);
 		if (wr1First) { memDC.MoveTo(pointX, pointY); wr1First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -3960,7 +4010,7 @@ void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int 
 	{
 		int idx = startIndex + i;
 		if (!wrData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(wrData[idx].wr2);
 		if (wr2First) { memDC.MoveTo(pointX, pointY); wr2First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4215,7 +4265,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!rsiData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(rsiData[idx].rsi1);
 		if (rsi1First) { memDC.MoveTo(pointX, pointY); rsi1First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4229,7 +4279,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!rsiData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
 		int pointY = valueToY(rsiData[idx].rsi2);
 		if (rsi2First) { memDC.MoveTo(pointX, pointY); rsi2First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4337,11 +4387,12 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	const int fixedGap = 1;
 	int slotWidth = totalPts > 0 ? width / totalPts : 1;
 	int barWidth = max(2, slotWidth - fixedGap);
+	int halfSlot = slotWidth / 2;
 
 	for (int i = startIndex; i < endIdx; i++)
 	{
 		const auto& item = timelinePoint[i];
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i);
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot - barWidth / 2;
 
 		float ratio = static_cast<float>(item.volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -4363,7 +4414,7 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	if (m_isHoveringVolume && m_hoveredBarIndex >= 0 && m_hoveredBarIndex < timelinePoint.size())
 	{
 		const auto& item = timelinePoint[m_hoveredBarIndex];
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * m_hoveredBarIndex);
+		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * m_hoveredBarIndex) + halfSlot - barWidth / 2;
 
 		float ratio = static_cast<float>(timelinePoint[m_hoveredBarIndex].volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -6392,9 +6443,16 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 	int textX = left + g_data.RDPI(5) + 3;
 
-	// 更新买一/卖一累计停留时间（仅交易时间内累加）
+	// 更新买一/卖一挂盘数量变化方向
 	auto stockDataForAccum = g_data.GetStockData(m_stock_id);
-	int ask1Accum = 0, bid1Accum = 0;
+	auto GetOrderPriceAccumLots = [&](STOCK::Price price) -> STOCK::Volume {
+		if (!stockDataForAccum || price <= 0)
+			return 0;
+		auto it = stockDataForAccum->orderPriceAccumMap.find(price);
+		if (it == stockDataForAccum->orderPriceAccumMap.end())
+			return 0;
+		return it->second.accumSellVolume / 100;
+	};
 	CString ask1VolumeTrend, bid1VolumeTrend;
 	{
 		static std::map<std::wstring, STOCK::Volume> lastAsk1VolumeMap;
@@ -6440,38 +6498,15 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		if (!bid1VolumeTrend.IsEmpty())
 			lastBid1VolumeTrendMap[m_stock_id] = bid1VolumeTrend;
 	}
-	if (stockDataForAccum)
-	{
-		time_t now = time(nullptr);
-		int elapsed = 0;
-		if (stockDataForAccum->lastAccumUpdateTime > 0 && now > stockDataForAccum->lastAccumUpdateTime)
-			elapsed = static_cast<int>(now - stockDataForAccum->lastAccumUpdateTime);
-		stockDataForAccum->lastAccumUpdateTime = now;
-
-		Price curAsk1 = stockInfo.askLevels[0].price;
-		Price curBid1 = stockInfo.bidLevels[0].price;
-		Price curPrice = stockInfo.currentPrice;
-
-		// 仅在交易时间内累加
-		if (CDataManager::IsMarketOpen() && elapsed > 0)
-		{
-			if (curPrice > 0 && curAsk1 > 0 && curPrice == curAsk1)
-				stockDataForAccum->ask1AccumSeconds += elapsed;
-			if (curPrice > 0 && curBid1 > 0 && curPrice == curBid1)
-				stockDataForAccum->bid1AccumSeconds += elapsed;
-		}
-
-		ask1Accum = stockDataForAccum->ask1AccumSeconds;
-		bid1Accum = stockDataForAccum->bid1AccumSeconds;
-	}
-
 	struct OrderBookRow
 	{
 		STOCK::Price price;
 		CString text;
+		CString smallSuffix;
 		COLORREF textColor;
-		bool fillBackground;
+		bool fillBackground{ false };
 		COLORREF backgroundColor;
+		bool drawSmallSuffix{ false };
 	};
 
 	std::vector<OrderBookRow> priceRows;
@@ -6503,13 +6538,21 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		CString volumeStr = CCommon::FormatVolumeInt(volume);
 		CString priceStr = CCommon::FormatFloat(price);
 		CString askTxt;
-		askTxt.Format(_T("S%d:%s %s"), idx + 1, priceStr, volumeStr);
-		if (idx == 0)
-			askTxt.AppendFormat(_T(" %s%ds"), ask1VolumeTrend.GetString(), ask1Accum);
+		askTxt.Format(_T("S%d:%s"), idx + 1, priceStr);
+		CString askSuffix;
+		askSuffix.Format(_T(" %s"), volumeStr.GetString());
+		STOCK::Volume accum = GetOrderPriceAccumLots(price);
+		if (accum > 0)
+		{
+			CString accumStr = CCommon::FormatVolumeInt(accum);
+			askSuffix.AppendFormat(_T("%s%s"), idx == 0 ? ask1VolumeTrend.GetString() : _T(""), accumStr.GetString());
+		}
 
 		OrderBookRow row;
 		row.price = price;
 		row.text = askTxt;
+		row.smallSuffix = askSuffix;
+		row.drawSmallSuffix = true;
 		row.textColor = COLOR_RED_UP;
 		row.fillBackground = (idx == 0 && stockInfo.currentPrice > 0 && price > 0 && stockInfo.currentPrice == price);
 		row.backgroundColor = RGB(255, 200, 200);
@@ -6524,13 +6567,21 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		CString volumeStr = CCommon::FormatVolumeInt(volume);
 		CString priceStr = CCommon::FormatFloat(price);
 		CString bidTxt;
-		bidTxt.Format(_T("B%d:%s %s"), i + 1, priceStr, volumeStr);
-		if (i == 0)
-			bidTxt.AppendFormat(_T(" %s%ds"), bid1VolumeTrend.GetString(), bid1Accum);
+		bidTxt.Format(_T("B%d:%s"), i + 1, priceStr);
+		CString bidSuffix;
+		bidSuffix.Format(_T(" %s"), volumeStr.GetString());
+		STOCK::Volume accum = GetOrderPriceAccumLots(price);
+		if (accum > 0)
+		{
+			CString accumStr = CCommon::FormatVolumeInt(accum);
+			bidSuffix.AppendFormat(_T("%s%s"), i == 0 ? bid1VolumeTrend.GetString() : _T(""), accumStr.GetString());
+		}
 
 		OrderBookRow row;
 		row.price = price;
 		row.text = bidTxt;
+		row.smallSuffix = bidSuffix;
+		row.drawSmallSuffix = true;
 		row.textColor = COLOR_GREEN_DOWN;
 		row.fillBackground = (i == 0 && stockInfo.currentPrice > 0 && price > 0 && stockInfo.currentPrice == price);
 		row.backgroundColor = RGB(200, 255, 200);
@@ -6555,13 +6606,30 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		priceRows.push_back(row);
 	}
 
+	auto DrawOrderBookRowText = [&](const OrderBookRow& row, int x, int y) {
+		memDC.SetTextColor(row.textColor);
+		memDC.TextOut(x, y, row.text);
+		if (!row.drawSmallSuffix || row.smallSuffix.IsEmpty())
+			return;
+
+		int suffixX = x + memDC.GetTextExtent(row.text).cx;
+		CFont* oldFont = memDC.GetCurrentFont();
+		LOGFONT lf;
+		oldFont->GetLogFont(&lf);
+		lf.lfHeight = lf.lfHeight * 7 / 8;
+		CFont smallFont;
+		smallFont.CreateFontIndirect(&lf);
+		memDC.SelectObject(&smallFont);
+		memDC.TextOut(suffixX, y + g_data.RDPI(1), row.smallSuffix);
+		memDC.SelectObject(oldFont);
+		};
+
 	for (int i = 0; i < static_cast<int>(priceRows.size()); i++)
 	{
 		int y = topOffset + rowHeight * (1 + i);
 		if (priceRows[i].fillBackground)
 			memDC.FillSolidRect(left, y, right - left, rowHeight, priceRows[i].backgroundColor);
-		memDC.SetTextColor(priceRows[i].textColor);
-		memDC.TextOut(textX, y + g_data.RDPI(2), priceRows[i].text);
+		DrawOrderBookRowText(priceRows[i], textX, y + g_data.RDPI(2));
 	}
 
 	static const COLORREF NET_RATIO_RED_COLORS[] = {
@@ -7211,6 +7279,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 					m_isMin30KLineMode = false;
 					m_showChipPeak = false;
 					m_stock_id = rowInfo.code;
+					m_isFirstRequest = true;  // 切换股票后允许首次请求
 					UpdateModeButtons();
 					UpdatePeriodComboVisibility();
 					Invalidate();
@@ -8013,7 +8082,9 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 
 		// 判断是否hover：hover时使用hover点的数据
 		bool isHovering = (m_hoveredBarIndex >= 0 && m_isHoveringVolume);
-		STOCK::Price dispPrice = isHovering ? m_hoverMa1 : ctx.ma1;
+		STOCK::Price dispAvgPrice = isHovering ? m_hoveredData.averagePrice : timelinePoint.back().averagePrice;
+		if (dispAvgPrice <= 0)
+			dispAvgPrice = isHovering ? m_hoverMa1 : ctx.ma1;
 
 		int xPos = g_data.RDPI(4);
 		int centerY = priceChartTop + timelineTitleHeight / 2;
@@ -8045,10 +8116,62 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			if (p < prevClose) return COLOR_GREEN_DOWN;
 			return COLOR_BLACK;
 			};
-		// 现价（标签黑色，数字按与昨收比较，hover高亮）
-		drawLabelValue(_T("现价:"), dispPrice, COLOR_BLACK, cmpPrevClose(dispPrice), isHovering);
+		// 均价（标签黑色，数字按与昨收比较，hover高亮）
+		drawLabelValue(_T("均价:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice), isHovering);
+		xPos -= g_data.RDPI(4);
+
+		auto formatPrice = [](STOCK::Price value) -> CString {
+			return CCommon::FormatFloat(value);
+			};
+		auto appendTitleText = [&](const CString& text, COLORREF color) {
+			memDC.SetTextColor(color);
+			CSize sz = memDC.GetTextExtent(text);
+			memDC.TextOut(xPos, centerY - sz.cy / 2, text);
+			xPos += sz.cx;
+			};
+
+		if (m_showMA)
+		{
+			STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
+			STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
+			STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
+			if (dispMa5 > 0) appendTitleText(_T(" MA5:") + formatPrice(dispMa5), RGB(0, 0, 230));
+			if (dispMa10 > 0) appendTitleText(_T(" MA10:") + formatPrice(dispMa10), RGB(0, 166, 235));
+			if (dispMa20 > 0) appendTitleText(_T(" MA20:") + formatPrice(dispMa20), RGB(169, 102, 186));
+		}
+		else if (m_showBollBands)
+		{
+			const int N = 20;
+			const int K = 2;
+			const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
+			int displayIdx = isHovering ? m_hoveredBarIndex : static_cast<int>(timelinePoint.size()) - 1;
+			displayIdx = max(0, min(displayIdx, static_cast<int>(timelinePoint.size()) - 1));
+			int globalIdx = ctx.startIndex + displayIdx;
+			if (globalIdx >= N - 1 && globalIdx < static_cast<int>(fullData.size()))
+			{
+				double sum = 0;
+				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+					sum += fullData[i].price;
+				double mid = sum / N;
+
+				double variance = 0;
+				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+				{
+					double diff = fullData[i].price - mid;
+					variance += diff * diff;
+				}
+				double stddev = std::sqrt(variance / N);
+				double upper = mid + K * stddev;
+				double lower = mid - K * stddev;
+
+				appendTitleText(_T(" 上:") + formatPrice(static_cast<STOCK::Price>(upper)), COLOR_RED_UP);
+				appendTitleText(_T(" 中:") + formatPrice(static_cast<STOCK::Price>(mid)), RGB(0, 0, 230));
+				appendTitleText(_T(" 下:") + formatPrice(static_cast<STOCK::Price>(lower)), COLOR_GREEN_DOWN);
+			}
+		}
 	}
 
+	if (m_isKLineMode && !timelinePoint.empty())
 	{
 		bool isHovering = (m_hoveredBarIndex >= 0 && m_isHoveringVolume);
 		int displayIdx = isHovering ? m_hoveredBarIndex : static_cast<int>(timelinePoint.size()) - 1;
@@ -8083,12 +8206,10 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 
 		if (m_showMA)
 		{
-			STOCK::Price dispMa1 = isHovering ? m_hoverMa1 : ctx.ma1;
 			STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
 			STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
 			STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
 			std::vector<std::pair<CString, COLORREF>> items;
-			if (dispMa1 > 0) items.push_back({ _T("MA1:") + formatPrice(dispMa1), RGB(255, 165, 0) });
 			if (dispMa5 > 0) items.push_back({ _T("MA5:") + formatPrice(dispMa5), RGB(0, 0, 230) });
 			if (dispMa10 > 0) items.push_back({ _T("MA10:") + formatPrice(dispMa10), RGB(0, 166, 235) });
 			if (dispMa20 > 0) items.push_back({ _T("MA20:") + formatPrice(dispMa20), RGB(169, 102, 186) });
@@ -9014,6 +9135,11 @@ void CFloatingWnd::UpdateModeButtons()
 
 void CFloatingWnd::UpdatePeriodComboVisibility()
 {
+	if (m_btnT0.GetSafeHwnd())
+	{
+		m_btnT0.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
+	}
+
 	if (m_btnMA.GetSafeHwnd())
 	{
 		m_btnMA.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
@@ -9639,6 +9765,14 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 	{
 		return 0;
 	}
+
+	// 收盘后/盘前/周末不请求数据（午休期间允许请求）
+	// 但启动后首次请求不受此限制，以确保能获取当天盘中数据
+	if (!pFW->m_isFirstRequest && !CDataManager::IsTradingDaySession())
+	{
+		return 0;
+	}
+	pFW->m_isFirstRequest = false;
 
 	if (pFW->m_isKLineMode && !pFW->m_isMin5KLineMode && !pFW->m_isMin30KLineMode)
 	{

@@ -56,6 +56,8 @@ public:
 
 	// 判断当前是否在交易时间（A股：9:30-11:30, 13:00-15:00，非周末）
 	static bool IsMarketOpen();
+	// 判断当前是否在交易日时段（含午休，9:30-15:00，非周末）
+	static bool IsTradingDaySession();
 
 	// 将真实时间转换为交易分钟序号（9:30=0, ..., 11:30=119, 13:00=120, ..., 14:59=239）
 	static int GetTradingMinute(time_t t);

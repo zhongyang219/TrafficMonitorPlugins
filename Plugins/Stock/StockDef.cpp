@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -24,9 +24,6 @@ constexpr auto _DATA_LEN_NF = 16;
 constexpr auto _DATA_LEN_HF = 14;
 
 using namespace STOCK;
-
-const int StockData::POOL_SIZES[4] = { 12, 60, 120, 240 };
-const int StockData::POOL_MINUTES[4] = { 1, 5, 10, 20 };
 
 void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 {
@@ -78,22 +75,38 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 
 		stockData->info.Load(key, data_arr);
 
-		// 买一/卖一价格变化时清零累计时间
+		// 买一到买五、卖一到卖五按价格跟踪挂盘减少累计量，仅买一/卖一参与累加
 		{
-			Price curAsk1 = stockData->info.askLevels[0].price;
-			Price curBid1 = stockData->info.bidLevels[0].price;
+			std::map<Price, OrderPriceAccum> currentPrices;
+			auto updateLevelAccum = [&](const OrderLevel& level, bool isAskSide, bool canAccum) {
+				if (level.price <= 0)
+					return;
 
-			// 卖一价变化则清零
-			if (curAsk1 != stockData->prevAsk1Price)
+				currentPrices[level.price] = { level.volume, 0, isAskSide };
+				auto it = stockData->orderPriceAccumMap.find(level.price);
+				if (it == stockData->orderPriceAccumMap.end() || it->second.isAskSide != isAskSide)
+				{
+					stockData->orderPriceAccumMap[level.price] = { level.volume, 0, isAskSide };
+					return;
+				}
+
+				if (canAccum && level.volume < it->second.prevVolume)
+					it->second.accumSellVolume += it->second.prevVolume - level.volume;
+				it->second.prevVolume = level.volume;
+			};
+
+			for (int i = 0; i < StockInfo::MAX_LEVEL; i++)
 			{
-				stockData->ask1AccumSeconds = 0;
-				stockData->prevAsk1Price = curAsk1;
+				updateLevelAccum(stockData->info.askLevels[i], true, i == 0);
+				updateLevelAccum(stockData->info.bidLevels[i], false, i == 0);
 			}
-			// 买一价变化则清零
-			if (curBid1 != stockData->prevBid1Price)
+
+			for (auto it = stockData->orderPriceAccumMap.begin(); it != stockData->orderPriceAccumMap.end(); )
 			{
-				stockData->bid1AccumSeconds = 0;
-				stockData->prevBid1Price = curBid1;
+				if (currentPrices.find(it->first) == currentPrices.end())
+					it = stockData->orderPriceAccumMap.erase(it);
+				else
+					++it;
 			}
 		}
 	}
@@ -440,13 +453,23 @@ CString StockInfo::GetStockShortName()
 void STOCK::StockMarket::LoadTimelineDataByJson(std::wstring stock_id, CString* pData)
 {
 	auto data = g_data.GetStockData(stock_id);
+	if (pData)
 	{
-		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
-		data->clearTimelinePoint();
-		if (pData)
+		// 先将新数据解析到临时向量，避免空响应覆盖已有缓存数据
+		std::vector<TimelinePoint> newPoints;
+		data->addTimelinePointTo(*pData, newPoints);
+		// 仅当新数据非空时才替换旧数据
+		if (!newPoints.empty())
 		{
-			data->addTimelinePoint(*pData);
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			data->clearTimelinePoint();
+			for (const auto& pt : newPoints)
+				data->addTimelinePoint(pt);
 		}
+	}
+	else
+	{
+		// 网络异常时不清空已有数据
 	}
 	Stock::Instance().UpdateKLine();
 }
@@ -527,6 +550,11 @@ static Price GetJsonPrice(yyjson_val* obj, const char* key)
 
 void STOCK::StockData::addTimelinePoint(const CString& json_data)
 {
+	addTimelinePointTo(json_data, MakesureHistoricalData<TimelineData>(Period::TIMELINE)->data);
+}
+
+void STOCK::StockData::addTimelinePointTo(const CString& json_data, std::vector<TimelinePoint>& outPoints)
+{
 	std::string _json_data = CCommon::UnicodeToStr(json_data);
 	yyjson_doc* doc = yyjson_read(_json_data.c_str(), _json_data.size(), 0);
 	if (doc != nullptr)
@@ -534,12 +562,14 @@ void STOCK::StockData::addTimelinePoint(const CString& json_data)
 		yyjson_val* root = yyjson_doc_get_root(doc);
 		if (root == nullptr)
 		{
+			yyjson_doc_free(doc);
 			return;
 		}
 
 		yyjson_val* result = yyjson_obj_get(root, "result");
 		if (result == nullptr)
 		{
+			yyjson_doc_free(doc);
 			return;
 		}
 
@@ -559,10 +589,11 @@ void STOCK::StockData::addTimelinePoint(const CString& json_data)
 					point.price = GetJsonPrice(item, "p");
 					point.averagePrice = GetJsonPrice(item, "avg_p");
 					point.amount = point.price * point.volume;
-					addTimelinePoint(point);
+					outPoints.push_back(point);
 				}
 			}
 		}
+		yyjson_doc_free(doc);
 	}
 }
 

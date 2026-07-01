@@ -52,15 +52,13 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 	{
 		m_instance.m_last_request_time = cur_time;
 
-		// 休市检测：非全天更新模式且不在交易时间，且已经获取过一次数据，则不再请求
-		static bool hasFetchedOnce = false;
-		if (hasFetchedOnce && g_data.m_setting_data.m_full_day != 1 && !CDataManager::IsMarketOpen())
+		// 休市检测：非全天更新模式且不在交易日时段（收盘后/盘前/周末），则不再请求
+		if (g_data.m_setting_data.m_full_day != 1 && !CDataManager::IsTradingDaySession())
 		{
 			CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
 			g_data.ResetText();
 			return 0;
 		}
-		hasFetchedOnce = true;
 
 		// 禁用选项设置中的“更新”按钮
 		m_instance.DisableUpdateCommand();
@@ -130,7 +128,11 @@ void Stock::DataRequired()
 {
 	static time_t last_req_time{ -1 };
 	time_t cur_time = time(nullptr);
-	if (cur_time - m_instance.m_last_request_time > 3)
+	bool bMarketOpen = CDataManager::IsMarketOpen();
+	bool bTradingSession = CDataManager::IsTradingDaySession();
+	// 交易时段正常请求；午休期间降低频率请求（60秒一次）；非交易日/收盘后不请求（全天模式除外）
+	time_t requestInterval = bMarketOpen ? 3 : (bTradingSession ? 60 : 3);
+	if (cur_time - m_instance.m_last_request_time > requestInterval && (bTradingSession || g_data.m_setting_data.m_full_day == 1))
 	{
 		last_req_time = cur_time;
 		SendStockInfoRequest();
@@ -138,26 +140,8 @@ void Stock::DataRequired()
 	std::lock_guard<std::mutex> lock(m_wndMutex);
 	if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
 	{
-		m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
-		// DWORD_PTR dwResult = 0;
-		// LRESULT lr = ::SendMessageTimeout(
-		//     m_pFloatingWnd->GetSafeHwnd(),  // 目标窗口句柄
-		//     FWND_MSG_REQUEST_DATA,          // 消息ID
-		//     cur_time,                       // wParam
-		//     0,                              // lParam
-		//     SMTO_ABORTIFHUNG | SMTO_BLOCK,  // 如果窗口挂起则放弃，并阻塞调用线程
-		//     2000,                           // 2秒超时
-		//     &dwResult);                     // 接收返回值
-
-		// if (lr == 0) // 失败
-		//{
-		//     DWORD dwErr = GetLastError();
-		//     // 处理错误：记录日志或销毁无效窗口等
-		//     if (dwErr == ERROR_TIMEOUT)
-		//     {
-		//         TRACE("SendMessageTimeout timed out\n");
-		//     }
-		// }
+		if (bTradingSession)
+			m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
 	}
 }
 
