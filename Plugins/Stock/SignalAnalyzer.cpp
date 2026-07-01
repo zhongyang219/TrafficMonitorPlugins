@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SignalAnalyzer.h"
 #include "StockDef.h"
 #include <cmath>
@@ -1304,4 +1304,165 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 	result.swap(filtered);
 
 	return result;
+}
+
+// ========== 实时指标信号检测 ==========
+// 基于当前实时价格判断5个核心指标的买卖状态
+// endIndex: 计算到该索引位置为止（-1表示使用最后一根K线）
+// 信号强度分档规则：
+//   BOLL: 1档=触碰轨道，2档=越过轨道1/3带宽，3档=越过轨道2/3带宽
+//   MACD: 1档=刚交叉，2档=DIF偏离DEA中等幅度，3档=DIF偏离DEA大幅度
+//   RSI:  卖1档=70-80，卖2档=80-90，卖3档=90+；买1档=30-20，买2档=20-10，买3档=10-
+//   KDJ:  卖1档=80-90(K)，卖2档=90-100(K)，卖3档=J>100；买1档=20-10(K)，买2档=10-0(K)，买3档=J<0
+//   W&R:  卖1档=20-10，卖2档=10-5，卖3档=5-0；买1档=80-90，买2档=90-95，买3档=95-100
+CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::vector<STOCK::Bar>& bars5, int endIndex /* = -1 */)
+{
+	RealtimeSignal sig;
+	if (bars5.size() < 26)
+		return sig;
+
+	// 确定计算截止位置
+	size_t lastIdx = (endIndex >= 0 && static_cast<size_t>(endIndex) < bars5.size()) ? static_cast<size_t>(endIndex) : bars5.size() - 1;
+	if (lastIdx < 25)  // 至少需要26根K线才能计算MACD
+		return sig;
+
+	// 截取到endIndex位置的子序列用于指标计算
+	std::vector<STOCK::Bar> subBars(bars5.begin(), bars5.begin() + lastIdx + 1);
+	const STOCK::Bar& last = subBars.back();
+	double currentPrice = last.close;
+
+	// 1. BOLL：价格触碰上轨=卖出，触碰下轨=买入
+	// 强度：越远离中轨越强
+	STOCK::BollResult boll = CalcBoll(subBars, 20);
+	if (boll.up > 0 && boll.dn > 0 && boll.bandwidth > 0)
+	{
+		double halfBand = boll.bandwidth / 2.0;  // 中轨到上/下轨的距离
+		if (currentPrice >= boll.up || last.high >= boll.up)
+		{
+			sig.boll = 1;
+			double exceed = (currentPrice - boll.up) / halfBand;
+			if (exceed >= 0.66) sig.bollStr = 3;
+			else if (exceed >= 0.33) sig.bollStr = 2;
+			else sig.bollStr = 1;
+		}
+		else if (currentPrice <= boll.dn || last.low <= boll.dn)
+		{
+			sig.boll = -1;
+			double exceed = (boll.dn - currentPrice) / halfBand;
+			if (exceed >= 0.66) sig.bollStr = 3;
+			else if (exceed >= 0.33) sig.bollStr = 2;
+			else sig.bollStr = 1;
+		}
+	}
+
+	// 2. MACD：金叉=买入，死叉=卖出
+	// 强度：DIF偏离DEA的幅度
+	{
+		std::vector<double> difSeq, deaSeq, macdBarSeq;
+		CalcMACDSeries(subBars, difSeq, deaSeq, macdBarSeq);
+		if (difSeq.size() >= 2 && deaSeq.size() >= 2)
+		{
+			size_t n = difSeq.size();
+			double difDeaDiff = fabs(difSeq[n - 1] - deaSeq[n - 1]);
+			double difThreshold = GetMacdDifThreshold(currentPrice);
+			// 金叉：前一根DIF < DEA，当前DIF >= DEA
+			if (difSeq[n - 2] < deaSeq[n - 2] && difSeq[n - 1] >= deaSeq[n - 1])
+			{
+				sig.macd = -1;
+				if (difDeaDiff >= difThreshold * 2) sig.macdStr = 3;
+				else if (difDeaDiff >= difThreshold) sig.macdStr = 2;
+				else sig.macdStr = 1;
+			}
+			// 死叉：前一根DIF > DEA，当前DIF <= DEA
+			else if (difSeq[n - 2] > deaSeq[n - 2] && difSeq[n - 1] <= deaSeq[n - 1])
+			{
+				sig.macd = 1;
+				if (difDeaDiff >= difThreshold * 2) sig.macdStr = 3;
+				else if (difDeaDiff >= difThreshold) sig.macdStr = 2;
+				else sig.macdStr = 1;
+			}
+		}
+	}
+
+	// 3. RSI：超买(>70)=卖出，超卖(<30)=买入
+	double rsi6 = CalcRSI(subBars, 6);
+	if (rsi6 > 70)
+	{
+		sig.rsi = 1;
+		if (rsi6 >= 90) sig.rsiStr = 3;
+		else if (rsi6 >= 80) sig.rsiStr = 2;
+		else sig.rsiStr = 1;
+	}
+	else if (rsi6 < 30)
+	{
+		sig.rsi = -1;
+		if (rsi6 <= 10) sig.rsiStr = 3;
+		else if (rsi6 <= 20) sig.rsiStr = 2;
+		else sig.rsiStr = 1;
+	}
+
+	// 4. KDJ：超买(K>80)=卖出，超卖(K<20)=买入
+	STOCK::KDJResult kdj = CalcKDJ(subBars, 9);
+	if (kdj.k > 80)
+	{
+		sig.kdj = 1;
+		if (kdj.j > 100) sig.kdjStr = 3;
+		else if (kdj.k >= 90) sig.kdjStr = 2;
+		else sig.kdjStr = 1;
+	}
+	else if (kdj.k < 20)
+	{
+		sig.kdj = -1;
+		if (kdj.j < 0) sig.kdjStr = 3;
+		else if (kdj.k <= 10) sig.kdjStr = 2;
+		else sig.kdjStr = 1;
+	}
+
+	// 5. W&R：超买(<20)=卖出，超卖(>80)=买入
+	double wr6 = CalcWR(subBars, 6);
+	if (wr6 < 20)
+	{
+		sig.wr = 1;
+		if (wr6 <= 5) sig.wrStr = 3;
+		else if (wr6 <= 10) sig.wrStr = 2;
+		else sig.wrStr = 1;
+	}
+	else if (wr6 > 80)
+	{
+		sig.wr = -1;
+		if (wr6 >= 95) sig.wrStr = 3;
+		else if (wr6 >= 90) sig.wrStr = 2;
+		else sig.wrStr = 1;
+	}
+
+	return sig;
+}
+
+// ========== 实时指标信号检测（基于分时数据） ==========
+CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignalsFromTimeline(const std::vector<STOCK::TimelinePoint>& timeline, int endIndex /* = -1 */)
+{
+	RealtimeSignal sig;
+	if (timeline.size() < 26)
+		return sig;
+
+	// 将分时数据转换为Bar序列（每点只有price，无OHLC）
+	size_t lastIdx = (endIndex >= 0 && static_cast<size_t>(endIndex) < timeline.size()) ? static_cast<size_t>(endIndex) : timeline.size() - 1;
+	if (lastIdx < 25)
+		return sig;
+
+	std::vector<STOCK::Bar> bars;
+	bars.reserve(lastIdx + 1);
+	for (size_t i = 0; i <= lastIdx; i++)
+	{
+		STOCK::Bar bar;
+		bar.close = timeline[i].price;
+		bar.open = timeline[i].price;
+		bar.high = timeline[i].price;
+		bar.low = timeline[i].price;
+		bar.volume = timeline[i].volume;
+		bars.push_back(bar);
+	}
+
+	// 直接复用已有的Bar版计算函数
+	return CalcRealtimeSignals(bars, static_cast<int>(bars.size() - 1));
 }

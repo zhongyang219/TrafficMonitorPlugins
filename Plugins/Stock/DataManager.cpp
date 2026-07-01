@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include "Stock.h"
@@ -1200,10 +1200,12 @@ void CDataManager::SetShowInStatusBar(const std::wstring& code, bool show)
 std::vector<std::wstring> CDataManager::GetStatusBarStockCodes()
 {
 	std::vector<std::wstring> result;
-	for (const auto& item : m_stock_statusbar)
+	// 按照股票列表中的先后顺序遍历，保持状态栏显示顺序与配置一致
+	for (const auto& code : m_setting_data.m_stock_codes)
 	{
-		if (item.second)
-			result.push_back(item.first);
+		auto it = m_stock_statusbar.find(code);
+		if (it != m_stock_statusbar.end() && it->second)
+			result.push_back(code);
 	}
 	return result;
 }

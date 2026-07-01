@@ -73,4 +73,18 @@ public:
 
 	// ========== 批量信号检测 ==========
 	static std::vector<SmartSignalPoint> BatchDetectSignals(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30);
+
+	// ========== 实时指标信号检测（基于当前价格判断BOLL/MACD/RSI/KDJ/W&R买卖状态） ==========
+	// 信号方向：-1=买入信号(↓)，1=卖出信号(↑)，0=无信号
+	// 信号强度：1=弱，2=中，3=强
+	struct RealtimeSignal {
+		int boll;   int bollStr;   // BOLL：触碰上轨=卖出(1)，触碰下轨=买入(-1)
+		int macd;   int macdStr;   // MACD：金叉=买入(-1)，死叉=卖出(1)
+		int rsi;    int rsiStr;    // RSI：超买(>70)=卖出(1)，超卖(<30)=买入(-1)
+		int kdj;    int kdjStr;    // KDJ：超买(K>80)=卖出(1)，超卖(K<20)=买入(-1)
+		int wr;     int wrStr;     // W&R：超买(<20)=卖出(1)，超卖(>80)=买入(-1)
+		RealtimeSignal() : boll(0), bollStr(0), macd(0), macdStr(0), rsi(0), rsiStr(0), kdj(0), kdjStr(0), wr(0), wrStr(0) {}
+	};
+	static RealtimeSignal CalcRealtimeSignals(const std::vector<STOCK::Bar>& bars5, int endIndex = -1);
+	static RealtimeSignal CalcRealtimeSignalsFromTimeline(const std::vector<STOCK::TimelinePoint>& timeline, int endIndex = -1);
 };

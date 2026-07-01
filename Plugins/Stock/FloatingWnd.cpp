@@ -8179,10 +8179,9 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 
 		int xPos = g_data.RDPI(4);
 		int centerY = priceChartTop + timelineTitleHeight / 2;
-		const COLORREF hoverBgColor = RGB(200, 220, 255);  // 浅蓝色高亮
 
 		// 辅助lambda：绘制"标签:数值"，标签和数值分别着色
-		auto drawLabelValue = [&](const CString& labelText, STOCK::Price value, COLORREF labelColor, COLORREF valueColor, bool highlight) {
+		auto drawLabelValue = [&](const CString& labelText, STOCK::Price value, COLORREF labelColor, COLORREF valueColor) {
 			CString valStr = CCommon::FormatFloat(value);
 			memDC.SetTextColor(labelColor);
 			CSize ls = memDC.GetTextExtent(labelText);
@@ -8190,12 +8189,6 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			xPos += ls.cx;
 			memDC.SetTextColor(valueColor);
 			CSize vs = memDC.GetTextExtent(valStr);
-			if (highlight)
-			{
-				// 浅蓝色背景高亮
-				CRect hlRect(xPos, priceChartTop + 1, xPos + vs.cx, priceChartTop + timelineTitleHeight - 1);
-				memDC.FillSolidRect(hlRect, hoverBgColor);
-			}
 			memDC.TextOut(xPos, centerY - vs.cy / 2, valStr);
 			xPos += vs.cx + g_data.RDPI(4);
 			};
@@ -8207,57 +8200,60 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			if (p < prevClose) return COLOR_GREEN_DOWN;
 			return COLOR_BLACK;
 			};
-		// 均价（标签黑色，数字按与昨收比较，hover高亮）
-		drawLabelValue(_T("均价:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice), isHovering);
-		xPos -= g_data.RDPI(4);
+		// 均价
+		drawLabelValue(_T("均价:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice));
 
-		auto formatPrice = [](STOCK::Price value) -> CString {
-			return CCommon::FormatFloat(value);
-			};
-		auto appendTitleText = [&](const CString& text, COLORREF color) {
-			memDC.SetTextColor(color);
-			CSize sz = memDC.GetTextExtent(text);
-			memDC.TextOut(xPos, centerY - sz.cy / 2, text);
-			xPos += sz.cx;
-			};
-
-		if (m_showMA)
+		// 分时模式：在标题栏正中间显示实时指标信号指示器
 		{
-			STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
-			STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
-			STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
-			if (dispMa5 > 0) appendTitleText(_T(" MA5:") + formatPrice(dispMa5), RGB(0, 0, 230));
-			if (dispMa10 > 0) appendTitleText(_T(" MA10:") + formatPrice(dispMa10), RGB(0, 166, 235));
-			if (dispMa20 > 0) appendTitleText(_T(" MA20:") + formatPrice(dispMa20), RGB(169, 102, 186));
-		}
-		else if (m_showBollBands)
-		{
-			const int N = 20;
-			const int K = 2;
 			const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
-			int displayIdx = isHovering ? m_hoveredBarIndex : static_cast<int>(timelinePoint.size()) - 1;
-			displayIdx = max(0, min(displayIdx, static_cast<int>(timelinePoint.size()) - 1));
-			int globalIdx = ctx.startIndex + displayIdx;
-			if (globalIdx >= N - 1 && globalIdx < static_cast<int>(fullData.size()))
+			if (fullData.size() >= 26)
 			{
-				double sum = 0;
-				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
-					sum += fullData[i].price;
-				double mid = sum / N;
-
-				double variance = 0;
-				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+				int signalEndIndex = -1;
+				if (isHovering)
 				{
-					double diff = fullData[i].price - mid;
-					variance += diff * diff;
+					int hoverGlobalIdx = ctx.startIndex + m_hoveredBarIndex;
+					if (hoverGlobalIdx >= 25 && hoverGlobalIdx < static_cast<int>(fullData.size()))
+						signalEndIndex = hoverGlobalIdx;
 				}
-				double stddev = std::sqrt(variance / N);
-				double upper = mid + K * stddev;
-				double lower = mid - K * stddev;
 
-				appendTitleText(_T(" 上:") + formatPrice(static_cast<STOCK::Price>(upper)), COLOR_RED_UP);
-				appendTitleText(_T(" 中:") + formatPrice(static_cast<STOCK::Price>(mid)), RGB(0, 0, 230));
-				appendTitleText(_T(" 下:") + formatPrice(static_cast<STOCK::Price>(lower)), COLOR_GREEN_DOWN);
+				auto rtSig = CSignalAnalyzer::CalcRealtimeSignalsFromTimeline(fullData, signalEndIndex);
+
+				// 信号颜色：按强度分3档，由浅到深
+				static const COLORREF BUY_COLORS[] = {
+					RGB(40, 240, 40),   // 1档浅绿
+					RGB(50, 180, 50),   // 2档中绿
+					RGB(20, 130, 40)    // 3档深绿
+				};
+				static const COLORREF SELL_COLORS[] = {
+					RGB(240, 40, 40),   // 1档浅红
+					RGB(180, 50, 50),   // 2档中红
+					RGB(130, 20, 40)    // 3档深红
+				};
+
+				// 构建信号项列表：{文字, 颜色}
+				std::vector<std::pair<CString, COLORREF>> sigItems;
+				if (rtSig.boll != 0) sigItems.push_back({ rtSig.boll == -1 ? _T("B\u2193") : _T("B\u2191"), rtSig.boll == -1 ? BUY_COLORS[rtSig.bollStr - 1] : SELL_COLORS[rtSig.bollStr - 1] });
+				if (rtSig.macd != 0) sigItems.push_back({ rtSig.macd == -1 ? _T("M\u2193") : _T("M\u2191"), rtSig.macd == -1 ? BUY_COLORS[rtSig.macdStr - 1] : SELL_COLORS[rtSig.macdStr - 1] });
+				if (rtSig.rsi != 0) sigItems.push_back({ rtSig.rsi == -1 ? _T("R\u2193") : _T("R\u2191"), rtSig.rsi == -1 ? BUY_COLORS[rtSig.rsiStr - 1] : SELL_COLORS[rtSig.rsiStr - 1] });
+				if (rtSig.kdj != 0) sigItems.push_back({ rtSig.kdj == -1 ? _T("K\u2193") : _T("K\u2191"), rtSig.kdj == -1 ? BUY_COLORS[rtSig.kdjStr - 1] : SELL_COLORS[rtSig.kdjStr - 1] });
+				if (rtSig.wr != 0) sigItems.push_back({ rtSig.wr == -1 ? _T("W\u2193") : _T("W\u2191"), rtSig.wr == -1 ? BUY_COLORS[rtSig.wrStr - 1] : SELL_COLORS[rtSig.wrStr - 1] });
+
+				if (!sigItems.empty())
+				{
+					// 计算总宽度
+					int totalW = 0;
+					for (const auto& item : sigItems)
+						totalW += memDC.GetTextExtent(item.first).cx;
+					int sigX = (ctx.chartWidth - totalW) / 2;
+
+					for (const auto& item : sigItems)
+					{
+						memDC.SetTextColor(item.second);
+						CSize sz = memDC.GetTextExtent(item.first);
+						memDC.TextOut(sigX, centerY - sz.cy / 2, item.first);
+						sigX += sz.cx;
+					}
+				}
 			}
 		}
 	}
@@ -8295,45 +8291,111 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			}
 			};
 
-		if (m_showMA)
+		if (m_isMin5KLineMode)
 		{
-			STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
-			STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
-			STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
-			std::vector<std::pair<CString, COLORREF>> items;
-			if (dispMa5 > 0) items.push_back({ _T("MA5:") + formatPrice(dispMa5), RGB(0, 0, 230) });
-			if (dispMa10 > 0) items.push_back({ _T("MA10:") + formatPrice(dispMa10), RGB(0, 166, 235) });
-			if (dispMa20 > 0) items.push_back({ _T("MA20:") + formatPrice(dispMa20), RGB(169, 102, 186) });
-			drawRightLabelValues(items);
-		}
-		else if (m_showBollBands)
-		{
-			const int N = 20;
-			const int K = 2;
-			const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
-			int globalIdx = ctx.startIndex + displayIdx;
-			if (globalIdx >= N - 1 && globalIdx < static_cast<int>(fullData.size()))
+			// 5分钟K线模式：在标题栏正中间显示实时指标信号指示器
+			auto stockData = g_data.GetStockData(m_stock_id);
+			if (stockData)
 			{
-				double sum = 0;
-				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
-					sum += fullData[i].price;
-				double mid = sum / N;
-
-				double variance = 0;
-				for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+				auto min5KLineObj = stockData->getMin5KLineData();
+				if (min5KLineObj && min5KLineObj->data.size() >= 26)
 				{
-					double diff = fullData[i].price - mid;
-					variance += diff * diff;
-				}
-				double stddev = std::sqrt(variance / N);
-				double upper = mid + K * stddev;
-				double lower = mid - K * stddev;
+					std::vector<STOCK::Bar> bars5;
+					bars5.reserve(min5KLineObj->data.size());
+					for (const auto& kp : min5KLineObj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
 
+					// 鼠标悬停时计算悬停点的信号，否则计算最新K线的信号
+					int signalEndIndex = -1;
+					if (isHovering)
+					{
+						int hoverKlineIdx = ctx.startIndex + m_hoveredBarIndex;
+						if (hoverKlineIdx >= 25 && hoverKlineIdx < static_cast<int>(bars5.size()))
+							signalEndIndex = hoverKlineIdx;
+					}
+
+					auto rtSig = CSignalAnalyzer::CalcRealtimeSignals(bars5, signalEndIndex);
+
+					// 信号颜色：按强度分3档，由浅到深
+					static const COLORREF BUY_COLORS[] = {
+						RGB(40, 240, 40),   // 1档浅绿
+						RGB(50, 180, 50),   // 2档中绿
+						RGB(20, 130, 40)    // 3档深绿
+					};
+					static const COLORREF SELL_COLORS[] = {
+						RGB(240, 40, 40),   // 1档浅红
+						RGB(180, 50, 50),   // 2档中红
+						RGB(130, 20, 40)    // 3档深红
+					};
+
+					// 构建信号项列表：{文字, 颜色}
+					std::vector<std::pair<CString, COLORREF>> sigItems;
+					if (rtSig.boll != 0) sigItems.push_back({ rtSig.boll == -1 ? _T("B\u2193") : _T("B\u2191"), rtSig.boll == -1 ? BUY_COLORS[rtSig.bollStr - 1] : SELL_COLORS[rtSig.bollStr - 1] });
+					if (rtSig.macd != 0) sigItems.push_back({ rtSig.macd == -1 ? _T("M\u2193") : _T("M\u2191"), rtSig.macd == -1 ? BUY_COLORS[rtSig.macdStr - 1] : SELL_COLORS[rtSig.macdStr - 1] });
+					if (rtSig.rsi != 0) sigItems.push_back({ rtSig.rsi == -1 ? _T("R\u2193") : _T("R\u2191"), rtSig.rsi == -1 ? BUY_COLORS[rtSig.rsiStr - 1] : SELL_COLORS[rtSig.rsiStr - 1] });
+					if (rtSig.kdj != 0) sigItems.push_back({ rtSig.kdj == -1 ? _T("K\u2193") : _T("K\u2191"), rtSig.kdj == -1 ? BUY_COLORS[rtSig.kdjStr - 1] : SELL_COLORS[rtSig.kdjStr - 1] });
+					if (rtSig.wr != 0) sigItems.push_back({ rtSig.wr == -1 ? _T("W\u2193") : _T("W\u2191"), rtSig.wr == -1 ? BUY_COLORS[rtSig.wrStr - 1] : SELL_COLORS[rtSig.wrStr - 1] });
+
+					if (!sigItems.empty())
+					{
+						int totalW = 0;
+						for (const auto& item : sigItems)
+							totalW += memDC.GetTextExtent(item.first).cx;
+						int xPos = (ctx.chartWidth - totalW) / 2;
+
+						for (const auto& item : sigItems)
+						{
+							memDC.SetTextColor(item.second);
+							CSize sz = memDC.GetTextExtent(item.first);
+							memDC.TextOut(xPos, centerY - sz.cy / 2, item.first);
+							xPos += sz.cx;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			// 日K线/30分钟K线模式：右侧显示MA5/MA10/MA20或BOLL上中下轨
+			if (m_showMA)
+			{
+				STOCK::Price dispMa5 = isHovering ? m_hoverMa5 : ctx.ma5;
+				STOCK::Price dispMa10 = isHovering ? m_hoverMa10 : ctx.ma10;
+				STOCK::Price dispMa20 = isHovering ? m_hoverMa20 : ctx.ma20;
 				std::vector<std::pair<CString, COLORREF>> items;
-				items.push_back({ _T("上:") + formatPrice(static_cast<STOCK::Price>(upper)), COLOR_RED_UP });
-				items.push_back({ _T("中:") + formatPrice(static_cast<STOCK::Price>(mid)), RGB(0, 0, 230) });
-				items.push_back({ _T("下:") + formatPrice(static_cast<STOCK::Price>(lower)), COLOR_GREEN_DOWN });
+				if (dispMa5 > 0) items.push_back({ _T("MA5:") + formatPrice(dispMa5), RGB(0, 0, 230) });
+				if (dispMa10 > 0) items.push_back({ _T("MA10:") + formatPrice(dispMa10), RGB(0, 166, 235) });
+				if (dispMa20 > 0) items.push_back({ _T("MA20:") + formatPrice(dispMa20), RGB(169, 102, 186) });
 				drawRightLabelValues(items);
+			}
+			else if (m_showBollBands)
+			{
+				const int N = 20;
+				const int K = 2;
+				const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
+				int globalIdx = ctx.startIndex + displayIdx;
+				if (globalIdx >= N - 1 && globalIdx < static_cast<int>(fullData.size()))
+				{
+					double sum = 0;
+					for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+						sum += fullData[i].price;
+					double mid = sum / N;
+
+					double variance = 0;
+					for (int i = globalIdx - N + 1; i <= globalIdx; i++)
+					{
+						double diff = fullData[i].price - mid;
+						variance += diff * diff;
+					}
+					double stddev = std::sqrt(variance / N);
+					double upper = mid + K * stddev;
+					double lower = mid - K * stddev;
+
+					std::vector<std::pair<CString, COLORREF>> items;
+					items.push_back({ _T("上:") + formatPrice(static_cast<STOCK::Price>(upper)), COLOR_RED_UP });
+					items.push_back({ _T("中:") + formatPrice(static_cast<STOCK::Price>(mid)), RGB(0, 0, 230) });
+					items.push_back({ _T("下:") + formatPrice(static_cast<STOCK::Price>(lower)), COLOR_GREEN_DOWN });
+					drawRightLabelValues(items);
+				}
 			}
 		}
 	}
