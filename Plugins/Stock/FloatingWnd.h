@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -54,9 +54,13 @@ protected:
 	afx_msg void OnBnClickedIndicatorWRBtn();
 	afx_msg void OnBnClickedIndicatorRSIBtn();
 	afx_msg void OnBnClickedChipPeakBtn();
+	afx_msg void OnBnClickedOrderBookBtn();
 
 private:
 	void EnsureChipPeakData();
+	static void SafeSetWindowPos(CWnd& wnd, int x, int y, int cx, int cy);
+	static void SafeShowWindow(CWnd& wnd, bool show);
+	static void SafeSetButtonStyle(CButton& btn, UINT style);
 	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
 	CPoint Stock2Point(int x, int y, int w, int h, double unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
 	void DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
@@ -270,6 +274,7 @@ private:
 	CButton m_btnIndicatorWR;    // W&R指标按钮
 	CButton m_btnIndicatorRSI;   // RSI指标按钮
 	CButton m_btnChipPeak;       // 筹码峰按钮
+	CButton m_btnOrderBook;      // 盘口按钮（与筹码峰按钮切换）
 	CFont m_chipPeakFont;        // 筹码峰按钮小字体
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
@@ -290,6 +295,7 @@ private:
 	// 分时图指标类型
 	enum class TimelineIndicator { MACD, KDJ, WR, RSI };
 	TimelineIndicator m_timelineIndicator{ TimelineIndicator::KDJ };
+	bool m_indicatorBtnsInitialized{ false };
 
 	// 分时图鼠标拖动滚动
 	bool m_isTimelineDragging{ false };

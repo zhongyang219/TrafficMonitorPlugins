@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "DataManager.h"
 
 // COptionsDlg 对话框
@@ -34,6 +34,7 @@ private:
 	double m_cost_price{};
 	double m_holding_count{};
 	CString m_buy_date;
+	BOOL m_show_in_statusbar{ FALSE };
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持

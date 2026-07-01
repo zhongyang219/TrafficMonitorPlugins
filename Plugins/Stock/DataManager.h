@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <map>
 #include <vector>
@@ -94,6 +94,11 @@ public:
 	std::wstring GetBuyDate(const std::wstring& code);
 	void SetPosition(const std::wstring& code, double cost, double count, const std::wstring& buy_date = L"");
 
+	// 状态栏展示设置
+	bool GetShowInStatusBar(const std::wstring& code);
+	void SetShowInStatusBar(const std::wstring& code, bool show);
+	std::vector<std::wstring> GetStatusBarStockCodes();
+
 	// 计算N日均线 (当前价格 + 前N-1天收盘价) / N
 	double CalculateMA(const std::wstring& code, double currentPrice, int N);
 
@@ -133,4 +138,7 @@ private:
 
 	// 持仓配置映射表: code -> (cost_price, holding_count, buy_date)
 	std::map<std::wstring, std::tuple<double, double, std::wstring>> m_stock_positions;
+
+	// 状态栏展示映射表: code -> show_in_statusbar
+	std::map<std::wstring, bool> m_stock_statusbar;
 };

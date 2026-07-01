@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include "Stock.h"
@@ -175,6 +175,8 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	m_stock_alert_prices.clear();
 	// 加载每个股票的持仓配置
 	m_stock_positions.clear();
+	// 加载每个股票的状态栏展示配置
+	m_stock_statusbar.clear();
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
 		std::wstring low_str = ini.GetString(code.c_str(), L"alert_low", L"");
@@ -191,6 +193,8 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 		if (!cost_str.empty()) cost = std::stod(cost_str);
 		if (!count_str.empty()) count = std::stod(count_str);
 		m_stock_positions[code] = std::make_tuple(cost, count, buy_date);
+
+		m_stock_statusbar[code] = ini.GetBool(code.c_str(), L"show_in_statusbar", false);
 	}
 
 	InitDatabase();
@@ -988,6 +992,12 @@ void CDataManager::SaveConfig()
 			}
 		}
 
+		// 保存每个股票的状态栏展示配置
+		for (const auto& item : m_stock_statusbar)
+		{
+			ini.WriteBool(item.first.c_str(), L"show_in_statusbar", item.second);
+		}
+
 		ini.Save();
 	}
 }
@@ -1172,6 +1182,30 @@ void CDataManager::SetPosition(const std::wstring& code, double cost, double cou
 		// 保留记录为0值，确保SaveConfig时能写入空字符串覆盖ini中的旧值
 		m_stock_positions[code] = std::make_tuple(0.0, 0.0, L"");
 	}
+}
+
+bool CDataManager::GetShowInStatusBar(const std::wstring& code)
+{
+	auto it = m_stock_statusbar.find(code);
+	if (it != m_stock_statusbar.end())
+		return it->second;
+	return false;
+}
+
+void CDataManager::SetShowInStatusBar(const std::wstring& code, bool show)
+{
+	m_stock_statusbar[code] = show;
+}
+
+std::vector<std::wstring> CDataManager::GetStatusBarStockCodes()
+{
+	std::vector<std::wstring> result;
+	for (const auto& item : m_stock_statusbar)
+	{
+		if (item.second)
+			result.push_back(item.first);
+	}
+	return result;
 }
 
 double CDataManager::CalculateMA(const std::wstring& code, double currentPrice, int N)

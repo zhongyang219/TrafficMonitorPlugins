@@ -1,4 +1,4 @@
-﻿// OptionsDlg.cpp: 实现文件
+// OptionsDlg.cpp: 实现文件
 //
 
 #include "pch.h"
@@ -39,6 +39,7 @@ void COptionsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_COST_PRICE_EDIT, m_cost_price);
 	DDX_Text(pDX, IDC_HOLDING_COUNT_EDIT, m_holding_count);
 	DDX_Text(pDX, IDC_BUY_DATE_EDIT, m_buy_date);
+	DDX_Check(pDX, IDC_STATUSBAR_CHECK, m_show_in_statusbar);
 }
 
 BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
@@ -105,6 +106,7 @@ BOOL COptionsDlg::OnInitDialog()
 		m_cost_price = cost_price;
 		m_holding_count = holding_count;
 		m_buy_date = buy_date.c_str();
+		m_show_in_statusbar = g_data.GetShowInStatusBar(std::wstring(m_stock_code)) ? TRUE : FALSE;
 
 		UpdateData(FALSE);
 	}
@@ -336,6 +338,9 @@ void COptionsDlg::OnBnClickedOk()
 
 	// 保存持仓配置
 	g_data.SetPosition(std::wstring(m_stock_code), m_cost_price, m_holding_count, std::wstring(m_buy_date));
+
+	// 保存状态栏展示配置
+	g_data.SetShowInStatusBar(std::wstring(m_stock_code), m_show_in_statusbar != FALSE);
 
 	g_data.SaveConfig();
 

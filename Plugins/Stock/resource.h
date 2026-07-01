@@ -1,4 +1,4 @@
-﻿//{{NO_DEPENDENCIES}}
+//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ 生成的包含文件。
 // 供 Stock.rc 使用
 //
@@ -66,6 +66,7 @@
 #define IDC_TRADE_AMOUNT_STATIC         1046
 #define IDC_TRADE_FEE_STATIC            1047
 #define IDC_TRADE_TOTAL_STATIC          1048
+#define IDC_STATUSBAR_CHECK             1049
 #define IDS_ALERT_LOW_PRICE             115
 #define IDS_ALERT_HIGH_PRICE            116
 #define IDS_PRICE_ALERT_TITLE           117
@@ -92,7 +93,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_CONTROL_VALUE         1050
 #define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

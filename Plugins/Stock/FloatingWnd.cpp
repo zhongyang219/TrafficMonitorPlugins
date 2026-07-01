@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -236,7 +236,8 @@ enum {
 	IDC_INDICATOR_WR_BTN = 1015,
 	IDC_INDICATOR_RSI_BTN = 1016,
 	IDC_T0_BTN = 1017,
-	IDC_CHIP_PEAK_BTN = 1018
+	IDC_CHIP_PEAK_BTN = 1018,
+	IDC_ORDER_BOOK_BTN = 1019
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -271,6 +272,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_INDICATOR_WR_BTN, &CFloatingWnd::OnBnClickedIndicatorWRBtn)
 	ON_BN_CLICKED(IDC_INDICATOR_RSI_BTN, &CFloatingWnd::OnBnClickedIndicatorRSIBtn)
 	ON_BN_CLICKED(IDC_CHIP_PEAK_BTN, &CFloatingWnd::OnBnClickedChipPeakBtn)
+	ON_BN_CLICKED(IDC_ORDER_BOOK_BTN, &CFloatingWnd::OnBnClickedOrderBookBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -307,6 +309,23 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect chipPeakBtnRect(closeBtnRect.left - rightBtnWidth, g_data.RDPI(2), closeBtnRect.left, g_data.RDPI(2) + btnHeight);
 	m_btnChipPeak.Create(_T("筹码"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, chipPeakBtnRect, this, IDC_CHIP_PEAK_BTN);
 
+	CRect orderBookBtnRect(0, 0, rightBtnWidth, btnHeight);
+	m_btnOrderBook.Create(_T("盘口"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, orderBookBtnRect, this, IDC_ORDER_BOOK_BTN);
+
+	// 盘口/筹码按钮使用缩小1/4的字体
+	{
+		CFont* pDefaultFont = m_btnChipPeak.GetFont();
+		if (pDefaultFont)
+		{
+			LOGFONT lf;
+			pDefaultFont->GetLogFont(&lf);
+			lf.lfHeight = lf.lfHeight * 3 / 4;
+			m_chipPeakFont.CreateFontIndirect(&lf);
+			m_btnChipPeak.SetFont(&m_chipPeakFont);
+			m_btnOrderBook.SetFont(&m_chipPeakFont);
+		}
+	}
+
 	CRect bollBtnRect(0, 0, rightBtnWidth, btnHeight);
 	m_btnBoll.Create(_T("BOLL"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
 	m_btnBoll.ShowWindow(SW_HIDE);
@@ -330,10 +349,10 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnZoomIn.ShowWindow(SW_HIDE);
 
 	// MACD/KDJ指标切换按钮（初始隐藏，在OnPaint中定位）
-	m_btnIndicatorMACD.Create(_T("MACD"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_MACD_BTN);
-	m_btnIndicatorKDJ.Create(_T("KDJ"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_KDJ_BTN);
-	m_btnIndicatorWR.Create(_T("W&&R"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_WR_BTN);
-	m_btnIndicatorRSI.Create(_T("RSI"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, CRect(0, 0, 0, 0), this, IDC_INDICATOR_RSI_BTN);
+	m_btnIndicatorMACD.Create(_T("MACD"), WS_CHILD | BS_PUSHBUTTON, CRect(0, 0, 0, 0), this, IDC_INDICATOR_MACD_BTN);
+	m_btnIndicatorKDJ.Create(_T("KDJ"), WS_CHILD | BS_PUSHBUTTON, CRect(0, 0, 0, 0), this, IDC_INDICATOR_KDJ_BTN);
+	m_btnIndicatorWR.Create(_T("W&&R"), WS_CHILD | BS_PUSHBUTTON, CRect(0, 0, 0, 0), this, IDC_INDICATOR_WR_BTN);
+	m_btnIndicatorRSI.Create(_T("RSI"), WS_CHILD | BS_PUSHBUTTON, CRect(0, 0, 0, 0), this, IDC_INDICATOR_RSI_BTN);
 	m_btnIndicatorMACD.ShowWindow(SW_HIDE);
 	m_btnIndicatorKDJ.ShowWindow(SW_HIDE);
 	m_btnIndicatorWR.ShowWindow(SW_HIDE);
@@ -456,7 +475,7 @@ BOOL CFloatingWnd::Create(CFont* font, CPoint pt, std::wstring stock_id)
 	// 创建实际的浮动窗口
 	if (!CreateEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
 		AfxRegisterWndClass(CS_HREDRAW | CS_VREDRAW),
-		L"", WS_POPUP | WS_VISIBLE | WS_BORDER,
+		L"", WS_POPUP | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN,
 		rect, &m_CTransparentWnd, 0))
 	{
 		TRACE(L"Failed to create floating window\n");
@@ -2311,23 +2330,27 @@ void CFloatingWnd::OnPaint()
 		// 数据加载前也先把顶部按钮定位到目标标题栏，避免停留在初始坐标
 		{
 			const int titleH = g_data.RDPI(16);
-			int toolBtnW = g_data.RDPI(36);
+			int toolBtnW = yAxisWidth - g_data.RDPI(4);
 			int toolBtnH = min(titleH, g_data.RDPI(16));
 			int toolTop = priceChartTop + (titleH - toolBtnH) / 2;
-			if (m_btnBoll.GetSafeHwnd())
-				m_btnBoll.SetWindowPos(nullptr, chartWidth - toolBtnW, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-			if (m_btnMA.GetSafeHwnd())
-				m_btnMA.SetWindowPos(nullptr, chartWidth - toolBtnW * 2, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-			if (m_btnT0.GetSafeHwnd())
-				m_btnT0.SetWindowPos(nullptr, chartWidth - toolBtnW * 3, toolTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			SafeSetWindowPos(m_btnBoll, chartWidth - toolBtnW, toolTop, toolBtnW, toolBtnH);
+			SafeSetWindowPos(m_btnMA, chartWidth - toolBtnW * 2, toolTop, toolBtnW, toolBtnH);
+			SafeSetWindowPos(m_btnT0, chartWidth - toolBtnW * 3, toolTop, toolBtnW, toolBtnH);
 
 			int closeBtnW = g_data.RDPI(20);
 			int closeBtnH = g_data.RDPI(18);
 			int headerBtnTop = g_data.RDPI(2);
-			if (m_btnClose.GetSafeHwnd())
-				m_btnClose.SetWindowPos(nullptr, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-			if (m_btnChipPeak.GetSafeHwnd())
-				m_btnChipPeak.SetWindowPos(nullptr, w - closeBtnW - g_data.RDPI(40), headerBtnTop, g_data.RDPI(40), closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+			SafeSetWindowPos(m_btnClose, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH);
+			// 筹码峰/盘口按钮定位到盘口标题栏，高度与BOLL按钮一致
+			int obTitleH = g_data.RDPI(16);
+			int obBtnW = g_data.RDPI(36);
+			int obBtnH = min(obTitleH, g_data.RDPI(16));
+			int obBtnTop = headerHeight + (obTitleH - obBtnH) / 2;
+			bool showObBtns = !isIndexKLine;
+			SafeSetWindowPos(m_btnChipPeak, w - obBtnW, obBtnTop, obBtnW, obBtnH);
+			SafeShowWindow(m_btnChipPeak, showObBtns);
+			SafeSetWindowPos(m_btnOrderBook, w - obBtnW * 2, obBtnTop, obBtnW, obBtnH);
+			SafeShowWindow(m_btnOrderBook, showObBtns);
 		}
 
 		if (!timelinePoint.empty())
@@ -2545,40 +2568,46 @@ void CFloatingWnd::OnPaint()
 			memDC.RestoreDC(-1);
 
 			// 定位缩放按钮（量柱图标题栏最右侧，原始坐标系）
-			if (m_btnZoomOut.GetSafeHwnd() && m_btnZoomIn.GetSafeHwnd())
 			{
 				int zoomBtnW = g_data.RDPI(28);
 				int zoomBtnH = g_data.RDPI(16);
 				int zoomGap = g_data.RDPI(2);
 				int rightEdge = chartWidth;
 				int btnTop = origVolTop + (titleH - zoomBtnH) / 2;
-				m_btnZoomIn.SetWindowPos(nullptr, rightEdge - zoomBtnW - zoomGap, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-				m_btnZoomOut.SetWindowPos(nullptr, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				SafeSetWindowPos(m_btnZoomIn, rightEdge - zoomBtnW - zoomGap, btnTop, zoomBtnW, zoomBtnH);
+				SafeSetWindowPos(m_btnZoomOut, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH);
 			}
 
 			// T0/MA/BOLL按钮放到走势图标题栏右侧，靠右紧贴排列
 			{
-				int toolBtnW = g_data.RDPI(36);
+				int toolBtnW = yAxisWidth - g_data.RDPI(4);
 				int toolBtnH = min(titleH, g_data.RDPI(16));
 				int rightEdge = chartWidth;
 				int btnTop = origPriceTop + (titleH - toolBtnH) / 2;
-				if (m_btnBoll.GetSafeHwnd())
-					m_btnBoll.SetWindowPos(nullptr, rightEdge - toolBtnW, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-				if (m_btnMA.GetSafeHwnd())
-					m_btnMA.SetWindowPos(nullptr, rightEdge - toolBtnW * 2, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-				if (m_btnT0.GetSafeHwnd())
-					m_btnT0.SetWindowPos(nullptr, rightEdge - toolBtnW * 3, btnTop, toolBtnW, toolBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				SafeSetWindowPos(m_btnBoll, rightEdge - toolBtnW, btnTop, toolBtnW, toolBtnH);
+				SafeSetWindowPos(m_btnMA, rightEdge - toolBtnW * 2, btnTop, toolBtnW, toolBtnH);
+				SafeSetWindowPos(m_btnT0, rightEdge - toolBtnW * 3, btnTop, toolBtnW, toolBtnH);
 			}
 
-			// 主标题栏右侧按钮定位（关闭、筹码峰从右往左排列，无间隙）
+			// 主标题栏右侧按钮定位（关闭按钮）
 			{
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
-				if (m_btnClose.GetSafeHwnd())
-					m_btnClose.SetWindowPos(nullptr, w - closeBtnW, top, closeBtnW, closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
-				if (m_btnChipPeak.GetSafeHwnd())
-					m_btnChipPeak.SetWindowPos(nullptr, w - closeBtnW - g_data.RDPI(40), top, g_data.RDPI(40), closeBtnH, SWP_NOZORDER | SWP_NOREDRAW);
+				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
+			}
+
+			// 盘口标题栏右侧按钮定位（筹码峰、盘口按钮），高度与BOLL按钮一致
+			{
+				int obTitleH = g_data.RDPI(16);
+				int obBtnW = g_data.RDPI(36);
+				int obBtnH = min(obTitleH, g_data.RDPI(16));
+				int obBtnTop = headerHeight + (obTitleH - obBtnH) / 2;
+				bool showObBtns = !isIndexKLine;
+				SafeSetWindowPos(m_btnChipPeak, w - obBtnW, obBtnTop, obBtnW, obBtnH);
+				SafeShowWindow(m_btnChipPeak, showObBtns);
+				SafeSetWindowPos(m_btnOrderBook, w - obBtnW * 2, obBtnTop, obBtnW, obBtnH);
+				SafeShowWindow(m_btnOrderBook, showObBtns);
 			}
 
 			// MACD/KDJ/W&R/RSI按钮（左侧Y轴预留区域，占用副图到X轴时间标签区域，不超过底部状态栏）
@@ -2594,37 +2623,41 @@ void CFloatingWnd::OnPaint()
 				int btn2Y = btn1Y + btnH + btnGap;
 				int btn3Y = btn2Y + btnH + btnGap;
 				int btn4Y = min(btn3Y + btnH + btnGap, btnAreaBottom - btnH);
-				if (m_btnIndicatorMACD.GetSafeHwnd())
+				SafeSetWindowPos(m_btnIndicatorMACD, btnX, btn1Y, btnW, btnH);
+				SafeShowWindow(m_btnIndicatorMACD, true);
+				SafeSetButtonStyle(m_btnIndicatorMACD, m_timelineIndicator == TimelineIndicator::MACD ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
+				SafeSetWindowPos(m_btnIndicatorKDJ, btnX, btn2Y, btnW, btnH);
+				SafeShowWindow(m_btnIndicatorKDJ, true);
+				SafeSetButtonStyle(m_btnIndicatorKDJ, m_timelineIndicator == TimelineIndicator::KDJ ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
+				SafeSetWindowPos(m_btnIndicatorWR, btnX, btn3Y, btnW, btnH);
+				SafeShowWindow(m_btnIndicatorWR, true);
+				SafeSetButtonStyle(m_btnIndicatorWR, m_timelineIndicator == TimelineIndicator::WR ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
+				SafeSetWindowPos(m_btnIndicatorRSI, btnX, btn4Y, btnW, btnH);
+				SafeShowWindow(m_btnIndicatorRSI, true);
+				SafeSetButtonStyle(m_btnIndicatorRSI, m_timelineIndicator == TimelineIndicator::RSI ? BS_DEFPUSHBUTTON : BS_PUSHBUTTON);
+
+				// 首次绘制时依次切换指标再切回KDJ，强制所有按钮正确渲染
+				if (!m_indicatorBtnsInitialized)
 				{
-					m_btnIndicatorMACD.SetWindowPos(nullptr, btnX, btn1Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
-					if (!m_btnIndicatorMACD.IsWindowVisible())
-						m_btnIndicatorMACD.ShowWindow(SW_SHOW);
-					m_btnIndicatorMACD.SetButtonStyle(m_timelineIndicator == TimelineIndicator::MACD ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-				}
-				if (m_btnIndicatorKDJ.GetSafeHwnd())
-				{
-					m_btnIndicatorKDJ.SetWindowPos(nullptr, btnX, btn2Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
-					if (!m_btnIndicatorKDJ.IsWindowVisible())
-						m_btnIndicatorKDJ.ShowWindow(SW_SHOW);
-					m_btnIndicatorKDJ.SetButtonStyle(m_timelineIndicator == TimelineIndicator::KDJ ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-				}
-				if (m_btnIndicatorWR.GetSafeHwnd())
-				{
-					m_btnIndicatorWR.SetWindowPos(nullptr, btnX, btn3Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
-					if (!m_btnIndicatorWR.IsWindowVisible())
-						m_btnIndicatorWR.ShowWindow(SW_SHOW);
-					m_btnIndicatorWR.SetButtonStyle(m_timelineIndicator == TimelineIndicator::WR ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-				}
-				if (m_btnIndicatorRSI.GetSafeHwnd())
-				{
-					m_btnIndicatorRSI.SetWindowPos(nullptr, btnX, btn4Y, btnW, btnH, SWP_NOZORDER | SWP_NOREDRAW);
-					if (!m_btnIndicatorRSI.IsWindowVisible())
-						m_btnIndicatorRSI.ShowWindow(SW_SHOW);
-					m_btnIndicatorRSI.SetButtonStyle(m_timelineIndicator == TimelineIndicator::RSI ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+					m_indicatorBtnsInitialized = true;
+					m_timelineIndicator = TimelineIndicator::MACD;
+					m_btnIndicatorMACD.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
+					m_btnIndicatorKDJ.SetButtonStyle(BS_PUSHBUTTON, TRUE);
+					m_btnIndicatorMACD.Invalidate();
+					m_btnIndicatorKDJ.Invalidate();
+					m_btnIndicatorWR.Invalidate();
+					m_btnIndicatorRSI.Invalidate();
+					m_timelineIndicator = TimelineIndicator::KDJ;
+					m_btnIndicatorMACD.SetButtonStyle(BS_PUSHBUTTON, TRUE);
+					m_btnIndicatorKDJ.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
+					m_btnIndicatorMACD.Invalidate();
+					m_btnIndicatorKDJ.Invalidate();
+					m_btnIndicatorWR.Invalidate();
+					m_btnIndicatorRSI.Invalidate();
 				}
 			}
 
-			// 右侧盘口用原始坐标系（全宽），不需要减xAxisLabelHeight（那是左侧走势图的）
+			// 右侧盘口高度：不减xAxisLabelHeight（那是左侧走势图的时间标签，右侧不需要）
 			if (m_showChipPeak)
 				DrawChipPeakPanel(memDC, chartWidth, w, h - headerHeight - indexBarHeight, realtimeData, chipData, timelinePoint);
 			else
@@ -2644,15 +2677,20 @@ void CFloatingWnd::OnPaint()
 			memDC.FillSolidRect(0, barY, w, indexBarHeight, RGB(240, 240, 240));
 			memDC.SetBkMode(TRANSPARENT);
 
-			// 三个指数代码：上证指数、中证银行、恒生科技
-			const std::wstring indexCodes[] = { L"sh000001", L"sz399986", L"rt_hkHSTECH" };
-			const int indexCount = 3;
-			const int colWidth = w / indexCount;
+			// 从配置中获取勾选了状态栏展示的股票代码
+			std::vector<std::wstring> statusBarCodes = g_data.GetStatusBarStockCodes();
+			if (statusBarCodes.empty())
+			{
+				// 没有配置时使用默认指数：上证指数、中证银行、恒生科技
+				statusBarCodes = { L"sh000001", L"sz399986", L"rt_hkHSTECH" };
+			}
+			const int indexCount = static_cast<int>(statusBarCodes.size());
+			const int colWidth = w / max(indexCount, 1);
 
 			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 			for (int i = 0; i < indexCount; i++)
 			{
-				auto stockData = g_data.GetStockData(indexCodes[i]);
+				auto stockData = g_data.GetStockData(statusBarCodes[i]);
 				int colX = i * colWidth;
 				int textX = colX + g_data.RDPI(4);
 
@@ -2685,11 +2723,7 @@ void CFloatingWnd::OnPaint()
 				}
 				else
 				{
-					CString nameStr;
-					if (i == 0) nameStr = _T("上证指数");
-					else if (i == 1) nameStr = _T("中证银行");
-					else nameStr = _T("恒生科技");
-
+					CString nameStr = CString(statusBarCodes[i].c_str());
 					memDC.SetTextColor(COLOR_GRAY_PURPLE);
 					memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr + _T(" --"));
 				}
@@ -6433,8 +6467,13 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	const int MAX_LEVEL = STOCK::StockInfo::MAX_LEVEL;
 	// 布局：0=委比, 1=最高, 2=卖三, 3=卖二, 4=卖一, 5=买一, 6=买二, 7=买三, 8=最低, 9=趋势, 10=净比00, 11-14=净比01/05/10/20, 15=净比99, 16=振幅, 17=振幅05, 18=换手率
 	const int totalRows = 19;
-	const int topOffset = g_data.RDPI(26);  // 标题栏高度，y坐标从标题栏下方开始
-	const int rowHeight = height / totalRows;  // height已减掉标题栏和状态栏，直接均分
+	const int headerHeight = g_data.RDPI(26);  // 主标题栏高度
+	const int obTitleH = g_data.RDPI(16);       // 盘口标题栏高度，与走势图标题栏一致
+	const int topOffset = headerHeight + obTitleH;  // 内容从主标题栏+盘口标题栏下方开始
+	const int panelW = right - left;
+	// 绘制盘口标题栏背景（在主标题栏下方）
+	memDC.FillSolidRect(left, headerHeight, panelW, obTitleH, RGB(245, 245, 245));
+	const int rowHeight = (height - obTitleH) / totalRows;  // 减去盘口标题栏高度后均分
 
 	memDC.SetBkMode(TRANSPARENT);
 
@@ -7045,21 +7084,26 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const STOCK::ChipDistribution& chipData, const std::vector<STOCK::TimelinePoint>& timelinePoint)
 {
-	const int topOffset = g_data.RDPI(26);
+	// 按比例分配行高，与盘口面板一致
+	const int totalRows = 20;
+	const int headerHeight = g_data.RDPI(26);  // 主标题栏高度
+	const int obTitleH = g_data.RDPI(16);       // 盘口标题栏高度，与走势图标题栏一致
+	const int topOffset = headerHeight + obTitleH;  // 内容从主标题栏+盘口标题栏下方开始
 	const int panelW = right - left;
-	const int panelH = height - topOffset;
+	// 绘制盘口标题栏背景（在主标题栏下方）
+	memDC.FillSolidRect(left, headerHeight, panelW, obTitleH, RGB(245, 245, 245));
+	const int rowHeight = (height - obTitleH) / totalRows;
+	const int panelH = height - obTitleH;
 	if (panelW <= 0 || panelH <= 0)
 		return;
 
 	memDC.FillSolidRect(left, topOffset, panelW, panelH, RGB(250, 250, 250));
 	memDC.SetBkMode(TRANSPARENT);
-	memDC.SetTextColor(COLOR_BLACK);
-	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(4), _T("筹码峰"));
 
 	if (!chipData.IsValid())
 	{
 		memDC.SetTextColor(COLOR_GRAY_TEXT);
-		memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(28), _T("暂无筹码数据"));
+		memDC.TextOut(left + g_data.RDPI(5), topOffset + rowHeight + g_data.RDPI(2), _T("暂无筹码数据"));
 		return;
 	}
 
@@ -7194,13 +7238,13 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	CString infoTxt;
 	infoTxt.Format(_T("均:%s 获:%.1f%%"), CCommon::FormatFloat(avgCost), profitPercent / totalPercent * 100.0);
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
-	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(22), infoTxt);
+	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(2), infoTxt);
 	CString rangeTxt;
 	rangeTxt.Format(_T("90%%:%s-%s"), CCommon::FormatFloat(chip90Low), CCommon::FormatFloat(chip90High));
-	memDC.TextOut(left + g_data.RDPI(5), topOffset + g_data.RDPI(40), rangeTxt);
+	memDC.TextOut(left + g_data.RDPI(5), topOffset + rowHeight + g_data.RDPI(2), rangeTxt);
 
-	const int chartTop = topOffset + g_data.RDPI(60);
-	const int chartBottom = height - g_data.RDPI(8);
+	const int chartTop = topOffset + rowHeight * 2 + g_data.RDPI(2);
+	const int chartBottom = topOffset + panelH;
 	const int chartLeft = left + g_data.RDPI(6);
 	const int chartRight = right - g_data.RDPI(6);
 	const int chartH = chartBottom - chartTop;
@@ -7234,7 +7278,7 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	if (avgCost > minPrice && avgCost < maxPrice)
 	{
 		int avgY = priceToY(avgCost);
-		CPen avgPen(PS_DOT, 1, RGB(0, 0, 139));
+		CPen avgPen(PS_DOT, 1, RGB(0, 80, 204));
 		oldPen = memDC.SelectObject(&avgPen);
 		memDC.MoveTo(chartLeft, avgY);
 		memDC.LineTo(chartRight, avgY);
@@ -7244,7 +7288,7 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	if (currentPrice > minPrice && currentPrice < maxPrice)
 	{
 		int y = priceToY(currentPrice);
-		CPen curPen(PS_DOT, 1, RGB(80, 80, 80));
+		CPen curPen(PS_DOT, 1, RGB(112, 32, 176));
 		oldPen = memDC.SelectObject(&curPen);
 		memDC.MoveTo(chartLeft, y);
 		memDC.LineTo(chartRight, y);
@@ -9050,147 +9094,54 @@ void CFloatingWnd::UpdateModeButtons()
 		{
 			m_btnTimeLine.SetWindowText(_T("分时"));
 			m_btnKLine.SetWindowText(_T("日K"));
-			m_btnTimeLine.SetButtonStyle(BS_FLAT, TRUE);
-			m_btnKLine.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
+			SafeSetButtonStyle(m_btnTimeLine, BS_FLAT);
+			SafeSetButtonStyle(m_btnKLine, BS_DEFPUSHBUTTON);
 		}
 		else if (m_isMin5KLineMode)
 		{
 			m_btnTimeLine.SetWindowText(_T("分时"));
 			m_btnKLine.SetWindowText(_T("日K"));
-			m_btnTimeLine.SetButtonStyle(BS_FLAT, TRUE);
-			m_btnKLine.SetButtonStyle(BS_FLAT, TRUE);
+			SafeSetButtonStyle(m_btnTimeLine, BS_FLAT);
+			SafeSetButtonStyle(m_btnKLine, BS_FLAT);
 		}
 		else if (m_isMin30KLineMode)
 		{
 			m_btnTimeLine.SetWindowText(_T("分时"));
 			m_btnKLine.SetWindowText(_T("日K"));
-			m_btnTimeLine.SetButtonStyle(BS_FLAT, TRUE);
-			m_btnKLine.SetButtonStyle(BS_FLAT, TRUE);
+			SafeSetButtonStyle(m_btnTimeLine, BS_FLAT);
+			SafeSetButtonStyle(m_btnKLine, BS_FLAT);
 		}
 		else
 		{
 			m_btnTimeLine.SetWindowText(_T("分时"));
 			m_btnKLine.SetWindowText(_T("日K"));
-			m_btnTimeLine.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-			m_btnKLine.SetButtonStyle(BS_FLAT, TRUE);
+			SafeSetButtonStyle(m_btnTimeLine, BS_DEFPUSHBUTTON);
+			SafeSetButtonStyle(m_btnKLine, BS_FLAT);
 		}
 
-		if (m_btnT0.GetSafeHwnd())
-		{
-			m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-		}
-
-		if (m_btnMA.GetSafeHwnd())
-		{
-			if (m_showMA)
-			{
-				m_btnMA.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-			}
-			else
-			{
-				m_btnMA.SetButtonStyle(BS_FLAT, TRUE);
-			}
-		}
-
-		if (m_btnMin5KLine.GetSafeHwnd())
-		{
-			if (m_isMin5KLineMode)
-			{
-				m_btnMin5KLine.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-			}
-			else
-			{
-				m_btnMin5KLine.SetButtonStyle(BS_FLAT, TRUE);
-			}
-		}
-
-		if (m_btnMin30KLine.GetSafeHwnd())
-		{
-			if (m_isMin30KLineMode)
-			{
-				m_btnMin30KLine.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-			}
-			else
-			{
-				m_btnMin30KLine.SetButtonStyle(BS_FLAT, TRUE);
-			}
-		}
-
-		if (m_btnBoll.GetSafeHwnd())
-		{
-			if (m_showBollBands)
-			{
-				m_btnBoll.SetButtonStyle(BS_DEFPUSHBUTTON, TRUE);
-			}
-			else
-			{
-				m_btnBoll.SetButtonStyle(BS_FLAT, TRUE);
-			}
-		}
-
-		if (m_btnChipPeak.GetSafeHwnd())
-		{
-			m_btnChipPeak.SetButtonStyle(m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-		}
+		SafeSetButtonStyle(m_btnT0, m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnMin5KLine, m_isMin5KLineMode ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnMin30KLine, m_isMin30KLineMode ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnChipPeak, m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 
 		// 缩放按钮在所有模式下显示（除总览模式外）
-		if (m_btnZoomOut.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnZoomOut.ShowWindow(SW_SHOW);
-			else
-				m_btnZoomOut.ShowWindow(SW_HIDE);
-		}
-		if (m_btnZoomIn.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnZoomIn.ShowWindow(SW_SHOW);
-			else
-				m_btnZoomIn.ShowWindow(SW_HIDE);
-		}
+		SafeShowWindow(m_btnZoomOut, !m_isOverviewMode);
+		SafeShowWindow(m_btnZoomIn, !m_isOverviewMode);
 		// MACD/KDJ/WR指标按钮在所有模式下显示（除总览模式外）
-		if (m_btnIndicatorMACD.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnIndicatorMACD.ShowWindow(SW_SHOW);
-			else
-				m_btnIndicatorMACD.ShowWindow(SW_HIDE);
-		}
-		if (m_btnIndicatorKDJ.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnIndicatorKDJ.ShowWindow(SW_SHOW);
-			else
-				m_btnIndicatorKDJ.ShowWindow(SW_HIDE);
-		}
-		if (m_btnIndicatorWR.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnIndicatorWR.ShowWindow(SW_SHOW);
-			else
-				m_btnIndicatorWR.ShowWindow(SW_HIDE);
-		}
-		if (m_btnIndicatorRSI.GetSafeHwnd())
-		{
-			if (!m_isOverviewMode)
-				m_btnIndicatorRSI.ShowWindow(SW_SHOW);
-			else
-				m_btnIndicatorRSI.ShowWindow(SW_HIDE);
-		}
+		SafeShowWindow(m_btnIndicatorMACD, !m_isOverviewMode);
+		SafeShowWindow(m_btnIndicatorKDJ, !m_isOverviewMode);
+		SafeShowWindow(m_btnIndicatorWR, !m_isOverviewMode);
+		SafeShowWindow(m_btnIndicatorRSI, !m_isOverviewMode);
 	}
 }
 
 void CFloatingWnd::UpdatePeriodComboVisibility()
 {
-	if (m_btnT0.GetSafeHwnd())
-	{
-		m_btnT0.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
-	}
-
-	if (m_btnMA.GetSafeHwnd())
-	{
-		m_btnMA.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
-	}
+	SafeShowWindow(m_btnT0, !m_isOverviewMode);
+	SafeShowWindow(m_btnMA, !m_isOverviewMode);
 
 	if (m_btnMin5KLine.GetSafeHwnd())
 	{
@@ -9204,14 +9155,9 @@ void CFloatingWnd::UpdatePeriodComboVisibility()
 		m_btnMin30KLine.ShowWindow(SW_SHOW);
 	}
 
-	if (m_btnBoll.GetSafeHwnd())
-	{
-		m_btnBoll.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
-	}
-	if (m_btnChipPeak.GetSafeHwnd())
-	{
-		m_btnChipPeak.ShowWindow(!m_isOverviewMode ? SW_SHOW : SW_HIDE);
-	}
+	SafeShowWindow(m_btnBoll, !m_isOverviewMode);
+	SafeShowWindow(m_btnChipPeak, !m_isOverviewMode);
+	SafeShowWindow(m_btnOrderBook, !m_isOverviewMode);
 }
 
 BOOL CFloatingWnd::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
@@ -9556,19 +9502,68 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 void CFloatingWnd::OnBnClickedT0Btn()
 {
 	m_showT0Markers = !m_showT0Markers;
-	if (m_btnT0.GetSafeHwnd())
-		m_btnT0.SetButtonStyle(m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+	SafeSetButtonStyle(m_btnT0, m_showT0Markers ? BS_DEFPUSHBUTTON : BS_FLAT);
 	Invalidate();
 }
 
 void CFloatingWnd::OnBnClickedChipPeakBtn()
 {
 	m_showChipPeak = !m_showChipPeak;
-	if (m_btnChipPeak.GetSafeHwnd())
-		m_btnChipPeak.SetButtonStyle(m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
+	SafeSetButtonStyle(m_btnChipPeak, m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
+	SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 
 	EnsureChipPeakData();
 	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedOrderBookBtn()
+{
+	m_showChipPeak = !m_showChipPeak;
+	SafeSetButtonStyle(m_btnChipPeak, m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
+	SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
+
+	EnsureChipPeakData();
+	Invalidate();
+}
+
+void CFloatingWnd::SafeSetWindowPos(CWnd& wnd, int x, int y, int cx, int cy)
+{
+	if (!wnd.GetSafeHwnd()) return;
+	CRect curRect;
+	wnd.GetWindowRect(&curRect);
+	wnd.ScreenToClient(&curRect);
+	// GetWindowRect返回屏幕坐标，需要转换
+	CRect parentRect;
+	CWnd* parent = wnd.GetParent();
+	if (parent)
+	{
+		parent->ScreenToClient(&curRect);
+	}
+	if (curRect.left != x || curRect.top != y || curRect.Width() != cx || curRect.Height() != cy)
+	{
+		wnd.SetWindowPos(nullptr, x, y, cx, cy, SWP_NOZORDER | SWP_NOREDRAW);
+	}
+}
+
+void CFloatingWnd::SafeShowWindow(CWnd& wnd, bool show)
+{
+	if (!wnd.GetSafeHwnd()) return;
+	bool curVisible = wnd.IsWindowVisible() != FALSE;
+	if (curVisible != show)
+	{
+		wnd.ShowWindow(show ? SW_SHOW : SW_HIDE);
+	}
+}
+
+void CFloatingWnd::SafeSetButtonStyle(CButton& btn, UINT style)
+{
+	if (!btn.GetSafeHwnd()) return;
+	// GetButtonStyle返回的低8位是按钮样式
+	UINT curStyle = btn.GetButtonStyle() & 0xFF;
+	if (curStyle != (style & 0xFF))
+	{
+		btn.SetButtonStyle(style, TRUE);
+	}
 }
 
 void CFloatingWnd::EnsureChipPeakData()
@@ -9606,14 +9601,8 @@ void CFloatingWnd::OnBnClickedMABtn()
 	m_showMA = !m_showMA;
 	if (m_showMA)
 		m_showBollBands = false;
-	if (m_btnMA.GetSafeHwnd())
-	{
-		m_btnMA.SetButtonStyle(m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-	}
-	if (m_btnBoll.GetSafeHwnd())
-	{
-		m_btnBoll.SetButtonStyle(m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-	}
+	SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
+	SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
 	Invalidate();
 }
 
@@ -9734,14 +9723,8 @@ void CFloatingWnd::OnBnClickedBollBtn()
 	m_showBollBands = !m_showBollBands;
 	if (m_showBollBands)
 		m_showMA = false;
-	if (m_btnBoll.GetSafeHwnd())
-	{
-		m_btnBoll.SetButtonStyle(m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-	}
-	if (m_btnMA.GetSafeHwnd())
-	{
-		m_btnMA.SetButtonStyle(m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT, TRUE);
-	}
+	SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
+	SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
 	Invalidate();
 }
 
