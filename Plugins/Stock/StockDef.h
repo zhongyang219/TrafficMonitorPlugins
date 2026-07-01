@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <vector>
@@ -622,6 +622,32 @@ namespace STOCK
 			Volume total = prev->innerVolume + prev->outerVolume;
 			if (total <= 0) return false;
 			ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
+			return true;
+		}
+
+		// 获取最近N根5秒净比（每根=当前样本-前一个样本的差值对应的净比）
+		// 返回值从新到旧排列（index 0=最新, N-1=最旧）
+		bool GetRecentNetRatios(int count, std::vector<double>& ratios) const
+		{
+			ratios.clear();
+			if (volumePool.count < count + 1)
+				return false;
+			ratios.resize(count);
+			for (int i = 0; i < count; i++)
+			{
+				// 从新到旧：FromEnd(i+1) 和 FromEnd(i)
+				const VolumeSample* older = volumePool.FromEnd(i + 1);
+				const VolumeSample* newer = volumePool.FromEnd(i);
+				if (!older || !newer)
+				{
+					ratios.clear();
+					return false;
+				}
+				Volume inner = newer->innerVolume - older->innerVolume;
+				Volume outer = newer->outerVolume - older->outerVolume;
+				Volume total = inner + outer;
+				ratios[i] = total > 0 ? static_cast<double>(outer - inner) / total * 100 : 0;
+			}
 			return true;
 		}
 
