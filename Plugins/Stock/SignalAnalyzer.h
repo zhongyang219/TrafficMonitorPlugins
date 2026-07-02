@@ -67,6 +67,8 @@ public:
 
 	// ========== 单边钝化风控过滤器 ==========
 	static bool IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState);
+	// 返回风控原因（空字符串=无风险），reason4字简短描述
+	static CString GetForbidReason(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState);
 
 	// ========== 完整买卖点判定函数 ==========
 	static T0Signal DetectSmartSignal(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30, double lastSignalPrice = 0);

@@ -991,6 +991,60 @@ bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK:
 	return bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
 }
 
+CString CSignalAnalyzer::GetForbidReason(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
+{
+	if (bars5.size() < 60)
+		return _T("");
+
+	STOCK::BollResult boll = CalcBoll(bars5, 20);
+	std::vector<double> bollBandSeq(bars5.size(), 0.0);
+	for (size_t i = 19; i < bars5.size(); i++)
+	{
+		std::vector<double> closes;
+		closes.reserve(20);
+		for (size_t j = i - 19; j <= i; j++)
+			closes.push_back(bars5[j].close);
+		bollBandSeq[i] = 4.0 * CalcStdDev(closes);
+	}
+	bool bandExpand = IsBollExpand(bollBandSeq, bars5.size() - 1);
+	double avgBollBandwidth = CalcAverageBollBandwidth(bollBandSeq, bars5.size() - 1);
+	bool narrowBand = IsNarrowBoll(boll.mid, avgBollBandwidth);
+
+	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
+	std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
+	STOCK::KDJResult kdj = CalcKDJ(bars5, 9);
+	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, 9);
+	STOCK::KDJResult prevPrevKdj = CalcKDJ(prevPrevBars, 9);
+	bool kdjTopPassive = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
+		&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
+	bool kdjBottomPassive = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
+		&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
+
+	double wr6 = CalcWR(bars5, 6);
+	double wrPrev = CalcWR(prevBars, 6);
+	double wrPrevPrev = CalcWR(prevPrevBars, 6);
+	bool wrTopPassive = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
+		&& wr6 > wrPrev && wrPrev > wrPrevPrev);
+	bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
+		&& wr6 < wrPrev && wrPrev < wrPrevPrev);
+
+	// 按优先级返回第一个命中的风险原因（4字简短描述）
+	if (trendState == STOCK::TrendState30m::STATE_WEAK)
+		return _T("");
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+	{
+		if (kdjBottomPassive) return _T("KDJ钝化");
+		if (wrBottomPassive) return _T("WR钝化");
+		return _T("");
+	}
+	// STATE_SHAKE
+	if (bandExpand) return _T("BOLL扩张");
+	if (narrowBand) return _T("BOLL过窄");
+	if (kdjBottomPassive) return _T("KDJ钝化");
+	if (wrBottomPassive) return _T("WR钝化");
+	return _T("");
+}
+
 // ========== 智能分析模块：完整买卖点判定函数 ==========
 // 严格按执行顺序：30min趋势 → 风控过滤 → 5min共振信号 → 趋势分支处理
 
