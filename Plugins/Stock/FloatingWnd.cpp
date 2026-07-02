@@ -10056,12 +10056,10 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 	{
 		g_data.RequestKLineData(pFW->m_stock_id);
 	}
-	else if (pFW->m_isMin5KLineMode)
+	else if (pFW->m_isMin5KLineMode || pFW->m_isMin30KLineMode)
 	{
+		// 5分钟/30分钟K线模式：同时请求两种数据，避免切换模式后数据过期
 		g_data.RequestMin5KLineData(pFW->m_stock_id, 250);
-	}
-	else if (pFW->m_isMin30KLineMode)
-	{
 		g_data.RequestMin30KLineData(pFW->m_stock_id, 250);
 	}
 	else
