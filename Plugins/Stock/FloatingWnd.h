@@ -282,6 +282,7 @@ private:
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
+	bool m_pendingRequest{};  // 切换股票时如果线程正在运行，标记待请求
 	bool m_isFirstRequest{ true };  // 启动后首次请求标志，不受交易时段限制
 	bool m_isKLineMode{};
 	bool m_isMin5KLineMode{};  // 5分钟K线模式（m_isKLineMode为true时的子模式）

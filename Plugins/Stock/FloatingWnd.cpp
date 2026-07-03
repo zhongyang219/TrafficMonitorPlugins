@@ -2194,7 +2194,7 @@ void CFloatingWnd::OnPaint()
 	// 大盘在K线模式下不显示盘口（5分钟K线模式也设置m_isKLineMode=true，所以这里自动覆盖）
 	bool isIndexKLine = isIndex && m_isKLineMode;
 
-	const int stockListWidth = g_data.RDPI(70);  // 左侧股票列表面板宽度
+	const int stockListWidth = g_data.RDPI(65);  // 左侧股票列表面板宽度
 	const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
 	const int chartWidth = w - orderBookWidth;
 	// 左侧Y轴坐标区域宽度（所有图表统一预留）
@@ -7511,7 +7511,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 	// 左侧股票列表区域的单击切换
 	if (!m_isOverviewMode)
 	{
-		const int stockListWidth = g_data.RDPI(70);
+		const int stockListWidth = g_data.RDPI(65);
 		const int headerHeight = g_data.RDPI(26);
 		const int titleH = g_data.RDPI(16);
 		const int rowHeight = g_data.RDPI(35);
@@ -9392,8 +9392,14 @@ void CFloatingWnd::RequestData()
 {
 	if (!m_is_thread_running)
 	{
+		m_pendingRequest = false;
 		loading_state_txt = g_data.StringRes(IDS_LOADING).GetString();
 		AfxBeginThread(NetworkThreadProc, this);
+	}
+	else
+	{
+		// 线程正在运行，标记待请求，线程结束后会自动触发
+		m_pendingRequest = true;
 	}
 }
 
@@ -10272,6 +10278,12 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 	else
 	{
 		g_data.RequestTimelineData(pFW->m_stock_id);
+	}
+
+	// 线程结束前检查是否有待处理的请求（切换股票时线程正在运行导致的）
+	if (pFW->m_pendingRequest && ::IsWindow(pFW->GetSafeHwnd()))
+	{
+		pFW->PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
 
 	return 0;
