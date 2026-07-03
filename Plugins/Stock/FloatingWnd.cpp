@@ -2194,6 +2194,7 @@ void CFloatingWnd::OnPaint()
 	// 大盘在K线模式下不显示盘口（5分钟K线模式也设置m_isKLineMode=true，所以这里自动覆盖）
 	bool isIndexKLine = isIndex && m_isKLineMode;
 
+	const int stockListWidth = g_data.RDPI(70);  // 左侧股票列表面板宽度
 	const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
 	const int chartWidth = w - orderBookWidth;
 	// 左侧Y轴坐标区域宽度（所有图表统一预留）
@@ -2358,6 +2359,9 @@ void CFloatingWnd::OnPaint()
 			SafeShowWindow(m_btnOrderBook, showObBtns);
 		}
 
+		// 左侧股票列表面板（无论分时数据是否加载都绘制）
+		DrawStockListPanel(memDC, 0, headerHeight, stockListWidth, h - headerHeight - indexBarHeight, m_stock_id);
+
 		if (!timelinePoint.empty())
 		{
 			// 先基于完整分时数据计算MA，避免缩放/拖动后只用可见区间导致均线与其他APP不一致
@@ -2382,8 +2386,8 @@ void CFloatingWnd::OnPaint()
 				timelinePoint.begin() + startIndex + visibleCount);
 
 			TimelineDrawContext ctx;
-			ctx.chartLeft = yAxisWidth;                          // 左侧Y轴留白
-			ctx.chartWidth = chartWidth - yAxisWidth;           // 图表宽度（不含Y轴区域）
+			ctx.chartLeft = stockListWidth + yAxisWidth;         // 左侧股票列表+Y轴留白
+			ctx.chartWidth = chartWidth - stockListWidth - yAxisWidth;  // 图表宽度（不含股票列表和Y轴区域）
 			ctx.windowWidth = w;
 			ctx.chartHeight = h;
 			// 每个图表顶部预留16像素标题栏，绘图区域下移并减小高度
@@ -2538,9 +2542,9 @@ void CFloatingWnd::OnPaint()
 				ctx.unitY = ctx.priceChartHeight / (ctx.maxPrice - ctx.minPrice);
 			}
 
-			// 使用视口偏移让分时图所有绘制自动向右偏移 yAxisWidth，实现左侧Y轴留白
+			// 使用视口偏移让分时图所有绘制自动向右偏移 stockListWidth + yAxisWidth，实现左侧股票列表和Y轴留白
 			memDC.SaveDC();
-			memDC.OffsetViewportOrg(yAxisWidth, 0);
+			memDC.OffsetViewportOrg(stockListWidth + yAxisWidth, 0);
 
 			DrawTimelineHeader(memDC, ctx);
 			DrawTimelineGridAndLines(memDC, ctx);
@@ -2657,7 +2661,7 @@ void CFloatingWnd::OnPaint()
 				else
 				{
 					int btnW = yAxisWidth - g_data.RDPI(4);
-					int btnX = g_data.RDPI(2);
+					int btnX = stockListWidth + g_data.RDPI(2);
 					int btnAreaTop = origMacdTop + titleH;
 					int btnAreaBottom = h - indexBarHeight - g_data.RDPI(2);
 					int btnAreaH = max(1, btnAreaBottom - btnAreaTop);
@@ -7504,6 +7508,44 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		return;
 	}
 
+	// 左侧股票列表区域的单击切换
+	if (!m_isOverviewMode)
+	{
+		const int stockListWidth = g_data.RDPI(70);
+		const int headerHeight = g_data.RDPI(26);
+		const int titleH = g_data.RDPI(16);
+		const int rowHeight = g_data.RDPI(35);
+		const int listTop = headerHeight + titleH + g_data.RDPI(2);
+
+		if (point.x >= 0 && point.x < stockListWidth && point.y >= listTop)
+		{
+			int rowIndex = (point.y - listTop) / rowHeight;
+			std::vector<std::wstring> stockCodes;
+			{
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				for (const auto& code : g_data.m_setting_data.m_stock_codes)
+				{
+					if (GetStockPriority(code) >= 200)  // 与绘制一致，过滤指数
+						stockCodes.push_back(code);
+				}
+			}
+			if (rowIndex >= 0 && rowIndex < (int)stockCodes.size())
+			{
+				const std::wstring& clickedCode = stockCodes[rowIndex];
+				if (clickedCode != m_stock_id)
+				{
+					m_stock_id = clickedCode;
+					m_isFirstRequest = true;
+					m_timelineScrollOffset = -1;
+					UpdateModeButtons();
+					Invalidate();
+					RequestData();
+				}
+				return;
+			}
+		}
+	}
+
 	// 总览模式下的鼠标点击处理
 	if (m_isOverviewMode)
 	{
@@ -10098,6 +10140,103 @@ void CFloatingWnd::OnBnClickedIndicatorRSIBtn()
 	m_timelineWrTitleTip.Empty();
 	m_timelineRsiTitleTip.Empty();
 	Invalidate();
+}
+
+void CFloatingWnd::DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, const std::wstring& currentStockId)
+{
+	// 绘制背景
+	memDC.FillSolidRect(x, y, w, h, RGB(245, 245, 245));
+
+	// 绘制标题栏（与走势图标题栏高度一致）
+	const int titleH = g_data.RDPI(16);
+	memDC.FillSolidRect(x, y, w, titleH, RGB(230, 230, 230));
+	memDC.SetTextColor(COLOR_BLACK);
+	memDC.SetBkMode(TRANSPARENT);
+	memDC.TextOut(x + g_data.RDPI(4), y + g_data.RDPI(2), _T("股票列表"));
+
+	// 绘制分隔线
+	CPen linePen(PS_SOLID, 1, RGB(200, 200, 200));
+	CPen* pOldPen = memDC.SelectObject(&linePen);
+	memDC.MoveTo(x, y + titleH);
+	memDC.LineTo(x + w, y + titleH);
+
+	// 获取所有股票列表（加锁访问，过滤掉大盘指数）
+	std::vector<std::wstring> stockCodes;
+	{
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		for (const auto& code : g_data.m_setting_data.m_stock_codes)
+		{
+			if (GetStockPriority(code) >= 200)  // 只保留非指数股票
+				stockCodes.push_back(code);
+		}
+	}
+
+	if (stockCodes.empty())
+	{
+		// 没有股票时显示提示
+		memDC.SetTextColor(RGB(150, 150, 150));
+		memDC.TextOut(x + g_data.RDPI(4), y + titleH + g_data.RDPI(10), _T("暂无股票"));
+		memDC.SelectObject(pOldPen);
+		return;
+	}
+
+	// 每行高度固定35像素
+	const int rowHeight = g_data.RDPI(35);
+	const int nameHeight = g_data.RDPI(14);
+	const int codeHeight = g_data.RDPI(7);
+
+	// 绘制股票列表
+	int currentY = y + titleH + g_data.RDPI(2);
+	for (const auto& code : stockCodes)
+	{
+		if (currentY + rowHeight > y + h)
+			break;  // 超出区域
+
+		// 获取股票名称（GetStockData 内部无需额外加锁）
+		std::wstring stockName = code;  // 默认使用代码作为名称
+		auto stockData = g_data.GetStockData(code);
+		if (stockData && !stockData->info.displayName.empty())
+		{
+			stockName = stockData->info.displayName;
+		}
+
+		// 高亮当前股票
+		bool isCurrent = (code == currentStockId);
+		if (isCurrent)
+		{
+			memDC.FillSolidRect(x + 1, currentY, w - 2, rowHeight, RGB(200, 220, 255));
+		}
+
+		// 文字垂直居中：内容总高度 = nameHeight + codeHeight，在rowHeight内居中
+		int contentH = nameHeight + codeHeight;
+		int textOffsetY = (rowHeight - contentH) / 2;
+
+		// 绘制股票名称（上方，超出宽度截断）
+		memDC.SetTextColor(isCurrent ? RGB(0, 0, 180) : COLOR_BLACK);
+		CFont nameFont;
+		nameFont.CreatePointFont(90, _T("Microsoft YaHei"), &memDC);
+		CFont* pOldFont = memDC.SelectObject(&nameFont);
+		CRect nameRect(x + g_data.RDPI(4), currentY + textOffsetY, x + w - g_data.RDPI(4), currentY + textOffsetY + nameHeight);
+		memDC.DrawText(stockName.c_str(), stockName.length(), &nameRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+		memDC.SelectObject(pOldFont);
+		nameFont.DeleteObject();
+
+		// 绘制股票代码（下方，字体较小）
+		memDC.SetTextColor(isCurrent ? RGB(80, 80, 180) : RGB(100, 100, 100));
+		CFont codeFont;
+		codeFont.CreatePointFont(70, _T("Microsoft YaHei"), &memDC);
+		pOldFont = memDC.SelectObject(&codeFont);
+		memDC.TextOut(x + g_data.RDPI(4), currentY + textOffsetY + nameHeight, code.c_str());
+		memDC.SelectObject(pOldFont);
+		codeFont.DeleteObject();
+
+		// 绘制分隔线
+		currentY += rowHeight;
+		memDC.MoveTo(x, currentY);
+		memDC.LineTo(x + w, currentY);
+	}
+
+	memDC.SelectObject(pOldPen);
 }
 
 UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)

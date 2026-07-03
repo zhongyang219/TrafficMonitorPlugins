@@ -242,6 +242,7 @@ private:
 	void DrawChipPeakPanel(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const STOCK::ChipDistribution& chipData, const std::vector<STOCK::TimelinePoint>& timelinePoint);
 	void DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int vScrollOffset = 0, int totalHeight = 0);
 	void DrawIndexSection(CDC& memDC, int x, int y, int w, const std::vector<std::pair<std::wstring, STOCK::StockInfo>>& indices);
+	void DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, const std::wstring& currentStockId);
 
 	// 总览表行信息（用于双击处理）
 	struct OverviewRowInfo {
