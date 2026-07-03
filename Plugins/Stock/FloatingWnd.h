@@ -55,6 +55,7 @@ protected:
 	afx_msg void OnBnClickedIndicatorRSIBtn();
 	afx_msg void OnBnClickedChipPeakBtn();
 	afx_msg void OnBnClickedOrderBookBtn();
+	afx_msg void OnBnClickedExpandBtn();
 
 private:
 	void EnsureChipPeakData();
@@ -267,6 +268,7 @@ private:
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
+	CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
 	CButton m_btnZoomOut;  // 缩小按钮（显示240分钟）
 	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
 	CButton m_btnIndicatorMACD;  // MACD指标按钮
@@ -343,6 +345,7 @@ private:
 	bool m_isHoveringKDJ{ false };
 	bool m_showTrendView{ false };
 	bool m_showChipPeak{ false };
+	bool m_expandedMode{ true };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
 	bool m_showT0Markers{ false };
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };
