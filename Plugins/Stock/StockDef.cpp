@@ -93,7 +93,7 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 				if (canAccum && level.volume < it->second.prevVolume)
 					it->second.accumSellVolume += it->second.prevVolume - level.volume;
 				it->second.prevVolume = level.volume;
-			};
+				};
 
 			for (int i = 0; i < StockInfo::MAX_LEVEL; i++)
 			{
@@ -368,6 +368,11 @@ void STOCK::StockInfo::LoadHF(std::vector<std::string> data, size_t size)
 
 	if (data.size() >= 15)
 		volume = { convert<Volume>(data[14]) };
+}
+
+bool StockInfo::IsETF() const
+{
+	return CCommon::IsFundCode(code);
 }
 
 CString StockInfo::GetStockListName() const

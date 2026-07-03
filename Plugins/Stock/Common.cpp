@@ -240,6 +240,14 @@ CString CCommon::FormatFloat(double value)
 	return str;
 }
 
+CString CCommon::FormatETFPrice(double value)
+{
+	CString str;
+	str.Format(_T("%.3f"), value);
+
+	return str;
+}
+
 CString CCommon::FormatNumber(double value, int maxDecimals)
 {
 	CString str;

@@ -218,7 +218,7 @@ void DrawPricePointLabel(CDC& memDC, int pointX, int pointY, int chartLeft, int 
 	}
 }
 
-#define ORDER_BOOK_WIDTH          g_data.RDPI(150)     // 右侧信息面板宽度
+#define ORDER_BOOK_WIDTH          g_data.RDPI(168)     // 右侧信息面板宽度
 
 enum {
 	IDC_TIMELINE_BTN = 1001,
@@ -6480,11 +6480,11 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	auto rowY = [&](int i) -> int {
 		if (i < rem) return topOffset + i * (rowHeight + 1);
 		else return topOffset + rem * (rowHeight + 1) + (i - rem) * rowHeight;
-	};
+		};
 	// 辅助：计算第i行的高度
 	auto rowH = [&](int i) -> int {
 		return (i < rem) ? (rowHeight + 1) : rowHeight;
-	};
+		};
 	// 填充内容区域背景，避免底部空白
 	memDC.FillSolidRect(left, topOffset, panelW, contentH, RGB(250, 250, 250));
 
@@ -6590,7 +6590,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		STOCK::Price price = stockInfo.askLevels[idx].price;
 		STOCK::Volume volume = stockInfo.askLevels[idx].volume / 100;
 		CString volumeStr = CCommon::FormatVolumeInt(volume);
-		CString priceStr = CCommon::FormatFloat(price);
+		CString priceStr = stockInfo.IsETF() ? CCommon::FormatETFPrice(price) : CCommon::FormatFloat(price);
 		CString askTxt;
 		askTxt.Format(_T("S%d:%s"), idx + 1, priceStr);
 		CString askSuffix;
@@ -6619,12 +6619,12 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 				row.backgroundColor = RGB(255, 200, 200);   // 弱：挂单量>累加量
 			else if (accum > volume * 2)
 			{
-				row.backgroundColor = RGB(240, 40, 40);     // 强：累加量/挂单量>2
+				row.backgroundColor = RGB(180, 50, 50);     // 强：累加量/挂单量>2
 				row.darkBackground = true;
 			}
 			else
 			{
-				row.backgroundColor = RGB(180, 50, 50);     // 中：1~2之间
+				row.backgroundColor = RGB(240, 40, 40);     // 中：1~2之间
 				row.darkBackground = true;
 			}
 		}
@@ -6642,7 +6642,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		STOCK::Price price = stockInfo.bidLevels[i].price;
 		STOCK::Volume volume = stockInfo.bidLevels[i].volume / 100;
 		CString volumeStr = CCommon::FormatVolumeInt(volume);
-		CString priceStr = CCommon::FormatFloat(price);
+		CString priceStr = stockInfo.IsETF() ? CCommon::FormatETFPrice(price) : CCommon::FormatFloat(price);
 		CString bidTxt;
 		bidTxt.Format(_T("B%d:%s"), i + 1, priceStr);
 		CString bidSuffix;
@@ -6671,7 +6671,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 				row.backgroundColor = RGB(200, 255, 200);   // 弱：挂单量>累加量
 			else if (accum > volume * 2)
 			{
-				row.backgroundColor = RGB(40, 240, 40);     // 强：累加量/挂单量>2
+				row.backgroundColor = RGB(25, 120, 25);     // 强：累加量/挂单量>2
 				row.darkBackground = true;
 			}
 			else
@@ -7190,11 +7190,11 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	auto rowY = [&](int i) -> int {
 		if (i < rem) return topOffset + i * (rowHeight + 1);
 		else return topOffset + rem * (rowHeight + 1) + (i - rem) * rowHeight;
-	};
+		};
 	// 辅助：计算第i行的高度
 	auto rowH = [&](int i) -> int {
 		return (i < rem) ? (rowHeight + 1) : rowHeight;
-	};
+		};
 
 	memDC.FillSolidRect(left, topOffset, panelW, panelH, RGB(250, 250, 250));
 	memDC.SetBkMode(TRANSPARENT);

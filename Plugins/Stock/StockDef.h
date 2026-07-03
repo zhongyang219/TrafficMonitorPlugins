@@ -352,6 +352,8 @@ namespace STOCK
 		double GetFluctuationPercent() const { return prevClosePrice != 0 ? (highPrice - lowPrice) / prevClosePrice * 100 : 0; }
 		// 均价（成交额/成交量）
 		double GetAveragePrice() const { return volume > 0 ? turnover / volume : 0; }
+
+		bool IsETF() const;
 	};
 
 	// 盘口价格累计数据

@@ -82,6 +82,9 @@ public:
 	// 当第三位为0时去掉，例如：1.234→"1.234", 1.230→"1.23", 1.2→"1.20"
 	static CString FormatFloat(double value);
 
+	// 格式化价格为 CString，保留3位小数
+	static CString FormatETFPrice(double value);
+
 	// 格式化数字，最多保留指定小数位数，末尾0自动去除
 	// 例如：123.456→"123.46", 123.00→"123", 123.40→"123.4"
 	static CString FormatNumber(double value, int maxDecimals);
