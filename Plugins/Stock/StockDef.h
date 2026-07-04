@@ -33,6 +33,7 @@ namespace STOCK
 	struct TimelinePoint
 	{
 		TimePoint time;        // 时间点
+		TimePoint fullTime;    // 完整日期时间（5分/30分K线模式：yyyy-mm-dd hh:mm）
 		Volume volume;         // 成交量
 		Price price;           // 价格
 		Price averagePrice;    // 均价（全天累计）
@@ -544,7 +545,7 @@ namespace STOCK
 			}
 		};
 
-		VolumePool volumePool;  // 20分钟缓存池（245条，比240多5条缓冲）
+		VolumePool volumePool;  // 缓存池（240条=20分钟5秒采样）
 		time_t lastSampleTime{ 0 }; // 上次采样时间（5秒间隔去重）
 
 		void InitVolumePools()
@@ -571,13 +572,13 @@ namespace STOCK
 		}
 
 		// 从缓存池获取净差和净比（minutes: 1/5/10/20）
-		// 1分钟=12根(0~11), 5分钟=60根(0~59), 10分钟=120根(0~119), 20分钟=240根(0~239)
+		// 不足目标条数时有多少根就计算多少根
 		bool GetInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
 		{
-			int sampleCount = minutes * 12;  // 每分钟12条（5秒1条）
-			if (volumePool.count < sampleCount)
+			if (volumePool.count < 2)
 				return false;
 
+			int sampleCount = min(minutes * 12, volumePool.count);
 			const VolumeSample* newest = volumePool.FromEnd(0);
 			const VolumeSample* oldest = volumePool.FromEnd(sampleCount - 1);
 			if (!newest || !oldest)
@@ -597,10 +598,10 @@ namespace STOCK
 		// 获取前一次净差
 		bool GetPreviousInnerOuterNetDiff(int minutes, Volume& diff, double& ratio) const
 		{
-			int sampleCount = minutes * 12;
-			if (volumePool.count < sampleCount + 1)
+			if (volumePool.count < 3)
 				return false;
 
+			int sampleCount = min(minutes * 12, volumePool.count - 1);
 			const VolumeSample* prevNewest = volumePool.FromEnd(1);
 			const VolumeSample* prevOldest = volumePool.FromEnd(sampleCount);
 			if (!prevNewest || !prevOldest)
@@ -615,126 +616,126 @@ namespace STOCK
 			Volume total = inner + outer;
 			ratio = total > 0 ? static_cast<double>(diff) / total * 100 : 0;
 			return total > 0;
-		}
-
-		bool GetPreviousInnerOuterTotalRatio(double& ratio) const
-		{
-			const VolumeSample* prev = volumePool.FromEnd(1);
-			if (!prev) return false;
-			Volume total = prev->innerVolume + prev->outerVolume;
-			if (total <= 0) return false;
-			ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
-			return true;
-		}
-
-		// 获取最近N根5秒净比（每根=当前样本-前一个样本的差值对应的净比）
-		// 返回值从新到旧排列（index 0=最新, N-1=最旧）
-		bool GetRecentNetRatios(int count, std::vector<double>& ratios) const
-		{
-			ratios.clear();
-			if (volumePool.count < count + 1)
-				return false;
-			ratios.resize(count);
-			for (int i = 0; i < count; i++)
-			{
-				// 从新到旧：FromEnd(i+1) 和 FromEnd(i)
-				const VolumeSample* older = volumePool.FromEnd(i + 1);
-				const VolumeSample* newer = volumePool.FromEnd(i);
-				if (!older || !newer)
-				{
-					ratios.clear();
-					return false;
-				}
-				Volume inner = newer->innerVolume - older->innerVolume;
-				Volume outer = newer->outerVolume - older->outerVolume;
-				Volume total = inner + outer;
-				ratios[i] = total > 0 ? static_cast<double>(outer - inner) / total * 100 : 0;
-			}
-			return true;
-		}
-
-		// 持仓盈亏计算（需要外部传入成本价和持股数）
-		struct PositionInfo {
-			double totalCost;        // 总成本
-			double marketValue;      // 市值
-			double profitLoss;       // 盈亏额
-			double profitLossPercent;// 盈亏比
-			double todayProfitLoss;  // 当日盈亏额
-			double todayProfitLossPercent; // 当日盈亏比
-			bool isValid;
-
-			PositionInfo() : totalCost(0), marketValue(0), profitLoss(0),
-				profitLossPercent(0), todayProfitLoss(0), todayProfitLossPercent(0),
-				isValid(false) {
-			}
-		};
-		PositionInfo CalculatePositionInfo(double costPrice, double holdingCount) const;
-
-		// 年化收益率计算
-		double CalculateAnnualizedReturn(double costPrice, double holdingCount, const std::wstring& buyDate) const;
-	};
-
-	// 股票市场类，管理多个股票
-	class StockMarket
-	{
-	private:
-		std::map<std::wstring, std::shared_ptr<StockData>> stocks; // 以股票代码为键的股票数据映射
-
-	public:
-		void LoadRealtimeDataByJson(std::string data);
-		void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
-		void LoadKLineDataByJson(std::wstring stock_id, CString* data);
-		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
-		void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
-		void LoadInnerOuterData(std::string data);
-
-		void ClearRealtimeData()
-		{
-			for (const auto& it : stocks)
-			{
-				StockInfo data;
-				data.innerVolume = it.second->info.innerVolume;
-				data.outerVolume = it.second->info.outerVolume;
-				data.turnoverRate = it.second->info.turnoverRate;
-				it.second->info = data;
-			}
-		}
-
-		// 添加股票
-		std::shared_ptr<StockData> addStock(const std::wstring& code)
-		{
-			StockData stock;
-			stock.info.code = code;
-			stock.InitVolumePools();
-			stocks[code] = std::make_shared<StockData>(stock);
-			return stocks[code];
-		}
-
-		// 获取股票数据
-		std::shared_ptr<StockData> getStock(const std::wstring& code)
-		{
-			auto it = stocks.find(code);
-			if (it != stocks.end())
-			{
-				return it->second;
-			}
-			return addStock(code);
-		}
-	};
-
-	// 转换函数模板
-	template <typename T>
-	T convert(const std::string& str)
-	{
-		if (str.empty()) return T();
-		if constexpr (std::is_same_v<T, double>)
-		{
-			return std::stod(str);
-		}
-		else if constexpr (std::is_same_v<T, long long>)
-		{
-			return std::stoll(str);
-		}
-		return T();
 	}
+
+	bool GetPreviousInnerOuterTotalRatio(double& ratio) const
+	{
+		const VolumeSample* prev = volumePool.FromEnd(1);
+		if (!prev) return false;
+		Volume total = prev->innerVolume + prev->outerVolume;
+		if (total <= 0) return false;
+		ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
+		return true;
+	}
+
+	// 获取最近N根5秒净比（每根=当前样本-前一个样本的差值对应的净比）
+	// 返回值从新到旧排列（index 0=最新, N-1=最旧）
+	bool GetRecentNetRatios(int count, std::vector<double>& ratios) const
+	{
+		ratios.clear();
+		if (volumePool.count < count + 1)
+			return false;
+		ratios.resize(count);
+		for (int i = 0; i < count; i++)
+		{
+			// 从新到旧：FromEnd(i+1) 和 FromEnd(i)
+			const VolumeSample* older = volumePool.FromEnd(i + 1);
+			const VolumeSample* newer = volumePool.FromEnd(i);
+			if (!older || !newer)
+			{
+				ratios.clear();
+				return false;
+			}
+			Volume inner = newer->innerVolume - older->innerVolume;
+			Volume outer = newer->outerVolume - older->outerVolume;
+			Volume total = inner + outer;
+			ratios[i] = total > 0 ? static_cast<double>(outer - inner) / total * 100 : 0;
+		}
+		return true;
+	}
+
+	// 持仓盈亏计算（需要外部传入成本价和持股数）
+	struct PositionInfo {
+		double totalCost;        // 总成本
+		double marketValue;      // 市值
+		double profitLoss;       // 盈亏额
+		double profitLossPercent;// 盈亏比
+		double todayProfitLoss;  // 当日盈亏额
+		double todayProfitLossPercent; // 当日盈亏比
+		bool isValid;
+
+		PositionInfo() : totalCost(0), marketValue(0), profitLoss(0),
+			profitLossPercent(0), todayProfitLoss(0), todayProfitLossPercent(0),
+			isValid(false) {
+		}
+	};
+	PositionInfo CalculatePositionInfo(double costPrice, double holdingCount) const;
+
+	// 年化收益率计算
+	double CalculateAnnualizedReturn(double costPrice, double holdingCount, const std::wstring& buyDate) const;
+};
+
+// 股票市场类，管理多个股票
+class StockMarket
+{
+private:
+	std::map<std::wstring, std::shared_ptr<StockData>> stocks; // 以股票代码为键的股票数据映射
+
+public:
+	void LoadRealtimeDataByJson(std::string data);
+	void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
+	void LoadKLineDataByJson(std::wstring stock_id, CString* data);
+	void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
+	void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
+	void LoadInnerOuterData(std::string data);
+
+	void ClearRealtimeData()
+	{
+		for (const auto& it : stocks)
+		{
+			StockInfo data;
+			data.innerVolume = it.second->info.innerVolume;
+			data.outerVolume = it.second->info.outerVolume;
+			data.turnoverRate = it.second->info.turnoverRate;
+			it.second->info = data;
+		}
+	}
+
+	// 添加股票
+	std::shared_ptr<StockData> addStock(const std::wstring& code)
+	{
+		StockData stock;
+		stock.info.code = code;
+		stock.InitVolumePools();
+		stocks[code] = std::make_shared<StockData>(stock);
+		return stocks[code];
+	}
+
+	// 获取股票数据
+	std::shared_ptr<StockData> getStock(const std::wstring& code)
+	{
+		auto it = stocks.find(code);
+		if (it != stocks.end())
+		{
+			return it->second;
+		}
+		return addStock(code);
+	}
+};
+
+// 转换函数模板
+template <typename T>
+T convert(const std::string& str)
+{
+	if (str.empty()) return T();
+	if constexpr (std::is_same_v<T, double>)
+	{
+		return std::stod(str);
+	}
+	else if constexpr (std::is_same_v<T, long long>)
+	{
+		return std::stoll(str);
+	}
+	return T();
+}
 }

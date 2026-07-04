@@ -202,7 +202,7 @@ void STOCK::StockInfo::Load(std::wstring key, std::vector<std::string> data_arr)
 
 	if (currentPrice > 0 && prevClosePrice > 0)
 	{
-		CString priceStr = CCommon::FormatFloat(currentPrice);
+		CString priceStr = IsETF() ? CCommon::FormatETFPrice(currentPrice) : CCommon::FormatFloat(currentPrice);
 		displayPrice = std::wstring(priceStr.GetString());
 
 		char buff[32];

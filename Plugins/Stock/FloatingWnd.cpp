@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -238,7 +238,8 @@ enum {
 	IDC_T0_BTN = 1017,
 	IDC_CHIP_PEAK_BTN = 1018,
 	IDC_ORDER_BOOK_BTN = 1019,
-	IDC_EXPAND_BTN = 1020
+	IDC_EXPAND_BTN = 1020,
+	IDC_TOGGLE_STOCK_LIST_BTN = 1021
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -275,6 +276,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_CHIP_PEAK_BTN, &CFloatingWnd::OnBnClickedChipPeakBtn)
 	ON_BN_CLICKED(IDC_ORDER_BOOK_BTN, &CFloatingWnd::OnBnClickedOrderBookBtn)
 	ON_BN_CLICKED(IDC_EXPAND_BTN, &CFloatingWnd::OnBnClickedExpandBtn)
+	ON_BN_CLICKED(IDC_TOGGLE_STOCK_LIST_BTN, &CFloatingWnd::OnBnClickedToggleStockListBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -310,7 +312,13 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	const int expandBtnWidth = closeBtnWidth;
 	const int expandBtnHeight = closeBtnHeight;
 	CRect expandBtnRect(closeBtnRect.left - expandBtnWidth, g_data.RDPI(2), closeBtnRect.left, g_data.RDPI(2) + expandBtnHeight);
-	m_btnExpand.Create(_T("□"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);
+	m_btnExpand.Create(_T("△"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);
+
+	// 股票列表显示/隐藏按钮在放大按钮左边
+	const int toggleStockListBtnWidth = closeBtnWidth;
+	const int toggleStockListBtnHeight = closeBtnHeight;
+	CRect toggleStockListBtnRect(expandBtnRect.left - toggleStockListBtnWidth, g_data.RDPI(2), expandBtnRect.left, g_data.RDPI(2) + toggleStockListBtnHeight);
+	m_btnToggleStockList.Create(_T("<|"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, toggleStockListBtnRect, this, IDC_TOGGLE_STOCK_LIST_BTN);
 
 	const int rightBtnWidth = g_data.RDPI(40);
 
@@ -535,9 +543,9 @@ void CFloatingWnd::DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, 
 
 	// 标题格式：(股票代码)股票名称：
 	CString prefixTxt;
-	prefixTxt.Format(_T("(%s)%s:"), realtimeData.code.c_str(), realtimeData.displayName.c_str());
+	prefixTxt.Format(_T("%s:"), realtimeData.displayName.c_str());
 
-	CString currentTxt = CCommon::FormatFloat(realtimeData.currentPrice);
+	CString currentTxt = realtimeData.IsETF() ? CCommon::FormatETFPrice(realtimeData.currentPrice) : CCommon::FormatFloat(realtimeData.currentPrice);
 	CString diffTxt;
 	if (diff >= 0)
 		diffTxt.Format(_T(" +%.2f%%"), diffPercent);
@@ -691,7 +699,7 @@ void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext
 		{
 			double labelPrice = round((ctx.minPrice + i * ctx.niceStep) * 1000.0) / 1000.0;
 			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((labelPrice - ctx.minPrice) * unitY));
-			CString priceTxt = CCommon::FormatFloat(labelPrice);
+			CString priceTxt = ctx.realtimeData.IsETF() ? CCommon::FormatETFPrice(labelPrice) : CCommon::FormatFloat(labelPrice);
 			CSize sz = memDC.GetTextExtent(priceTxt);
 			int labelX = -sz.cx - g_data.RDPI(4);
 			int labelY = y - sz.cy / 2;
@@ -710,7 +718,7 @@ void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext
 			&& ctx.realtimeData.prevClosePrice >= ctx.minPrice && ctx.realtimeData.prevClosePrice <= ctx.maxPrice)
 		{
 			memDC.SetTextColor(COLOR_GRAY_PURPLE);
-			CString prevTxt = CCommon::FormatFloat(ctx.realtimeData.prevClosePrice);
+			CString prevTxt = ctx.realtimeData.IsETF() ? CCommon::FormatETFPrice(ctx.realtimeData.prevClosePrice) : CCommon::FormatFloat(ctx.realtimeData.prevClosePrice);
 			CSize prevSize = memDC.GetTextExtent(prevTxt);
 			int prevY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((ctx.realtimeData.prevClosePrice - ctx.minPrice) * unitY));
 			int labelY = prevY - prevSize.cy / 2;
@@ -1206,11 +1214,11 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 		memDC.Ellipse(hoverX - 3, avgDotY - 3, hoverX + 3, avgDotY + 3);
 	}
 
-	// 十字竖线（延伸到MACD图底部）
+	// 十字竖线（延伸到成交量图或MACD图底部）
 	CPen crossPen(PS_DOT, 1, RGB(70, 130, 210));
 	memDC.SelectObject(&crossPen);
 	memDC.MoveTo(hoverX, ctx.priceChartTop);
-	memDC.LineTo(hoverX, ctx.macdChartTop + ctx.macdChartHeight);
+	memDC.LineTo(hoverX, ctx.positionY);
 
 	// 十字横虚线：跟随真实价格位置
 	memDC.MoveTo(0, dotY);
@@ -1221,7 +1229,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	CPoint origOrg = memDC.GetViewportOrg();
 	memDC.OffsetViewportOrg(-yAxisW, 0);  // 恢复原始坐标系
 
-	CString hoverPriceStr = CCommon::FormatFloat(item.price);
+	CString hoverPriceStr = ctx.realtimeData.IsETF() ? CCommon::FormatETFPrice(item.price) : CCommon::FormatFloat(item.price);
 	CSize hoverPriceSize = memDC.GetTextExtent(hoverPriceStr);
 	int priceLabelX = yAxisW - hoverPriceSize.cx - g_data.RDPI(3);
 	int priceLabelY = dotY - hoverPriceSize.cy / 2;
@@ -1270,14 +1278,25 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 		}
 	}
 
-	// 时间标签显示在竖线对应的X轴下方（MACD图下方），浅蓝色背景高亮
-	CString timeStr(item.time.c_str());
-	if (timeStr.GetLength() >= 5)
-		timeStr = timeStr.Left(5);
+	// 时间标签显示在竖线对应的X轴下方，浅蓝色背景高亮
+	CString timeStr;
+	if (!item.fullTime.empty() && (m_isMin5KLineMode || m_isMin30KLineMode))
+	{
+		// 5分/30分K线模式：显示完整日期时间 yyyy-mm-dd hh:mm
+		timeStr = CString(item.fullTime.c_str());
+		if (timeStr.GetLength() >= 16)
+			timeStr = timeStr.Left(16);
+	}
+	else
+	{
+		timeStr = CString(item.time.c_str());
+		if (timeStr.GetLength() >= 5)
+			timeStr = timeStr.Left(5);
+	}
 	CSize timeSize = memDC.GetTextExtent(timeStr);
 	int timeLabelX = hoverX - timeSize.cx / 2;
 	timeLabelX = max(g_data.RDPI(2), min(timeLabelX, ctx.chartWidth - timeSize.cx - g_data.RDPI(2)));
-	int timeLabelY = ctx.macdChartTop + ctx.macdChartHeight + g_data.RDPI(2);
+	int timeLabelY = ctx.positionY;
 	// 浅蓝色背景
 	CRect timeBgRect(timeLabelX - g_data.RDPI(3), timeLabelY, timeLabelX + timeSize.cx + g_data.RDPI(3), timeLabelY + timeSize.cy);
 	memDC.FillSolidRect(timeBgRect, RGB(220, 235, 250));
@@ -2194,7 +2213,7 @@ void CFloatingWnd::OnPaint()
 	// 大盘在K线模式下不显示盘口（5分钟K线模式也设置m_isKLineMode=true，所以这里自动覆盖）
 	bool isIndexKLine = isIndex && m_isKLineMode;
 
-	const int stockListWidth = g_data.RDPI(65);  // 左侧股票列表面板宽度
+	const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;  // 左侧股票列表面板宽度
 	const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
 	const int chartWidth = w - orderBookWidth;
 	// 左侧Y轴坐标区域宽度（所有图表统一预留）
@@ -2273,6 +2292,7 @@ void CFloatingWnd::OnPaint()
 							tp.time = kp.day.substr(0, 5);
 						else
 							tp.time = kp.day;
+						tp.fullTime = kp.day;
 						tp.price = kp.close;
 						tp.averagePrice = kp.close;  // 暂用收盘价
 						tp.volume = kp.volume;
@@ -2300,6 +2320,7 @@ void CFloatingWnd::OnPaint()
 							tp.time = kp.day.substr(0, 5);
 						else
 							tp.time = kp.day;
+						tp.fullTime = kp.day;
 						tp.price = kp.close;
 						tp.averagePrice = kp.close;  // 暂用收盘价
 						tp.volume = kp.volume;
@@ -2348,6 +2369,7 @@ void CFloatingWnd::OnPaint()
 			int headerBtnTop = g_data.RDPI(2);
 			SafeSetWindowPos(m_btnClose, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH);
 			SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, headerBtnTop, closeBtnW, closeBtnH);
+			SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, headerBtnTop, closeBtnW, closeBtnH);
 			// 筹码峰/盘口按钮定位到盘口标题栏，高度与BOLL按钮一致
 			int obTitleH = g_data.RDPI(16);
 			int obBtnH = min(obTitleH, g_data.RDPI(16));
@@ -2360,7 +2382,8 @@ void CFloatingWnd::OnPaint()
 		}
 
 		// 左侧股票列表面板（无论分时数据是否加载都绘制）
-		DrawStockListPanel(memDC, 0, headerHeight, stockListWidth, h - headerHeight - indexBarHeight, m_stock_id);
+		if (m_showStockList)
+			DrawStockListPanel(memDC, 0, headerHeight, stockListWidth, h - headerHeight - indexBarHeight, m_stock_id);
 
 		if (!timelinePoint.empty())
 		{
@@ -2627,13 +2650,14 @@ void CFloatingWnd::OnPaint()
 				SafeSetWindowPos(m_btnT0, t0Start, btnTop, toolBtnW, toolBtnH);
 			}
 
-			// 主标题栏右侧按钮定位（关闭按钮、放大按钮）
+			// 主标题栏右侧按钮定位（关闭按钮、放大按钮、股票列表切换按钮）
 			{
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
 				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
 				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
 			}
 
 			// 盘口标题栏右侧按钮定位（筹码峰、盘口按钮），高度与BOLL按钮一致
@@ -2704,6 +2728,11 @@ void CFloatingWnd::OnPaint()
 					m_btnIndicatorWR.Invalidate();
 					m_btnIndicatorRSI.Invalidate();
 				}
+				// 强制重绘指标按钮，避免位置变化后按钮不显示
+				m_btnIndicatorMACD.Invalidate();
+				m_btnIndicatorKDJ.Invalidate();
+				m_btnIndicatorWR.Invalidate();
+				m_btnIndicatorRSI.Invalidate();
 			}
 
 			// 右侧盘口高度：不减xAxisLabelHeight（那是左侧走势图的时间标签，右侧不需要）
@@ -7509,7 +7538,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 
 	// 左侧股票列表区域的单击切换
-	if (!m_isOverviewMode)
+	if (!m_isOverviewMode && m_showStockList)
 	{
 		const int stockListWidth = g_data.RDPI(65);
 		const int headerHeight = g_data.RDPI(26);
@@ -7621,8 +7650,10 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		const int headerHeight = g_data.RDPI(26);
 
 		const int yAxisWidth = g_data.RDPI(50);
+		const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+		const int chartLeft = stockListWidth + yAxisWidth;
 
-		if (point.x >= yAxisWidth && point.x < chartWidth && point.y >= headerHeight)
+		if (point.x >= chartLeft && point.x < chartWidth && point.y >= headerHeight)
 		{
 			std::vector<STOCK::TimelinePoint> timelinePoint;
 			{
@@ -7663,6 +7694,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 									tp.time = kp.day.substr(0, 5);
 								else
 									tp.time = kp.day;
+								tp.fullTime = kp.day;
 								tp.price = kp.close;
 								tp.volume = kp.volume;
 								timelinePoint.push_back(tp);
@@ -7684,6 +7716,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 									tp.time = kp.day.substr(0, 5);
 								else
 									tp.time = kp.day;
+								tp.fullTime = kp.day;
 								tp.price = kp.close;
 								tp.volume = kp.volume;
 								timelinePoint.push_back(tp);
@@ -7710,8 +7743,8 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 					m_timelineScrollOffset = maxOffset;
 				int startIndex = max(0, min(m_timelineScrollOffset, maxOffset));
 
-				int adjX = point.x - yAxisWidth;
-				int effectiveWidth = chartWidth - yAxisWidth;
+				int adjX = point.x - chartLeft;
+				int effectiveWidth = chartWidth - chartLeft;
 				int relIndex = static_cast<int>(adjX * static_cast<float>(visibleCount) / effectiveWidth);
 				relIndex = max(0, min(relIndex, visibleCount - 1));
 				int countX = startIndex + relIndex;
@@ -7736,8 +7769,10 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		const int dragOrderBookWidth = isIdxKLine ? 0 : ORDER_BOOK_WIDTH;
 		const int dragChartWidth = dragRect.Width() - dragOrderBookWidth;
 		const int dragYAxisWidth = g_data.RDPI(50);
+		const int dragStockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+		const int dragChartLeft = dragStockListWidth + dragYAxisWidth;
 		const int dragHeaderHeight = g_data.RDPI(26);
-		if (!m_isOverviewMode && point.x >= dragYAxisWidth && point.x < dragChartWidth && point.y >= dragHeaderHeight)
+		if (!m_isOverviewMode && point.x >= dragChartLeft && point.x < dragChartWidth && point.y >= dragHeaderHeight)
 		{
 			// 分时图拖动（5分钟K线模式和日K线模式也使用分时拖动逻辑）
 			{
@@ -8481,13 +8516,13 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 						}
 					}
 
-					// 计算总宽度（含风险标记）
+					// 计算总宽度（含风险标记），右对齐显示
 					int totalW = 0;
 					for (const auto& item : sigItems)
 						totalW += memDC.GetTextExtent(item.first).cx;
 					if (!riskText.IsEmpty())
 						totalW += memDC.GetTextExtent(riskText).cx;
-					int sigX = (ctx.chartWidth - totalW) / 2;
+					int sigX = ctx.chartWidth - totalW - g_data.RDPI(4);
 
 					for (const auto& item : sigItems)
 					{
@@ -8612,12 +8647,13 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 							}
 						}
 
+						// 计算总宽度，右对齐显示
 						int totalW = 0;
 						for (const auto& item : sigItems)
 							totalW += memDC.GetTextExtent(item.first).cx;
 						if (!riskText.IsEmpty())
 							totalW += memDC.GetTextExtent(riskText).cx;
-						int xPos = (ctx.chartWidth - totalW) / 2;
+						int xPos = ctx.chartWidth - totalW - g_data.RDPI(4);
 
 						for (const auto& item : sigItems)
 						{
@@ -8965,6 +9001,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 									tp.time = kp.day.substr(0, 5);
 								else
 									tp.time = kp.day;
+								tp.fullTime = kp.day;
 								tp.price = kp.close;
 								tp.volume = kp.volume;
 								timelinePoint.push_back(tp);
@@ -8987,6 +9024,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 									tp.time = kp.day.substr(0, 5);
 								else
 									tp.time = kp.day;
+								tp.fullTime = kp.day;
 								tp.price = kp.close;
 								tp.volume = kp.volume;
 								timelinePoint.push_back(tp);
@@ -9045,6 +9083,8 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 	const int orderBookWidth = isIndexKLine ? 0 : ORDER_BOOK_WIDTH;
 	const int chartWidth = rect.Width() - orderBookWidth;
 	const int yAxisWidth = g_data.RDPI(50);
+	const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+	const int chartLeft = stockListWidth + yAxisWidth;
 	const int headerHeight = g_data.RDPI(26);
 	const int xAxisLabelHeight = g_data.RDPI(20);
 	const int indexBarHeight = g_data.RDPI(20);  // 底部大盘指数状态栏高度
@@ -9080,11 +9120,11 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			}
 		}
 
-		if (!klineData.empty() && point.x >= yAxisWidth && point.x < chartWidth)
+		if (!klineData.empty() && point.x >= chartLeft && point.x < chartWidth)
 		{
-			// 使用与绘制完全一致的参数计算（x从yAxisWidth开始，宽度为chartWidth-yAxisWidth）
+			// 使用与绘制完全一致的参数计算（x从chartLeft开始，宽度为chartWidth-chartLeft）
 			const int paddingY = g_data.RDPI(10);
-			KLineDrawData drawData = PrepareKLineDrawData(yAxisWidth, headerHeight + paddingY, chartWidth - yAxisWidth, priceChartHeight - paddingY * 2, klineData);
+			KLineDrawData drawData = PrepareKLineDrawData(chartLeft, headerHeight + paddingY, chartWidth - chartLeft, priceChartHeight - paddingY * 2, klineData);
 
 			if (point.y >= headerHeight && point.y < headerHeight + priceChartHeight)
 			{
@@ -9217,6 +9257,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 								tp.time = kp.day.substr(0, 5);
 							else
 								tp.time = kp.day;
+							tp.fullTime = kp.day;
 							tp.price = kp.close;
 							tp.averagePrice = kp.close;
 							tp.volume = kp.volume;
@@ -9241,6 +9282,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 								tp.time = kp.day.substr(0, 5);
 							else
 								tp.time = kp.day;
+							tp.fullTime = kp.day;
 							tp.price = kp.close;
 							tp.averagePrice = kp.close;
 							tp.volume = kp.volume;
@@ -9260,7 +9302,7 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			}
 		}
 
-		if (!timelinePoint.empty() && point.x >= yAxisWidth && point.x < chartWidth)
+		if (!timelinePoint.empty() && point.x >= chartLeft && point.x < chartWidth)
 		{
 			// 计算可见范围（与OnPaint一致）
 			int totalPoints = static_cast<int>(timelinePoint.size());
@@ -9277,9 +9319,9 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 			auto subEnd = timelinePoint.begin() + startIndex + visibleCount;
 			std::vector<STOCK::TimelinePoint> subTimeline(subStart, subEnd);
 
-			// 鼠标坐标减去Y轴宽度，对应到分时图内部坐标
-			int adjX = point.x - yAxisWidth;
-			int effectiveWidth = chartWidth - yAxisWidth;
+			// 鼠标坐标减去图表左边界，对应到分时图内部坐标
+			int adjX = point.x - chartLeft;
+			int effectiveWidth = chartWidth - chartLeft;
 			// 按索引比例计算鼠标对应的可见数据索引
 			int relIndex = static_cast<int>(adjX * static_cast<float>(visibleCount) / effectiveWidth);
 			relIndex = max(0, min(relIndex, visibleCount - 1));
@@ -9481,7 +9523,12 @@ void CFloatingWnd::UpdateModeButtons()
 		SafeSetButtonStyle(m_btnChipPeak, m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 
-		SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);
+		m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));
+
+		m_btnToggleStockList.SetWindowText(m_showStockList ? _T("|>") : _T("<|"));
+		SafeSetButtonStyle(m_btnToggleStockList, m_showStockList ? BS_FLAT : BS_DEFPUSHBUTTON);
+		SafeShowWindow(m_btnToggleStockList, !m_isOverviewMode);
 
 		// 缩放按钮在所有模式下显示（除总览模式外）
 		SafeShowWindow(m_btnZoomOut, !m_isOverviewMode);
@@ -9582,10 +9629,12 @@ BOOL CFloatingWnd::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 			GetClientRect(&clientRect);
 			ScreenToClient(&pt);
 			const int yAxisWidth = g_data.RDPI(50);
+			const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+			const int chartLeft = stockListWidth + yAxisWidth;
 			const int orderBookWidth = ORDER_BOOK_WIDTH;
 			int chartWidth = clientRect.Width() - orderBookWidth;
-			int adjX = pt.x - yAxisWidth;
-			int effectiveWidth = chartWidth - yAxisWidth;
+			int adjX = pt.x - chartLeft;
+			int effectiveWidth = chartWidth - chartLeft;
 
 			// 鼠标在可见区域中的比例位置
 			float ratio = 0.5f;
@@ -9886,8 +9935,26 @@ void CFloatingWnd::OnBnClickedOrderBookBtn()
 void CFloatingWnd::OnBnClickedExpandBtn()
 {
 	m_expandedMode = !m_expandedMode;
-	SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_DEFPUSHBUTTON : BS_FLAT);
+	m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));
+	SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);
 	Invalidate();
+}
+
+void CFloatingWnd::OnBnClickedToggleStockListBtn()
+{
+	m_showStockList = !m_showStockList;
+	m_btnToggleStockList.SetWindowText(m_showStockList ? _T("|>") : _T("<|"));
+	SafeSetButtonStyle(m_btnToggleStockList, m_showStockList ? BS_FLAT : BS_DEFPUSHBUTTON);
+	UpdateModeButtons();
+	Invalidate();
+	// 强制重绘指标按钮，避免位置变化后按钮不显示
+	if (!m_expandedMode)
+	{
+		m_btnIndicatorMACD.Invalidate();
+		m_btnIndicatorKDJ.Invalidate();
+		m_btnIndicatorWR.Invalidate();
+		m_btnIndicatorRSI.Invalidate();
+	}
 }
 
 void CFloatingWnd::SafeSetWindowPos(CWnd& wnd, int x, int y, int cx, int cy)

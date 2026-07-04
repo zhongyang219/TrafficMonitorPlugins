@@ -71,26 +71,26 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 		localtime_s(&now_tm, &now);
 
 		// 在一个循环中完成所有股票的告警判定
-		for (const auto& code : g_data.m_setting_data.m_stock_codes)
-		{
-			// 检查价格关注条件并弹窗提醒
-			m_instance.CheckPriceAlertForStock(code);
+		//for (const auto& code : g_data.m_setting_data.m_stock_codes)
+		//{
+		//	// 检查价格关注条件并弹窗提醒
+		//	m_instance.CheckPriceAlertForStock(code);
 
-			// 检查百分比涨跌幅条件并弹窗提醒
-			m_instance.CheckPercentageAlertForStock(code);
+		//	// 检查百分比涨跌幅条件并弹窗提醒
+		//	m_instance.CheckPercentageAlertForStock(code);
 
-			// 检查成本价告警条件并弹窗提醒
-			m_instance.CheckCostPriceAlertForStock(code);
+		//	// 检查成本价告警条件并弹窗提醒
+		//	m_instance.CheckCostPriceAlertForStock(code);
 
-			// 检查历史价格告警条件并弹窗提醒
-			m_instance.CheckHistoricalPriceAlertForStock(code, now_tm, now);
+		//	// 检查历史价格告警条件并弹窗提醒
+		//	m_instance.CheckHistoricalPriceAlertForStock(code, now_tm, now);
 
-			// 检查趋势预警条件并弹窗提醒
-			//m_instance.CheckTrendAlertForStock(code);
+		//	// 检查趋势预警条件并弹窗提醒
+		//	//m_instance.CheckTrendAlertForStock(code);
 
-			// 检查T+0买卖点告警
-			m_instance.CheckT0AlertForStock(code);
-		}
+		// 检查T+0买卖点告警
+		//m_instance.CheckT0AlertForStock(code);
+		//}
 
 		// 启用选项设置中的"更新"按钮
 		m_instance.EnableUpdateCommand();
