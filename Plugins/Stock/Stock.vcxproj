@@ -259,12 +259,14 @@
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="FloatingWnd.h" />
     <ClInclude Include="SignalAnalyzer.h" />
+    <ClInclude Include="StockFetchThread.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ManagerDialog.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sqlite3.h" />
+    <ClInclude Include="StockDbManager.h" />
     <ClInclude Include="Stock.h" />
     <ClInclude Include="StockDef.h" />
     <ClInclude Include="StockItem.h" />
@@ -276,6 +278,7 @@
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="FloatingWnd.cpp" />
     <ClCompile Include="SignalAnalyzer.cpp" />
+    <ClCompile Include="StockFetchThread.cpp" />
     <ClCompile Include="ManagerDialog.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">
@@ -290,6 +293,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
+    <ClCompile Include="StockDbManager.cpp" />
     <ClCompile Include="Stock.cpp" />
     <ClCompile Include="StockDef.cpp" />
     <ClCompile Include="StockItem.cpp" />

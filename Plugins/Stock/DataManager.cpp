@@ -16,20 +16,8 @@
 constexpr auto WEB_USERAGENT = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0");
 
 static double GetJsonDoubleValue(yyjson_val* val);
-static const char* GetKLineCacheTable(STOCK::Period period);
-static std::wstring GetKLineCacheTableW(STOCK::Period period);
 
-static time_t GetLocalMidnightTime(int offsetDays = 0)
-{
-	time_t now = time(nullptr);
-	tm localTm = {};
-	localtime_s(&localTm, &now);
-	localTm.tm_hour = 0;
-	localTm.tm_min = 0;
-	localTm.tm_sec = 0;
-	return std::mktime(&localTm) + static_cast<time_t>(offsetDays) * 24 * 60 * 60;
-}
-
+// 仅供 DataManager 业务逻辑使用的日期工具（数据库相关的同名工具已在 StockDbManager.cpp 内）
 static std::string GetLocalDateString(time_t t)
 {
 	tm localTm = {};
@@ -42,11 +30,6 @@ static std::string GetLocalDateString(time_t t)
 static std::string GetTodayDateString()
 {
 	return GetLocalDateString(time(nullptr));
-}
-
-static std::string GetCacheCutoffDateString()
-{
-	return GetLocalDateString(GetLocalMidnightTime(-30));
 }
 
 CDataManager CDataManager::m_instance;
@@ -62,11 +45,7 @@ CDataManager::CDataManager()
 CDataManager::~CDataManager()
 {
 	SaveConfig();
-	if (m_db != nullptr)
-	{
-		sqlite3_close(m_db);
-		m_db = nullptr;
-	}
+	// m_db_mgr 自动析构会关闭数据库连接
 }
 
 CDataManager& CDataManager::Instance()
@@ -104,6 +83,22 @@ bool CDataManager::IsTradingDaySession()
 	if (minutes < 9 * 60 + 30)          // 9:30之前
 		return false;
 	if (minutes > 15 * 60)              // 15:00之后
+		return false;
+	return true;
+}
+
+bool CDataManager::IsCallAuctionSession()
+{
+	SYSTEMTIME now;
+	GetLocalTime(&now);
+	// 周六日休市
+	if (now.wDayOfWeek == 0 || now.wDayOfWeek == 6)
+		return false;
+	// 集合竞价时段：9:15-9:30
+	int minutes = now.wHour * 60 + now.wMinute;
+	if (minutes < 9 * 60 + 15)          // 9:15之前
+		return false;
+	if (minutes >= 9 * 60 + 30)         // 9:30及之后（竞价结束）
 		return false;
 	return true;
 }
@@ -197,7 +192,8 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 		m_stock_statusbar[code] = ini.GetBool(code.c_str(), L"show_in_statusbar", false);
 	}
 
-	InitDatabase();
+	m_db_mgr.Init(m_config_path);
+	m_db_mgr.CleanExpiredData();
 	LoadTodayInnerOuterSnapshots();
 	LoadChipDistributions();
 	LoadStockBasicData();
@@ -205,439 +201,49 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	LoadKLineCache(STOCK::Period::DAY);
 	LoadKLineCache(STOCK::Period::MIN5);
 	LoadKLineCache(STOCK::Period::MIN30);
-
-	// 清理数据库中超过1个月的快照、K线和筹码峰缓存
-	if (m_db != nullptr)
-	{
-		time_t cutoffTime = GetLocalMidnightTime(-30);
-		const char* cleanSql = "DELETE FROM inner_outer_snapshots WHERE snapshot_time < ?;";
-		sqlite3_stmt* stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, cleanSql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(cutoffTime));
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-
-		const char* cleanChipSql = "DELETE FROM chip_distributions WHERE updated_at < ?;";
-		stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, cleanChipSql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(cutoffTime));
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-
-		const char* cleanTimelineSql = "DELETE FROM timeline_cache WHERE trade_date < ?;";
-		stmt = nullptr;
-		std::string cutoffDate = GetCacheCutoffDateString();
-		if (sqlite3_prepare_v2(m_db, cleanTimelineSql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-
-		const char* cleanKlineSql = "DELETE FROM kline_day_cache WHERE day < ?;";
-		stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, cleanKlineSql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-
-		const char* cleanMin5Sql = "DELETE FROM kline_min5_cache WHERE day < ?;";
-		stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, cleanMin5Sql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-
-		const char* cleanMin30Sql = "DELETE FROM kline_min30_cache WHERE day < ?;";
-		stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, cleanMin30Sql, -1, &stmt, nullptr) == SQLITE_OK)
-		{
-			sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
-		}
-	}
 }
 
-void CDataManager::InitDatabase()
-{
-	if (m_db != nullptr) return;
-
-	// 数据库路径与ini配置文件同目录
-	if (m_config_path.empty()) return;
-	size_t pos = m_config_path.find_last_of(L"\\/");
-	if (pos == std::wstring::npos) return;
-	m_db_path = m_config_path.substr(0, pos + 1) + L"stock_trades.db";
-
-	int rc = sqlite3_open16(m_db_path.c_str(), &m_db);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_close(m_db);
-		m_db = nullptr;
-		return;
-	}
-
-	// 创建交易记录表
-	const char* sql = "CREATE TABLE IF NOT EXISTS trades ("
-		"id INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"stock_code TEXT NOT NULL,"
-		"stock_name TEXT NOT NULL,"
-		"trade_type INTEGER NOT NULL,"
-		"trade_time DATETIME NOT NULL,"
-		"price REAL NOT NULL,"
-		"amount REAL NOT NULL,"
-		"total_amount REAL NOT NULL,"
-		"fee REAL NOT NULL,"
-		"total REAL NOT NULL"
-		");";
-	char* errMsg = nullptr;
-	rc = sqlite3_exec(m_db, sql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-
-	const char* innerOuterSql = "CREATE TABLE IF NOT EXISTS inner_outer_snapshots ("
-		"stock_code TEXT NOT NULL,"
-		"snapshot_time INTEGER NOT NULL,"
-		"inner_volume INTEGER NOT NULL,"
-		"outer_volume INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, snapshot_time)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, innerOuterSql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-	const char* chipSql = "CREATE TABLE IF NOT EXISTS chip_distributions ("
-		"stock_code TEXT NOT NULL,"
-		"trade_date TEXT NOT NULL,"
-		"avg_cost REAL NOT NULL,"
-		"benefit_ratio REAL NOT NULL,"
-		"cost70_low REAL NOT NULL,"
-		"cost70_high REAL NOT NULL,"
-		"cost70_concentration REAL NOT NULL,"
-		"cost90_low REAL NOT NULL,"
-		"cost90_high REAL NOT NULL,"
-		"cost90_concentration REAL NOT NULL,"
-		"points_json TEXT NOT NULL,"
-		"updated_at INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, trade_date)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, chipSql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-	const char* stockBasicSql = "CREATE TABLE IF NOT EXISTS stock_basic_data ("
-		"stock_code TEXT PRIMARY KEY,"
-		"circulating_a_shares INTEGER NOT NULL,"
-		"updated_at INTEGER NOT NULL"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, stockBasicSql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-
-	const char* timelineSql = "CREATE TABLE IF NOT EXISTS timeline_cache ("
-		"stock_code TEXT NOT NULL,"
-		"trade_date TEXT NOT NULL,"
-		"time TEXT NOT NULL,"
-		"volume INTEGER NOT NULL,"
-		"price REAL NOT NULL,"
-		"average_price REAL NOT NULL,"
-		"amount REAL NOT NULL,"
-		"updated_at INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, trade_date, time)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, timelineSql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-
-	const char* klineDaySql = "CREATE TABLE IF NOT EXISTS kline_day_cache ("
-		"stock_code TEXT NOT NULL,"
-		"day TEXT NOT NULL,"
-		"open REAL NOT NULL,"
-		"high REAL NOT NULL,"
-		"low REAL NOT NULL,"
-		"close REAL NOT NULL,"
-		"volume INTEGER NOT NULL,"
-		"updated_at INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, day)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, klineDaySql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-
-	const char* klineMin5Sql = "CREATE TABLE IF NOT EXISTS kline_min5_cache ("
-		"stock_code TEXT NOT NULL,"
-		"day TEXT NOT NULL,"
-		"open REAL NOT NULL,"
-		"high REAL NOT NULL,"
-		"low REAL NOT NULL,"
-		"close REAL NOT NULL,"
-		"volume INTEGER NOT NULL,"
-		"updated_at INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, day)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, klineMin5Sql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-
-	const char* klineMin30Sql = "CREATE TABLE IF NOT EXISTS kline_min30_cache ("
-		"stock_code TEXT NOT NULL,"
-		"day TEXT NOT NULL,"
-		"open REAL NOT NULL,"
-		"high REAL NOT NULL,"
-		"low REAL NOT NULL,"
-		"close REAL NOT NULL,"
-		"volume INTEGER NOT NULL,"
-		"updated_at INTEGER NOT NULL,"
-		"PRIMARY KEY(stock_code, day)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, klineMin30Sql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK)
-	{
-		sqlite3_free(errMsg);
-	}
-}
+// ===== 以下数据库 CRUD 方法转发至 CStockDbManager =====
 
 bool CDataManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
 {
-	if (m_db == nullptr) return false;
-
-	const char* sql = "INSERT INTO trades(stock_code, stock_name, trade_type, trade_time, price, amount, total_amount, fee, total) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text16(stmt, 2, stockName.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_int(stmt, 3, tradeType);
-	sqlite3_bind_text16(stmt, 4, time.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_double(stmt, 5, price);
-	sqlite3_bind_double(stmt, 6, amount);
-	sqlite3_bind_double(stmt, 7, totalAmount);
-	sqlite3_bind_double(stmt, 8, fee);
-	sqlite3_bind_double(stmt, 9, total);
-
-	rc = sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-
-	return rc == SQLITE_DONE;
+	return m_db_mgr.SaveTradeRecord(stockCode, stockName, tradeType, time, price, amount, totalAmount, fee, total);
 }
 
 bool CDataManager::SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume)
 {
-	if (m_db == nullptr) return false;
-
-	const char* sql = "INSERT OR REPLACE INTO inner_outer_snapshots(stock_code, snapshot_time, inner_volume, outer_volume) VALUES(?, ?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(timestamp));
-	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(innerVolume));
-	sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(outerVolume));
-
-	rc = sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-
-	return rc == SQLITE_DONE;
+	return m_db_mgr.SaveInnerOuterSnapshot(stockCode, timestamp, innerVolume, outerVolume);
 }
 
 bool CDataManager::SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data)
 {
-	if (m_db == nullptr || data.empty()) return false;
-
-	const char* sql = "INSERT OR IGNORE INTO timeline_cache(stock_code, trade_date, time, volume, price, average_price, amount, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	std::string tradeDate = GetTodayDateString();
-	time_t now = time(nullptr);
-	bool ok = true;
-	for (const auto& item : data)
-	{
-		if (item.time.empty()) continue;
-		sqlite3_reset(stmt);
-		sqlite3_clear_bindings(stmt);
-		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(stmt, 3, item.time.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(item.volume));
-		sqlite3_bind_double(stmt, 5, item.price);
-		sqlite3_bind_double(stmt, 6, item.averagePrice);
-		sqlite3_bind_double(stmt, 7, item.amount);
-		sqlite3_bind_int64(stmt, 8, static_cast<sqlite3_int64>(now));
-		rc = sqlite3_step(stmt);
-		if (rc != SQLITE_DONE)
-			ok = false;
-	}
-	sqlite3_finalize(stmt);
-	return ok;
+	return m_db_mgr.SaveTimelineCache(stockCode, data);
 }
 
 bool CDataManager::SaveKLineCache(const std::wstring& stockCode, STOCK::Period period, const std::vector<STOCK::KLinePoint>& data)
 {
-	if (m_db == nullptr || data.empty()) return false;
-	const char* table = GetKLineCacheTable(period);
-	if (table[0] == '\0') return false;
-
-	std::string sql = std::string("INSERT OR IGNORE INTO ") + table + "(stock_code, day, open, high, low, close, volume, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql.c_str(), -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	time_t now = time(nullptr);
-	bool ok = true;
-	for (const auto& item : data)
-	{
-		if (item.day.empty()) continue;
-		sqlite3_reset(stmt);
-		sqlite3_clear_bindings(stmt);
-		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(stmt, 2, item.day.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_double(stmt, 3, item.open);
-		sqlite3_bind_double(stmt, 4, item.high);
-		sqlite3_bind_double(stmt, 5, item.low);
-		sqlite3_bind_double(stmt, 6, item.close);
-		sqlite3_bind_int64(stmt, 7, static_cast<sqlite3_int64>(item.volume));
-		sqlite3_bind_int64(stmt, 8, static_cast<sqlite3_int64>(now));
-		rc = sqlite3_step(stmt);
-		if (rc != SQLITE_DONE)
-			ok = false;
-	}
-	sqlite3_finalize(stmt);
-	return ok;
+	return m_db_mgr.SaveKLineCache(stockCode, period, data);
 }
 
 bool CDataManager::HasTimelineCache(const std::wstring& stockCode)
 {
-	if (m_db == nullptr) return false;
-	const char* sql = "SELECT 1 FROM timeline_cache WHERE stock_code = ? AND trade_date = ? LIMIT 1;";
-	sqlite3_stmt* stmt = nullptr;
-	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
-	std::string tradeDate = GetTodayDateString();
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
-	bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
-	sqlite3_finalize(stmt);
-	return hasCache;
+	return m_db_mgr.HasTimelineCache(stockCode);
 }
 
 bool CDataManager::HasKLineCache(const std::wstring& stockCode, STOCK::Period period)
 {
-	if (m_db == nullptr) return false;
-	std::wstring table = GetKLineCacheTableW(period);
-	if (table.empty()) return false;
-
-	// 日K线：只要有缓存即可（历史数据不过期）
-	if (period == STOCK::Period::DAY)
-	{
-		std::wstring sql = L"SELECT 1 FROM " + table + L" WHERE stock_code = ? LIMIT 1;";
-		sqlite3_stmt* stmt = nullptr;
-		if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
-		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-		bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
-		sqlite3_finalize(stmt);
-		return hasCache;
-	}
-
-	// 5分钟/30分钟K线：缓存中最新数据必须包含今天才算有效
-	std::wstring sql = L"SELECT day FROM " + table + L" WHERE stock_code = ? ORDER BY day DESC LIMIT 1;";
-	sqlite3_stmt* stmt = nullptr;
-	if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	bool hasCache = false;
-	if (sqlite3_step(stmt) == SQLITE_ROW)
-	{
-		const unsigned char* dayText = sqlite3_column_text(stmt, 0);
-		if (dayText)
-		{
-			// day格式为 "YYYY-MM-DD HH:MM" 或 "YYYY-MM-DD"，取前10字符比较日期
-			std::string dayStr = reinterpret_cast<const char*>(dayText);
-			std::string todayStr = GetTodayDateString();
-			hasCache = (dayStr.length() >= 10 && dayStr.substr(0, 10) == todayStr);
-		}
-	}
-	sqlite3_finalize(stmt);
-	return hasCache;
+	return m_db_mgr.HasKLineCache(stockCode, period);
 }
 
 void CDataManager::LoadTimelineCache()
 {
-	if (m_db == nullptr) return;
-	const char* sql = "SELECT time, volume, price, average_price, amount FROM timeline_cache WHERE stock_code = ? AND trade_date = ? ORDER BY time ASC;";
-	// 回退SQL：当今天没有缓存时，加载最近一个交易日的分时数据
-	const char* fallbackSql = "SELECT time, volume, price, average_price, amount FROM timeline_cache WHERE stock_code = ? AND trade_date = (SELECT trade_date FROM timeline_cache WHERE stock_code = ? ORDER BY trade_date DESC LIMIT 1) ORDER BY time ASC;";
-	std::string tradeDate = GetTodayDateString();
+	if (!m_db_mgr.IsOpen()) return;
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
 		auto stockData = GetStockData(code);
 		if (!stockData) continue;
-		sqlite3_stmt* stmt = nullptr;
-		if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) continue;
-		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
-		std::vector<STOCK::TimelinePoint> points;
-		while (sqlite3_step(stmt) == SQLITE_ROW)
-		{
-			STOCK::TimelinePoint point;
-			const unsigned char* timeText = sqlite3_column_text(stmt, 0);
-			point.time = timeText ? reinterpret_cast<const char*>(timeText) : "";
-			point.volume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
-			point.price = sqlite3_column_double(stmt, 2);
-			point.averagePrice = sqlite3_column_double(stmt, 3);
-			point.amount = sqlite3_column_double(stmt, 4);
-			points.push_back(point);
-		}
-		sqlite3_finalize(stmt);
-
-		// 今天没有缓存时，回退加载最近交易日的分时数据
-		if (points.empty())
-		{
-			if (sqlite3_prepare_v2(m_db, fallbackSql, -1, &stmt, nullptr) != SQLITE_OK) continue;
-			sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-			sqlite3_bind_text16(stmt, 2, code.c_str(), -1, SQLITE_TRANSIENT);
-			while (sqlite3_step(stmt) == SQLITE_ROW)
-			{
-				STOCK::TimelinePoint point;
-				const unsigned char* timeText = sqlite3_column_text(stmt, 0);
-				point.time = timeText ? reinterpret_cast<const char*>(timeText) : "";
-				point.volume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
-				point.price = sqlite3_column_double(stmt, 2);
-				point.averagePrice = sqlite3_column_double(stmt, 3);
-				point.amount = sqlite3_column_double(stmt, 4);
-				points.push_back(point);
-			}
-			sqlite3_finalize(stmt);
-		}
-
+		// 今天没有缓存时，CStockDbManager 内部自动回退到最近交易日
+		auto points = m_db_mgr.LoadLatestTimelineCache(code);
 		if (!points.empty())
 		{
 			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
@@ -650,215 +256,81 @@ void CDataManager::LoadTimelineCache()
 
 void CDataManager::LoadKLineCache(STOCK::Period period)
 {
-	if (m_db == nullptr) return;
-	std::wstring table = GetKLineCacheTableW(period);
-	if (table.empty()) return;
-	std::wstring sql = L"SELECT day, open, high, low, close, volume FROM " + table + L" WHERE stock_code = ? ORDER BY day ASC;";
+	if (!m_db_mgr.IsOpen()) return;
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
 		auto stockData = GetStockData(code);
 		if (!stockData) continue;
-		sqlite3_stmt* stmt = nullptr;
-		if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) continue;
-		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		std::vector<STOCK::KLinePoint> points;
-		while (sqlite3_step(stmt) == SQLITE_ROW)
-		{
-			STOCK::KLinePoint point;
-			const unsigned char* dayText = sqlite3_column_text(stmt, 0);
-			point.day = dayText ? reinterpret_cast<const char*>(dayText) : "";
-			point.open = sqlite3_column_double(stmt, 1);
-			point.high = sqlite3_column_double(stmt, 2);
-			point.low = sqlite3_column_double(stmt, 3);
-			point.close = sqlite3_column_double(stmt, 4);
-			point.volume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 5));
-			points.push_back(point);
-		}
-		sqlite3_finalize(stmt);
-		if (!points.empty())
-		{
-			// 5分钟/30分钟K线：如果缓存最新数据不是今天的，跳过加载（等网络请求更新）
-			if (period == STOCK::Period::MIN5 || period == STOCK::Period::MIN30)
-			{
-				std::string todayStr = GetTodayDateString();
-				const auto& lastPoint = points.back();
-				if (lastPoint.day.length() < 10 || lastPoint.day.substr(0, 10) != todayStr)
-					continue;
-			}
+		auto points = m_db_mgr.LoadKLineCache(code, period);
+		if (points.empty()) continue;
 
-			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
-			if (period == STOCK::Period::DAY)
-			{
-				stockData->clearKLineData();
-				for (const auto& point : points)
-					stockData->addKLinePoint(point);
-			}
-			else if (period == STOCK::Period::MIN5)
-			{
-				stockData->clearMin5KLineData();
-				for (const auto& point : points)
-					stockData->addMin5KLinePoint(point);
-			}
-			else if (period == STOCK::Period::MIN30)
-			{
-				stockData->clearMin30KLineData();
-				for (const auto& point : points)
-					stockData->addMin30KLinePoint(point);
-			}
+		// 5分钟/30分钟K线：如果缓存最新数据不是今天的，跳过加载（等网络请求更新）
+		if (period == STOCK::Period::MIN5 || period == STOCK::Period::MIN30)
+		{
+			std::string todayStr = GetTodayDateString();
+			const auto& lastPoint = points.back();
+			if (lastPoint.day.length() < 10 || lastPoint.day.substr(0, 10) != todayStr)
+				continue;
+		}
+
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		if (period == STOCK::Period::DAY)
+		{
+			stockData->clearKLineData();
+			for (const auto& point : points)
+				stockData->addKLinePoint(point);
+		}
+		else if (period == STOCK::Period::MIN5)
+		{
+			stockData->clearMin5KLineData();
+			for (const auto& point : points)
+				stockData->addMin5KLinePoint(point);
+		}
+		else if (period == STOCK::Period::MIN30)
+		{
+			stockData->clearMin30KLineData();
+			for (const auto& point : points)
+				stockData->addMin30KLinePoint(point);
 		}
 	}
 }
 
 bool CDataManager::SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares)
 {
-	if (m_db == nullptr || circulatingAShares <= 0) return false;
-
-	const char* sql = "INSERT OR REPLACE INTO stock_basic_data(stock_code, circulating_a_shares, updated_at) VALUES(?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(circulatingAShares));
-	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(time(nullptr)));
-
-	rc = sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-
-	return rc == SQLITE_DONE;
+	return m_db_mgr.SaveStockBasicData(stockCode, circulatingAShares);
 }
 
 void CDataManager::LoadStockBasicData()
 {
-	if (m_db == nullptr) return;
-
-	const char* sql = "SELECT circulating_a_shares FROM stock_basic_data WHERE stock_code = ?;";
+	if (!m_db_mgr.IsOpen()) return;
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
-		sqlite3_stmt* stmt = nullptr;
-		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-		if (rc != SQLITE_OK) continue;
-
-		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		if (sqlite3_step(stmt) == SQLITE_ROW)
+		STOCK::Volume circulatingAShares = 0;
+		if (m_db_mgr.LoadStockBasicData(code, circulatingAShares) && circulatingAShares > 0)
 		{
-			STOCK::Volume circulatingAShares = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 0));
-			if (circulatingAShares > 0)
+			auto stockData = GetStockData(code);
+			if (stockData)
 			{
-				auto stockData = GetStockData(code);
-				if (stockData)
-				{
-					std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
-					stockData->info.circulatingAShares = circulatingAShares;
-				}
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				stockData->info.circulatingAShares = circulatingAShares;
 			}
 		}
-		sqlite3_finalize(stmt);
 	}
 }
 
 bool CDataManager::SaveChipDistribution(const std::wstring& stockCode, const STOCK::ChipDistribution& chipData)
 {
-	if (m_db == nullptr || !chipData.IsValid()) return false;
-
-	std::ostringstream pointsStream;
-	pointsStream << "[";
-	for (size_t i = 0; i < chipData.points.size(); ++i)
-	{
-		if (i > 0) pointsStream << ",";
-		pointsStream << "[" << chipData.points[i].price << "," << chipData.points[i].percent << "]";
-	}
-	pointsStream << "]";
-	std::string pointsJson = pointsStream.str();
-	time_t now = time(nullptr);
-
-	const char* sql = "INSERT OR REPLACE INTO chip_distributions(stock_code, trade_date, avg_cost, benefit_ratio, cost70_low, cost70_high, cost70_concentration, cost90_low, cost90_high, cost90_concentration, points_json, updated_at) "
-		"VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(stmt, 2, chipData.tradeDate.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_double(stmt, 3, chipData.avgCost);
-	sqlite3_bind_double(stmt, 4, chipData.benefitRatio);
-	sqlite3_bind_double(stmt, 5, chipData.cost70Low);
-	sqlite3_bind_double(stmt, 6, chipData.cost70High);
-	sqlite3_bind_double(stmt, 7, chipData.cost70Concentration);
-	sqlite3_bind_double(stmt, 8, chipData.cost90Low);
-	sqlite3_bind_double(stmt, 9, chipData.cost90High);
-	sqlite3_bind_double(stmt, 10, chipData.cost90Concentration);
-	sqlite3_bind_text(stmt, 11, pointsJson.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_int64(stmt, 12, static_cast<sqlite3_int64>(now));
-
-	rc = sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-
-	return rc == SQLITE_DONE;
+	return m_db_mgr.SaveChipDistribution(stockCode, chipData);
 }
 
 bool CDataManager::LoadLatestChipDistribution(const std::wstring& stockCode, STOCK::ChipDistribution& chipData)
 {
-	chipData.Clear();
-	if (m_db == nullptr) return false;
-
-	const char* sql = "SELECT trade_date, avg_cost, benefit_ratio, cost70_low, cost70_high, cost70_concentration, cost90_low, cost90_high, cost90_concentration, points_json, updated_at "
-		"FROM chip_distributions WHERE stock_code = ? ORDER BY updated_at DESC LIMIT 1;";
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK) return false;
-
-	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	if (sqlite3_step(stmt) == SQLITE_ROW)
-	{
-		const unsigned char* tradeDate = sqlite3_column_text(stmt, 0);
-		chipData.tradeDate = tradeDate ? reinterpret_cast<const char*>(tradeDate) : "";
-		chipData.avgCost = sqlite3_column_double(stmt, 1);
-		chipData.benefitRatio = sqlite3_column_double(stmt, 2);
-		chipData.cost70Low = sqlite3_column_double(stmt, 3);
-		chipData.cost70High = sqlite3_column_double(stmt, 4);
-		chipData.cost70Concentration = sqlite3_column_double(stmt, 5);
-		chipData.cost90Low = sqlite3_column_double(stmt, 6);
-		chipData.cost90High = sqlite3_column_double(stmt, 7);
-		chipData.cost90Concentration = sqlite3_column_double(stmt, 8);
-		const unsigned char* pointsJson = sqlite3_column_text(stmt, 9);
-		chipData.updatedAt = static_cast<time_t>(sqlite3_column_int64(stmt, 10));
-		if (pointsJson != nullptr)
-		{
-			std::string pointsStr = reinterpret_cast<const char*>(pointsJson);
-			yyjson_doc* doc = yyjson_read(pointsStr.c_str(), pointsStr.size(), 0);
-			if (doc != nullptr)
-			{
-				yyjson_val* root = yyjson_doc_get_root(doc);
-				if (root != nullptr && yyjson_is_arr(root))
-				{
-					yyjson_val* item;
-					yyjson_arr_iter iter;
-					yyjson_arr_iter_init(root, &iter);
-					while ((item = yyjson_arr_iter_next(&iter)))
-					{
-						if (item != nullptr && yyjson_is_arr(item) && yyjson_arr_size(item) >= 2)
-						{
-							yyjson_val* priceVal = yyjson_arr_get(item, 0);
-							yyjson_val* percentVal = yyjson_arr_get(item, 1);
-							STOCK::ChipPoint point;
-							point.price = GetJsonDoubleValue(priceVal);
-							point.percent = GetJsonDoubleValue(percentVal);
-							chipData.points.push_back(point);
-						}
-					}
-				}
-				yyjson_doc_free(doc);
-			}
-		}
-	}
-	sqlite3_finalize(stmt);
-	return chipData.IsValid();
+	return m_db_mgr.LoadLatestChipDistribution(stockCode, chipData);
 }
 
 void CDataManager::LoadChipDistributions()
 {
-	if (m_db == nullptr) return;
+	if (!m_db_mgr.IsOpen()) return;
 
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
@@ -877,7 +349,7 @@ void CDataManager::LoadChipDistributions()
 
 void CDataManager::LoadTodayInnerOuterSnapshots()
 {
-	if (m_db == nullptr) return;
+	if (!m_db_mgr.IsOpen()) return;
 
 	SYSTEMTIME st;
 	GetLocalTime(&st);
@@ -890,35 +362,24 @@ void CDataManager::LoadTodayInnerOuterSnapshots()
 	// 加载最近2天的数据，覆盖跨0点场景
 	time_t startTime = nowTime - 24 * 60 * 60;
 
-	const char* sql = "SELECT snapshot_time, inner_volume, outer_volume FROM inner_outer_snapshots "
-		"WHERE stock_code = ? AND snapshot_time >= ? ORDER BY snapshot_time ASC;";
-
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
 		auto stockData = GetStockData(code);
 		if (!stockData) continue;
 		stockData->ClearVolumePools();
 
-		sqlite3_stmt* stmt = nullptr;
-		int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
-		if (rc != SQLITE_OK) continue;
-
-		sqlite3_bind_text16(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(startTime));
-
-		while (sqlite3_step(stmt) == SQLITE_ROW)
+		auto snapshots = m_db_mgr.LoadInnerOuterSnapshots(code, startTime);
+		for (const auto& snap : snapshots)
 		{
-			time_t timestamp = static_cast<time_t>(sqlite3_column_int64(stmt, 0));
-			STOCK::Volume innerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 1));
-			STOCK::Volume outerVolume = static_cast<STOCK::Volume>(sqlite3_column_int64(stmt, 2));
+			time_t timestamp = std::get<0>(snap);
+			STOCK::Volume innerVolume = std::get<1>(snap);
+			STOCK::Volume outerVolume = std::get<2>(snap);
 			int tradingMinute = GetTradingMinute(timestamp);
 			if (tradingMinute >= 0)
 				stockData->AddVolumeSample(timestamp, innerVolume, outerVolume);
 			stockData->info.innerVolume = innerVolume;
 			stockData->info.outerVolume = outerVolume;
 		}
-
-		sqlite3_finalize(stmt);
 	}
 }
 
@@ -1288,36 +749,6 @@ static bool IsSameLocalDate(time_t lhs, time_t rhs)
 	return lhsTm.tm_year == rhsTm.tm_year && lhsTm.tm_mon == rhsTm.tm_mon && lhsTm.tm_mday == rhsTm.tm_mday;
 }
 
-static const char* GetKLineCacheTable(STOCK::Period period)
-{
-	switch (period)
-	{
-	case STOCK::Period::DAY:
-		return "kline_day_cache";
-	case STOCK::Period::MIN5:
-		return "kline_min5_cache";
-	case STOCK::Period::MIN30:
-		return "kline_min30_cache";
-	default:
-		return "";
-	}
-}
-
-static std::wstring GetKLineCacheTableW(STOCK::Period period)
-{
-	switch (period)
-	{
-	case STOCK::Period::DAY:
-		return L"kline_day_cache";
-	case STOCK::Period::MIN5:
-		return L"kline_min5_cache";
-	case STOCK::Period::MIN30:
-		return L"kline_min30_cache";
-	default:
-		return L"";
-	}
-}
-
 static std::wstring GetEastMoneySecId(const std::wstring& stockId)
 {
 	std::wstring code = stockId;
@@ -1589,6 +1020,30 @@ void CDataManager::RequestInnerOuterData()
 	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
 	{
 		stockMarket.LoadInnerOuterData(stock_data);
+	}
+}
+
+void CDataManager::RequestCallAuctionData()
+{
+	TRACE(L"RequestCallAuctionData... 使用腾讯API获取集合竞价数据\n");
+	// 仅获取A股代码（sh/sz/bj），过滤掉港股、美股等不支持集合竞价的代码
+	std::vector<std::wstring> codes;
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		if (code.find(L"sh") == 0 || code.find(L"sz") == 0 || code.find(L"bj") == 0)
+			codes.push_back(code);
+	}
+	if (codes.empty()) return;
+
+	std::wstring url{ L"http://qt.gtimg.cn/q=" };
+	url += CCommon::vectorJoinString(codes, L",");
+
+	CString strHeaders = _T("Referer: https://finance.qq.com");
+
+	std::string stock_data;
+	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+	{
+		stockMarket.LoadCallAuctionData(stock_data);
 	}
 }
 

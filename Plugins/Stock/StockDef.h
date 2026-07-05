@@ -357,6 +357,69 @@ namespace STOCK
 		bool IsETF() const;
 	};
 
+	// 集合竞价快照数据点
+	struct CallAuctionSnapshot
+	{
+		time_t timestamp{ 0 };       // 快照时间
+		Price matchPrice{ 0.0 };     // 虚拟撮合价
+		Volume matchVolume{ 0 };     // 虚拟撮合量（股）
+		Volume totalAskVolume{ 0 };  // 委卖总量
+		Volume totalBidVolume{ 0 };  // 委买总量
+		Price askLevels[5];          // 卖一到卖五价格
+		Volume askVolumes[5];        // 卖一到卖五量
+		Price bidLevels[5];          // 买一到买五价格
+		Volume bidVolumes[5];        // 买一到买五量
+
+		CallAuctionSnapshot()
+		{
+			memset(askLevels, 0, sizeof(askLevels));
+			memset(askVolumes, 0, sizeof(askVolumes));
+			memset(bidLevels, 0, sizeof(bidLevels));
+			memset(bidVolumes, 0, sizeof(bidVolumes));
+		}
+	};
+
+	// 集合竞价数据（9:15-9:30 期间持续更新）
+	struct CallAuctionData
+	{
+		bool isValid{ false };           // 数据是否有效
+		time_t lastUpdateTime{ 0 };      // 最后更新时间
+		Price prevClosePrice{ 0.0 };     // 昨收价
+		Price matchPrice{ 0.0 };         // 当前虚拟撮合价
+		Volume matchVolume{ 0 };         // 当前虚拟撮合量
+		Volume totalAskVolume{ 0 };      // 委卖总量
+		Volume totalBidVolume{ 0 };      // 委买总量
+		Price limitUpPrice{ 0.0 };       // 涨停价
+		Price limitDownPrice{ 0.0 };     // 跌停价
+		Price openPrice{ 0.0 };          // 开盘价（9:25后确定）
+		OrderLevel askLevels[5];         // 卖一到卖五
+		OrderLevel bidLevels[5];         // 买一到买五
+		std::vector<CallAuctionSnapshot> snapshots; // 竞价期间快照序列
+
+		void Clear()
+		{
+			isValid = false;
+			lastUpdateTime = 0;
+			prevClosePrice = 0.0;
+			matchPrice = 0.0;
+			matchVolume = 0;
+			totalAskVolume = 0;
+			totalBidVolume = 0;
+			limitUpPrice = 0.0;
+			limitDownPrice = 0.0;
+			openPrice = 0.0;
+			snapshots.clear();
+		}
+
+		// 添加快照（最多保留300条，覆盖9:15-9:30共15分钟每3秒一条）
+		void AddSnapshot(const CallAuctionSnapshot& snapshot)
+		{
+			snapshots.push_back(snapshot);
+			if (snapshots.size() > 300)
+				snapshots.erase(snapshots.begin());
+		}
+	};
+
 	// 盘口价格累计数据
 	struct OrderPriceAccum
 	{
@@ -371,6 +434,7 @@ namespace STOCK
 	public:
 		StockInfo info;
 		ChipDistribution chipDistribution;
+		CallAuctionData callAuctionData;  // 集合竞价数据
 
 		// 买一到买五、卖一到卖五按价格跟踪挂盘减少累计量（股）
 		std::map<Price, OrderPriceAccum> orderPriceAccumMap;
@@ -616,126 +680,127 @@ namespace STOCK
 			Volume total = inner + outer;
 			ratio = total > 0 ? static_cast<double>(diff) / total * 100 : 0;
 			return total > 0;
-	}
-
-	bool GetPreviousInnerOuterTotalRatio(double& ratio) const
-	{
-		const VolumeSample* prev = volumePool.FromEnd(1);
-		if (!prev) return false;
-		Volume total = prev->innerVolume + prev->outerVolume;
-		if (total <= 0) return false;
-		ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
-		return true;
-	}
-
-	// 获取最近N根5秒净比（每根=当前样本-前一个样本的差值对应的净比）
-	// 返回值从新到旧排列（index 0=最新, N-1=最旧）
-	bool GetRecentNetRatios(int count, std::vector<double>& ratios) const
-	{
-		ratios.clear();
-		if (volumePool.count < count + 1)
-			return false;
-		ratios.resize(count);
-		for (int i = 0; i < count; i++)
-		{
-			// 从新到旧：FromEnd(i+1) 和 FromEnd(i)
-			const VolumeSample* older = volumePool.FromEnd(i + 1);
-			const VolumeSample* newer = volumePool.FromEnd(i);
-			if (!older || !newer)
-			{
-				ratios.clear();
-				return false;
-			}
-			Volume inner = newer->innerVolume - older->innerVolume;
-			Volume outer = newer->outerVolume - older->outerVolume;
-			Volume total = inner + outer;
-			ratios[i] = total > 0 ? static_cast<double>(outer - inner) / total * 100 : 0;
 		}
-		return true;
-	}
 
-	// 持仓盈亏计算（需要外部传入成本价和持股数）
-	struct PositionInfo {
-		double totalCost;        // 总成本
-		double marketValue;      // 市值
-		double profitLoss;       // 盈亏额
-		double profitLossPercent;// 盈亏比
-		double todayProfitLoss;  // 当日盈亏额
-		double todayProfitLossPercent; // 当日盈亏比
-		bool isValid;
+		bool GetPreviousInnerOuterTotalRatio(double& ratio) const
+		{
+			const VolumeSample* prev = volumePool.FromEnd(1);
+			if (!prev) return false;
+			Volume total = prev->innerVolume + prev->outerVolume;
+			if (total <= 0) return false;
+			ratio = static_cast<double>(prev->outerVolume - prev->innerVolume) / total * 100;
+			return true;
+		}
 
-		PositionInfo() : totalCost(0), marketValue(0), profitLoss(0),
-			profitLossPercent(0), todayProfitLoss(0), todayProfitLossPercent(0),
-			isValid(false) {
+		// 获取最近N根5秒净比（每根=当前样本-前一个样本的差值对应的净比）
+		// 返回值从新到旧排列（index 0=最新, N-1=最旧）
+		bool GetRecentNetRatios(int count, std::vector<double>& ratios) const
+		{
+			ratios.clear();
+			if (volumePool.count < count + 1)
+				return false;
+			ratios.resize(count);
+			for (int i = 0; i < count; i++)
+			{
+				// 从新到旧：FromEnd(i+1) 和 FromEnd(i)
+				const VolumeSample* older = volumePool.FromEnd(i + 1);
+				const VolumeSample* newer = volumePool.FromEnd(i);
+				if (!older || !newer)
+				{
+					ratios.clear();
+					return false;
+				}
+				Volume inner = newer->innerVolume - older->innerVolume;
+				Volume outer = newer->outerVolume - older->outerVolume;
+				Volume total = inner + outer;
+				ratios[i] = total > 0 ? static_cast<double>(outer - inner) / total * 100 : 0;
+			}
+			return true;
+		}
+
+		// 持仓盈亏计算（需要外部传入成本价和持股数）
+		struct PositionInfo {
+			double totalCost;        // 总成本
+			double marketValue;      // 市值
+			double profitLoss;       // 盈亏额
+			double profitLossPercent;// 盈亏比
+			double todayProfitLoss;  // 当日盈亏额
+			double todayProfitLossPercent; // 当日盈亏比
+			bool isValid;
+
+			PositionInfo() : totalCost(0), marketValue(0), profitLoss(0),
+				profitLossPercent(0), todayProfitLoss(0), todayProfitLossPercent(0),
+				isValid(false) {
+			}
+		};
+		PositionInfo CalculatePositionInfo(double costPrice, double holdingCount) const;
+
+		// 年化收益率计算
+		double CalculateAnnualizedReturn(double costPrice, double holdingCount, const std::wstring& buyDate) const;
+	};
+
+	// 股票市场类，管理多个股票
+	class StockMarket
+	{
+	private:
+		std::map<std::wstring, std::shared_ptr<StockData>> stocks; // 以股票代码为键的股票数据映射
+
+	public:
+		void LoadRealtimeDataByJson(std::string data);
+		void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
+		void LoadKLineDataByJson(std::wstring stock_id, CString* data);
+		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
+		void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
+		void LoadInnerOuterData(std::string data);
+		void LoadCallAuctionData(std::string data);
+
+		void ClearRealtimeData()
+		{
+			for (const auto& it : stocks)
+			{
+				StockInfo data;
+				data.innerVolume = it.second->info.innerVolume;
+				data.outerVolume = it.second->info.outerVolume;
+				data.turnoverRate = it.second->info.turnoverRate;
+				it.second->info = data;
+			}
+		}
+
+		// 添加股票
+		std::shared_ptr<StockData> addStock(const std::wstring& code)
+		{
+			StockData stock;
+			stock.info.code = code;
+			stock.InitVolumePools();
+			stocks[code] = std::make_shared<StockData>(stock);
+			return stocks[code];
+		}
+
+		// 获取股票数据
+		std::shared_ptr<StockData> getStock(const std::wstring& code)
+		{
+			auto it = stocks.find(code);
+			if (it != stocks.end())
+			{
+				return it->second;
+			}
+			return addStock(code);
 		}
 	};
-	PositionInfo CalculatePositionInfo(double costPrice, double holdingCount) const;
 
-	// 年化收益率计算
-	double CalculateAnnualizedReturn(double costPrice, double holdingCount, const std::wstring& buyDate) const;
-};
-
-// 股票市场类，管理多个股票
-class StockMarket
-{
-private:
-	std::map<std::wstring, std::shared_ptr<StockData>> stocks; // 以股票代码为键的股票数据映射
-
-public:
-	void LoadRealtimeDataByJson(std::string data);
-	void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
-	void LoadKLineDataByJson(std::wstring stock_id, CString* data);
-	void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
-	void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
-	void LoadInnerOuterData(std::string data);
-
-	void ClearRealtimeData()
+	// 转换函数模板
+	template <typename T>
+	T convert(const std::string& str)
 	{
-		for (const auto& it : stocks)
+		if (str.empty()) return T();
+		if constexpr (std::is_same_v<T, double>)
 		{
-			StockInfo data;
-			data.innerVolume = it.second->info.innerVolume;
-			data.outerVolume = it.second->info.outerVolume;
-			data.turnoverRate = it.second->info.turnoverRate;
-			it.second->info = data;
+			return std::stod(str);
 		}
-	}
-
-	// 添加股票
-	std::shared_ptr<StockData> addStock(const std::wstring& code)
-	{
-		StockData stock;
-		stock.info.code = code;
-		stock.InitVolumePools();
-		stocks[code] = std::make_shared<StockData>(stock);
-		return stocks[code];
-	}
-
-	// 获取股票数据
-	std::shared_ptr<StockData> getStock(const std::wstring& code)
-	{
-		auto it = stocks.find(code);
-		if (it != stocks.end())
+		else if constexpr (std::is_same_v<T, long long>)
 		{
-			return it->second;
+			return std::stoll(str);
 		}
-		return addStock(code);
+		return T();
 	}
-};
-
-// 转换函数模板
-template <typename T>
-T convert(const std::string& str)
-{
-	if (str.empty()) return T();
-	if constexpr (std::is_same_v<T, double>)
-	{
-		return std::stod(str);
-	}
-	else if constexpr (std::is_same_v<T, long long>)
-	{
-		return std::stoll(str);
-	}
-	return T();
-}
 }

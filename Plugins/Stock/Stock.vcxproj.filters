@@ -66,6 +66,9 @@
     <ClInclude Include="SignalAnalyzer.h">
       <Filter>SignalAnalyzer</Filter>
     </ClInclude>
+    <ClInclude Include="StockFetchThread.h">
+      <Filter>Stock</Filter>
+    </ClInclude>
     <ClInclude Include="StockDef.h">
       <Filter>DataManager</Filter>
     </ClInclude>
@@ -76,6 +79,9 @@
       <Filter>FloatingWnd</Filter>
     </ClInclude>
     <ClInclude Include="sqlite3.h">
+      <Filter>DataManager</Filter>
+    </ClInclude>
+    <ClInclude Include="StockDbManager.h">
       <Filter>DataManager</Filter>
     </ClInclude>
   </ItemGroup>
@@ -107,6 +113,9 @@
     <ClCompile Include="SignalAnalyzer.cpp">
       <Filter>SignalAnalyzer</Filter>
     </ClCompile>
+    <ClCompile Include="StockFetchThread.cpp">
+      <Filter>Stock</Filter>
+    </ClCompile>
     <ClCompile Include="StockDef.cpp">
       <Filter>DataManager</Filter>
     </ClCompile>
@@ -117,6 +126,9 @@
       <Filter>FloatingWnd</Filter>
     </ClCompile>
     <ClCompile Include="sqlite3.c">
+      <Filter>DataManager</Filter>
+    </ClCompile>
+    <ClCompile Include="StockDbManager.cpp">
       <Filter>DataManager</Filter>
     </ClCompile>
   </ItemGroup>

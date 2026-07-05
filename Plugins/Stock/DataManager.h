@@ -1,13 +1,12 @@
-#pragma once
+﻿#pragma once
 #include <string>
 #include <map>
 #include <vector>
 #include <ctime>
 #include "resource.h"
 #include "StockDef.h"
+#include "StockDbManager.h"
 #include <mutex>
-
-struct sqlite3;
 
 using namespace STOCK;
 
@@ -58,6 +57,8 @@ public:
 	static bool IsMarketOpen();
 	// 判断当前是否在交易日时段（含午休，9:30-15:00，非周末）
 	static bool IsTradingDaySession();
+	// 判断当前是否在集合竞价时段（9:15-9:30，非周末）
+	static bool IsCallAuctionSession();
 
 	// 将真实时间转换为交易分钟序号（9:30=0, ..., 11:30=119, 13:00=120, ..., 14:59=239）
 	static int GetTradingMinute(time_t t);
@@ -70,6 +71,7 @@ public:
 	void RequestMin5KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestMin30KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
+	void RequestCallAuctionData();
 	bool RequestChipDistributionData(std::wstring stock_id);
 	void RequestAllChipDistributionData();
 	bool RequestStockBasicData(std::wstring stock_id);
@@ -116,13 +118,13 @@ public:
 	void LoadStockBasicData();
 
 private:
-	void InitDatabase();
 	bool SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data);
 	bool SaveKLineCache(const std::wstring& stockCode, STOCK::Period period, const std::vector<STOCK::KLinePoint>& data);
 	void LoadTimelineCache();
 	void LoadKLineCache(STOCK::Period period);
-	sqlite3* m_db{ nullptr };
-	std::wstring m_db_path;
+
+	// 数据库管理器：所有 SQLite 操作由此类负责
+	CStockDbManager m_db_mgr;
 	static CDataManager m_instance;
 
 	std::wstring m_config_path;

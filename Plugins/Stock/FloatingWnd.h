@@ -284,8 +284,11 @@ private:
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
 	bool m_is_thread_running{};
+	bool m_is_thread_stopping{};  // 通知 NetworkThreadProc 尽快退出
 	bool m_pendingRequest{};  // 切换股票时如果线程正在运行，标记待请求
 	bool m_isFirstRequest{ true };  // 启动后首次请求标志，不受交易时段限制
+	HANDLE m_hNetworkThread{ nullptr };     // NetworkThreadProc 线程句柄（用于退出等待）
+	class CWinThread* m_pNetworkThread{ nullptr };  // 对应 CWinThread 对象（m_bAutoDelete=FALSE，需手动释放）
 	bool m_isKLineMode{};
 	bool m_isMin5KLineMode{};  // 5分钟K线模式（m_isKLineMode为true时的子模式）
 	bool m_isMin30KLineMode{};  // 30分钟K线模式（m_isKLineMode为true时的子模式）
@@ -317,6 +320,8 @@ private:
 	CString loading_state_txt;
 
 	unsigned __int64 m_last_request_time{};
+	unsigned __int64 m_last_min5_fetch_time{};   // 上次获取5分钟K线的时间（固定60秒间隔，与视图无关）
+	unsigned __int64 m_last_min30_fetch_time{};   // 上次获取30分钟K线的时间（固定600秒间隔，与视图无关）
 
 	// 鼠标悬停数据
 	CPoint m_mousePos;
@@ -354,6 +359,7 @@ private:
 	bool m_showT0Markers{ false };
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };
+	bool m_showAmplitudeBands{ false };  // 振幅上下线（与布林带互斥）
 	int m_klineHoveredBarIndex{ -1 };
 	CString m_klineHoverTip;
 	CString m_klineVolumeHoverTip;

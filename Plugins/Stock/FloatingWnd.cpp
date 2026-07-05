@@ -329,7 +329,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnOrderBook.Create(_T("PK"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, orderBookBtnRect, this, IDC_ORDER_BOOK_BTN);
 
 	CRect bollBtnRect(0, 0, rightBtnWidth, btnHeight);
-	m_btnBoll.Create(_T("BL"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
+	m_btnBoll.Create(_T("ZF"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, bollBtnRect, this, IDC_BOLL_BTN);
 	m_btnBoll.ShowWindow(SW_HIDE);
 
 	CRect maBtnRect(0, 0, rightBtnWidth, btnHeight);
@@ -382,28 +382,25 @@ LRESULT CFloatingWnd::OnRequestData(WPARAM wParam, LPARAM lParam)
 	time_t req_time = (time_t)wParam;
 	if (req_time)
 	{
-		// 检测K线模式是否变化，变化时重置请求时间以立即触发请求
-		static bool prevMin5 = false, prevMin30 = false;
-		if (prevMin5 != m_isMin5KLineMode || prevMin30 != m_isMin30KLineMode)
+		time_t now = req_time;
+		bool need = false;
+
+		// 视图相关数据（分时/日K线）：仅在非5min/30min视图下按10秒间隔获取
+		if (!m_isMin5KLineMode && !m_isMin30KLineMode)
 		{
-			m_last_request_time = 0;
-			prevMin5 = m_isMin5KLineMode;
-			prevMin30 = m_isMin30KLineMode;
+			if (now - (time_t)m_last_request_time > 10)
+				need = true;
 		}
+		// 5分钟K线：固定60秒间隔获取，与当前视图无关
+		if (now - (time_t)m_last_min5_fetch_time > 60)
+			need = true;
+		// 30分钟K线：固定600秒间隔获取，与当前视图无关
+		if (now - (time_t)m_last_min30_fetch_time > 600)
+			need = true;
 
-		// 根据K线模式设置不同的请求防抖间隔
-		time_t request_interval = 10; // 默认10秒（日K线、分时等）
-		if (m_isMin5KLineMode)
-			request_interval = 60;		// 5分钟K线：每1分钟请求一次
-		else if (m_isMin30KLineMode)
-			request_interval = 600;		// 30分钟K线：每10分钟请求一次
-
-		if (req_time - m_last_request_time > request_interval)
-		{
-			m_last_request_time = req_time;
-			// 开始网络请求
+		if (need)
 			RequestData();
-		}
+
 		loading_state_txt += L".";
 		Invalidate();
 	}
@@ -997,6 +994,73 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
+	// 振幅上下线（仅当m_showAmplitudeBands开启时绘制）
+	// 以近5日平均振幅为基准，每个分时点的均价*(1+振幅/2)作为上轨，均价*(1-振幅/2)作为下轨
+	if (m_showAmplitudeBands)
+	{
+		auto stockData = g_data.GetStockData(m_stock_id);
+		auto* dayKLineObj = stockData ? stockData->getKLineData() : nullptr;
+		double avgAmplitude = dayKLineObj ? dayKLineObj->CalculateAverageAmplitude(5) : 0;  // 百分比，如3.5表示3.5%
+		if (avgAmplitude > 0)
+		{
+			double ampRatio = avgAmplitude / 100.0 / 2.0;  // 转换为小数再除2
+
+			auto priceToY = [&](double price) -> int {
+				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
+				return max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
+				};
+
+			// 绘制振幅上轨曲线（红色）
+			{
+				CPen upperPen(PS_SOLID, 1, COLOR_RED_UP);
+				memDC.SelectObject(&upperPen);
+				bool first = true;
+				for (int i = 0; i < totalPoints; i++)
+				{
+					double avgP = timelinePoint[i].averagePrice;
+					if (avgP <= 0) { first = true; continue; }
+					double upperPrice = avgP * (1 + ampRatio);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int py = priceToY(upperPrice);
+					if (first) { memDC.MoveTo(pointX, py); first = false; }
+					else { memDC.LineTo(pointX, py); }
+				}
+			}
+			// 绘制振幅下轨曲线（绿色）
+			{
+				CPen lowerPen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+				memDC.SelectObject(&lowerPen);
+				bool first = true;
+				for (int i = 0; i < totalPoints; i++)
+				{
+					double avgP = timelinePoint[i].averagePrice;
+					if (avgP <= 0) { first = true; continue; }
+					double lowerPrice = avgP * (1 - ampRatio);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int py = priceToY(lowerPrice);
+					if (first) { memDC.MoveTo(pointX, py); first = false; }
+					else { memDC.LineTo(pointX, py); }
+				}
+			}
+
+			// 在右端标注价格
+			double lastAvgP = timelinePoint.back().averagePrice;
+			if (lastAvgP > 0)
+			{
+				CString upperLabel, lowerLabel;
+				upperLabel.Format(_T("%.2f"), lastAvgP * (1 + ampRatio));
+				lowerLabel.Format(_T("%.2f"), lastAvgP * (1 - ampRatio));
+				int labelX = ctx.chartLeft + ctx.chartWidth + 2;
+				int upperY = priceToY(lastAvgP * (1 + ampRatio));
+				int lowerY = priceToY(lastAvgP * (1 - ampRatio));
+				memDC.SetTextColor(COLOR_RED_UP);
+				memDC.TextOut(labelX, upperY - memDC.GetTextExtent(upperLabel).cy / 2, upperLabel);
+				memDC.SetTextColor(COLOR_GREEN_DOWN);
+				memDC.TextOut(labelX, lowerY - memDC.GetTextExtent(lowerLabel).cy / 2, lowerLabel);
+			}
+		}
+	}
+
 	// 绘制智能分析买卖点标记（基于5min/30min K线共振判定）
 	if (m_showT0Markers)
 	{
@@ -1576,6 +1640,71 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 		drawBandLine(upperBand, COLOR_RED_UP);
 		drawBandLine(middleBand, RGB(0, 0, 230));
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
+	}
+
+	// 振幅上下线（仅当m_showAmplitudeBands开启时绘制）
+	if (m_showAmplitudeBands)
+	{
+		auto stockData = g_data.GetStockData(m_stock_id);
+		auto* dayKLineObj = stockData ? stockData->getKLineData() : nullptr;
+		double avgAmplitude = dayKLineObj ? dayKLineObj->CalculateAverageAmplitude(5) : 0;
+		if (avgAmplitude > 0)
+		{
+			double ampRatio = avgAmplitude / 100.0 / 2.0;
+
+			auto priceToY = [&](double price) -> int {
+				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
+				return max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
+				};
+
+			// 绘制振幅上轨曲线（红色）
+			{
+				CPen upperPen(PS_SOLID, 1, COLOR_RED_UP);
+				memDC.SelectObject(&upperPen);
+				bool first = true;
+				for (int i = 0; i < totalPoints; i++)
+				{
+					double avgP = timelinePoint[i].averagePrice;
+					if (avgP <= 0) { first = true; continue; }
+					double upperPrice = avgP * (1 + ampRatio);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int py = priceToY(upperPrice);
+					if (first) { memDC.MoveTo(pointX, py); first = false; }
+					else { memDC.LineTo(pointX, py); }
+				}
+			}
+			// 绘制振幅下轨曲线（绿色）
+			{
+				CPen lowerPen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+				memDC.SelectObject(&lowerPen);
+				bool first = true;
+				for (int i = 0; i < totalPoints; i++)
+				{
+					double avgP = timelinePoint[i].averagePrice;
+					if (avgP <= 0) { first = true; continue; }
+					double lowerPrice = avgP * (1 - ampRatio);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int py = priceToY(lowerPrice);
+					if (first) { memDC.MoveTo(pointX, py); first = false; }
+					else { memDC.LineTo(pointX, py); }
+				}
+			}
+
+			double lastAvgP = timelinePoint.back().averagePrice;
+			if (lastAvgP > 0)
+			{
+				CString upperLabel, lowerLabel;
+				upperLabel.Format(_T("%.2f"), lastAvgP * (1 + ampRatio));
+				lowerLabel.Format(_T("%.2f"), lastAvgP * (1 - ampRatio));
+				int labelX = ctx.chartLeft + ctx.chartWidth + 2;
+				int upperY = priceToY(lastAvgP * (1 + ampRatio));
+				int lowerY = priceToY(lastAvgP * (1 - ampRatio));
+				memDC.SetTextColor(COLOR_RED_UP);
+				memDC.TextOut(labelX, upperY - memDC.GetTextExtent(upperLabel).cy / 2, upperLabel);
+				memDC.SetTextColor(COLOR_GREEN_DOWN);
+				memDC.TextOut(labelX, lowerY - memDC.GetTextExtent(lowerLabel).cy / 2, lowerLabel);
+			}
+		}
 	}
 
 	// 最高/最低价标签
@@ -5143,6 +5272,87 @@ void CFloatingWnd::DrawKLineChart(CDC& memDC, int x, int y, int w, int h, const 
 	{
 		DrawBollBands(memDC, drawData);
 	}
+	// 振幅上下线：在K线图中绘制振幅曲线（仅当 m_showAmplitudeBands 开启时）
+	if (m_showAmplitudeBands)
+	{
+		auto stockData = g_data.GetStockData(m_stock_id);
+		auto* dayKLineObj = stockData ? stockData->getKLineData() : nullptr;
+		double avgAmplitude = dayKLineObj ? dayKLineObj->CalculateAverageAmplitude(5) : 0;
+		if (avgAmplitude > 0)
+		{
+			double ampRatio = avgAmplitude / 100.0 / 2.0;
+
+			// 获取分时均价数据
+			auto* tlObj = stockData ? stockData->getTimelineData() : nullptr;
+			if (tlObj && !tlObj->data.empty() && drawData.klineData && !drawData.klineData->empty())
+			{
+				const auto& klineRef = *drawData.klineData;
+				int n = (int)klineRef.size();
+				auto priceToY = [&](double price) -> int {
+					int py = drawData.y + static_cast<int>((drawData.maxPrice - price) * drawData.unitY);
+					return max(drawData.y, min(py, drawData.y + drawData.h));
+					};
+
+				// 绘制振幅上轨曲线（红色）
+				{
+					CPen upperPen(PS_SOLID, 1, COLOR_RED_UP);
+					memDC.SelectObject(&upperPen);
+					bool first = true;
+					for (int i = drawData.finalStartIndex; i < n && i < drawData.finalStartIndex + drawData.displayCount; i++)
+					{
+						// 将日K收盘价作为"均价"近似值来计算振幅上下轨
+						double avgP = klineRef[i].close;
+						if (avgP <= 0) { first = true; continue; }
+						double upperPrice = avgP * (1 + ampRatio);
+						int barX = drawData.x + (i - drawData.finalStartIndex) * (drawData.barWidth + drawData.gap);
+						int py = priceToY(upperPrice);
+						if (first) { memDC.MoveTo(barX + drawData.barWidth / 2, py); first = false; }
+						else { memDC.LineTo(barX + drawData.barWidth / 2, py); }
+					}
+				}
+				// 绘制振幅下轨曲线（绿色）
+				{
+					CPen lowerPen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+					memDC.SelectObject(&lowerPen);
+					bool first = true;
+					for (int i = drawData.finalStartIndex; i < n && i < drawData.finalStartIndex + drawData.displayCount; i++)
+					{
+						double avgP = klineRef[i].close;
+						if (avgP <= 0) { first = true; continue; }
+						double lowerPrice = avgP * (1 - ampRatio);
+						int barX = drawData.x + (i - drawData.finalStartIndex) * (drawData.barWidth + drawData.gap);
+						int py = priceToY(lowerPrice);
+						if (first) { memDC.MoveTo(barX + drawData.barWidth / 2, py); first = false; }
+						else { memDC.LineTo(barX + drawData.barWidth / 2, py); }
+					}
+				}
+			}
+
+			// 在右端标注价格（基于分时最后均价）
+			double lastAvgP = 0;
+			if (tlObj && !tlObj->data.empty())
+				lastAvgP = tlObj->data.back().averagePrice;
+			if (lastAvgP <= 0 && drawData.stockInfo)
+				lastAvgP = drawData.stockInfo->currentPrice;
+			if (lastAvgP > 0)
+			{
+				auto priceToY = [&](double price) -> int {
+					int py = drawData.y + static_cast<int>((drawData.maxPrice - price) * drawData.unitY);
+					return max(drawData.y, min(py, drawData.y + drawData.h));
+					};
+				CString upperLabel, lowerLabel;
+				upperLabel.Format(_T("%.2f"), lastAvgP * (1 + ampRatio));
+				lowerLabel.Format(_T("%.2f"), lastAvgP * (1 - ampRatio));
+				int labelX = drawData.x + drawData.w + 2;
+				int upperY = priceToY(lastAvgP * (1 + ampRatio));
+				int lowerY = priceToY(lastAvgP * (1 - ampRatio));
+				memDC.SetTextColor(COLOR_RED_UP);
+				memDC.TextOut(labelX, upperY - memDC.GetTextExtent(upperLabel).cy / 2, upperLabel);
+				memDC.SetTextColor(COLOR_GREEN_DOWN);
+				memDC.TextOut(labelX, lowerY - memDC.GetTextExtent(lowerLabel).cy / 2, lowerLabel);
+			}
+		}
+	}
 	DrawKLineBars(memDC, drawData);
 	DrawKLinePeriodMarkers(memDC, drawData, periodHighs, periodLows);
 	DrawCurrentPriceLine(memDC, drawData);
@@ -5454,6 +5664,84 @@ void CFloatingWnd::DrawKLineTrendChart(CDC& memDC, int x, int y, int w, int h, c
 	if (m_showBollBands)
 	{
 		DrawBollBands(memDC, drawData);
+	}
+	// 振幅上下线（仅当 m_showAmplitudeBands 开启时）
+	if (m_showAmplitudeBands)
+	{
+		auto stockData = g_data.GetStockData(m_stock_id);
+		auto* dayKLineObj = stockData ? stockData->getKLineData() : nullptr;
+		double avgAmplitude = dayKLineObj ? dayKLineObj->CalculateAverageAmplitude(5) : 0;
+		if (avgAmplitude > 0)
+		{
+			double ampRatio = avgAmplitude / 100.0 / 2.0;
+
+			auto* tlObj = stockData ? stockData->getTimelineData() : nullptr;
+			if (tlObj && !tlObj->data.empty() && drawData.klineData && !drawData.klineData->empty())
+			{
+				const auto& klineRef = *drawData.klineData;
+				int n = (int)klineRef.size();
+				auto priceToY = [&](double price) -> int {
+					int py = drawData.y + static_cast<int>((drawData.maxPrice - price) * drawData.unitY);
+					return max(drawData.y, min(py, drawData.y + drawData.h));
+					};
+
+				// 绘制振幅上轨曲线（红色）
+				{
+					CPen upperPen(PS_SOLID, 1, COLOR_RED_UP);
+					memDC.SelectObject(&upperPen);
+					bool first = true;
+					for (int i = drawData.finalStartIndex; i < n && i < drawData.finalStartIndex + drawData.displayCount; i++)
+					{
+						double avgP = klineRef[i].close;
+						if (avgP <= 0) { first = true; continue; }
+						double upperPrice = avgP * (1 + ampRatio);
+						int barX = drawData.x + (i - drawData.finalStartIndex) * (drawData.barWidth + drawData.gap);
+						int py = priceToY(upperPrice);
+						if (first) { memDC.MoveTo(barX + drawData.barWidth / 2, py); first = false; }
+						else { memDC.LineTo(barX + drawData.barWidth / 2, py); }
+					}
+				}
+				// 绘制振幅下轨曲线（绿色）
+				{
+					CPen lowerPen(PS_SOLID, 1, COLOR_GREEN_DOWN);
+					memDC.SelectObject(&lowerPen);
+					bool first = true;
+					for (int i = drawData.finalStartIndex; i < n && i < drawData.finalStartIndex + drawData.displayCount; i++)
+					{
+						double avgP = klineRef[i].close;
+						if (avgP <= 0) { first = true; continue; }
+						double lowerPrice = avgP * (1 - ampRatio);
+						int barX = drawData.x + (i - drawData.finalStartIndex) * (drawData.barWidth + drawData.gap);
+						int py = priceToY(lowerPrice);
+						if (first) { memDC.MoveTo(barX + drawData.barWidth / 2, py); first = false; }
+						else { memDC.LineTo(barX + drawData.barWidth / 2, py); }
+					}
+				}
+			}
+
+			double lastAvgP = 0;
+			if (tlObj && !tlObj->data.empty())
+				lastAvgP = tlObj->data.back().averagePrice;
+			if (lastAvgP <= 0 && drawData.stockInfo)
+				lastAvgP = drawData.stockInfo->currentPrice;
+			if (lastAvgP > 0)
+			{
+				auto priceToY = [&](double price) -> int {
+					int py = drawData.y + static_cast<int>((drawData.maxPrice - price) * drawData.unitY);
+					return max(drawData.y, min(py, drawData.y + drawData.h));
+					};
+				CString upperLabel, lowerLabel;
+				upperLabel.Format(_T("%.2f"), lastAvgP * (1 + ampRatio));
+				lowerLabel.Format(_T("%.2f"), lastAvgP * (1 - ampRatio));
+				int labelX = drawData.x + drawData.w + 2;
+				int upperY = priceToY(lastAvgP * (1 + ampRatio));
+				int lowerY = priceToY(lastAvgP * (1 - ampRatio));
+				memDC.SetTextColor(COLOR_RED_UP);
+				memDC.TextOut(labelX, upperY - memDC.GetTextExtent(upperLabel).cy / 2, upperLabel);
+				memDC.SetTextColor(COLOR_GREEN_DOWN);
+				memDC.TextOut(labelX, lowerY - memDC.GetTextExtent(lowerLabel).cy / 2, lowerLabel);
+			}
+		}
 	}
 
 	// 走势曲线
@@ -6930,48 +7218,149 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	// 趋势、净比、振幅和换手率
 
 	// 趋势判定（行9）
+	// 根据当前视图分别计算对应周期的趋势：分时/5分/30分；日K视图保持双周期综合判定
 	{
 		CString trendTxt = _T("趋势: --");
 		COLORREF trendColor = COLOR_GRAY_TEXT;
 		auto stockDataForTrend = g_data.GetStockData(m_stock_id);
 		if (stockDataForTrend)
 		{
-			auto* min5Obj = stockDataForTrend->getMin5KLineData();
-			auto* min30Obj = stockDataForTrend->getMin30KLineData();
-			if (min5Obj && min5Obj->data.size() >= 20 && min30Obj && min30Obj->data.size() >= 25)
+			STOCK::TrendDir finalDir = STOCK::TrendDir::DIR_SIDE;
+			bool isShortPullback = false;
+			bool isShortRebound = false;
+			STOCK::SideTag sideTag = STOCK::SideTag::SIDE_MID;
+			bool valid = false;
+
+			if (m_isMin30KLineMode)
 			{
-				std::vector<STOCK::Bar> bars5, bars30;
-				bars5.reserve(min5Obj->data.size());
-				for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
-				bars30.reserve(min30Obj->data.size());
-				for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
+				// 30分钟视图：基于30分钟K线波段结构判定
+				auto* min30Obj = stockDataForTrend->getMin30KLineData();
+				if (min30Obj && min30Obj->data.size() >= 25)
+				{
+					std::vector<STOCK::Bar> bars30;
+					bars30.reserve(min30Obj->data.size());
+					for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 
-				STOCK::Volume outerVolTrend = stockInfo.outerVolume;
-				STOCK::Volume innerVolTrend = stockInfo.innerVolume;
-				STOCK::TrendResult trendResult = CSignalAnalyzer::CalcTrend(bars5, bars30, outerVolTrend, innerVolTrend);
+					if (CSignalAnalyzer::Calc30UpStruct(bars30))
+						finalDir = STOCK::TrendDir::DIR_UP;
+					else if (CSignalAnalyzer::Calc30DownStruct(bars30))
+						finalDir = STOCK::TrendDir::DIR_DOWN;
+					else
+						finalDir = STOCK::TrendDir::DIR_SIDE;
 
+					// 30分钟震荡区间时，用状态标记低吸/高抛
+					STOCK::TrendState30m state30 = CSignalAnalyzer::Get30mTrendState(bars30);
+					if (finalDir == STOCK::TrendDir::DIR_SIDE)
+					{
+						if (state30 == STOCK::TrendState30m::STATE_STRONG)
+							sideTag = STOCK::SideTag::SIDE_LONG_POINT;
+						else if (state30 == STOCK::TrendState30m::STATE_WEAK)
+							sideTag = STOCK::SideTag::SIDE_SHORT_POINT;
+					}
+					valid = true;
+				}
+			}
+			else if (m_isMin5KLineMode)
+			{
+				// 5分钟视图：基于5分钟K线短线多空判定
+				auto* min5Obj = stockDataForTrend->getMin5KLineData();
+				if (min5Obj && min5Obj->data.size() >= 20)
+				{
+					std::vector<STOCK::Bar> bars5;
+					bars5.reserve(min5Obj->data.size());
+					for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+
+					bool b5Up = CSignalAnalyzer::Calc5MinUp(bars5);
+					bool b5Down = CSignalAnalyzer::Calc5MinDown(bars5);
+					if (b5Up)
+						finalDir = STOCK::TrendDir::DIR_UP;
+					else if (b5Down)
+						finalDir = STOCK::TrendDir::DIR_DOWN;
+					else
+						finalDir = STOCK::TrendDir::DIR_SIDE;
+					valid = true;
+				}
+			}
+			else if (!m_isKLineMode)
+			{
+				// 分时视图：基于分时数据判定（前后半段均价对比 + 当前价与累计均价关系）
+				auto* tlObj = stockDataForTrend->getTimelineData();
+				if (tlObj && tlObj->data.size() >= 10)
+				{
+					const auto& pts = tlObj->data;
+					const auto& last = pts.back();
+					double curPrice = last.price;
+					double avgPrice = last.averagePrice;
+
+					size_t n = pts.size();
+					size_t half = n / 2;
+					double firstHalfAvg = 0, secondHalfAvg = 0;
+					size_t firstCnt = 0, secondCnt = 0;
+					for (size_t i = 0; i < half && i < n; ++i) { firstHalfAvg += pts[i].price; ++firstCnt; }
+					for (size_t i = half; i < n; ++i) { secondHalfAvg += pts[i].price; ++secondCnt; }
+					if (firstCnt > 0) firstHalfAvg /= firstCnt;
+					if (secondCnt > 0) secondHalfAvg /= secondCnt;
+
+					bool priceUpTrend = (secondHalfAvg > firstHalfAvg) && (curPrice >= avgPrice);
+					bool priceDownTrend = (secondHalfAvg < firstHalfAvg) && (curPrice <= avgPrice);
+
+					if (priceUpTrend)
+						finalDir = STOCK::TrendDir::DIR_UP;
+					else if (priceDownTrend)
+						finalDir = STOCK::TrendDir::DIR_DOWN;
+					else
+						finalDir = STOCK::TrendDir::DIR_SIDE;
+					valid = true;
+				}
+			}
+			else
+			{
+				// 日K视图：保持原双周期综合判定
+				auto* min5Obj = stockDataForTrend->getMin5KLineData();
+				auto* min30Obj = stockDataForTrend->getMin30KLineData();
+				if (min5Obj && min5Obj->data.size() >= 20 && min30Obj && min30Obj->data.size() >= 25)
+				{
+					std::vector<STOCK::Bar> bars5, bars30;
+					bars5.reserve(min5Obj->data.size());
+					for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+					bars30.reserve(min30Obj->data.size());
+					for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
+
+					STOCK::Volume outerVolTrend = stockInfo.outerVolume;
+					STOCK::Volume innerVolTrend = stockInfo.innerVolume;
+					STOCK::TrendResult trendResult = CSignalAnalyzer::CalcTrend(bars5, bars30, outerVolTrend, innerVolTrend);
+					finalDir = trendResult.FinalTrend;
+					isShortPullback = trendResult.IsShortPullback;
+					isShortRebound = trendResult.IsShortRebound;
+					sideTag = trendResult.SideTagValue;
+					valid = true;
+				}
+			}
+
+			if (valid)
+			{
 				CString trendLabel;
-				if (trendResult.FinalTrend == STOCK::TrendDir::DIR_UP)
+				if (finalDir == STOCK::TrendDir::DIR_UP)
 				{
 					trendLabel = _T("上涨");
 					trendColor = COLOR_RED_UP;
-					if (trendResult.IsShortPullback)
+					if (isShortPullback)
 						trendLabel += _T("(回调)");
 				}
-				else if (trendResult.FinalTrend == STOCK::TrendDir::DIR_DOWN)
+				else if (finalDir == STOCK::TrendDir::DIR_DOWN)
 				{
 					trendLabel = _T("下跌");
 					trendColor = COLOR_GREEN_DOWN;
-					if (trendResult.IsShortRebound)
+					if (isShortRebound)
 						trendLabel += _T("(反弹)");
 				}
 				else
 				{
 					trendLabel = _T("震荡");
 					trendColor = COLOR_GRAY_TEXT;
-					if (trendResult.SideTagValue == STOCK::SideTag::SIDE_LONG_POINT)
+					if (sideTag == STOCK::SideTag::SIDE_LONG_POINT)
 						trendLabel += _T("(低吸)");
-					else if (trendResult.SideTagValue == STOCK::SideTag::SIDE_SHORT_POINT)
+					else if (sideTag == STOCK::SideTag::SIDE_SHORT_POINT)
 						trendLabel += _T("(高抛)");
 				}
 				trendTxt.Format(_T("趋势: %s"), trendLabel.GetString());
@@ -7290,7 +7679,7 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	if (!chipData.IsValid())
 	{
 		memDC.SetTextColor(COLOR_GRAY_TEXT);
-		memDC.TextOut(left + g_data.RDPI(5), rowY(1) + max(0, (rowH(1) - memDC.GetTextExtent(_T("暂无筹码数据")).cy) / 2), _T("暂无筹码数据"));
+		memDC.TextOut(left + g_data.RDPI(5), topOffset + max(0, (panelH - memDC.GetTextExtent(_T("暂无筹码数据")).cy) / 2), _T("暂无筹码数据"));
 		return;
 	}
 
@@ -7422,16 +7811,10 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 		}
 	}
 
-	CString infoTxt;
-	infoTxt.Format(_T("均:%s 获:%.1f%%"), CCommon::FormatFloat(avgCost), profitPercent / totalPercent * 100.0);
-	memDC.SetTextColor(COLOR_GRAY_TEXT);
-	memDC.TextOut(left + g_data.RDPI(5), rowY(0) + max(0, (rowH(0) - memDC.GetTextExtent(infoTxt).cy) / 2), infoTxt);
-	CString rangeTxt;
-	rangeTxt.Format(_T("90%%:%s-%s"), CCommon::FormatFloat(chip90Low), CCommon::FormatFloat(chip90High));
-	memDC.TextOut(left + g_data.RDPI(5), rowY(1) + max(0, (rowH(1) - memDC.GetTextExtent(rangeTxt).cy) / 2), rangeTxt);
-
-	const int chartTop = rowY(2) + g_data.RDPI(2);
-	const int chartBottom = topOffset + panelH;
+	// 筹码峰图：从行0开始，到底部倒数第3行
+	const int chartRowEnd = totalRows - 3;
+	const int chartTop = topOffset + g_data.RDPI(2);
+	const int chartBottom = rowY(chartRowEnd);
 	const int chartLeft = left + g_data.RDPI(6);
 	const int chartRight = right - g_data.RDPI(6);
 	const int chartH = chartBottom - chartTop;
@@ -7511,6 +7894,60 @@ void CFloatingWnd::DrawChipPeakPanel(CDC& memDC, int left, int right, int height
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
 	memDC.TextOut(chartRight - memDC.GetTextExtent(highTxt).cx, chartTop, highTxt);
 	memDC.TextOut(chartRight - memDC.GetTextExtent(lowTxt).cx, chartBottom - memDC.GetTextExtent(lowTxt).cy, lowTxt);
+
+	// 文字信息绘制在筹码峰图下方，拆分为3行
+	memDC.SetTextColor(COLOR_GRAY_TEXT);
+	// 获利比例：标签 + 带红绿背景的数字
+	// 左红（亏损比例）右绿（获利比例），分界点由获利比例决定，红绿各自长度按比例分配
+	CString profitLabelTxt = _T("获利比例:");
+	double profitRatio = totalPercent > 0 ? (profitPercent / totalPercent * 100.0) : 0.0;
+	CString profitNumTxt;
+	profitNumTxt.Format(_T("%.1f%%"), profitRatio);
+	int profitY = rowY(chartRowEnd) + max(0, (rowH(chartRowEnd) - memDC.GetTextExtent(profitLabelTxt).cy) / 2);
+	int profitX = left + g_data.RDPI(5);
+	memDC.TextOut(profitX, profitY, profitLabelTxt);
+	{
+		int labelW = memDC.GetTextExtent(profitLabelTxt).cx;
+		int numH = memDC.GetTextExtent(profitNumTxt).cy;
+		int barX = profitX + labelW;
+		// 总长度固定：从标签后到面板右边界，留少量右边距
+		int barW = max(0, right - barX - g_data.RDPI(4));
+		int barH = numH + g_data.RDPI(2);
+		int barY = profitY - g_data.RDPI(1);
+
+		// 红色长度 = 总宽度 × X/100（获利比例）；绿色长度 = 总宽度 × (100-X)/100（套牢比例）
+		// 红色用标准红，绿色与筹码峰 COLOR_GREEN_DOWN 一致
+		int redW = static_cast<int>(barW * profitRatio / 100.0 + 0.5);
+		int greenW = barW - redW;
+		if (redW > 0)
+		{
+			CRect redRect(barX, barY, barX + redW, barY + barH);
+			CBrush redBrush(RGB(179, 64, 65));
+			CBrush* pOldBrush = memDC.SelectObject(&redBrush);
+			memDC.FillRect(&redRect, &redBrush);
+			memDC.SelectObject(pOldBrush);
+		}
+		if (greenW > 0)
+		{
+			CRect greenRect(barX + redW, barY, barX + redW + greenW, barY + barH);
+			CBrush greenBrush(COLOR_GREEN_DOWN);
+			CBrush* pOldBrush = memDC.SelectObject(&greenBrush);
+			memDC.FillRect(&greenRect, &greenBrush);
+			memDC.SelectObject(pOldBrush);
+		}
+
+		// 数字绘制在背景条左侧（白色文字，带少量内边距）
+		memDC.SetTextColor(RGB(255, 255, 255));
+		memDC.TextOut(barX + g_data.RDPI(4), profitY, profitNumTxt);
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+	}
+	CString avgCostTxt;
+	avgCostTxt.Format(_T("平均成本:%s"), CCommon::FormatFloat(avgCost));
+	memDC.TextOut(left + g_data.RDPI(5), rowY(chartRowEnd + 1) + max(0, (rowH(chartRowEnd + 1) - memDC.GetTextExtent(avgCostTxt).cy) / 2), avgCostTxt);
+
+	CString rangeTxt;
+	rangeTxt.Format(_T("90%%成本:%s-%s"), CCommon::FormatFloat(chip90Low), CCommon::FormatFloat(chip90High));
+	memDC.TextOut(left + g_data.RDPI(5), rowY(chartRowEnd + 2) + max(0, (rowH(chartRowEnd + 2) - memDC.GetTextExtent(rangeTxt).cy) / 2), rangeTxt);
 }
 
 BOOL CFloatingWnd::OnEraseBkgnd(CDC* pDC)
@@ -7565,6 +8002,10 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				{
 					m_stock_id = clickedCode;
 					m_isFirstRequest = true;
+					// 切换股票后重置各K线获取计时器，立即获取新股票数据
+					m_last_request_time = 0;
+					m_last_min5_fetch_time = 0;
+					m_last_min30_fetch_time = 0;
 					m_timelineScrollOffset = -1;
 					UpdateModeButtons();
 					Invalidate();
@@ -7606,6 +8047,10 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 					m_showChipPeak = false;
 					m_stock_id = rowInfo.code;
 					m_isFirstRequest = true;  // 切换股票后允许首次请求
+					// 切换股票后重置各K线获取计时器，立即获取新股票数据
+					m_last_request_time = 0;
+					m_last_min5_fetch_time = 0;
+					m_last_min30_fetch_time = 0;
 					UpdateModeButtons();
 					UpdatePeriodComboVisibility();
 					Invalidate();
@@ -9436,7 +9881,16 @@ void CFloatingWnd::RequestData()
 	{
 		m_pendingRequest = false;
 		loading_state_txt = g_data.StringRes(IDS_LOADING).GetString();
-		AfxBeginThread(NetworkThreadProc, this);
+		// CREATE_SUSPENDED 以便安全获取线程句柄并设置 m_bAutoDelete = FALSE，
+		// 从而在 OnDestroy 中可对其等待，避免进程退出时仍卡在 HTTP 请求
+		CWinThread* pThread = AfxBeginThread(NetworkThreadProc, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
+		if (pThread != nullptr)
+		{
+			pThread->m_bAutoDelete = FALSE;
+			m_hNetworkThread = pThread->m_hThread;
+			m_pNetworkThread = pThread;
+			ResumeThread(m_hNetworkThread);
+		}
 	}
 	else
 	{
@@ -9452,6 +9906,8 @@ void CFloatingWnd::ToggleKLineMode()
 	m_isMin5KLineMode = false;
 	m_isMin30KLineMode = false;
 	m_showBollBands = true;
+	m_showAmplitudeBands = false;
+	m_btnBoll.SetWindowText(_T("ZF"));
 	m_scrollOffset = 0;
 	m_timelineScrollOffset = -1;  // 自动滚动到末尾
 	m_timelineVisibleCount = 40;  // 切回分时显示最新走势
@@ -9519,7 +9975,7 @@ void CFloatingWnd::UpdateModeButtons()
 		SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnMin5KLine, m_isMin5KLineMode ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnMin30KLine, m_isMin30KLineMode ? BS_DEFPUSHBUTTON : BS_FLAT);
-		SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
+		SafeSetButtonStyle(m_btnBoll, (m_showBollBands || m_showAmplitudeBands) ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnChipPeak, m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 
@@ -9815,6 +10271,8 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		m_isMin30KLineMode = false;
 		m_showTrendView = false;
 		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
 		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -9876,6 +10334,8 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
 		m_showTrendView = false;  // 日K默认显示K线图
 		m_showChipPeak = true;
 		m_scrollOffset = 0;
@@ -10031,9 +10491,13 @@ void CFloatingWnd::OnBnClickedMABtn()
 {
 	m_showMA = !m_showMA;
 	if (m_showMA)
+	{
 		m_showBollBands = false;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
+	}
 	SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
-	SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
+	SafeSetButtonStyle(m_btnBoll, (m_showBollBands || m_showAmplitudeBands) ? BS_DEFPUSHBUTTON : BS_FLAT);
 	Invalidate();
 }
 
@@ -10046,6 +10510,8 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isMin5KLineMode = true;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
 		m_showChipPeak = false;
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
@@ -10069,6 +10535,8 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
 		m_showTrendView = false;
 		m_showChipPeak = false;
 		m_scrollOffset = 0;
@@ -10102,7 +10570,9 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = true;
 		m_showBollBands = true;
-		m_showChipPeak = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
+		m_showChipPeak = false;  // 默认展示盘口，与5分钟视图保持一致
 		m_scrollOffset = 0;
 		m_timelineScrollOffset = -1;  // 自动滚动到末尾
 		m_timelineVisibleCount = 40;  // 初始化缩放，显示最新40个数据点
@@ -10125,6 +10595,8 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
 		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
 		m_showTrendView = false;
 		m_showChipPeak = false;
 		m_scrollOffset = 0;
@@ -10151,10 +10623,26 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 
 void CFloatingWnd::OnBnClickedBollBtn()
 {
-	m_showBollBands = !m_showBollBands;
-	if (m_showBollBands)
+	// 在布林带(ZF)和振幅(BL)之间切换
+	// ZF模式：绘制布林带，按钮显示"ZF"
+	// BL模式：绘制振幅上下线，按钮显示"BL"
+	if (!m_showAmplitudeBands && m_showBollBands)
+	{
+		// 当前是布林带(ZF) → 切换到振幅(BL)
+		m_showBollBands = false;
+		m_showAmplitudeBands = true;
 		m_showMA = false;
-	SafeSetButtonStyle(m_btnBoll, m_showBollBands ? BS_DEFPUSHBUTTON : BS_FLAT);
+		m_btnBoll.SetWindowText(_T("BL"));
+	}
+	else
+	{
+		// 当前是振幅(BL)或无 → 切换到布林带(ZF)
+		m_showBollBands = true;
+		m_showAmplitudeBands = false;
+		m_showMA = false;
+		m_btnBoll.SetWindowText(_T("ZF"));
+	}
+	SafeSetButtonStyle(m_btnBoll, (m_showBollBands || m_showAmplitudeBands) ? BS_DEFPUSHBUTTON : BS_FLAT);
 	SafeSetButtonStyle(m_btnMA, m_showMA ? BS_DEFPUSHBUTTON : BS_FLAT);
 	Invalidate();
 }
@@ -10332,23 +10820,42 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 	}
 	pFW->m_isFirstRequest = false;
 
-	if (pFW->m_isKLineMode && !pFW->m_isMin5KLineMode && !pFW->m_isMin30KLineMode)
+	time_t now = time(nullptr);
+
+	// 视图相关数据（分时/日K线）：仅在非5min/30min视图下按10秒间隔获取
+	if (!pFW->m_isMin5KLineMode && !pFW->m_isMin30KLineMode)
 	{
-		g_data.RequestKLineData(pFW->m_stock_id);
+		if (now - (time_t)pFW->m_last_request_time > 10)
+		{
+			pFW->m_last_request_time = now;
+			if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
+			if (pFW->m_isKLineMode)
+				g_data.RequestKLineData(pFW->m_stock_id);
+			else
+				g_data.RequestTimelineData(pFW->m_stock_id);
+		}
 	}
-	else if (pFW->m_isMin5KLineMode || pFW->m_isMin30KLineMode)
+
+	// 5分钟K线：固定60秒间隔获取，与当前视图无关
+	// 这样切换到5分钟视图时数据已是最新，无需临时触发请求
+	if (now - (time_t)pFW->m_last_min5_fetch_time > 60)
 	{
-		// 5分钟/30分钟K线模式：同时请求两种数据，避免切换模式后数据过期
+		pFW->m_last_min5_fetch_time = now;
+		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
 		g_data.RequestMin5KLineData(pFW->m_stock_id, 250);
-		g_data.RequestMin30KLineData(pFW->m_stock_id, 250);
 	}
-	else
+
+	// 30分钟K线：固定600秒间隔获取，与当前视图无关
+	if (now - (time_t)pFW->m_last_min30_fetch_time > 600)
 	{
-		g_data.RequestTimelineData(pFW->m_stock_id);
+		pFW->m_last_min30_fetch_time = now;
+		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
+		g_data.RequestMin30KLineData(pFW->m_stock_id, 250);
 	}
 
 	// 线程结束前检查是否有待处理的请求（切换股票时线程正在运行导致的）
-	if (pFW->m_pendingRequest && ::IsWindow(pFW->GetSafeHwnd()))
+	// 关闭窗口期间不再投递新请求，避免窗口销毁过程中再起新线程
+	if (!pFW->m_is_thread_stopping && pFW->m_pendingRequest && ::IsWindow(pFW->GetSafeHwnd()))
 	{
 		pFW->PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
@@ -10729,6 +11236,24 @@ LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
 void CFloatingWnd::OnDestroy()
 {
 	CWnd::OnDestroy();
+
+	// 通知 NetworkThreadProc 尽快退出（在每个 HTTP 请求之间检查）
+	m_is_thread_stopping = true;
+
+	// 等待后台线程退出（HTTP 请求可能尚未完成，给最多 2 秒）
+	// 不阻塞过久，避免影响主程序退出体验
+	if (m_hNetworkThread != nullptr)
+	{
+		WaitForSingleObject(m_hNetworkThread, 2000);
+		CloseHandle(m_hNetworkThread);
+		m_hNetworkThread = nullptr;
+	}
+	// m_bAutoDelete = FALSE，需手动释放 CWinThread 对象
+	if (m_pNetworkThread != nullptr)
+	{
+		delete m_pNetworkThread;
+		m_pNetworkThread = nullptr;
+	}
 
 	if (m_CTransparentWnd.GetSafeHwnd())
 	{

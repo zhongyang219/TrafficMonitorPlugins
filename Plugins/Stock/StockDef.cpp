@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -163,6 +163,113 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		if (data_arr.size() >= 39 && !data_arr[38].empty())
 		{
 			stockData->info.turnoverRate = { convert<Amount>(data_arr[38]) };
+		}
+	}
+}
+
+void STOCK::StockMarket::LoadCallAuctionData(std::string data)
+{
+	if (data.empty())
+		return;
+
+	std::vector<std::string> lines = CCommon::split(CCommon::removeChar(data, '\n'), ";");
+	time_t now;
+	time(&now);
+
+	for (std::string line : lines)
+	{
+		if (line.empty()) continue;
+
+		size_t pos = line.find("=\"");
+		if (pos == std::string::npos) continue;
+
+		std::string key_str = line.substr(0, pos);
+		if (key_str.substr(0, 2) == "v_")
+			key_str = key_str.substr(2);
+
+		// 仅处理A股代码（sh/sz/bj）
+		if (key_str.find("sh") != 0 && key_str.find("sz") != 0 && key_str.find("bj") != 0)
+			continue;
+
+		std::wstring key = CCommon::StrToUnicode(key_str.c_str());
+		auto stockData = getStock(key);
+		if (!stockData) continue;
+
+		std::string values = line.substr(pos + 2);
+		if (!values.empty() && values.back() == '\"')
+			values.pop_back();
+
+		std::vector<std::string> data_arr = CCommon::split(values, "~");
+		// 腾讯行情数据至少需要46个字段才能获取涨停/跌停价
+		if (data_arr.size() < 46) continue;
+
+		auto& ca = stockData->callAuctionData;
+
+		// 昨收价 [4]
+		ca.prevClosePrice = convert<Price>(data_arr[4]);
+		// 虚拟撮合价/最近价 [30]
+		ca.matchPrice = convert<Price>(data_arr[30]);
+		// 成交量 [36]（单位：手→转换为股）
+		ca.matchVolume = convert<Volume>(data_arr[36]) * 100;
+		// 涨停价 [44]
+		ca.limitUpPrice = convert<Price>(data_arr[44]);
+		// 跌停价 [45]
+		ca.limitDownPrice = convert<Price>(data_arr[45]);
+
+		// 五档买盘 [9-18]: 买一价[9],买一量[10],买二价[11],买二量[12],...,买五价[17],买五量[18]
+		for (int i = 0; i < 5; i++)
+		{
+			int priceIdx = 9 + i * 2;
+			int volIdx = 10 + i * 2;
+			if (data_arr.size() > (size_t)volIdx)
+			{
+				ca.bidLevels[i].price = convert<Price>(data_arr[priceIdx]);
+				ca.bidLevels[i].volume = convert<Volume>(data_arr[volIdx]) * 100;
+			}
+		}
+
+		// 五档卖盘 [19-28]: 卖一价[19],卖一量[20],卖二价[21],卖二量[22],...,卖五价[27],卖五量[28]
+		for (int i = 0; i < 5; i++)
+		{
+			int priceIdx = 19 + i * 2;
+			int volIdx = 20 + i * 2;
+			if (data_arr.size() > (size_t)volIdx)
+			{
+				ca.askLevels[i].price = convert<Price>(data_arr[priceIdx]);
+				ca.askLevels[i].volume = convert<Volume>(data_arr[volIdx]) * 100;
+			}
+		}
+
+		// 委买总量 = 五档买量之和
+		ca.totalBidVolume = 0;
+		for (int i = 0; i < 5; i++)
+			ca.totalBidVolume += ca.bidLevels[i].volume;
+
+		// 委卖总量 = 五档卖量之和
+		ca.totalAskVolume = 0;
+		for (int i = 0; i < 5; i++)
+			ca.totalAskVolume += ca.askLevels[i].volume;
+
+		ca.lastUpdateTime = now;
+		ca.isValid = (ca.matchPrice > 0);
+
+		// 添加快照
+		if (ca.isValid)
+		{
+			CallAuctionSnapshot snapshot;
+			snapshot.timestamp = now;
+			snapshot.matchPrice = ca.matchPrice;
+			snapshot.matchVolume = ca.matchVolume;
+			snapshot.totalAskVolume = ca.totalAskVolume;
+			snapshot.totalBidVolume = ca.totalBidVolume;
+			for (int i = 0; i < 5; i++)
+			{
+				snapshot.askLevels[i] = ca.askLevels[i].price;
+				snapshot.askVolumes[i] = ca.askLevels[i].volume;
+				snapshot.bidLevels[i] = ca.bidLevels[i].price;
+				snapshot.bidVolumes[i] = ca.bidLevels[i].volume;
+			}
+			ca.AddSnapshot(snapshot);
 		}
 	}
 }

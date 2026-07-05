@@ -7,6 +7,7 @@
 #include "ManagerDialog.h"
 #include "Common.h"
 #include "FloatingWnd.h"
+#include "StockFetchThread.h"
 
 Stock Stock::m_instance;
 
@@ -23,6 +24,7 @@ Stock::Stock() : m_pFloatingWnd(NULL)
 Stock::~Stock()
 {
 	DestroyFloatingWnd();
+	CStockFetchThread::Instance().Stop();
 }
 
 Stock& Stock::Instance()
@@ -33,69 +35,6 @@ Stock& Stock::Instance()
 void Stock::OnInitialize(ITrafficMonitor* pApp)
 {
 	m_pMonitor = pApp;
-}
-
-UINT Stock::ThreadCallback(LPVOID dwUser)
-{
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-	CFlagLocker flag_locker(m_instance.m_is_thread_runing);
-
-	if (g_data.m_setting_data.m_stock_codes.empty())
-	{
-		// CCommon::WriteLog(L"Stock_code not setting!", g_data.m_log_path.c_str());
-		g_data.ResetText();
-		return 0;
-	}
-
-	time_t cur_time = time(nullptr);
-	if (cur_time - m_instance.m_last_request_time >= 1)
-	{
-		m_instance.m_last_request_time = cur_time;
-
-		// 休市检测：非全天更新模式且不在交易日时段（收盘后/盘前/周末），则不再请求
-		if (g_data.m_setting_data.m_full_day != 1 && !CDataManager::IsTradingDaySession())
-		{
-			CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
-			g_data.ResetText();
-			return 0;
-		}
-
-		// 禁用选项设置中的“更新”按钮
-		m_instance.DisableUpdateCommand();
-
-		g_data.RequestRealtimeData();
-
-		// 获取当前时间（历史价格告警需要）
-		struct tm now_tm;
-		time_t now = time(nullptr);
-		localtime_s(&now_tm, &now);
-
-		// 在一个循环中完成所有股票的告警判定
-		//for (const auto& code : g_data.m_setting_data.m_stock_codes)
-		//{
-		//	// 检查价格关注条件并弹窗提醒
-		//	m_instance.CheckPriceAlertForStock(code);
-
-		//	// 检查百分比涨跌幅条件并弹窗提醒
-		//	m_instance.CheckPercentageAlertForStock(code);
-
-		//	// 检查成本价告警条件并弹窗提醒
-		//	m_instance.CheckCostPriceAlertForStock(code);
-
-		//	// 检查历史价格告警条件并弹窗提醒
-		//	m_instance.CheckHistoricalPriceAlertForStock(code, now_tm, now);
-
-		//	// 检查趋势预警条件并弹窗提醒
-		//	//m_instance.CheckTrendAlertForStock(code);
-
-		// 检查T+0买卖点告警
-		//m_instance.CheckT0AlertForStock(code);
-		//}
-
-		// 启用选项设置中的"更新"按钮
-		m_instance.EnableUpdateCommand();
-	}
-	return 0;
 }
 
 void Stock::LoadContextMenu()
@@ -130,6 +69,7 @@ void Stock::DataRequired()
 	time_t cur_time = time(nullptr);
 	bool bMarketOpen = CDataManager::IsMarketOpen();
 	bool bTradingSession = CDataManager::IsTradingDaySession();
+	bool bCallAuction = CDataManager::IsCallAuctionSession();
 	// 交易时段正常请求；午休期间降低频率请求（60秒一次）；非交易日/收盘后不请求（全天模式除外）
 	time_t requestInterval = bMarketOpen ? 3 : (bTradingSession ? 60 : 3);
 	if (cur_time - m_instance.m_last_request_time > requestInterval && (bTradingSession || g_data.m_setting_data.m_full_day == 1))
@@ -137,10 +77,21 @@ void Stock::DataRequired()
 		last_req_time = cur_time;
 		SendStockInfoRequest();
 	}
+	// 集合竞价时段（9:15-9:30）：每3秒获取一次竞价数据
+	if (bCallAuction)
+	{
+		if (cur_time - m_instance.m_last_call_auction_time >= 3)
+		{
+			m_instance.m_last_call_auction_time = cur_time;
+			CStockFetchThread::Instance().PostCallAuctionTask([]() {
+				g_data.RequestCallAuctionData();
+				});
+		}
+	}
 	std::lock_guard<std::mutex> lock(m_wndMutex);
 	if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
 	{
-		if (bTradingSession)
+		if (bTradingSession || bCallAuction)
 			m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
 	}
 }
@@ -191,10 +142,17 @@ void Stock::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
 			std::lock_guard<std::mutex> lock(m_instance.m_alert_mutex);
 			m_instance.m_last_alert_price.clear();
 		}
+		// 启动专用数据获取线程（与 UI 交互分离）
+		CStockFetchThread::Instance().Start();
 		// 程序启动后异步预加载所有股票的日K数据、筹码峰数据和基础行情数据
 		m_instance.PreloadAllKLineData();
 		m_instance.PreloadAllChipDistributionData();
 		m_instance.PreloadAllStockBasicData();
+		// 启动时获取一次集合竞价数据（非竞价时段也获取，用于展示最新竞价结果）
+		m_instance.m_last_call_auction_time = 0;
+		CStockFetchThread::Instance().PostCallAuctionTask([]() {
+			g_data.RequestCallAuctionData();
+			});
 		break;
 	case ITMPlugin::EI_TASKBAR_WND_VALUE_RIGHT_ALIGN:
 		// 获取TrafficMonitor任务栏窗口中“数值右对齐”设置
@@ -273,8 +231,31 @@ INT_PTR Stock::ShowStockManageDlg(CWnd* pWnd)
 
 void Stock::SendStockInfoRequest()
 {
-	if (!m_is_thread_runing) // 确保线程已退出
-		AfxBeginThread(ThreadCallback, nullptr);
+	// 将数据获取任务投递到专用的后台线程执行，与 UI 交互完全分离
+	// 线程忙时本调用直接返回，避免请求堆积
+	CStockFetchThread::Instance().PostTask([]() {
+		if (g_data.m_setting_data.m_stock_codes.empty())
+		{
+			g_data.ResetText();
+			return;
+		}
+
+		time_t cur_time = time(nullptr);
+		if (cur_time - Stock::Instance().m_last_request_time < 1)
+			return;
+		Stock::Instance().m_last_request_time = cur_time;
+
+		// 休市检测：非全天更新模式且不在交易日时段（收盘后/盘前/周末），则不再请求
+		if (g_data.m_setting_data.m_full_day != 1 && !CDataManager::IsTradingDaySession())
+		{
+			CCommon::WriteLog(L"Not currently in trading time!", g_data.m_log_path.c_str());
+			g_data.ResetText();
+			return;
+		}
+
+		// 仅执行网络数据获取，不进行任何 UI 交互
+		g_data.RequestRealtimeData();
+		});
 }
 
 void Stock::ShowContextMenu(CWnd* pWnd)
@@ -435,22 +416,6 @@ void Stock::UpdateKLine()
 		//     }
 		// }
 	}
-}
-
-void Stock::DisableUpdateCommand()
-{
-	// if (m_option_dlg != nullptr)
-	//     m_option_dlg->EnableUpdateBtn(false);
-	if (m_menu.m_hMenu != NULL)
-		m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_GRAYED);
-}
-
-void Stock::EnableUpdateCommand()
-{
-	// if (m_instance.m_option_dlg != nullptr)
-	//     m_instance.m_option_dlg->EnableUpdateBtn(true);
-	if (m_menu.m_hMenu != NULL)
-		m_menu.EnableMenuItem(ID_UPDATE, MF_BYCOMMAND | MF_ENABLED);
 }
 
 bool Stock::IsPriceInSafeZone(double current_price, double bid1_price, double ask1_price, double low, double high)
