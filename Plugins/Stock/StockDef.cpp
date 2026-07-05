@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -260,8 +260,20 @@ void STOCK::StockMarket::LoadCallAuctionData(std::string data)
 			snapshot.timestamp = now;
 			snapshot.matchPrice = ca.matchPrice;
 			snapshot.matchVolume = ca.matchVolume;
+			// 计算新增撮合量
+			if (!ca.snapshots.empty())
+				snapshot.addVol = ca.matchVolume - ca.snapshots.back().matchVolume;
+			else
+				snapshot.addVol = ca.matchVolume;
+			if (snapshot.addVol < 0) snapshot.addVol = 0;
 			snapshot.totalAskVolume = ca.totalAskVolume;
 			snapshot.totalBidVolume = ca.totalBidVolume;
+			// 未匹配量 = 委总量 - 已撮合量的一半（近似）
+			// 更精确：未匹配买 = 委买总量中未成交部分，未匹配卖 = 委卖总量中未成交部分
+			// 腾讯API不直接提供未匹配量，用委总量与撮合量的差值估算
+			Volume halfMatch = ca.matchVolume / 2;
+			snapshot.unmatchBidVol = (ca.totalBidVolume > halfMatch) ? (ca.totalBidVolume - halfMatch) : 0;
+			snapshot.unmatchAskVol = (ca.totalAskVolume > halfMatch) ? (ca.totalAskVolume - halfMatch) : 0;
 			for (int i = 0; i < 5; i++)
 			{
 				snapshot.askLevels[i] = ca.askLevels[i].price;

@@ -363,8 +363,11 @@ namespace STOCK
 		time_t timestamp{ 0 };       // 快照时间
 		Price matchPrice{ 0.0 };     // 虚拟撮合价
 		Volume matchVolume{ 0 };     // 虚拟撮合量（股）
+		Volume addVol{ 0 };          // 本次新增撮合量（当前matchVolume - 上一次matchVolume）
 		Volume totalAskVolume{ 0 };  // 委卖总量
 		Volume totalBidVolume{ 0 };  // 委买总量
+		Volume unmatchAskVol{ 0 };   // 未匹配委卖量
+		Volume unmatchBidVol{ 0 };   // 未匹配委买量
 		Price askLevels[5];          // 卖一到卖五价格
 		Volume askVolumes[5];        // 卖一到卖五量
 		Price bidLevels[5];          // 买一到买五价格

@@ -57,6 +57,7 @@ protected:
 	afx_msg void OnBnClickedOrderBookBtn();
 	afx_msg void OnBnClickedExpandBtn();
 	afx_msg void OnBnClickedToggleStockListBtn();
+	afx_msg void OnBnClickedCallAuctionBtn();
 
 private:
 	void EnsureChipPeakData();
@@ -244,6 +245,7 @@ private:
 	void DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int vScrollOffset = 0, int totalHeight = 0);
 	void DrawIndexSection(CDC& memDC, int x, int y, int w, const std::vector<std::pair<std::wstring, STOCK::StockInfo>>& indices);
 	void DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, const std::wstring& currentStockId);
+	void DrawCallAuctionChart(CDC& memDC, const TimelineDrawContext& ctx, const STOCK::CallAuctionData& callAuctionData);
 
 	// 总览表行信息（用于双击处理）
 	struct OverviewRowInfo {
@@ -272,6 +274,7 @@ private:
 	CButton m_btnClose;
 	CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
 	CButton m_btnToggleStockList;  // 股票列表显示/隐藏按钮
+	CButton m_btnCallAuction;     // 集合竞价按钮
 	CButton m_btnZoomOut;  // 缩小按钮（显示240分钟）
 	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
 	CButton m_btnIndicatorMACD;  // MACD指标按钮
@@ -356,6 +359,7 @@ private:
 	bool m_showChipPeak{ false };
 	bool m_expandedMode{ true };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
 	bool m_showStockList{ true };  // 是否显示左侧股票列表面板
+	bool m_isCallAuctionMode{ false };  // 集合竞价模式
 	bool m_showT0Markers{ false };
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };

@@ -239,7 +239,8 @@ enum {
 	IDC_CHIP_PEAK_BTN = 1018,
 	IDC_ORDER_BOOK_BTN = 1019,
 	IDC_EXPAND_BTN = 1020,
-	IDC_TOGGLE_STOCK_LIST_BTN = 1021
+	IDC_TOGGLE_STOCK_LIST_BTN = 1021,
+	IDC_CALL_AUCTION_BTN = 1022
 };
 
 BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
@@ -277,6 +278,7 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_BN_CLICKED(IDC_ORDER_BOOK_BTN, &CFloatingWnd::OnBnClickedOrderBookBtn)
 	ON_BN_CLICKED(IDC_EXPAND_BTN, &CFloatingWnd::OnBnClickedExpandBtn)
 	ON_BN_CLICKED(IDC_TOGGLE_STOCK_LIST_BTN, &CFloatingWnd::OnBnClickedToggleStockListBtn)
+	ON_BN_CLICKED(IDC_CALL_AUCTION_BTN, &CFloatingWnd::OnBnClickedCallAuctionBtn)
 END_MESSAGE_MAP()
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -288,8 +290,11 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	const int btnHeight = g_data.RDPI(22);
 	const int btnGap = 0;  // 按钮之间不留缝隙
 
-	// 左侧按钮：分时、5分、30分、日K（贴边排列，无间隙）
-	CRect timelineRect(0, g_data.RDPI(2), btnWidth, g_data.RDPI(2) + btnHeight);
+	// 左侧按钮：竞价、分时、5分、30分、日K（贴边排列，无间隙）
+	CRect callAuctionRect(0, g_data.RDPI(2), btnWidth, g_data.RDPI(2) + btnHeight);
+	m_btnCallAuction.Create(_T("竞价"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, callAuctionRect, this, IDC_CALL_AUCTION_BTN);
+
+	CRect timelineRect(callAuctionRect.right + btnGap, g_data.RDPI(2), callAuctionRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
 	m_btnTimeLine.Create(_T("分时"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, timelineRect, this, IDC_TIMELINE_BTN);
 
 	CRect min5KLineRect(timelineRect.right + btnGap, g_data.RDPI(2), timelineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
@@ -2370,6 +2375,7 @@ void CFloatingWnd::OnPaint()
 
 	STOCK::StockInfo realtimeData;
 	STOCK::ChipDistribution chipData;
+	STOCK::CallAuctionData callAuctionData;
 	std::vector<STOCK::TimelinePoint> timelinePoint;
 	std::vector<STOCK::KLinePoint> klineData;
 	{
@@ -2472,6 +2478,8 @@ void CFloatingWnd::OnPaint()
 					klineData = klineObj->data;
 				}
 			}
+			// 集合竞价数据（所有模式都需要加载，竞价模式下用于绘图，其他模式用于盘口展示）
+			callAuctionData = stockData->callAuctionData;
 		}
 	}
 
@@ -2514,7 +2522,137 @@ void CFloatingWnd::OnPaint()
 		if (m_showStockList)
 			DrawStockListPanel(memDC, 0, headerHeight, stockListWidth, h - headerHeight - indexBarHeight, m_stock_id);
 
-		if (!timelinePoint.empty())
+		// 集合竞价模式绘制（主图+副图各占一半）
+		if (m_isCallAuctionMode)
+		{
+			// 竞价模式：主图价格和副图成交量各占一半
+			int totalChartHeight = priceChartHeight + volumeChartHeight + (m_expandedMode ? 0 : volumeChartHeight);
+			int halfChartHeight = totalChartHeight / 2;
+			const int titleH = g_data.RDPI(16);
+			int origPriceTop = priceChartTop;
+			int origVolTop = priceChartTop + halfChartHeight;
+
+			TimelineDrawContext ctx;
+			ctx.chartLeft = stockListWidth + yAxisWidth;
+			ctx.chartWidth = chartWidth - stockListWidth - yAxisWidth;
+			ctx.windowWidth = w;
+			ctx.chartHeight = h;
+			ctx.priceChartTop = origPriceTop + titleH;
+			ctx.priceChartHeight = halfChartHeight - titleH;
+			ctx.volumeChartTop = origVolTop + titleH;
+			ctx.volumeChartHeight = halfChartHeight - titleH;
+			ctx.macdChartTop = origVolTop + titleH;
+			ctx.macdChartHeight = halfChartHeight - titleH;
+			ctx.positionY = origVolTop + halfChartHeight + g_data.RDPI(2);
+			ctx.realtimeData = realtimeData;
+			ctx.startIndex = 0;
+			ctx.visibleCount = 0;
+			ctx.klineData = &klineData;
+
+			// Y轴范围基于集合竞价数据
+			STOCK::Price visMax = callAuctionData.matchPrice;
+			STOCK::Price visMin = callAuctionData.matchPrice;
+			for (const auto& snap : callAuctionData.snapshots)
+			{
+				if (snap.matchPrice > 0)
+				{
+					visMax = (std::max)(visMax, snap.matchPrice);
+					visMin = (std::min)(visMin, snap.matchPrice);
+				}
+			}
+			if (callAuctionData.prevClosePrice > 0)
+			{
+				if (visMax <= 0) visMax = callAuctionData.prevClosePrice;
+				if (visMin <= 0 || visMin == visMax) visMin = callAuctionData.prevClosePrice;
+			}
+			if (visMax <= visMin)
+			{
+				visMax = callAuctionData.prevClosePrice * 1.02;
+				visMin = callAuctionData.prevClosePrice * 0.98;
+			}
+
+			const double DIV_COUNT = 6.0;
+			double range = visMax - visMin;
+			double rawStep = range / (DIV_COUNT - 2.0);
+			double mag = pow(10.0, floor(log10(rawStep)));
+			double norm = rawStep / mag;
+			double niceStep;
+			if (norm <= 1.0) niceStep = 1.0 * mag;
+			else if (norm <= 2.0) niceStep = 2.0 * mag;
+			else if (norm <= 5.0) niceStep = 5.0 * mag;
+			else niceStep = 10.0 * mag;
+			niceStep = (std::max)(niceStep, 0.001);
+			double centerPrice = (visMin + visMax) / 2.0;
+			double axisRange = DIV_COUNT * niceStep;
+			double centeredMin = centerPrice - axisRange / 2.0;
+			double lowerBound = visMax - (DIV_COUNT - 1.0) * niceStep;
+			double upperBound = visMin - niceStep;
+			double axisMin = round(centeredMin / niceStep) * niceStep;
+			if (axisMin < lowerBound)
+				axisMin = ceil((lowerBound - niceStep * 1e-9) / niceStep) * niceStep;
+			if (axisMin > upperBound)
+				axisMin = floor((upperBound + niceStep * 1e-9) / niceStep) * niceStep;
+			axisMin = round(axisMin * 1000.0) / 1000.0;
+			double axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
+			ctx.maxPrice = axisMax;
+			ctx.minPrice = axisMin;
+			ctx.niceStep = niceStep;
+			ctx.unitY = ctx.priceChartHeight / (ctx.maxPrice - ctx.minPrice);
+
+			std::vector<STOCK::TimelinePoint> emptyTimeline;
+			ctx.timelinePoint = &emptyTimeline;
+			ctx.fullTimeline = &emptyTimeline;
+
+			memDC.SaveDC();
+			memDC.OffsetViewportOrg(stockListWidth + yAxisWidth, 0);
+
+			DrawTimelineHeader(memDC, ctx);
+			DrawCallAuctionChart(memDC, ctx, callAuctionData);
+
+			// 标题栏
+			DrawTimelineTitleBars(memDC, ctx, origPriceTop, origVolTop, -1, titleH);
+
+			memDC.RestoreDC(-1);
+
+			// 主标题栏右侧按钮定位
+			{
+				int closeBtnW = g_data.RDPI(20);
+				int closeBtnH = g_data.RDPI(18);
+				int top = g_data.RDPI(2);
+				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
+			}
+			// 盘口按钮
+			{
+				int obTitleH = g_data.RDPI(16);
+				int obBtnW = g_data.RDPI(34);
+				int obBtnH = min(obTitleH, g_data.RDPI(16));
+				int obBtnTop = headerHeight + (obTitleH - obBtnH) / 2;
+				bool showObBtns = !isIndexKLine;
+				SafeSetWindowPos(m_btnChipPeak, w - obBtnW, obBtnTop, obBtnW, obBtnH);
+				SafeShowWindow(m_btnChipPeak, showObBtns);
+				SafeSetWindowPos(m_btnOrderBook, w - obBtnW * 2, obBtnTop, obBtnW, obBtnH);
+				SafeShowWindow(m_btnOrderBook, showObBtns);
+			}
+			// 竞价模式隐藏其他工具按钮
+			SafeShowWindow(m_btnT0, false);
+			SafeShowWindow(m_btnMA, false);
+			SafeShowWindow(m_btnBoll, false);
+			SafeShowWindow(m_btnZoomOut, false);
+			SafeShowWindow(m_btnZoomIn, false);
+			SafeShowWindow(m_btnIndicatorMACD, false);
+			SafeShowWindow(m_btnIndicatorKDJ, false);
+			SafeShowWindow(m_btnIndicatorWR, false);
+			SafeShowWindow(m_btnIndicatorRSI, false);
+
+			// 右侧盘口（竞价模式下始终显示盘口）
+			if (!isIndexKLine)
+			{
+				DrawOrderBook(memDC, chartWidth, w, h - headerHeight - indexBarHeight, realtimeData, klineData);
+			}
+		}
+		else if (!timelinePoint.empty())
 		{
 			// 先基于完整分时数据计算MA，避免缩放/拖动后只用可见区间导致均线与其他APP不一致
 			CalcAllRollingAvgPrices(timelinePoint);
@@ -9942,6 +10080,9 @@ void CFloatingWnd::UpdateModeButtons()
 {
 	if (m_btnTimeLine.GetSafeHwnd() && m_btnKLine.GetSafeHwnd())
 	{
+		// 竞价按钮样式
+		SafeSetButtonStyle(m_btnCallAuction, m_isCallAuctionMode ? BS_DEFPUSHBUTTON : BS_FLAT);
+
 		if (m_isKLineMode && !m_isMin5KLineMode && !m_isMin30KLineMode)
 		{
 			m_btnTimeLine.SetWindowText(_T("分时"));
@@ -10247,6 +10388,42 @@ void CFloatingWnd::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 	Invalidate();
 }
 
+void CFloatingWnd::OnBnClickedCallAuctionBtn()
+{
+	if (m_isCallAuctionMode)
+	{
+		// 已经在竞价模式，切回分时模式
+		m_isCallAuctionMode = false;
+	}
+	else
+	{
+		// 切换到竞价模式
+		m_isCallAuctionMode = true;
+		m_isKLineMode = false;
+		m_isMin5KLineMode = false;
+		m_isMin30KLineMode = false;
+		m_showTrendView = false;
+		m_showChipPeak = false;
+		m_timelineScrollOffset = -1;
+		m_timelineVisibleCount = 40;
+		m_isHoveringKLine = false;
+		m_isHoveringKLineVolume = false;
+		m_isHoveringVolume = false;
+		m_klineHoveredBarIndex = -1;
+		m_hoveredBarIndex = -1;
+		m_klineHoverTip.Empty();
+		m_hoverTip.Empty();
+		m_klineTrendHoverTip.Empty();
+		m_timelineVolumeTitleTip.Empty();
+		m_timelineMacdTitleTip.Empty();
+		m_timelineKdjTitleTip.Empty();
+		m_timelinePriceTitleTip.Empty();
+	}
+	UpdateModeButtons();
+	UpdatePeriodComboVisibility();
+	Invalidate();
+}
+
 void CFloatingWnd::OnBnClickedTimeLineBtn()
 {
 	if (m_isOverviewMode)
@@ -10263,12 +10440,13 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		UpdatePeriodComboVisibility();
 		Invalidate();
 	}
-	else if (m_isKLineMode || m_isMin5KLineMode || m_isMin30KLineMode)
+	else if (m_isKLineMode || m_isMin5KLineMode || m_isMin30KLineMode || m_isCallAuctionMode)
 	{
 		// 回到分时模式
 		m_isKLineMode = false;
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
+		m_isCallAuctionMode = false;
 		m_showTrendView = false;
 		m_showBollBands = true;
 		m_showAmplitudeBands = false;
@@ -10327,12 +10505,13 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		Invalidate();
 		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
-	else if (!m_isKLineMode || m_isMin5KLineMode || m_isMin30KLineMode)
+	else if (!m_isKLineMode || m_isMin5KLineMode || m_isMin30KLineMode || m_isCallAuctionMode)
 	{
-		// 当前在分时模式或5分钟/30分钟K线模式，切到日K模式
+		// 当前在分时模式或5分钟/30分钟K线模式或竞价模式，切到日K模式
 		m_isKLineMode = true;
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = false;
+		m_isCallAuctionMode = false;
 		m_showBollBands = true;
 		m_showAmplitudeBands = false;
 		m_btnBoll.SetWindowText(_T("ZF"));
@@ -10509,6 +10688,7 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 		m_isKLineMode = true;
 		m_isMin5KLineMode = true;
 		m_isMin30KLineMode = false;
+		m_isCallAuctionMode = false;
 		m_showBollBands = true;
 		m_showAmplitudeBands = false;
 		m_btnBoll.SetWindowText(_T("ZF"));
@@ -10569,6 +10749,7 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 		m_isKLineMode = true;
 		m_isMin5KLineMode = false;
 		m_isMin30KLineMode = true;
+		m_isCallAuctionMode = false;
 		m_showBollBands = true;
 		m_showAmplitudeBands = false;
 		m_btnBoll.SetWindowText(_T("ZF"));
@@ -10701,6 +10882,250 @@ void CFloatingWnd::OnBnClickedIndicatorRSIBtn()
 	m_timelineWrTitleTip.Empty();
 	m_timelineRsiTitleTip.Empty();
 	Invalidate();
+}
+
+void CFloatingWnd::DrawCallAuctionChart(CDC& memDC, const TimelineDrawContext& ctx, const STOCK::CallAuctionData& callAuctionData)
+{
+	const auto& snapshots = callAuctionData.snapshots;
+	int totalPoints = static_cast<int>(snapshots.size());
+
+	if (snapshots.empty() && !callAuctionData.isValid)
+	{
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+		CString noDataText = _T("暂无集合竞价数据");
+		CSize textSize = memDC.GetTextExtent(noDataText);
+		int textX = (ctx.chartWidth - textSize.cx) / 2;
+		int textY = ctx.priceChartTop + (ctx.priceChartHeight - textSize.cy) / 2;
+		memDC.TextOut(textX, textY, noDataText);
+		return;
+	}
+
+	// X轴时间范围：9:15-9:25
+	const int startMinute = 9 * 60 + 15;
+	const int endMinute = 9 * 60 + 25;
+	const int totalMinutes = endMinute - startMinute;  // 10分钟
+
+	// 将快照时间映射到X坐标的辅助函数
+	auto timeToX = [&](time_t t) -> int {
+		struct tm tmBuf;
+		localtime_s(&tmBuf, &t);
+		int minute = tmBuf.tm_hour * 60 + tmBuf.tm_min;
+		double ratio = static_cast<double>(minute - startMinute) / totalMinutes;
+		ratio = max(0.0, min(1.0, ratio));
+		return static_cast<int>(ratio * ctx.chartWidth);
+	};
+
+	// ==================== 竖线网格（9:15-9:25，每5分钟） ====================
+	{
+		CPen gridPen(PS_SOLID, 1, RGB(220, 220, 220));
+		CPen* pOldPen = memDC.SelectObject(&gridPen);
+		for (int minute = startMinute; minute <= endMinute; minute += 5)
+		{
+			int xPos = static_cast<int>(static_cast<double>(minute - startMinute) / totalMinutes * ctx.chartWidth);
+			memDC.MoveTo(xPos, ctx.priceChartTop);
+			memDC.LineTo(xPos, ctx.volumeChartTop + ctx.volumeChartHeight);
+		}
+		memDC.SelectObject(pOldPen);
+	}
+
+	// ==================== 主图：价格走势 ====================
+	// 昨收参考线
+	if (callAuctionData.prevClosePrice > 0 && ctx.unitY > 0)
+	{
+		STOCK::Price prevClose = callAuctionData.prevClosePrice;
+		int prevCloseY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((prevClose - ctx.minPrice) * ctx.unitY);
+		CPen dashPen(PS_DASH, 1, RGB(128, 128, 128));
+		CPen* pOldPen = memDC.SelectObject(&dashPen);
+		memDC.MoveTo(0, prevCloseY);
+		memDC.LineTo(ctx.chartWidth, prevCloseY);
+		memDC.SelectObject(pOldPen);
+
+		CString prevCloseLabel;
+		prevCloseLabel.Format(_T("昨收 %.2f"), prevClose);
+		memDC.SetTextColor(RGB(128, 128, 128));
+		memDC.TextOut(2, prevCloseY - memDC.GetTextExtent(prevCloseLabel).cy - 1, prevCloseLabel);
+	}
+
+	// 涨停/跌停线
+	if (callAuctionData.limitUpPrice > 0 && ctx.unitY > 0)
+	{
+		int limitUpY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((callAuctionData.limitUpPrice - ctx.minPrice) * ctx.unitY);
+		CPen dashPen(PS_DOT, 1, RGB(200, 0, 200));
+		CPen* pOldPen = memDC.SelectObject(&dashPen);
+		memDC.MoveTo(0, limitUpY);
+		memDC.LineTo(ctx.chartWidth, limitUpY);
+		memDC.SelectObject(pOldPen);
+	}
+	if (callAuctionData.limitDownPrice > 0 && ctx.unitY > 0)
+	{
+		int limitDownY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((callAuctionData.limitDownPrice - ctx.minPrice) * ctx.unitY);
+		CPen dashPen(PS_DOT, 1, RGB(0, 128, 0));
+		CPen* pOldPen = memDC.SelectObject(&dashPen);
+		memDC.MoveTo(0, limitDownY);
+		memDC.LineTo(ctx.chartWidth, limitDownY);
+		memDC.SelectObject(pOldPen);
+	}
+
+	// 价格走势曲线
+	if (totalPoints > 0 && ctx.unitY > 0)
+	{
+		CPen pricePen(PS_SOLID, 2, RGB(0, 0, 180));
+		CPen* pOldPen = memDC.SelectObject(&pricePen);
+		bool firstPoint = true;
+		int prevX = 0, prevY = 0;
+		for (int i = 0; i < totalPoints; i++)
+		{
+			if (snapshots[i].matchPrice <= 0) continue;
+			int x = timeToX(snapshots[i].timestamp);
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((snapshots[i].matchPrice - ctx.minPrice) * ctx.unitY);
+			if (firstPoint)
+			{
+				prevX = x;
+				prevY = y;
+				firstPoint = false;
+			}
+			else
+			{
+				memDC.MoveTo(prevX, prevY);
+				memDC.LineTo(x, y);
+				prevX = x;
+				prevY = y;
+			}
+		}
+		memDC.SelectObject(pOldPen);
+
+		// 当前价格标签（右侧）
+		if (callAuctionData.matchPrice > 0)
+		{
+			int lastX = timeToX(snapshots[totalPoints - 1].timestamp);
+			int lastY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((callAuctionData.matchPrice - ctx.minPrice) * ctx.unitY);
+			CString priceLabel = CCommon::FormatFloat(callAuctionData.matchPrice);
+			memDC.SetTextColor(callAuctionData.matchPrice >= callAuctionData.prevClosePrice ? COLOR_RED_UP : COLOR_GREEN_DOWN);
+			CSize labelSize = memDC.GetTextExtent(priceLabel);
+			memDC.TextOut(ctx.chartWidth + 2 - labelSize.cx, lastY - labelSize.cy / 2, priceLabel);
+		}
+	}
+
+	// 主图信息文本（左上角）
+	{
+		CString infoText;
+		if (callAuctionData.matchPrice > 0)
+		{
+			double changePercent = callAuctionData.prevClosePrice > 0 ?
+				(callAuctionData.matchPrice - callAuctionData.prevClosePrice) / callAuctionData.prevClosePrice * 100 : 0;
+			CString priceStr = CCommon::FormatFloat(callAuctionData.matchPrice);
+			CString changeStr = CCommon::FormatSignedValue(changePercent, _T("%.2f"));
+			infoText.Format(_T("撮合价 %s  %s%%"), priceStr, changeStr);
+			memDC.SetTextColor(callAuctionData.matchPrice >= callAuctionData.prevClosePrice ? COLOR_RED_UP : COLOR_GREEN_DOWN);
+		}
+		else
+		{
+			infoText = _T("暂无撮合价");
+			memDC.SetTextColor(COLOR_GRAY_TEXT);
+		}
+		memDC.TextOut(g_data.RDPI(4), ctx.priceChartTop + g_data.RDPI(2), infoText);
+	}
+
+	// 主图Y轴价格刻度
+	if (ctx.unitY > 0)
+	{
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+		for (double p = ctx.minPrice; p <= ctx.maxPrice + ctx.niceStep * 0.01; p += ctx.niceStep)
+		{
+			int y = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((p - ctx.minPrice) * ctx.unitY);
+			CString label = CCommon::FormatFloat(p);
+			CSize sz = memDC.GetTextExtent(label);
+			memDC.TextOut(-sz.cx - g_data.RDPI(4), y - sz.cy / 2, label);
+		}
+	}
+
+	// ==================== 副图：成交量（上半未匹配量倒置，下半已匹配量正置） ====================
+	if (totalPoints > 0)
+	{
+		// 找最大增量成交量（addVol）和最大未匹配量
+		STOCK::Volume maxAddVol = 0;
+		STOCK::Volume maxUnmatchVol = 0;
+		for (const auto& snap : snapshots)
+		{
+			maxAddVol = (std::max)(maxAddVol, snap.addVol);
+			maxUnmatchVol = (std::max)(maxUnmatchVol, (std::max)(snap.unmatchBidVol, snap.unmatchAskVol));
+		}
+		if (maxAddVol <= 0) maxAddVol = 1;
+		if (maxUnmatchVol <= 0) maxUnmatchVol = 1;
+
+		// 副图分为上下两半：上半绘制未匹配量（倒置），下半绘制已匹配量（正置）
+		int volHalfHeight = ctx.volumeChartHeight / 2;
+		int volMidY = ctx.volumeChartTop + volHalfHeight;  // 中线
+
+		// 中线分隔线
+		CPen midPen(PS_SOLID, 1, RGB(200, 200, 200));
+		CPen* pOldPen = memDC.SelectObject(&midPen);
+		memDC.MoveTo(0, volMidY);
+		memDC.LineTo(ctx.chartWidth, volMidY);
+		memDC.SelectObject(pOldPen);
+
+		double barWidth = static_cast<double>(ctx.chartWidth) / totalPoints;
+		int actualBarWidth = max(1, static_cast<int>(barWidth) - 1);
+
+		for (int i = 0; i < totalPoints; i++)
+		{
+			int x = timeToX(snapshots[i].timestamp) - actualBarWidth / 2;
+			bool isUp = snapshots[i].matchPrice >= callAuctionData.prevClosePrice;
+			COLORREF matchColor = isUp ? COLOR_RED_UP : COLOR_GREEN_DOWN;
+			COLORREF unmatchColor = isUp ? RGB(255, 150, 150) : RGB(150, 255, 150);
+
+			// 下半部分：已匹配增量成交量（正置，从中线向下生长）
+			if (snapshots[i].addVol > 0)
+			{
+				int barHeight = static_cast<int>(static_cast<double>(snapshots[i].addVol) / maxAddVol * volHalfHeight * 0.9);
+				barHeight = max(1, barHeight);
+				memDC.FillSolidRect(x, volMidY, actualBarWidth, barHeight, matchColor);
+			}
+
+			// 上半部分：未匹配量（倒置，从中线向上生长）
+			// 未匹配买量（红色，左侧半柱）
+			if (snapshots[i].unmatchBidVol > 0)
+			{
+				int barHeight = static_cast<int>(static_cast<double>(snapshots[i].unmatchBidVol) / maxUnmatchVol * volHalfHeight * 0.9);
+				barHeight = max(1, barHeight);
+				int halfW = max(1, actualBarWidth / 2);
+				memDC.FillSolidRect(x, volMidY - barHeight, halfW, barHeight, unmatchColor);
+			}
+			// 未匹配卖量（绿色，右侧半柱）
+			if (snapshots[i].unmatchAskVol > 0)
+			{
+				int barHeight = static_cast<int>(static_cast<double>(snapshots[i].unmatchAskVol) / maxUnmatchVol * volHalfHeight * 0.9);
+				barHeight = max(1, barHeight);
+				int halfW = max(1, actualBarWidth / 2);
+				memDC.FillSolidRect(x + halfW, volMidY - barHeight, halfW, barHeight, unmatchColor);
+			}
+		}
+
+		// 副图标题
+		CString volTitle;
+		volTitle.Format(_T("成交量  匹配 %s  未匹配买 %s / 卖 %s"),
+			CCommon::FormatVolume(static_cast<double>(callAuctionData.matchVolume)),
+			CCommon::FormatVolume(static_cast<double>(callAuctionData.totalBidVolume)),
+			CCommon::FormatVolume(static_cast<double>(callAuctionData.totalAskVolume)));
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+		memDC.TextOut(g_data.RDPI(4), ctx.volumeChartTop + g_data.RDPI(1), volTitle);
+	}
+
+	// ==================== X轴时间标签 ====================
+	{
+		memDC.SetTextColor(COLOR_GRAY_TEXT);
+		for (int minute = startMinute; minute <= endMinute; minute += 5)
+		{
+			int xPos = static_cast<int>(static_cast<double>(minute - startMinute) / totalMinutes * ctx.chartWidth);
+			int hour = minute / 60;
+			int min = minute % 60;
+			CString timeLabel;
+			timeLabel.Format(_T("%02d:%02d"), hour, min);
+			CSize labelSize = memDC.GetTextExtent(timeLabel);
+			int labelX = max(0, min(xPos - labelSize.cx / 2, ctx.chartWidth - labelSize.cx));
+			memDC.TextOut(labelX, ctx.positionY, timeLabel);
+		}
+	}
 }
 
 void CFloatingWnd::DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, const std::wstring& currentStockId)
