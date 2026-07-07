@@ -71,6 +71,8 @@ public:
 	void RequestMin5KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestMin30KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
+	void RequestFundIOPV(const std::wstring& stock_id);
+	void RequestFundTimeline(const std::wstring& stock_id);
 	void RequestCallAuctionData();
 	bool RequestChipDistributionData(std::wstring stock_id);
 	void RequestAllChipDistributionData();

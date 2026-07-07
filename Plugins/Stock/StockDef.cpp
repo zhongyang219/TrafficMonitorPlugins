@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "StockDef.h"
 #include <iomanip>
 #include "Common.h"
@@ -24,6 +24,10 @@ constexpr auto _DATA_LEN_NF = 16;
 constexpr auto _DATA_LEN_HF = 14;
 
 using namespace STOCK;
+
+// 前向声明（实现在文件后面）
+static Volume GetJsonVolume(yyjson_val* obj, const char* key);
+static Price GetJsonPrice(yyjson_val* obj, const char* key);
 
 void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
 {
@@ -131,6 +135,10 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		if (key_str.substr(0, 2) == "v_")
 			key_str = key_str.substr(2);
 
+		// 腾讯API港股前缀为 r_hk，需要转回 rt_hk 以匹配 stockData
+		if (key_str.find("r_hk") == 0)
+			key_str = "rt_hk" + key_str.substr(4);
+
 		std::wstring key = CCommon::StrToUnicode(key_str.c_str());
 		auto stockData = getStock(key);
 		if (!stockData) continue;
@@ -164,7 +172,220 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		{
 			stockData->info.turnoverRate = { convert<Amount>(data_arr[38]) };
 		}
+
+		// 港股实时行情补充：当新浪API未返回港股数据时，从腾讯API数据中提取
+		// 腾讯港股数据格式：r_hk~名称~代码~现价~昨收~今开~成交量~...~涨跌额~涨跌幅~最高~最低~...~成交额~...~换手率~...~振幅
+		if (key.find(kHK) == 0 && data_arr.size() >= 37 && stockData->info.currentPrice <= 0)
+		{
+			StockInfo& info = stockData->info;
+			if (!data_arr[1].empty())
+				info.displayName = CCommon::StrToUnicode(data_arr[1].c_str());
+			info.currentPrice = { convert<Price>(data_arr[3]) };
+			info.prevClosePrice = { convert<Price>(data_arr[4]) };
+			info.openPrice = { convert<Price>(data_arr[5]) };
+			info.volume = { convert<Volume>(data_arr[6]) };
+			if (data_arr.size() >= 33)
+			{
+				info.highPrice = { convert<Price>(data_arr[32]) };
+				info.lowPrice = { convert<Price>(data_arr[33]) };
+			}
+			if (data_arr.size() >= 37)
+				info.turnover = { convert<Price>(data_arr[36]) };
+
+			// 计算涨跌显示
+			if (info.currentPrice > 0 && info.prevClosePrice > 0)
+			{
+				CString priceStr = CCommon::FormatFloat(info.currentPrice);
+				info.displayPrice = std::wstring(priceStr.GetString());
+
+				char buff[32];
+				float diff = info.currentPrice - info.prevClosePrice;
+				float change = diff / info.prevClosePrice * 100;
+				if (diff > 0)
+					sprintf_s(buff, "(+%g) ", diff);
+				else
+					sprintf_s(buff, "(%g) ", diff);
+				info.displayFluctuationDiff = CCommon::StrToUnicode(buff);
+				sprintf_s(buff, "%.2f%%", std::fabs(change));
+				info.displayFluctuation = CCommon::StrToUnicode(buff);
+
+				info.is_ok = true;
+			}
+		}
 	}
+}
+
+void STOCK::StockMarket::LoadFundIOPVData(const std::wstring& key, const CString& data)
+{
+	auto stockData = getStock(key);
+	if (!stockData) return;
+
+	CStringA dataA(data);
+	yyjson_doc* doc = yyjson_read(dataA.GetString(), dataA.GetLength(), 0);
+	if (!doc) return;
+
+	yyjson_val* root = yyjson_doc_get_root(doc);
+	yyjson_val* dataObj = yyjson_obj_get(root, "data");
+	if (!dataObj || !yyjson_is_obj(dataObj))
+	{
+		yyjson_doc_free(doc);
+		return;
+	}
+
+	StockInfo& info = stockData->info;
+
+	// IOPV当前值
+	yyjson_val* iopvVal = yyjson_obj_get(dataObj, "iopv");
+	if (iopvVal && yyjson_is_str(iopvVal))
+		info.iopv = convert<Price>(yyjson_get_str(iopvVal));
+	else if (iopvVal && yyjson_is_real(iopvVal))
+		info.iopv = yyjson_get_real(iopvVal);
+	else if (iopvVal && yyjson_is_int(iopvVal))
+		info.iopv = static_cast<Price>(yyjson_get_int(iopvVal));
+
+	// IOPV昨收
+	yyjson_val* iopvPreVal = yyjson_obj_get(dataObj, "iopv_pre");
+	if (iopvPreVal && yyjson_is_str(iopvPreVal))
+		info.iopvPrevClose = convert<Price>(yyjson_get_str(iopvPreVal));
+	else if (iopvPreVal && yyjson_is_real(iopvPreVal))
+		info.iopvPrevClose = yyjson_get_real(iopvPreVal);
+	else if (iopvPreVal && yyjson_is_int(iopvPreVal))
+		info.iopvPrevClose = static_cast<Price>(yyjson_get_int(iopvPreVal));
+
+	// 溢价额
+	yyjson_val* premiumVal = yyjson_obj_get(dataObj, "premium");
+	if (premiumVal && yyjson_is_str(premiumVal))
+		info.iopvPremium = convert<double>(yyjson_get_str(premiumVal));
+	else if (premiumVal && yyjson_is_real(premiumVal))
+		info.iopvPremium = yyjson_get_real(premiumVal);
+	else if (premiumVal && yyjson_is_int(premiumVal))
+		info.iopvPremium = static_cast<double>(yyjson_get_int(premiumVal));
+
+	// 溢折率(%)
+	yyjson_val* premiumRateVal = yyjson_obj_get(dataObj, "premium_rate");
+	if (premiumRateVal && yyjson_is_str(premiumRateVal))
+		info.iopvPremiumRate = convert<double>(yyjson_get_str(premiumRateVal));
+	else if (premiumRateVal && yyjson_is_real(premiumRateVal))
+		info.iopvPremiumRate = yyjson_get_real(premiumRateVal);
+	else if (premiumRateVal && yyjson_is_int(premiumRateVal))
+		info.iopvPremiumRate = static_cast<double>(yyjson_get_int(premiumRateVal));
+
+	// IOPV涨跌幅(%)
+	yyjson_val* iopvChangeVal = yyjson_obj_get(dataObj, "iopv_change");
+	if (iopvChangeVal && yyjson_is_str(iopvChangeVal))
+		info.iopvChange = convert<double>(yyjson_get_str(iopvChangeVal));
+	else if (iopvChangeVal && yyjson_is_real(iopvChangeVal))
+		info.iopvChange = yyjson_get_real(iopvChangeVal);
+	else if (iopvChangeVal && yyjson_is_int(iopvChangeVal))
+		info.iopvChange = static_cast<double>(yyjson_get_int(iopvChangeVal));
+
+	yyjson_doc_free(doc);
+}
+
+void STOCK::StockMarket::LoadFundTimelineData(const std::wstring& key, const CString& data)
+{
+	auto stockData = getStock(key);
+	if (!stockData) return;
+
+	CStringA dataA(data);
+	std::string rawData(dataA.GetString(), dataA.GetLength());
+
+	yyjson_doc* doc = yyjson_read(rawData.c_str(), rawData.size(), 0);
+	if (!doc) return;
+
+	yyjson_val* root = yyjson_doc_get_root(doc);
+	if (!root || !yyjson_is_obj(root))
+	{
+		yyjson_doc_free(doc);
+		return;
+	}
+
+	yyjson_val* dataObj = yyjson_obj_get(root, "data");
+	if (!dataObj || !yyjson_is_obj(dataObj))
+	{
+		yyjson_doc_free(doc);
+		return;
+	}
+
+	// 解析分时数据
+	yyjson_val* timelineArr = yyjson_obj_get(dataObj, "timeline");
+	if (timelineArr && yyjson_is_arr(timelineArr))
+	{
+		auto timelineData = stockData->MakesureHistoricalData<TimelineData>(Period::TIMELINE);
+		timelineData->Clear();
+
+		yyjson_val* item;
+		yyjson_arr_iter iter;
+		yyjson_arr_iter_init(timelineArr, &iter);
+		while ((item = yyjson_arr_iter_next(&iter)))
+		{
+			if (!item || !yyjson_is_obj(item)) continue;
+
+			TimelinePoint point;
+			point.time = utilities::JsonHelper::GetJsonString(item, "time");
+			point.price = GetJsonPrice(item, "price");
+			point.volume = GetJsonVolume(item, "volume");
+			point.averagePrice = GetJsonPrice(item, "avg");
+			point.amount = point.price * point.volume;
+			timelineData->data.push_back(point);
+		}
+	}
+
+	// 解析IOPV时序数据，按最近时间匹配到分时点
+	yyjson_val* iopvTimelineArr = yyjson_obj_get(dataObj, "iopv_timeline");
+	if (iopvTimelineArr && yyjson_is_arr(iopvTimelineArr))
+	{
+		auto timelineData = stockData->MakesureHistoricalData<TimelineData>(Period::TIMELINE);
+		if (!timelineData->data.empty())
+		{
+			// 收集IOPV时序点
+			struct IopvTimePoint { std::string time; Price iopv; };
+			std::vector<IopvTimePoint> iopvPoints;
+
+			yyjson_val* item;
+			yyjson_arr_iter iter;
+			yyjson_arr_iter_init(iopvTimelineArr, &iter);
+			while ((item = yyjson_arr_iter_next(&iter)))
+			{
+				if (!item || !yyjson_is_obj(item)) continue;
+				IopvTimePoint pt;
+				pt.time = utilities::JsonHelper::GetJsonString(item, "time");
+				pt.iopv = GetJsonPrice(item, "iopv");
+				if (!pt.time.empty() && pt.iopv > 0)
+					iopvPoints.push_back(pt);
+			}
+
+			// 按最近时间匹配：对每个分时点，找到时间最接近的IOPV点
+			if (!iopvPoints.empty())
+			{
+				for (auto& tp : timelineData->data)
+				{
+					Price bestIopv = 0;
+					int bestDist = INT_MAX;
+					for (const auto& ip : iopvPoints)
+					{
+						// 时间字符串长度不同时跳过
+						if (tp.time.size() != ip.time.size())
+							continue;
+						int dist = 0;
+						for (size_t i = 0; i < tp.time.size() && dist == 0; i++)
+						{
+							if (tp.time[i] != ip.time[i])
+								dist = abs(tp.time[i] - ip.time[i]);
+						}
+						if (dist < bestDist)
+						{
+							bestDist = dist;
+							bestIopv = ip.iopv;
+						}
+					}
+					tp.iopv = bestIopv;
+				}
+			}
+		}
+	}
+
+	yyjson_doc_free(doc);
 }
 
 void STOCK::StockMarket::LoadCallAuctionData(std::string data)
@@ -339,6 +560,15 @@ void STOCK::StockInfo::Load(std::wstring key, std::vector<std::string> data_arr)
 
 		sprintf_s(buff, "%.2f%%", std::fabs(change));
 		displayFluctuation = CCommon::StrToUnicode(buff);
+	}
+
+	// IOPV 溢折率自动计算
+	if (iopv > 0)
+	{
+		iopvPremium = currentPrice - iopv;
+		iopvPremiumRate = iopvPremium / iopv * 100;
+		if (iopvPrevClose > 0)
+			iopvChange = (iopv - iopvPrevClose) / iopvPrevClose * 100;
 	}
 }
 
@@ -717,6 +947,60 @@ void STOCK::StockData::addTimelinePointTo(const CString& json_data, std::vector<
 				}
 			}
 		}
+
+		// 解析IOPV时序数据，按最近时间匹配到分时点
+		yyjson_val* iopvTimeline = yyjson_obj_get(result, "iopv_timeline");
+		if (iopvTimeline && yyjson_is_arr(iopvTimeline) && !outPoints.empty())
+		{
+			// 收集IOPV时序点
+			struct IopvTimePoint { std::string time; Price iopv; };
+			std::vector<IopvTimePoint> iopvPoints;
+
+			yyjson_val* iopvItem;
+			yyjson_arr_iter iopvIter;
+			yyjson_arr_iter_init(iopvTimeline, &iopvIter);
+			while ((iopvItem = yyjson_arr_iter_next(&iopvIter)))
+			{
+				if (!iopvItem || !yyjson_is_obj(iopvItem)) continue;
+				IopvTimePoint pt;
+				pt.time = utilities::JsonHelper::GetJsonString(iopvItem, "m");
+				if (pt.time.empty())
+					pt.time = utilities::JsonHelper::GetJsonString(iopvItem, "time");
+				pt.iopv = GetJsonPrice(iopvItem, "iopv");
+				if (!pt.time.empty() && pt.iopv > 0)
+					iopvPoints.push_back(pt);
+			}
+
+			// 按最近时间匹配：对每个分时点，找到时间最接近的IOPV点
+			if (!iopvPoints.empty())
+			{
+				// IOPV点按时间排序，用双指针高效匹配
+				for (auto& tp : outPoints)
+				{
+					Price bestIopv = 0;
+					int bestDist = INT_MAX;
+					for (const auto& ip : iopvPoints)
+					{
+						// 时间字符串长度不同时跳过
+						if (tp.time.size() != ip.time.size())
+							continue;
+						int dist = 0;
+						for (size_t i = 0; i < tp.time.size() && dist == 0; i++)
+						{
+							if (tp.time[i] != ip.time[i])
+								dist = abs(tp.time[i] - ip.time[i]);
+						}
+						if (dist < bestDist)
+						{
+							bestDist = dist;
+							bestIopv = ip.iopv;
+						}
+					}
+					tp.iopv = bestIopv;
+				}
+			}
+		}
+
 		yyjson_doc_free(doc);
 	}
 }

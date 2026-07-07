@@ -41,8 +41,9 @@ namespace STOCK
 		Price ma5;             // 5分钟滚动均价
 		Price ma10;            // 10分钟滚动均价
 		Price ma20;            // 20分钟滚动均价
+		Price iopv;            // IOPV 基金份额参考净值
 
-		TimelinePoint() : volume(0), price(0), averagePrice(0), amount(0), ma5(0), ma10(0), ma20(0) {}
+		TimelinePoint() : volume(0), price(0), averagePrice(0), amount(0), ma5(0), ma10(0), ma20(0), iopv(0) {}
 	};
 
 	// 筹码分布数据点
@@ -308,6 +309,13 @@ namespace STOCK
 
 		Price priceLimit; // 价格限制
 
+		// ETF基金份额参考净值(IOPV)相关数据
+		Price iopv;              // IOPV 基金份额参考净值
+		Price iopvPrevClose;     // IOPV 昨收（前一日参考净值）
+		double iopvPremium;      // 溢价额 = 当前价 - IOPV
+		double iopvPremiumRate;  // 溢折率 = (当前价 - IOPV) / IOPV * 100(%)
+		double iopvChange;       // IOPV涨跌幅 = (IOPV - iopvPrevClose) / iopvPrevClose * 100(%)
+
 		static const int MAX_LEVEL = 5;
 
 		OrderLevel askLevels[MAX_LEVEL]; // 卖盘(5档)
@@ -324,7 +332,12 @@ namespace STOCK
 			outerVolume(0),
 			turnoverRate(0.0),
 			circulatingAShares(0),
-			priceLimit(0.0)
+			priceLimit(0.0),
+			iopv(0.0),
+			iopvPrevClose(0.0),
+			iopvPremium(0.0),
+			iopvPremiumRate(0.0),
+			iopvChange(0.0)
 		{
 			// bidLevels.resize(MAX_LEVEL);
 			// askLevels.resize(MAX_LEVEL);
@@ -755,6 +768,8 @@ namespace STOCK
 		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadInnerOuterData(std::string data);
+		void LoadFundIOPVData(const std::wstring& key, const CString& data);
+		void LoadFundTimelineData(const std::wstring& key, const CString& data);
 		void LoadCallAuctionData(std::string data);
 
 		void ClearRealtimeData()

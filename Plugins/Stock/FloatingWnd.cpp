@@ -653,7 +653,7 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	memDC.LineTo(ctx.chartWidth, ctx.priceChartTop + ctx.priceChartHeight);
 
 	// 走势图横线（使用OnPaint预计算的niceStep）
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
+	if (ctx.maxPrice > 0 && ctx.minPrice >= 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
 	{
 		CPen pGridLine(PS_DOT, 1, COLOR_GRAY_GRID);
 		memDC.SelectObject(&pGridLine);
@@ -670,7 +670,7 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 	}
 
 	// 昨收价虚线（仅当昨收价在可见Y轴范围内时绘制）
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.realtimeData.prevClosePrice > 0
+	if (ctx.maxPrice > 0 && ctx.minPrice >= 0 && ctx.maxPrice > ctx.minPrice && ctx.realtimeData.prevClosePrice > 0
 		&& ctx.realtimeData.prevClosePrice >= ctx.minPrice && ctx.realtimeData.prevClosePrice <= ctx.maxPrice)
 	{
 		CPen pMiddleLine(PS_DASHDOT, 1, COLOR_GRAY_MIDDLE);
@@ -688,7 +688,7 @@ void CFloatingWnd::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& 
 void CFloatingWnd::DrawTimelinePriceLabels(CDC& memDC, const TimelineDrawContext& ctx)
 {
 	// Y轴价格标签（使用OnPaint预计算的niceStep）
-	if (ctx.maxPrice > 0 && ctx.minPrice > 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
+	if (ctx.maxPrice > 0 && ctx.minPrice >= 0 && ctx.maxPrice > ctx.minPrice && ctx.niceStep > 0)
 	{
 		int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 		double priceRange = ctx.maxPrice - ctx.minPrice;
@@ -787,7 +787,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	STOCK::Price maxPrice = ctx.maxPrice;
 	STOCK::Price minPrice = ctx.minPrice;
 	double unitY = ctx.unitY;
-	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
+	if (maxPrice <= 0 || minPrice < 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		// 回退：基于涨跌停限制
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
@@ -1246,7 +1246,7 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	STOCK::Price maxPrice = ctx.maxPrice;
 	STOCK::Price minPrice = ctx.minPrice;
 	double unitY = ctx.unitY;
-	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
+	if (maxPrice <= 0 || minPrice < 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		// 回退：基于涨跌停限制
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
@@ -1389,7 +1389,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 	STOCK::Price maxPrice = ctx.maxPrice;
 	STOCK::Price minPrice = ctx.minPrice;
 	double unitY = ctx.unitY;
-	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
+	if (maxPrice <= 0 || minPrice < 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
@@ -1863,7 +1863,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 	STOCK::Price maxPrice = ctx.maxPrice;
 	STOCK::Price minPrice = ctx.minPrice;
 	double unitY = ctx.unitY;
-	if (maxPrice <= 0 || minPrice <= 0 || maxPrice <= minPrice || unitY <= 0)
+	if (maxPrice <= 0 || minPrice < 0 || maxPrice <= minPrice || unitY <= 0)
 	{
 		STOCK::Price priceLimit = ctx.realtimeData.priceLimit;
 		maxPrice = ctx.realtimeData.prevClosePrice + priceLimit;
@@ -2739,6 +2739,7 @@ void CFloatingWnd::OnPaint()
 					}
 				}
 				// K线模式：Y轴范围需要包含K线柱的high/low
+				// 分别纳入high和low，避免low=0时丢失有效的high值，也避免low=0/close=0时visMin被设为0
 				if (m_isKLineMode && ctx.klineData)
 				{
 					const auto& klineRef = *ctx.klineData;
@@ -2746,10 +2747,9 @@ void CFloatingWnd::OnPaint()
 					{
 						const auto& kp = klineRef[startIndex + i];
 						if (kp.high > 0)
-						{
 							visMax = (std::max)(visMax, kp.high);
-							visMin = (std::min)(visMin, kp.low > 0 ? kp.low : kp.close);
-						}
+						if (kp.low > 0)
+							visMin = (std::min)(visMin, kp.low);
 					}
 				}
 
@@ -2825,6 +2825,13 @@ void CFloatingWnd::OnPaint()
 				// 与FormatFloat的三位小数显示精度保持一致，确保标签值就是网格线和曲线映射使用的实际值
 				axisMin = round(axisMin * 1000.0) / 1000.0;
 				double axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
+
+				// 股价不能为负数，Y轴最小值至少为0
+				if (axisMin < 0)
+				{
+					axisMin = 0;
+					axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
+				}
 
 				ctx.maxPrice = axisMax;
 				ctx.minPrice = axisMin;
@@ -7356,72 +7363,83 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	// 趋势、净比、振幅和换手率
 
 	// 趋势判定（行9）
-	// 根据当前视图分别计算对应周期的趋势：分时/5分/30分；日K视图保持双周期综合判定
+	// 同时显示30分钟、5分钟和当前视图趋势，格式：趋势:上涨(30) 震荡(5) 低吸
 	{
-		CString trendTxt = _T("趋势: --");
-		COLORREF trendColor = COLOR_GRAY_TEXT;
 		auto stockDataForTrend = g_data.GetStockData(m_stock_id);
+
+		// 分别计算三个周期的趋势方向
+		STOCK::TrendDir dir30 = STOCK::TrendDir::DIR_SIDE;
+		STOCK::TrendDir dir5 = STOCK::TrendDir::DIR_SIDE;
+		STOCK::TrendDir dirCur = STOCK::TrendDir::DIR_SIDE;
+		bool curIsShortPullback = false;
+		bool curIsShortRebound = false;
+		STOCK::SideTag curSideTag = STOCK::SideTag::SIDE_MID;
+		bool valid30 = false, valid5 = false, validCur = false;
+
 		if (stockDataForTrend)
 		{
-			STOCK::TrendDir finalDir = STOCK::TrendDir::DIR_SIDE;
-			bool isShortPullback = false;
-			bool isShortRebound = false;
-			STOCK::SideTag sideTag = STOCK::SideTag::SIDE_MID;
-			bool valid = false;
+			// 30分钟趋势
+			auto* min30Obj = stockDataForTrend->getMin30KLineData();
+			if (min30Obj && min30Obj->data.size() >= 25)
+			{
+				std::vector<STOCK::Bar> bars30;
+				bars30.reserve(min30Obj->data.size());
+				for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
+				if (CSignalAnalyzer::Calc30UpStruct(bars30))
+					dir30 = STOCK::TrendDir::DIR_UP;
+				else if (CSignalAnalyzer::Calc30DownStruct(bars30))
+					dir30 = STOCK::TrendDir::DIR_DOWN;
+				else
+					dir30 = STOCK::TrendDir::DIR_SIDE;
+				valid30 = true;
+			}
 
+			// 5分钟趋势
+			auto* min5Obj = stockDataForTrend->getMin5KLineData();
+			if (min5Obj && min5Obj->data.size() >= 20)
+			{
+				std::vector<STOCK::Bar> bars5;
+				bars5.reserve(min5Obj->data.size());
+				for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+				if (CSignalAnalyzer::Calc5MinUp(bars5))
+					dir5 = STOCK::TrendDir::DIR_UP;
+				else if (CSignalAnalyzer::Calc5MinDown(bars5))
+					dir5 = STOCK::TrendDir::DIR_DOWN;
+				else
+					dir5 = STOCK::TrendDir::DIR_SIDE;
+				valid5 = true;
+			}
+
+			// 当前视图趋势（沿用原逻辑）
 			if (m_isMin30KLineMode)
 			{
-				// 30分钟视图：基于30分钟K线波段结构判定
-				auto* min30Obj = stockDataForTrend->getMin30KLineData();
-				if (min30Obj && min30Obj->data.size() >= 25)
+				if (valid30)
 				{
+					dirCur = dir30;
 					std::vector<STOCK::Bar> bars30;
 					bars30.reserve(min30Obj->data.size());
 					for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-
-					if (CSignalAnalyzer::Calc30UpStruct(bars30))
-						finalDir = STOCK::TrendDir::DIR_UP;
-					else if (CSignalAnalyzer::Calc30DownStruct(bars30))
-						finalDir = STOCK::TrendDir::DIR_DOWN;
-					else
-						finalDir = STOCK::TrendDir::DIR_SIDE;
-
-					// 30分钟震荡区间时，用状态标记低吸/高抛
 					STOCK::TrendState30m state30 = CSignalAnalyzer::Get30mTrendState(bars30);
-					if (finalDir == STOCK::TrendDir::DIR_SIDE)
+					if (dirCur == STOCK::TrendDir::DIR_SIDE)
 					{
 						if (state30 == STOCK::TrendState30m::STATE_STRONG)
-							sideTag = STOCK::SideTag::SIDE_LONG_POINT;
+							curSideTag = STOCK::SideTag::SIDE_LONG_POINT;
 						else if (state30 == STOCK::TrendState30m::STATE_WEAK)
-							sideTag = STOCK::SideTag::SIDE_SHORT_POINT;
+							curSideTag = STOCK::SideTag::SIDE_SHORT_POINT;
 					}
-					valid = true;
+					validCur = true;
 				}
 			}
 			else if (m_isMin5KLineMode)
 			{
-				// 5分钟视图：基于5分钟K线短线多空判定
-				auto* min5Obj = stockDataForTrend->getMin5KLineData();
-				if (min5Obj && min5Obj->data.size() >= 20)
+				if (valid5)
 				{
-					std::vector<STOCK::Bar> bars5;
-					bars5.reserve(min5Obj->data.size());
-					for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
-
-					bool b5Up = CSignalAnalyzer::Calc5MinUp(bars5);
-					bool b5Down = CSignalAnalyzer::Calc5MinDown(bars5);
-					if (b5Up)
-						finalDir = STOCK::TrendDir::DIR_UP;
-					else if (b5Down)
-						finalDir = STOCK::TrendDir::DIR_DOWN;
-					else
-						finalDir = STOCK::TrendDir::DIR_SIDE;
-					valid = true;
+					dirCur = dir5;
+					validCur = true;
 				}
 			}
 			else if (!m_isKLineMode)
 			{
-				// 分时视图：基于分时数据判定（前后半段均价对比 + 当前价与累计均价关系）
 				auto* tlObj = stockDataForTrend->getTimelineData();
 				if (tlObj && tlObj->data.size() >= 10)
 				{
@@ -7429,7 +7447,6 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 					const auto& last = pts.back();
 					double curPrice = last.price;
 					double avgPrice = last.averagePrice;
-
 					size_t n = pts.size();
 					size_t half = n / 2;
 					double firstHalfAvg = 0, secondHalfAvg = 0;
@@ -7438,74 +7455,102 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 					for (size_t i = half; i < n; ++i) { secondHalfAvg += pts[i].price; ++secondCnt; }
 					if (firstCnt > 0) firstHalfAvg /= firstCnt;
 					if (secondCnt > 0) secondHalfAvg /= secondCnt;
-
 					bool priceUpTrend = (secondHalfAvg > firstHalfAvg) && (curPrice >= avgPrice);
 					bool priceDownTrend = (secondHalfAvg < firstHalfAvg) && (curPrice <= avgPrice);
-
 					if (priceUpTrend)
-						finalDir = STOCK::TrendDir::DIR_UP;
+						dirCur = STOCK::TrendDir::DIR_UP;
 					else if (priceDownTrend)
-						finalDir = STOCK::TrendDir::DIR_DOWN;
+						dirCur = STOCK::TrendDir::DIR_DOWN;
 					else
-						finalDir = STOCK::TrendDir::DIR_SIDE;
-					valid = true;
+						dirCur = STOCK::TrendDir::DIR_SIDE;
+					validCur = true;
 				}
 			}
 			else
 			{
-				// 日K视图：保持原双周期综合判定
-				auto* min5Obj = stockDataForTrend->getMin5KLineData();
-				auto* min30Obj = stockDataForTrend->getMin30KLineData();
-				if (min5Obj && min5Obj->data.size() >= 20 && min30Obj && min30Obj->data.size() >= 25)
+				// 日K视图：双周期综合判定
+				if (valid5 && valid30)
 				{
 					std::vector<STOCK::Bar> bars5, bars30;
 					bars5.reserve(min5Obj->data.size());
 					for (const auto& kp : min5Obj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
 					bars30.reserve(min30Obj->data.size());
 					for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-
 					STOCK::Volume outerVolTrend = stockInfo.outerVolume;
 					STOCK::Volume innerVolTrend = stockInfo.innerVolume;
 					STOCK::TrendResult trendResult = CSignalAnalyzer::CalcTrend(bars5, bars30, outerVolTrend, innerVolTrend);
-					finalDir = trendResult.FinalTrend;
-					isShortPullback = trendResult.IsShortPullback;
-					isShortRebound = trendResult.IsShortRebound;
-					sideTag = trendResult.SideTagValue;
-					valid = true;
+					dirCur = trendResult.FinalTrend;
+					curIsShortPullback = trendResult.IsShortPullback;
+					curIsShortRebound = trendResult.IsShortRebound;
+					curSideTag = trendResult.SideTagValue;
+					validCur = true;
 				}
-			}
-
-			if (valid)
-			{
-				CString trendLabel;
-				if (finalDir == STOCK::TrendDir::DIR_UP)
-				{
-					trendLabel = _T("上涨");
-					trendColor = COLOR_RED_UP;
-					if (isShortPullback)
-						trendLabel += _T("(回调)");
-				}
-				else if (finalDir == STOCK::TrendDir::DIR_DOWN)
-				{
-					trendLabel = _T("下跌");
-					trendColor = COLOR_GREEN_DOWN;
-					if (isShortRebound)
-						trendLabel += _T("(反弹)");
-				}
-				else
-				{
-					trendLabel = _T("震荡");
-					trendColor = COLOR_GRAY_TEXT;
-					if (sideTag == STOCK::SideTag::SIDE_LONG_POINT)
-						trendLabel += _T("(低吸)");
-					else if (sideTag == STOCK::SideTag::SIDE_SHORT_POINT)
-						trendLabel += _T("(高抛)");
-				}
-				trendTxt.Format(_T("趋势: %s"), trendLabel.GetString());
 			}
 		}
-		memDC.SetTextColor(trendColor);
-		memDC.TextOut(textX, rowY(8) + max(0, (rowH(8) - memDC.GetTextExtent(trendTxt).cy) / 2), trendTxt);
+
+		// 构建分段文本：趋势:上涨(30) 震荡(5) 低吸
+		struct TextSeg { CString text; COLORREF color; };
+		std::vector<TextSeg> segs;
+		segs.push_back({ _T("趋势:"), COLOR_GRAY_TEXT });
+
+		// 30分钟段
+		if (!valid30)
+			segs.push_back({ _T("--(30)"), COLOR_GRAY_TEXT });
+		else if (dir30 == STOCK::TrendDir::DIR_UP)
+			segs.push_back({ _T("上涨(30)"), COLOR_RED_UP });
+		else if (dir30 == STOCK::TrendDir::DIR_DOWN)
+			segs.push_back({ _T("下跌(30)"), COLOR_GREEN_DOWN });
+		else
+			segs.push_back({ _T("震荡(30)"), COLOR_GRAY_TEXT });
+		segs.push_back({ _T(" "), COLOR_GRAY_TEXT });
+
+		// 5分钟段
+		if (!valid5)
+			segs.push_back({ _T("--(5)"), COLOR_GRAY_TEXT });
+		else if (dir5 == STOCK::TrendDir::DIR_UP)
+			segs.push_back({ _T("上涨(5)"), COLOR_RED_UP });
+		else if (dir5 == STOCK::TrendDir::DIR_DOWN)
+			segs.push_back({ _T("下跌(5)"), COLOR_GREEN_DOWN });
+		else
+			segs.push_back({ _T("震荡(5)"), COLOR_GRAY_TEXT });
+		segs.push_back({ _T(" "), COLOR_GRAY_TEXT });
+
+		// 当前视图段
+		if (!validCur)
+		{
+			segs.push_back({ _T("--"), COLOR_GRAY_TEXT });
+		}
+		else if (dirCur == STOCK::TrendDir::DIR_UP)
+		{
+			CString s = _T("上涨");
+			if (curIsShortPullback) s += _T("(回调)");
+			segs.push_back({ s, COLOR_RED_UP });
+		}
+		else if (dirCur == STOCK::TrendDir::DIR_DOWN)
+		{
+			CString s = _T("下跌");
+			if (curIsShortRebound) s += _T("(反弹)");
+			segs.push_back({ s, COLOR_GREEN_DOWN });
+		}
+		else
+		{
+			CString s = _T("震荡");
+			if (curSideTag == STOCK::SideTag::SIDE_LONG_POINT)
+				s += _T("(低吸)");
+			else if (curSideTag == STOCK::SideTag::SIDE_SHORT_POINT)
+				s += _T("(高抛)");
+			segs.push_back({ s, COLOR_GRAY_TEXT });
+		}
+
+		// 分段着色绘制
+		int drawX = textX;
+		int drawY = rowY(8) + max(0, (rowH(8) - memDC.GetTextExtent(_T("Ay")).cy) / 2);
+		for (const auto& seg : segs)
+		{
+			memDC.SetTextColor(seg.color);
+			memDC.TextOut(drawX, drawY, seg.text);
+			drawX += memDC.GetTextExtent(seg.text).cx;
+		}
 	}
 
 	auto stockDataPtr = g_data.GetStockData(m_stock_id);
@@ -9026,6 +9071,47 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			};
 		// 均价
 		drawLabelValue(_T("均价:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice));
+
+		// ETF基金：显示IOPV和溢折率
+		if (ctx.realtimeData.IsETF() && ctx.realtimeData.iopv > 0)
+		{
+			// IOPV颜色：高于现价红色，低于现价绿色，等于黑色
+			COLORREF iopvColor = COLOR_BLACK;
+			if (ctx.realtimeData.iopv > ctx.realtimeData.currentPrice)
+				iopvColor = COLOR_RED_UP;
+			else if (ctx.realtimeData.iopv < ctx.realtimeData.currentPrice)
+				iopvColor = COLOR_GREEN_DOWN;
+
+			// IOPV值
+			CString iopvLabel = _T("IOPV:");
+			CString iopvVal = CCommon::FormatFloat(ctx.realtimeData.iopv);
+			memDC.SetTextColor(COLOR_BLACK);
+			CSize iopvLs = memDC.GetTextExtent(iopvLabel);
+			memDC.TextOut(xPos, centerY - iopvLs.cy / 2, iopvLabel);
+			xPos += iopvLs.cx;
+			memDC.SetTextColor(iopvColor);
+			CSize iopvVs = memDC.GetTextExtent(iopvVal);
+			memDC.TextOut(xPos, centerY - iopvVs.cy / 2, iopvVal);
+			xPos += iopvVs.cx + g_data.RDPI(4);
+
+			// 溢折率：大于0红色，小于0绿色
+			CString premLabel = _T("溢折:");
+			CString premVal;
+			double premRate = ctx.realtimeData.iopvPremiumRate;
+			if (premRate >= 0)
+				premVal.Format(_T("+%.2f%%"), premRate);
+			else
+				premVal.Format(_T("%.2f%%"), premRate);
+			COLORREF premColor = premRate > 0 ? COLOR_RED_UP : (premRate < 0 ? COLOR_GREEN_DOWN : COLOR_BLACK);
+			memDC.SetTextColor(COLOR_BLACK);
+			CSize premLs = memDC.GetTextExtent(premLabel);
+			memDC.TextOut(xPos, centerY - premLs.cy / 2, premLabel);
+			xPos += premLs.cx;
+			memDC.SetTextColor(premColor);
+			CSize premVs = memDC.GetTextExtent(premVal);
+			memDC.TextOut(xPos, centerY - premVs.cy / 2, premVal);
+			xPos += premVs.cx + g_data.RDPI(4);
+		}
 
 		// 分时模式：在标题栏正中间显示实时指标信号指示器
 		{
@@ -10913,7 +10999,7 @@ void CFloatingWnd::DrawCallAuctionChart(CDC& memDC, const TimelineDrawContext& c
 		double ratio = static_cast<double>(minute - startMinute) / totalMinutes;
 		ratio = max(0.0, min(1.0, ratio));
 		return static_cast<int>(ratio * ctx.chartWidth);
-	};
+		};
 
 	// ==================== 竖线网格（9:15-9:25，每5分钟） ====================
 	{
@@ -11257,7 +11343,12 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 			if (pFW->m_isKLineMode)
 				g_data.RequestKLineData(pFW->m_stock_id);
 			else
+			{
 				g_data.RequestTimelineData(pFW->m_stock_id);
+				// ETF时同步获取基金分时+IOPV时序数据
+				if (CCommon::IsFundCode(pFW->m_stock_id))
+					g_data.RequestFundTimeline(pFW->m_stock_id);
+			}
 		}
 	}
 
@@ -11268,6 +11359,10 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 		pFW->m_last_min5_fetch_time = now;
 		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
 		g_data.RequestMin5KLineData(pFW->m_stock_id, 250);
+
+		// ETF基金IOPV数据：与5分钟K线同一批次获取，避免计时器冲突
+		if (CCommon::IsFundCode(pFW->m_stock_id))
+			g_data.RequestFundIOPV(pFW->m_stock_id);
 	}
 
 	// 30分钟K线：固定600秒间隔获取，与当前视图无关

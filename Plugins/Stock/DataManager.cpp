@@ -1011,6 +1011,13 @@ void CDataManager::RequestInnerOuterData()
 	std::vector<std::wstring> codes = m_setting_data.m_stock_codes;
 	if (codes.empty()) return;
 
+	// 腾讯API对港股使用 r_hk 前缀（不是 rt_hk），需要转换
+	for (auto& code : codes)
+	{
+		if (code.find(kHK) == 0)
+			code = L"r_" + code.substr(2);  // rt_hk00700 → r_hk00700
+	}
+
 	std::wstring url{ L"http://qt.gtimg.cn/q=" };
 	url += CCommon::vectorJoinString(codes, L",");
 
@@ -1022,6 +1029,47 @@ void CDataManager::RequestInnerOuterData()
 		stockMarket.LoadInnerOuterData(stock_data);
 	}
 }
+
+void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
+{
+	// 仅对ETF基金代码获取IOPV
+	std::wstring pureCode = stock_id;
+	if (pureCode.size() >= 8 && iswalpha(pureCode[0]) && iswalpha(pureCode[1]))
+		pureCode = pureCode.substr(2);
+
+	if (!CCommon::IsFundCode(stock_id))
+		return;
+
+	std::wstring url{ L"https://funddata.gtimg.cn/fundapi/etf?code=" + pureCode };
+
+	CString strHeaders = _T("Referer: https://finance.qq.com");
+
+	std::string stock_data;
+	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+	{
+		CString strData(stock_data.c_str());
+		stockMarket.LoadFundIOPVData(stock_id, strData);
+	}
+}
+
+void CDataManager::RequestFundTimeline(const std::wstring& stock_id)
+{
+	if (!CCommon::IsFundCode(stock_id))
+		return;
+
+	// 腾讯ETF分时接口，带IOPV时序
+	std::wstring url{ L"https://stock.gtimg.cn/data/api.php?pro=etf&code=" + stock_id };
+
+	CString strHeaders = _T("Referer: https://finance.qq.com");
+
+	std::string stock_data;
+	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+	{
+		CString strData(stock_data.c_str());
+		stockMarket.LoadFundTimelineData(stock_id, strData);
+	}
+}
+
 
 void CDataManager::RequestCallAuctionData()
 {
