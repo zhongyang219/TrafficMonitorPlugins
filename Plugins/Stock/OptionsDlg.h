@@ -35,6 +35,7 @@ private:
 	double m_holding_count{};
 	CString m_buy_date;
 	BOOL m_show_in_statusbar{ FALSE };
+	std::vector<std::wstring> m_related_stocks;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
@@ -46,4 +47,5 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnBnClickedToday();
+	afx_msg void OnBnClickedRelatedStock();
 };

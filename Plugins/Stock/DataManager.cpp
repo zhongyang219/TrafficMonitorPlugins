@@ -172,6 +172,8 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	m_stock_positions.clear();
 	// 加载每个股票的状态栏展示配置
 	m_stock_statusbar.clear();
+	// 加载每个股票的关联股票配置
+	m_stock_related.clear();
 	for (const auto& code : m_setting_data.m_stock_codes)
 	{
 		std::wstring low_str = ini.GetString(code.c_str(), L"alert_low", L"");
@@ -190,10 +192,16 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 		m_stock_positions[code] = std::make_tuple(cost, count, buy_date);
 
 		m_stock_statusbar[code] = ini.GetBool(code.c_str(), L"show_in_statusbar", false);
+
+		std::vector<std::wstring> related_codes;
+		ini.GetStringList(code.c_str(), L"related_stocks", related_codes, std::vector<std::wstring>{});
+		if (!related_codes.empty())
+			m_stock_related[code] = related_codes;
 	}
 
 	m_db_mgr.Init(m_config_path);
 	m_db_mgr.CleanExpiredData();
+	m_db_mgr.CleanExpiredMaxAvgDiff();
 	LoadTodayInnerOuterSnapshots();
 	LoadChipDistributions();
 	LoadStockBasicData();
@@ -201,6 +209,14 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	LoadKLineCache(STOCK::Period::DAY);
 	LoadKLineCache(STOCK::Period::MIN5);
 	LoadKLineCache(STOCK::Period::MIN30);
+
+	// 从数据库加载关联股票的最高均幅
+	for (const auto& item : m_stock_related)
+	{
+		double maxAvg = m_db_mgr.LoadMaxAvgDiff(item.first);
+		if (maxAvg != 0.0)
+			m_max_avg_diff[item.first] = maxAvg;
+	}
 }
 
 // ===== 以下数据库 CRUD 方法转发至 CStockDbManager =====
@@ -326,6 +342,11 @@ bool CDataManager::SaveChipDistribution(const std::wstring& stockCode, const STO
 bool CDataManager::LoadLatestChipDistribution(const std::wstring& stockCode, STOCK::ChipDistribution& chipData)
 {
 	return m_db_mgr.LoadLatestChipDistribution(stockCode, chipData);
+}
+
+bool CDataManager::SaveMaxAvgDiffDb(const std::wstring& stockCode, double maxAvgDiff)
+{
+	return m_db_mgr.SaveMaxAvgDiff(stockCode, maxAvgDiff);
 }
 
 void CDataManager::LoadChipDistributions()
@@ -457,6 +478,12 @@ void CDataManager::SaveConfig()
 		for (const auto& item : m_stock_statusbar)
 		{
 			ini.WriteBool(item.first.c_str(), L"show_in_statusbar", item.second);
+		}
+
+		// 保存每个股票的关联股票配置
+		for (const auto& item : m_stock_related)
+		{
+			ini.WriteStringList(item.first.c_str(), L"related_stocks", item.second);
 		}
 
 		ini.Save();
@@ -669,6 +696,54 @@ std::vector<std::wstring> CDataManager::GetStatusBarStockCodes()
 			result.push_back(code);
 	}
 	return result;
+}
+
+std::vector<std::wstring> CDataManager::GetRelatedStocks(const std::wstring& code)
+{
+	auto it = m_stock_related.find(code);
+	if (it != m_stock_related.end())
+		return it->second;
+	return std::vector<std::wstring>();
+}
+
+void CDataManager::SetRelatedStocks(const std::wstring& code, const std::vector<std::wstring>& related_codes)
+{
+	if (related_codes.empty())
+	{
+		m_stock_related.erase(code);
+		m_max_avg_diff.erase(code);
+	}
+	else
+	{
+		m_stock_related[code] = related_codes;
+	}
+}
+
+double CDataManager::GetMaxAvgDiff(const std::wstring& code)
+{
+	auto it = m_max_avg_diff.find(code);
+	if (it != m_max_avg_diff.end())
+		return it->second;
+	return 0.0;
+}
+
+void CDataManager::UpdateMaxAvgDiff(const std::wstring& code, double avgDiff)
+{
+	auto it = m_max_avg_diff.find(code);
+	if (it != m_max_avg_diff.end())
+	{
+		if (avgDiff > it->second)
+			it->second = avgDiff;
+	}
+	else
+	{
+		m_max_avg_diff[code] = avgDiff;
+	}
+}
+
+void CDataManager::ResetMaxAvgDiff(const std::wstring& code)
+{
+	m_max_avg_diff.erase(code);
 }
 
 double CDataManager::CalculateMA(const std::wstring& code, double currentPrice, int N)
@@ -988,27 +1063,73 @@ void CDataManager::RequestRealtimeData()
 {
 	TRACE(L"RequestRealtimeData...\n");
 	std::vector<std::wstring> codes = m_setting_data.m_stock_codes;
-	std::wstring url{ L"https://hq.sinajs.cn/?" };
-	std::vector<std::wstring> params;
-	params.push_back(L"_=" + std::to_wstring(generateRandomDouble()));
-	params.push_back(L"list=" + CCommon::vectorJoinString(codes, L","));
 
-	url += CCommon::vectorJoinString(params, L"&");
-	CString strHeaders = _T("Referer: https://finance.sina.com.cn");
+	// 分离A股和非A股代码：A股用腾讯API（行情+内外盘+IOPV一次获取），非A股用新浪API
+	std::vector<std::wstring> agCodes;   // A股(SH/SZ/BJ)
+	std::vector<std::wstring> otherCodes; // 港股/美股/期货
 
-	std::string Stock_data;
-	if (CCommon::GetURL(url, Stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+	for (const auto& code : codes)
 	{
-		stockMarket.LoadRealtimeDataByJson(Stock_data);
+		if (code.find(kSH) == 0 || code.find(kSZ) == 0 || code.find(kBJ) == 0)
+			agCodes.push_back(code);
+		else
+			otherCodes.push_back(code);
 	}
 
-	RequestInnerOuterData();
+	// A股：腾讯API一次获取行情+内外盘+IOPV
+	if (!agCodes.empty())
+	{
+		std::vector<std::wstring> tencentCodes = agCodes;
+		// 腾讯API对港股使用 r_hk 前缀（A股不需要转换）
+		for (auto& code : tencentCodes)
+		{
+			if (code.find(kHK) == 0)
+				code = L"r_" + code.substr(2);
+		}
+
+		std::wstring url{ L"http://qt.gtimg.cn/q=" };
+		url += CCommon::vectorJoinString(tencentCodes, L",");
+		CString strHeaders = _T("Referer: https://finance.qq.com");
+
+		std::string stock_data;
+		if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+		{
+			stockMarket.LoadInnerOuterData(stock_data);
+		}
+	}
+
+	// 非A股：新浪API获取行情
+	if (!otherCodes.empty())
+	{
+		std::wstring url{ L"https://hq.sinajs.cn/?" };
+		std::vector<std::wstring> params;
+		params.push_back(L"_=" + std::to_wstring(generateRandomDouble()));
+		params.push_back(L"list=" + CCommon::vectorJoinString(otherCodes, L","));
+
+		url += CCommon::vectorJoinString(params, L"&");
+		CString strHeaders = _T("Referer: https://finance.sina.com.cn");
+
+		std::string Stock_data;
+		if (CCommon::GetURL(url, Stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+		{
+			stockMarket.LoadRealtimeDataByJson(Stock_data, otherCodes);
+		}
+
+		// 非A股的内外盘数据仍需腾讯API
+		RequestInnerOuterData();
+	}
 }
 
 void CDataManager::RequestInnerOuterData()
 {
-	TRACE(L"RequestInnerOuterData... 使用腾讯API获取内外盘\n");
-	std::vector<std::wstring> codes = m_setting_data.m_stock_codes;
+	TRACE(L"RequestInnerOuterData... 使用腾讯API获取非A股内外盘\n");
+	std::vector<std::wstring> codes;
+	// 仅非A股需要单独获取内外盘（A股已在RequestRealtimeData中通过腾讯API一次获取）
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		if (code.find(kSH) != 0 && code.find(kSZ) != 0 && code.find(kBJ) != 0)
+			codes.push_back(code);
+	}
 	if (codes.empty()) return;
 
 	// 腾讯API对港股使用 r_hk 前缀（不是 rt_hk），需要转换
@@ -1032,17 +1153,20 @@ void CDataManager::RequestInnerOuterData()
 
 void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 {
-	// 仅对ETF基金代码获取IOPV
+	// 仅对ETF基金代码获取IOPV，使用天天基金实时估值接口
+	if (!CCommon::IsFundCode(stock_id))
+		return;
+
+	// 提取纯数字代码（sh513770 → 513770）
 	std::wstring pureCode = stock_id;
 	if (pureCode.size() >= 8 && iswalpha(pureCode[0]) && iswalpha(pureCode[1]))
 		pureCode = pureCode.substr(2);
 
-	if (!CCommon::IsFundCode(stock_id))
-		return;
+	// 天天基金实时估值接口（JSONP格式）
+	// 返回: jsonpgz({"fundcode":"513770","name":"...","dwjz":"0.3441","gsz":"0.3601","gszzl":"4.65","gztime":"2026-07-08 13:32"});
+	std::wstring url{ L"http://fundgz.1234567.com.cn/js/" + pureCode + L".js" };
 
-	std::wstring url{ L"https://funddata.gtimg.cn/fundapi/etf?code=" + pureCode };
-
-	CString strHeaders = _T("Referer: https://finance.qq.com");
+	CString strHeaders = _T("Referer: http://fund.eastmoney.com");
 
 	std::string stock_data;
 	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
@@ -1050,26 +1174,11 @@ void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 		CString strData(stock_data.c_str());
 		stockMarket.LoadFundIOPVData(stock_id, strData);
 	}
-}
-
-void CDataManager::RequestFundTimeline(const std::wstring& stock_id)
-{
-	if (!CCommon::IsFundCode(stock_id))
-		return;
-
-	// 腾讯ETF分时接口，带IOPV时序
-	std::wstring url{ L"https://stock.gtimg.cn/data/api.php?pro=etf&code=" + stock_id };
-
-	CString strHeaders = _T("Referer: https://finance.qq.com");
-
-	std::string stock_data;
-	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
+	else
 	{
-		CString strData(stock_data.c_str());
-		stockMarket.LoadFundTimelineData(stock_id, strData);
+		CCommon::WriteLog(_T("RequestFundIOPV: GetURL failed"), m_log_path.c_str());
 	}
 }
-
 
 void CDataManager::RequestCallAuctionData()
 {

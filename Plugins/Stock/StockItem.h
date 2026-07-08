@@ -18,4 +18,6 @@ public:
 	int index;
 	std::wstring stock_id;
 	bool enable;
+	mutable std::wstring m_item_name;
+	mutable std::wstring m_item_id;
 };

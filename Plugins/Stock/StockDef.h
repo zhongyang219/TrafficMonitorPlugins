@@ -762,20 +762,34 @@ namespace STOCK
 		std::map<std::wstring, std::shared_ptr<StockData>> stocks; // 以股票代码为键的股票数据映射
 
 	public:
-		void LoadRealtimeDataByJson(std::string data);
+		void LoadRealtimeDataByJson(std::string data, const std::vector<std::wstring>& codes = {});
 		void LoadTimelineDataByJson(std::wstring stock_id, CString* data);
 		void LoadKLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadMin5KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadMin30KLineDataByJson(std::wstring stock_id, CString* data);
 		void LoadInnerOuterData(std::string data);
 		void LoadFundIOPVData(const std::wstring& key, const CString& data);
-		void LoadFundTimelineData(const std::wstring& key, const CString& data);
 		void LoadCallAuctionData(std::string data);
 
-		void ClearRealtimeData()
+		void ClearRealtimeData(const std::vector<std::wstring>& onlyCodes = {})
 		{
 			for (const auto& it : stocks)
 			{
+				// 如果指定了只清空的代码列表，则跳过不在列表中的股票
+				if (!onlyCodes.empty())
+				{
+					bool found = false;
+					for (const auto& code : onlyCodes)
+					{
+						if (it.first == code)
+						{
+							found = true;
+							break;
+						}
+					}
+					if (!found) continue;
+				}
+
 				StockInfo data;
 				data.innerVolume = it.second->info.innerVolume;
 				data.outerVolume = it.second->info.outerVolume;

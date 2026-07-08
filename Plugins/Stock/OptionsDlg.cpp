@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "Stock.h"
 #include "OptionsDlg.h"
+#include "RelateStockDlg.h"
 #include "afxdialogex.h"
 #include "DataManager.h"
 #include "Common.h"
@@ -47,6 +48,7 @@ BEGIN_MESSAGE_MAP(COptionsDlg, CDialog)
 	ON_BN_CLICKED(IDOK, &COptionsDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &COptionsDlg::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_TODAY_BUTTON, &COptionsDlg::OnBnClickedToday)
+	ON_BN_CLICKED(IDC_RELATED_STOCK_BUTTON, &COptionsDlg::OnBnClickedRelatedStock)
 END_MESSAGE_MAP()
 
 // COptionsDlg 消息处理程序
@@ -107,6 +109,8 @@ BOOL COptionsDlg::OnInitDialog()
 		m_holding_count = holding_count;
 		m_buy_date = buy_date.c_str();
 		m_show_in_statusbar = g_data.GetShowInStatusBar(std::wstring(m_stock_code)) ? TRUE : FALSE;
+
+		m_related_stocks = g_data.GetRelatedStocks(std::wstring(m_stock_code));
 
 		UpdateData(FALSE);
 	}
@@ -342,6 +346,9 @@ void COptionsDlg::OnBnClickedOk()
 	// 保存状态栏展示配置
 	g_data.SetShowInStatusBar(std::wstring(m_stock_code), m_show_in_statusbar != FALSE);
 
+	// 保存关联股票配置
+	g_data.SetRelatedStocks(std::wstring(m_stock_code), m_related_stocks);
+
 	g_data.SaveConfig();
 
 	CDialog::OnOK();
@@ -360,4 +367,32 @@ void COptionsDlg::OnBnClickedToday()
 	swprintf_s(dateBuf, L"%04d-%02d-%02d", st.wYear, st.wMonth, st.wDay);
 	m_buy_date = dateBuf;
 	SetDlgItemText(IDC_BUY_DATE_EDIT, m_buy_date);
+}
+
+void COptionsDlg::OnBnClickedRelatedStock()
+{
+	CString code;
+	GetDlgItemText(IDC_CODE_EDIT, code);
+	CString type;
+	int sel_index = m_market_type_combo.GetCurSel();
+	if (sel_index != CB_ERR)
+	{
+		CString display_type;
+		m_market_type_combo.GetLBText(sel_index, display_type);
+		type = DisplayNameToType(display_type);
+	}
+	CString currentCode = m_stock_code;
+	if (currentCode.IsEmpty() && !code.IsEmpty())
+	{
+		if (type.IsEmpty())
+			type = GetMarketTypeByCode(code);
+		RemoveTypeFromCode(code);
+		currentCode = type + code;
+	}
+
+	CRelateStockDlg dlg(std::wstring(currentCode), this);
+	if (dlg.DoModal() == IDOK)
+	{
+		m_related_stocks = dlg.m_selected_codes;
+	}
 }

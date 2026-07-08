@@ -68,6 +68,11 @@ public:
 	bool LoadLatestChipDistribution(const std::wstring& stockCode,
 		STOCK::ChipDistribution& chipData);
 
+	// 关联股票最高均幅
+	bool SaveMaxAvgDiff(const std::wstring& stockCode, double maxAvgDiff);
+	double LoadMaxAvgDiff(const std::wstring& stockCode);
+	void CleanExpiredMaxAvgDiff();
+
 private:
 	sqlite3* m_db{ nullptr };
 	std::wstring m_db_path;

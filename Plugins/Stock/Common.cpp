@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Common.h"
 #include <afxinet.h>    //用于支持使用网络相关的类
 #include <sstream>
@@ -58,6 +58,10 @@ bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, LP
 			}
 			result = (const char*)content.GetString();
 			succeed = true;
+		}
+		else
+		{
+			CCommon::WriteLog(CString(_T("HTTP status: ")) + std::to_wstring(dwStatusCode).c_str(), g_data.m_log_path.c_str());
 		}
 		pfile->Close();
 		delete pfile;
@@ -397,18 +401,25 @@ bool CCommon::IsFundCode(const std::wstring& code)
 
 COLORREF CCommon::GetProfitLossColor(double percent)
 {
-	const COLORREF COLOR_RED_UP = RGB(179, 64, 65);
-	const COLORREF COLOR_GREEN_DOWN = RGB(44, 144, 51);
-	const COLORREF COLOR_BG_PURPLE = RGB(160, 50, 160);
-	const COLORREF COLOR_BG_DARK_GREEN = RGB(20, 100, 40);
+	const COLORREF COLOR_LIGHT_RED = RGB(179, 64, 65);      // 浅红色 0~3%
+	const COLORREF COLOR_DEEP_RED = RGB(160, 30, 30);      // 深红色 3~6%
+	const COLORREF COLOR_PURPLE = RGB(160, 50, 160);       // 紫色 6~10%
+	const COLORREF COLOR_LIGHT_GREEN = RGB(44, 144, 51);   // 浅绿色 -3%~0
+	const COLORREF COLOR_DEEP_GREEN = RGB(20, 100, 40);    // 深绿色 -6%~-3%
+	const COLORREF COLOR_DARK_GREEN = RGB(0, 60, 20);      // 墨绿色 -10%~-6%
 
-	if (percent >= 5.0)
-		return COLOR_BG_PURPLE;
-	else if (percent > 0 && percent < 5.0)
-		return COLOR_RED_UP;
-	else if (percent >= -5.0 && percent < 0)
-		return COLOR_GREEN_DOWN;
-	else if (percent < -5.0)
-		return COLOR_BG_DARK_GREEN;
-	return RGB(0, 0, 0);
+	if (percent >= 6.66)
+		return COLOR_PURPLE;
+	else if (percent >= 3.36)
+		return COLOR_DEEP_RED;
+	else if (percent > 0)
+		return COLOR_LIGHT_RED;
+	else if (percent == 0)
+		return RGB(0, 0, 0);
+	else if (percent > -3.33)
+		return COLOR_LIGHT_GREEN;
+	else if (percent > -6.66)
+		return COLOR_DEEP_GREEN;
+	else
+		return COLOR_DARK_GREEN;
 }

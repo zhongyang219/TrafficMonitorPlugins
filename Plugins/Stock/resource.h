@@ -67,6 +67,9 @@
 #define IDC_TRADE_FEE_STATIC            1047
 #define IDC_TRADE_TOTAL_STATIC          1048
 #define IDC_STATUSBAR_CHECK             1049
+#define IDC_RELATED_STOCK_BUTTON        1050
+#define IDD_RELATED_STOCK_DIALOG        110
+#define IDC_RELATED_STOCK_LIST          1051
 #define IDS_ALERT_LOW_PRICE             115
 #define IDS_ALERT_HIGH_PRICE            116
 #define IDS_PRICE_ALERT_TITLE           117
@@ -91,9 +94,9 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1050
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

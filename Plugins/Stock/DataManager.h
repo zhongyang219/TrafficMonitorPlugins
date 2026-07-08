@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <map>
 #include <vector>
@@ -72,7 +72,6 @@ public:
 	void RequestMin30KLineData(std::wstring stock_id, int datalen = 250);
 	void RequestInnerOuterData();
 	void RequestFundIOPV(const std::wstring& stock_id);
-	void RequestFundTimeline(const std::wstring& stock_id);
 	void RequestCallAuctionData();
 	bool RequestChipDistributionData(std::wstring stock_id);
 	void RequestAllChipDistributionData();
@@ -102,6 +101,16 @@ public:
 	bool GetShowInStatusBar(const std::wstring& code);
 	void SetShowInStatusBar(const std::wstring& code, bool show);
 	std::vector<std::wstring> GetStatusBarStockCodes();
+
+	// 关联股票设置
+	std::vector<std::wstring> GetRelatedStocks(const std::wstring& code);
+	void SetRelatedStocks(const std::wstring& code, const std::vector<std::wstring>& related_codes);
+
+	// 关联股票最高均幅
+	double GetMaxAvgDiff(const std::wstring& code);
+	void UpdateMaxAvgDiff(const std::wstring& code, double avgDiff);
+	void ResetMaxAvgDiff(const std::wstring& code);
+	bool SaveMaxAvgDiffDb(const std::wstring& stockCode, double maxAvgDiff);
 
 	// 计算N日均线 (当前价格 + 前N-1天收盘价) / N
 	double CalculateMA(const std::wstring& code, double currentPrice, int N);
@@ -145,4 +154,10 @@ private:
 
 	// 状态栏展示映射表: code -> show_in_statusbar
 	std::map<std::wstring, bool> m_stock_statusbar;
+
+	// 关联股票映射表: code -> related_stock_codes
+	std::map<std::wstring, std::vector<std::wstring>> m_stock_related;
+
+	// 关联股票最高均幅: code -> max_avg_diff_percent
+	std::map<std::wstring, double> m_max_avg_diff;
 };

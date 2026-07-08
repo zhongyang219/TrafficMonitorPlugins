@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <afxwin.h>
 #include <string>
@@ -324,7 +324,8 @@ private:
 
 	unsigned __int64 m_last_request_time{};
 	unsigned __int64 m_last_min5_fetch_time{};   // 上次获取5分钟K线的时间（固定60秒间隔，与视图无关）
-	unsigned __int64 m_last_min30_fetch_time{};   // 上次获取30分钟K线的时间（固定600秒间隔，与视图无关）
+	unsigned __int64 m_last_min30_fetch_time{};  // 上次获取30分钟K线的时间（固定600秒间隔，与视图无关）
+	unsigned __int64 m_last_iopv_fetch_time{};   // 上次获取IOPV的时间（15秒间隔，独立于K线）
 
 	// 鼠标悬停数据
 	CPoint m_mousePos;

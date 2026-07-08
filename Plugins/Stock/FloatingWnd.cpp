@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -3029,56 +3029,307 @@ void CFloatingWnd::OnPaint()
 			memDC.FillSolidRect(0, barY, w, indexBarHeight, RGB(240, 240, 240));
 			memDC.SetBkMode(TRANSPARENT);
 
-			// 从配置中获取勾选了状态栏展示的股票代码
-			std::vector<std::wstring> statusBarCodes = g_data.GetStatusBarStockCodes();
+			// 优先展示当前选中股票的关联股票，没有则使用配置的状态栏股票
+			std::vector<std::wstring> statusBarCodes = g_data.GetRelatedStocks(m_stock_id);
+			bool isRelatedMode = !statusBarCodes.empty();
 			if (statusBarCodes.empty())
 			{
-				// 没有配置时使用默认指数：上证指数、中证银行、恒生科技
-				statusBarCodes = { L"sh000001", L"sz399986", L"rt_hkHSTECH" };
+				statusBarCodes = g_data.GetStatusBarStockCodes();
+				if (statusBarCodes.empty())
+				{
+					// 没有配置时使用默认指数：上证指数、中证银行、恒生科技
+					statusBarCodes = { L"sh000001", L"sz399986", L"rt_hkHSTECH" };
+				}
 			}
 			const int indexCount = static_cast<int>(statusBarCodes.size());
-			const int colWidth = w / max(indexCount, 1);
 
-			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
-			for (int i = 0; i < indexCount; i++)
+			// 计算关联股票的平均涨幅
+			double avgDiffPercent = 0.0;
+			int validCount = 0;
+			bool showAvgDiff = isRelatedMode && indexCount > 1;
+
+			// 预计算均幅文本
+			CString avgLabelStr, avgValueStr, maxLabelStr, maxValueStr;
+			if (showAvgDiff)
 			{
-				auto stockData = g_data.GetStockData(statusBarCodes[i]);
-				int colX = i * colWidth;
-				int textX = colX + g_data.RDPI(4);
-
-				if (stockData && stockData->info.is_ok)
+				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+				for (int i = 0; i < indexCount; i++)
 				{
-					const auto& info = stockData->info;
-					double displayPrice = info.currentPrice > 0 ? info.currentPrice : info.prevClosePrice;
-					double diff = displayPrice - info.prevClosePrice;
-					double diffPercent = info.prevClosePrice != 0 ? (diff / info.prevClosePrice) * 100 : 0;
-					COLORREF priceColor = diff > 0 ? COLOR_RED_UP : (diff < 0 ? COLOR_GREEN_DOWN : COLOR_BLACK);
+					auto stockData = g_data.GetStockData(statusBarCodes[i]);
+					if (stockData && stockData->info.is_ok)
+					{
+						double displayPrice = stockData->info.currentPrice > 0 ? stockData->info.currentPrice : stockData->info.prevClosePrice;
+						double diff = displayPrice - stockData->info.prevClosePrice;
+						if (stockData->info.prevClosePrice != 0)
+						{
+							avgDiffPercent += (diff / stockData->info.prevClosePrice) * 100;
+							validCount++;
+						}
+					}
+				}
+				if (validCount > 0)
+					avgDiffPercent /= validCount;
+				else
+					showAvgDiff = false;
 
-					CString nameStr = info.GetStockListName();
-					CString priceStr;
-					priceStr.Format(_T("%.2f"), displayPrice);
-					CString changeStr;
-					if (diff >= 0)
-						changeStr.Format(_T("+%.2f%%"), diffPercent);
+				if (showAvgDiff)
+				{
+					// 更新最高均幅
+					g_data.UpdateMaxAvgDiff(std::wstring(m_stock_id), avgDiffPercent);
+
+					// 每分钟保存最高均幅到数据库
+					static time_t lastSaveTime = 0;
+					time_t now = time(nullptr);
+					if (now - lastSaveTime >= 60)
+					{
+						lastSaveTime = now;
+						double maxAvg = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
+						g_data.SaveMaxAvgDiffDb(std::wstring(m_stock_id), maxAvg);
+					}
+
+					// 均幅标签和值分开，方便单独着色
+					avgLabelStr = _T("A:");
+					if (avgDiffPercent >= 0)
+						avgValueStr.Format(_T("+%.2f%%"), avgDiffPercent);
 					else
-						changeStr.Format(_T("%.2f%%"), diffPercent);
+						avgValueStr.Format(_T("%.2f%%"), avgDiffPercent);
 
-					memDC.SetTextColor(COLOR_BLACK);
-					memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr);
-					textX += memDC.GetTextExtent(nameStr).cx + g_data.RDPI(4);
+					// 最高均幅标签和值分开
+					double maxAvgDiff = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
+					maxLabelStr = _T("H:");
+					if (maxAvgDiff >= 0)
+						maxValueStr.Format(_T("+%.2f%%"), maxAvgDiff);
+					else
+						maxValueStr.Format(_T("%.2f%%"), maxAvgDiff);
+				}
+			}
 
-					memDC.SetTextColor(priceColor);
-					memDC.TextOut(textX, barY + g_data.RDPI(2), priceStr);
-					textX += memDC.GetTextExtent(priceStr).cx + g_data.RDPI(4);
+			const int GAP = 2; // 间隔2像素
 
-					memDC.TextOut(textX, barY + g_data.RDPI(2), changeStr);
+			// 动态计算字体大小：先测量实际文字宽度，再逐步缩小直到适合
+			CFont* pOldFont = nullptr;
+			CFont dynFont;
+			{
+				const int minFont = 8;
+				const int maxFont = 14;
+
+				if (!isRelatedMode)
+				{
+					// 非关联模式直接用最大字号
+					dynFont.CreateFont(-g_data.RDPI(maxFont), 0, 0, 0, FW_NORMAL, 0, 0, 0,
+						DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+						DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, _T("微软雅黑"));
+					pOldFont = memDC.SelectObject(&dynFont);
 				}
 				else
 				{
-					CString nameStr = CString(statusBarCodes[i].c_str());
-					memDC.SetTextColor(COLOR_GRAY_PURPLE);
-					memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr + _T(" --"));
+					// 关联模式：用实际测量法，从最大字号开始尝试，逐步缩小直到文字总宽度适合
+					std::lock_guard<std::mutex> lockMeasure(Stock::Instance().m_stockDataMutex);
+
+					// 预先构建所有文本字符串
+					struct StockText { CString nameStr; CString changeStr; bool valid; };
+					std::vector<StockText> stockTexts(indexCount);
+					for (int i = 0; i < indexCount; i++)
+					{
+						auto stockData = g_data.GetStockData(statusBarCodes[i]);
+						if (stockData && stockData->info.is_ok)
+						{
+							const auto& info = stockData->info;
+							double displayPrice = info.currentPrice > 0 ? info.currentPrice : info.prevClosePrice;
+							double diff = displayPrice - info.prevClosePrice;
+							double diffPercent = info.prevClosePrice != 0 ? (diff / info.prevClosePrice) * 100 : 0;
+							stockTexts[i].nameStr = info.GetStockListName() + _T(":");
+							if (diff >= 0)
+								stockTexts[i].changeStr.Format(_T("+%.2f%%"), diffPercent);
+							else
+								stockTexts[i].changeStr.Format(_T("%.2f%%"), diffPercent);
+							stockTexts[i].valid = true;
+						}
+						else
+						{
+							stockTexts[i].nameStr = CString(statusBarCodes[i].c_str()) + _T(" --");
+							stockTexts[i].valid = false;
+						}
+					}
+
+					int fontSize = maxFont;
+
+					while (fontSize >= minFont)
+					{
+						// 创建临时字体测量
+						CFont tmpFont;
+						tmpFont.CreateFont(-g_data.RDPI(fontSize), 0, 0, 0, FW_NORMAL, 0, 0, 0,
+							DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+							DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, _T("微软雅黑"));
+						CFont* pOldTmp = memDC.SelectObject(&tmpFont);
+
+						// 计算所有股票文字总宽度（已包含每个元素后的GAP间隔）
+						int totalWidth = GAP; // 左侧起始边距
+						for (int i = 0; i < indexCount; i++)
+						{
+							totalWidth += memDC.GetTextExtent(stockTexts[i].nameStr).cx + GAP;
+							if (stockTexts[i].valid)
+								totalWidth += memDC.GetTextExtent(stockTexts[i].changeStr).cx + GAP;
+						}
+						// 均幅和最高均幅宽度
+						if (showAvgDiff)
+						{
+							totalWidth += memDC.GetTextExtent(avgLabelStr).cx + GAP;
+							totalWidth += memDC.GetTextExtent(avgValueStr).cx + GAP;
+							totalWidth += memDC.GetTextExtent(maxLabelStr).cx + GAP;
+							totalWidth += memDC.GetTextExtent(maxValueStr).cx + GAP;
+						}
+
+						memDC.SelectObject(pOldTmp);
+						tmpFont.DeleteObject();
+
+						// 检查是否适合（totalWidth已包含所有间隔，右侧留GAP边距）
+						if (totalWidth <= w)
+							break; // 当前字号适合
+
+						fontSize--;
+					}
+					if (fontSize < minFont) fontSize = minFont;
+
+					dynFont.CreateFont(-g_data.RDPI(fontSize), 0, 0, 0, FW_NORMAL, 0, 0, 0,
+						DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+						DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, _T("微软雅黑"));
+					pOldFont = memDC.SelectObject(&dynFont);
 				}
+			}
+
+			// 重新计算均幅/最高均幅实际宽度（使用动态字体）
+			int avgStrWidth = 0;
+			if (showAvgDiff)
+			{
+				avgStrWidth = memDC.GetTextExtent(avgLabelStr).cx + GAP
+					+ memDC.GetTextExtent(avgValueStr).cx + GAP
+					+ memDC.GetTextExtent(maxLabelStr).cx + GAP
+					+ memDC.GetTextExtent(maxValueStr).cx + GAP;
+			}
+
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			if (isRelatedMode)
+			{
+				// 关联模式：流式布局，每只股票紧凑排列
+				int textX = GAP;
+				for (int i = 0; i < indexCount; i++)
+				{
+					auto stockData = g_data.GetStockData(statusBarCodes[i]);
+
+					if (stockData && stockData->info.is_ok)
+					{
+						const auto& info = stockData->info;
+						double displayPrice = info.currentPrice > 0 ? info.currentPrice : info.prevClosePrice;
+						double diff = displayPrice - info.prevClosePrice;
+						double diffPercent = info.prevClosePrice != 0 ? (diff / info.prevClosePrice) * 100 : 0;
+
+						CString nameStr = info.GetStockListName() + _T(":");
+						CString changeStr;
+						if (diff >= 0)
+							changeStr.Format(_T("+%.2f%%"), diffPercent);
+						else
+							changeStr.Format(_T("%.2f%%"), diffPercent);
+
+						memDC.SetTextColor(COLOR_BLACK);
+						memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr);
+						textX += memDC.GetTextExtent(nameStr).cx + GAP;
+
+						memDC.SetTextColor(CCommon::GetProfitLossColor(diffPercent));
+						memDC.TextOut(textX, barY + g_data.RDPI(2), changeStr);
+						textX += memDC.GetTextExtent(changeStr).cx + GAP;
+					}
+					else
+					{
+						CString nameStr = CString(statusBarCodes[i].c_str()) + _T(" --");
+						memDC.SetTextColor(COLOR_GRAY_PURPLE);
+						memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr);
+						textX += memDC.GetTextExtent(nameStr).cx + GAP;
+					}
+				}
+
+				// 关联股票数量超过1个时，右对齐显示平均涨幅和最高均幅
+				if (showAvgDiff)
+				{
+					// 计算A+H总宽度
+					double maxAvgDiff = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
+					int ahWidth = memDC.GetTextExtent(avgLabelStr).cx + GAP
+						+ memDC.GetTextExtent(avgValueStr).cx + GAP
+						+ memDC.GetTextExtent(maxLabelStr).cx + GAP
+						+ memDC.GetTextExtent(maxValueStr).cx;
+					int ahX = w - ahWidth - GAP;
+
+					// A: 标签（黑色）
+					memDC.SetTextColor(COLOR_BLACK);
+					memDC.TextOut(ahX, barY + g_data.RDPI(2), avgLabelStr);
+					ahX += memDC.GetTextExtent(avgLabelStr).cx + GAP;
+
+					// A: 值（按涨跌幅着色）
+					memDC.SetTextColor(CCommon::GetProfitLossColor(avgDiffPercent));
+					memDC.TextOut(ahX, barY + g_data.RDPI(2), avgValueStr);
+					ahX += memDC.GetTextExtent(avgValueStr).cx + GAP;
+
+					// H: 标签（黑色）
+					memDC.SetTextColor(COLOR_BLACK);
+					memDC.TextOut(ahX, barY + g_data.RDPI(2), maxLabelStr);
+					ahX += memDC.GetTextExtent(maxLabelStr).cx + GAP;
+
+					// H: 值（按最高涨幅着色）
+					memDC.SetTextColor(CCommon::GetProfitLossColor(maxAvgDiff));
+					memDC.TextOut(ahX, barY + g_data.RDPI(2), maxValueStr);
+				}
+			}
+			else
+			{
+				// 非关联模式：等分列宽布局
+				const int colWidth = w / max(indexCount, 1);
+				for (int i = 0; i < indexCount; i++)
+				{
+					auto stockData = g_data.GetStockData(statusBarCodes[i]);
+					int colX = i * colWidth;
+					int textX = colX + GAP;
+
+					if (stockData && stockData->info.is_ok)
+					{
+						const auto& info = stockData->info;
+						double displayPrice = info.currentPrice > 0 ? info.currentPrice : info.prevClosePrice;
+						double diff = displayPrice - info.prevClosePrice;
+						double diffPercent = info.prevClosePrice != 0 ? (diff / info.prevClosePrice) * 100 : 0;
+
+						CString nameStr = info.GetStockListName();
+						CString priceStr;
+						priceStr.Format(_T("%.2f"), displayPrice);
+						CString changeStr;
+						if (diff >= 0)
+							changeStr.Format(_T("+%.2f%%"), diffPercent);
+						else
+							changeStr.Format(_T("%.2f%%"), diffPercent);
+
+						memDC.SetTextColor(COLOR_BLACK);
+						memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr);
+						textX += memDC.GetTextExtent(nameStr).cx + GAP;
+
+						memDC.SetTextColor(CCommon::GetProfitLossColor(diffPercent));
+						memDC.TextOut(textX, barY + g_data.RDPI(2), priceStr);
+						textX += memDC.GetTextExtent(priceStr).cx + GAP;
+
+						memDC.SetTextColor(CCommon::GetProfitLossColor(diffPercent));
+						memDC.TextOut(textX, barY + g_data.RDPI(2), changeStr);
+					}
+					else
+					{
+						CString nameStr = CString(statusBarCodes[i].c_str());
+						memDC.SetTextColor(COLOR_GRAY_PURPLE);
+						memDC.TextOut(textX, barY + g_data.RDPI(2), nameStr + _T(" --"));
+					}
+				}
+			}
+
+			// 恢复原始字体
+			if (pOldFont != nullptr)
+			{
+				memDC.SelectObject(pOldFont);
+				dynFont.DeleteObject();
 			}
 		}
 	} // end if (!m_isOverviewMode)
@@ -6976,7 +7227,7 @@ void CFloatingWnd::DrawOverviewTable(CDC& memDC, int x, int y, int w, int h, int
 void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData)
 {
 	const int MAX_LEVEL = STOCK::StockInfo::MAX_LEVEL;
-	// 布局：0=最高, 1=卖三, 2=卖二, 3=卖一, 4=买一, 5=买二, 6=买三, 7=最低, 8=趋势, 9=净比00, 10-13=净比01/05/10/20, 14=净比99, 15=振幅, 16=换手率, 17=委比
+	// 布局：0=趋势, 1=最高, 2=卖三, 3=卖二, 4=卖一, 5=净比00, 6=买一, 7=买二, 8=买三, 9=最低, 10-13=净比01/05/10/20, 14=净比99, 15=振幅, 16=换手率, 17=委比
 	const int totalRows = 18;
 	const int headerHeight = g_data.RDPI(26);  // 主标题栏高度
 	const int obTitleH = g_data.RDPI(16);       // 盘口标题栏高度，与走势图标题栏一致
@@ -7072,10 +7323,14 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		COLORREF backgroundColor;
 		bool drawSmallSuffix{ false };
 		bool darkBackground{ false };  // 深色背景时文字改白色
+		bool blink{ false };  // 闪烁效果：当前价=卖一/买一且挂单≤1万
 	};
 
 	std::vector<OrderBookRow> priceRows;
-	priceRows.reserve(8);
+	priceRows.reserve(4);  // 最高+卖三~卖一（行0-3）
+
+	std::vector<OrderBookRow> bottomRows;
+	bottomRows.reserve(4);  // 买一~买三+最低（行5-8）
 
 	// 最高价（固定在卖三上面）
 	{
@@ -7138,6 +7393,9 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 				row.backgroundColor = RGB(240, 40, 40);     // 中：1~2之间
 				row.darkBackground = true;
 			}
+			// 挂单量≤1万时闪烁
+			if (volume <= 10000)
+				row.blink = true;
 		}
 		else
 		{
@@ -7190,13 +7448,16 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 				row.backgroundColor = RGB(50, 180, 50);     // 中：1~2之间
 				row.darkBackground = true;
 			}
+			// 挂单量≤1万时闪烁
+			if (volume <= 10000)
+				row.blink = true;
 		}
 		else
 		{
 			row.fillBackground = (stockInfo.currentPrice > 0 && price > 0 && stockInfo.currentPrice == price);
 			row.backgroundColor = RGB(200, 255, 200);
 		}
-		priceRows.push_back(row);
+		bottomRows.push_back(row);
 	}
 
 	// 最低价（固定在买三下面）
@@ -7214,11 +7475,15 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		row.textColor = RGB(0, 100, 0);
 		row.fillBackground = true;
 		row.backgroundColor = RGB(220, 235, 250);
-		priceRows.push_back(row);
+		bottomRows.push_back(row);
 	}
 
-	auto DrawOrderBookRowText = [&](const OrderBookRow& row, int x, int y, int rowWidth) {
-		COLORREF textColor = row.darkBackground ? RGB(255, 255, 255) : row.textColor;
+	auto DrawOrderBookRowText = [&](const OrderBookRow& row, int x, int y, int rowWidth, bool blinkOff = false) {
+		COLORREF textColor;
+		if (row.darkBackground && !(row.blink && blinkOff))
+			textColor = RGB(255, 255, 255);
+		else
+			textColor = row.textColor;
 		memDC.SetTextColor(textColor);
 		memDC.TextOut(x, y, row.text);
 		if (!row.drawSmallSuffix || row.smallSuffix.IsEmpty())
@@ -7260,14 +7525,81 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		memDC.SelectObject(oldFont);
 		};
 
+	// 最高+卖三~卖一（行1-4）
+	DWORD tickCount = GetTickCount();
+	bool blinkOn = (tickCount / 500) % 2 == 0;  // 每500ms切换
 	for (int i = 0; i < static_cast<int>(priceRows.size()); i++)
 	{
-		int y = rowY(i);
-		int h = rowH(i);
+		int y = rowY(1 + i);
+		int h = rowH(1 + i);
 		if (priceRows[i].fillBackground)
-			memDC.FillSolidRect(left, y, right - left, h, priceRows[i].backgroundColor);
+		{
+			if (priceRows[i].blink && !blinkOn)
+				memDC.FillSolidRect(left, y, right - left, h, RGB(250, 250, 250));  // 闪烁关闭时用背景色
+			else
+				memDC.FillSolidRect(left, y, right - left, h, priceRows[i].backgroundColor);
+		}
 		int textVCenter = max(0, (h - memDC.GetTextExtent(priceRows[i].text).cy) / 2);
-		DrawOrderBookRowText(priceRows[i], textX, y + textVCenter, right - textX);
+		DrawOrderBookRowText(priceRows[i], textX, y + textVCenter, right - textX, priceRows[i].blink && !blinkOn);
+	}
+
+	// 净比00（行5，卖一和买一之间）— 提前绘制，无标签，图形占满整行
+	{
+		auto stockDataPtr00 = g_data.GetStockData(m_stock_id);
+		int row5H = rowH(5);
+
+		int periodBarX = textX;
+		int periodBarW = right - periodBarX - g_data.RDPI(4);
+
+		if (periodBarW > 0 && stockDataPtr00)
+		{
+			std::vector<double> recentRatios;
+			const int barCount = 12;
+			if (stockDataPtr00->GetRecentNetRatios(barCount, recentRatios))
+			{
+				int baseSlotW = periodBarW / barCount;
+				int remSlotW = periodBarW % barCount;
+				int barPad = max(1, baseSlotW / 8);
+				int slotX = periodBarX;
+				for (int i = 0; i < barCount; i++)
+				{
+					int curSlotW = baseSlotW + (i < remSlotW ? 1 : 0);
+					int curBarX = slotX + barPad;
+					int curBarW = curSlotW - barPad * 2;
+					if (curBarW < 1) curBarW = 1;
+
+					double r = recentRatios[i];
+					COLORREF barColor;
+					if (r > 0) barColor = COLOR_RED_UP;
+					else if (r < 0) barColor = COLOR_GREEN_DOWN;
+					else barColor = COLOR_BLACK;
+
+					int maxBarH = row5H - g_data.RDPI(4);
+					int barH = static_cast<int>((std::min)(std::sqrt(std::abs(r) / 100.0), 1.0) * maxBarH);
+					if (barH < 2) barH = 2;
+
+					int barY = rowY(5) + (row5H - barH) / 2;
+					memDC.FillSolidRect(curBarX, barY, curBarW, barH, barColor);
+					slotX += curSlotW;
+				}
+			}
+		}
+	}
+
+	// 买一~买三+最低（行6-9）
+	for (int i = 0; i < static_cast<int>(bottomRows.size()); i++)
+	{
+		int y = rowY(6 + i);
+		int h = rowH(6 + i);
+		if (bottomRows[i].fillBackground)
+		{
+			if (bottomRows[i].blink && !blinkOn)
+				memDC.FillSolidRect(left, y, right - left, h, RGB(250, 250, 250));
+			else
+				memDC.FillSolidRect(left, y, right - left, h, bottomRows[i].backgroundColor);
+		}
+		int textVCenter = max(0, (h - memDC.GetTextExtent(bottomRows[i].text).cy) / 2);
+		DrawOrderBookRowText(bottomRows[i], textX, y + textVCenter, right - textX, bottomRows[i].blink && !blinkOn);
 	}
 
 	static const COLORREF NET_RATIO_RED_COLORS[] = {
@@ -7333,7 +7665,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 		memDC.SelectObject(oldPen);
 		};
 
-	// 委比（行18，最下面）
+	// 委比（行17，最下面）
 	STOCK::Volume bidTotal = 0;
 	STOCK::Volume askTotal = 0;
 	for (int i = 0; i < MAX_LEVEL; i++)
@@ -7362,7 +7694,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 	// 趋势、净比、振幅和换手率
 
-	// 趋势判定（行9）
+	// 趋势判定（行0）
 	// 同时显示30分钟、5分钟和当前视图趋势，格式：趋势:上涨(30) 震荡(5) 低吸
 	{
 		auto stockDataForTrend = g_data.GetStockData(m_stock_id);
@@ -7490,29 +7822,28 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 		// 构建分段文本：趋势:上涨(30) 震荡(5) 低吸
 		struct TextSeg { CString text; COLORREF color; };
-		std::vector<TextSeg> segs;
-		segs.push_back({ _T("趋势:"), COLOR_GRAY_TEXT });
+		std::vector<TextSeg> segs;		
 
 		// 30分钟段
 		if (!valid30)
-			segs.push_back({ _T("--(30)"), COLOR_GRAY_TEXT });
+			segs.push_back({ _T("30:--"), COLOR_GRAY_TEXT });
 		else if (dir30 == STOCK::TrendDir::DIR_UP)
-			segs.push_back({ _T("上涨(30)"), COLOR_RED_UP });
+			segs.push_back({ _T("30:上涨"), COLOR_RED_UP });
 		else if (dir30 == STOCK::TrendDir::DIR_DOWN)
-			segs.push_back({ _T("下跌(30)"), COLOR_GREEN_DOWN });
+			segs.push_back({ _T("30:下跌"), COLOR_GREEN_DOWN });
 		else
-			segs.push_back({ _T("震荡(30)"), COLOR_GRAY_TEXT });
+			segs.push_back({ _T("30:震荡"), COLOR_GRAY_TEXT });
 		segs.push_back({ _T(" "), COLOR_GRAY_TEXT });
 
 		// 5分钟段
 		if (!valid5)
-			segs.push_back({ _T("--(5)"), COLOR_GRAY_TEXT });
+			segs.push_back({ _T("5:--"), COLOR_GRAY_TEXT });
 		else if (dir5 == STOCK::TrendDir::DIR_UP)
-			segs.push_back({ _T("上涨(5)"), COLOR_RED_UP });
+			segs.push_back({ _T("5:上涨"), COLOR_RED_UP });
 		else if (dir5 == STOCK::TrendDir::DIR_DOWN)
-			segs.push_back({ _T("下跌(5)"), COLOR_GREEN_DOWN });
+			segs.push_back({ _T("5:下跌"), COLOR_GREEN_DOWN });
 		else
-			segs.push_back({ _T("震荡(5)"), COLOR_GRAY_TEXT });
+			segs.push_back({ _T("5:震荡"), COLOR_GRAY_TEXT });
 		segs.push_back({ _T(" "), COLOR_GRAY_TEXT });
 
 		// 当前视图段
@@ -7544,7 +7875,7 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 
 		// 分段着色绘制
 		int drawX = textX;
-		int drawY = rowY(8) + max(0, (rowH(8) - memDC.GetTextExtent(_T("Ay")).cy) / 2);
+		int drawY = rowY(0) + max(0, (rowH(0) - memDC.GetTextExtent(_T("Ay")).cy) / 2);
 		for (const auto& seg : segs)
 		{
 			memDC.SetTextColor(seg.color);
@@ -7554,57 +7885,6 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 	}
 
 	auto stockDataPtr = g_data.GetStockData(m_stock_id);
-
-	// 净比00：最近10根5秒净比条形图（行9），条形图宽度与净比01对齐
-	{
-		CString label00 = _T("净比00:");
-		int row9H = rowH(9);
-		memDC.SetTextColor(COLOR_BLACK);
-		memDC.TextOut(textX, rowY(9) + max(0, (rowH(9) - memDC.GetTextExtent(label00).cy) / 2), label00);
-
-		// 用"净比01:"的宽度计算起始位置，保证与下方净比01~20条形图对齐
-		CString alignLabel;
-		alignLabel.Format(_T("净比%02d:"), 1);
-		int periodBarX = textX + memDC.GetTextExtent(alignLabel).cx + g_data.RDPI(4);
-		int periodBarW = right - periodBarX - g_data.RDPI(4);
-		int periodBarRight = periodBarX + periodBarW;  // 右边界
-
-		if (periodBarW > 0 && stockDataPtr)
-		{
-			std::vector<double> recentRatios;
-			const int barCount = 12;
-			if (stockDataPtr->GetRecentNetRatios(barCount, recentRatios))
-			{
-				int baseSlotW = periodBarW / barCount;
-				int remSlotW = periodBarW % barCount;
-				int barPad = max(1, baseSlotW / 8);
-				int barW = baseSlotW - barPad * 2;
-				if (barW < 1) barW = 1;
-				int slotX = periodBarX;
-				for (int i = 0; i < barCount; i++)
-				{
-					int curSlotW = baseSlotW + (i < remSlotW ? 1 : 0);
-					int curBarX = slotX + barPad;
-					int curBarW = curSlotW - barPad * 2;
-					if (curBarW < 1) curBarW = 1;
-
-					double r = recentRatios[i];
-					COLORREF barColor;
-					if (r > 0) barColor = COLOR_RED_UP;
-					else if (r < 0) barColor = COLOR_GREEN_DOWN;
-					else barColor = COLOR_BLACK;
-
-					int maxBarH = row9H - g_data.RDPI(4);
-					int barH = static_cast<int>((std::min)(std::sqrt(std::abs(r) / 100.0), 1.0) * maxBarH);
-					if (barH < 2) barH = 2;
-
-					int barY = rowY(9) + (row9H - barH) / 2;
-					memDC.FillSolidRect(curBarX, barY, curBarW, barH, barColor);
-					slotX += curSlotW;
-				}
-			}
-		}
-	}
 
 	STOCK::Volume netDiff = outerVol - innerVol;
 	STOCK::Volume totalInnerOuter = outerVol + innerVol;
@@ -8174,7 +8454,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 				for (const auto& code : g_data.m_setting_data.m_stock_codes)
 				{
-					if (GetStockPriority(code) >= 200)  // 与绘制一致，过滤指数
+					if (GetStockPriority(code) >= 200 && code.find(kHK) != 0)  // 与绘制一致，过滤指数和港股
 						stockCodes.push_back(code);
 				}
 			}
@@ -11232,13 +11512,13 @@ void CFloatingWnd::DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, co
 	memDC.MoveTo(x, y + titleH);
 	memDC.LineTo(x + w, y + titleH);
 
-	// 获取所有股票列表（加锁访问，过滤掉大盘指数）
+	// 获取所有股票列表（加锁访问，过滤掉大盘指数和港股）
 	std::vector<std::wstring> stockCodes;
 	{
 		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 		for (const auto& code : g_data.m_setting_data.m_stock_codes)
 		{
-			if (GetStockPriority(code) >= 200)  // 只保留非指数股票
+			if (GetStockPriority(code) >= 200 && code.find(kHK) != 0)  // 只保留非指数、非港股股票
 				stockCodes.push_back(code);
 		}
 	}
@@ -11323,6 +11603,17 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 		return 0;
 	}
 
+	time_t now = time(nullptr);
+
+	// ETF基金IOPV数据：独立15秒间隔获取（交易所每15秒更新一次）
+	// IOPV不受交易时段限制，首次请求和盘中都获取
+	if (CCommon::IsFundCode(pFW->m_stock_id) && now - (time_t)pFW->m_last_iopv_fetch_time > 15)
+	{
+		pFW->m_last_iopv_fetch_time = now;
+		if (!pFW->m_is_thread_stopping)
+			g_data.RequestFundIOPV(pFW->m_stock_id);
+	}
+
 	// 收盘后/盘前/周末不请求数据（午休期间允许请求）
 	// 但启动后首次请求不受此限制，以确保能获取当天盘中数据
 	if (!pFW->m_isFirstRequest && !CDataManager::IsTradingDaySession())
@@ -11330,8 +11621,6 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 		return 0;
 	}
 	pFW->m_isFirstRequest = false;
-
-	time_t now = time(nullptr);
 
 	// 视图相关数据（分时/日K线）：仅在非5min/30min视图下按10秒间隔获取
 	if (!pFW->m_isMin5KLineMode && !pFW->m_isMin30KLineMode)
@@ -11345,9 +11634,6 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 			else
 			{
 				g_data.RequestTimelineData(pFW->m_stock_id);
-				// ETF时同步获取基金分时+IOPV时序数据
-				if (CCommon::IsFundCode(pFW->m_stock_id))
-					g_data.RequestFundTimeline(pFW->m_stock_id);
 			}
 		}
 	}
@@ -11359,10 +11645,6 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
 		pFW->m_last_min5_fetch_time = now;
 		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
 		g_data.RequestMin5KLineData(pFW->m_stock_id, 250);
-
-		// ETF基金IOPV数据：与5分钟K线同一批次获取，避免计时器冲突
-		if (CCommon::IsFundCode(pFW->m_stock_id))
-			g_data.RequestFundIOPV(pFW->m_stock_id);
 	}
 
 	// 30分钟K线：固定600秒间隔获取，与当前视图无关

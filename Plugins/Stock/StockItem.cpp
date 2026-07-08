@@ -10,33 +10,31 @@
 
 const wchar_t* StockItem::GetItemName() const
 {
-	static std::wstring item_name;
 	auto data = g_data.GetStockData(stock_id);
 	if (data->info.is_ok)
 	{
 		if (data)
 		{
-			item_name = data->info.displayName;
+			m_item_name = data->info.displayName;
 		}
 		else
 		{
-			item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
-			item_name += std::to_wstring(index);
+			m_item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
+			m_item_name += std::to_wstring(index);
 		}
 	}
 	else
 	{
-		item_name = stock_id + L" " + g_data.StringRes(IDS_LOAD_FAIL).GetString();
+		m_item_name = stock_id + L" " + g_data.StringRes(IDS_LOAD_FAIL).GetString();
 	}
-	return item_name.c_str();
+	return m_item_name.c_str();
 }
 
 const wchar_t* StockItem::GetItemId() const
 {
-	static std::wstring item_id;
-	item_id = L"qL0KmmYi";
-	item_id += std::to_wstring(index);
-	return item_id.c_str();
+	m_item_id = L"qL0KmmYi";
+	m_item_id += std::to_wstring(index);
+	return m_item_id.c_str();
 }
 
 const wchar_t* StockItem::GetItemLableText() const
@@ -84,26 +82,10 @@ void StockItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 
 	// 文本颜色
 	COLORREF color_default;
-	COLORREF color_red;
-	COLORREF color_green;
-	COLORREF color_purple;
-	COLORREF color_dark_green;
 	if (dark_mode)
-	{
 		color_default = RGB(255, 255, 255);
-		color_red = RGB(255, 121, 120);
-		color_green = RGB(111, 215, 149);
-		color_purple = RGB(199, 125, 255);
-		color_dark_green = RGB(0, 150, 100);
-	}
 	else
-	{
 		color_default = RGB(0, 0, 0);
-		color_red = RGB(195, 0, 0);
-		color_green = RGB(46, 139, 87);
-		color_purple = RGB(148, 0, 211);
-		color_dark_green = RGB(0, 100, 0);
-	}
 
 	CRect rect_value{ rect };
 	if (data->info.is_ok && g_data.m_setting_data.m_show_stock_name)
@@ -128,21 +110,7 @@ void StockItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 	}
 
 	// 根据涨跌幅幅度设置颜色
-	COLORREF price_color = color_default;
-	if (fluctuation_percent > 0)
-	{
-		if (fluctuation_percent >= 5)
-			price_color = color_purple;
-		else
-			price_color = color_red;
-	}
-	else if (fluctuation_percent < 0)
-	{
-		if (fluctuation_percent <= -5)
-			price_color = color_dark_green;
-		else
-			price_color = color_green;
-	}
+	COLORREF price_color = CCommon::GetProfitLossColor(fluctuation_percent);
 
 	// 绘制价格（左对齐）
 	pDC->SetTextColor(price_color);
@@ -154,24 +122,7 @@ void StockItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 	// 设置涨跌幅/涨跌额文本颜色
 	if (g_data.m_setting_data.m_color_with_price)
 	{
-		if (fluctuation_percent > 0)
-		{
-			if (fluctuation_percent >= 5)
-				pDC->SetTextColor(color_purple);
-			else
-				pDC->SetTextColor(color_red);
-		}
-		else if (fluctuation_percent < 0)
-		{
-			if (fluctuation_percent <= -5)
-				pDC->SetTextColor(color_dark_green);
-			else
-				pDC->SetTextColor(color_green);
-		}
-		else
-		{
-			pDC->SetTextColor(color_default);
-		}
+		pDC->SetTextColor(price_color);
 	}
 	else
 	{
@@ -223,6 +174,7 @@ int StockItem::OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int f
 
 	case IPluginItem::MT_LCLICKED:
 	{
+		// 点击时使用股票自身代码打开悬浮窗
 		if (stock_id.find(kSZ) == 0 || stock_id.find(kBJ) == 0 || stock_id.find(kSH) == 0)
 		{
 			CPoint ptScreen = CPoint(x, y);

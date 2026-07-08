@@ -29,9 +29,10 @@ using namespace STOCK;
 static Volume GetJsonVolume(yyjson_val* obj, const char* key);
 static Price GetJsonPrice(yyjson_val* obj, const char* key);
 
-void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json)
+void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json, const std::vector<std::wstring>& codes)
 {
-	ClearRealtimeData();
+	// 只清空本次要更新的非A股代码，避免覆盖A股通过腾讯API已获取的数据
+	ClearRealtimeData(codes);
 
 	if (json == "")
 	{
@@ -143,6 +144,8 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		auto stockData = getStock(key);
 		if (!stockData) continue;
 
+		stockData->info.code = key;
+
 		std::string values = line.substr(pos + 2);
 		if (!values.empty() && values.back() == '\"')
 			values.pop_back();
@@ -171,6 +174,116 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 		if (data_arr.size() >= 39 && !data_arr[38].empty())
 		{
 			stockData->info.turnoverRate = { convert<Amount>(data_arr[38]) };
+		}
+
+		// A股(SH/SZ/BJ)：从腾讯API数据中提取完整行情，替代新浪API
+		// 腾讯A股格式: [0]=市场 [1]=名称 [2]=代码 [3]=现价 [4]=昨收 [5]=今开 [6]=成交量(手)
+		//   [7]=外盘(手) [8]=内盘(手) [9]=买一价 [10]=买一量(手) [11]=买二价 [12]=买二量(手) ...
+		//   [19]=卖一价 [20]=卖一量(手) [21]=卖二价 [22]=卖二量(手) ...
+		//   [30]=时间 [31]=涨跌额 [32]=涨跌幅 [33]=最高 [34]=最低
+		//   [36]=成交量(手) [37]=成交额(万) [38]=换手率 [43]=振幅 [44]=涨停 [45]=跌停
+		//   [47]=IOPV [48]=IOPV昨收 [49]=IOPV涨跌幅
+		bool isAG = (key.find(kSH) == 0 || key.find(kSZ) == 0 || key.find(kBJ) == 0);
+		if (isAG && data_arr.size() >= 35)
+		{
+			StockInfo& info = stockData->info;
+			if (!data_arr[1].empty())
+				info.displayName = CCommon::StrToUnicode(data_arr[1].c_str());
+			info.currentPrice = { convert<Price>(data_arr[3]) };
+			info.prevClosePrice = { convert<Price>(data_arr[4]) };
+			info.openPrice = { convert<Price>(data_arr[5]) };
+			// data[6]成交量单位为手，data[36]也是手，统一用data[6]*100
+			info.volume = { convert<Volume>(data_arr[6]) * 100 };
+			if (data_arr.size() >= 34)
+			{
+				info.highPrice = { convert<Price>(data_arr[33]) };
+				info.lowPrice = { convert<Price>(data_arr[34]) };
+			}
+			// data[37]成交额单位为万元
+			if (data_arr.size() >= 38 && !data_arr[37].empty())
+				info.turnover = { convert<Amount>(data_arr[37]) * 10000 };
+
+			// 五档买卖盘（腾讯单位为手，需*100转为股）
+			if (data_arr.size() >= 29)
+			{
+				info.bidLevels[0] = { {convert<Price>(data_arr[9])}, {convert<Volume>(data_arr[10]) * 100} };
+				info.bidLevels[1] = { {convert<Price>(data_arr[11])}, {convert<Volume>(data_arr[12]) * 100} };
+				info.bidLevels[2] = { {convert<Price>(data_arr[13])}, {convert<Volume>(data_arr[14]) * 100} };
+				info.bidLevels[3] = { {convert<Price>(data_arr[15])}, {convert<Volume>(data_arr[16]) * 100} };
+				info.bidLevels[4] = { {convert<Price>(data_arr[17])}, {convert<Volume>(data_arr[18]) * 100} };
+
+				info.askLevels[0] = { {convert<Price>(data_arr[19])}, {convert<Volume>(data_arr[20]) * 100} };
+				info.askLevels[1] = { {convert<Price>(data_arr[21])}, {convert<Volume>(data_arr[22]) * 100} };
+				info.askLevels[2] = { {convert<Price>(data_arr[23])}, {convert<Volume>(data_arr[24]) * 100} };
+				info.askLevels[3] = { {convert<Price>(data_arr[25])}, {convert<Volume>(data_arr[26]) * 100} };
+				info.askLevels[4] = { {convert<Price>(data_arr[27])}, {convert<Volume>(data_arr[28]) * 100} };
+			}
+
+			// 涨停/跌停价 [47]=涨停价 [48]=跌停价
+			if (data_arr.size() >= 49)
+			{
+				stockData->callAuctionData.limitUpPrice = { convert<Price>(data_arr[47]) };
+				stockData->callAuctionData.limitDownPrice = { convert<Price>(data_arr[48]) };
+			}
+
+			// 计算涨跌显示
+			if (info.currentPrice > 0 && info.prevClosePrice > 0)
+			{
+				CString priceStr = info.IsETF() ? CCommon::FormatETFPrice(info.currentPrice) : CCommon::FormatFloat(info.currentPrice);
+				info.displayPrice = std::wstring(priceStr.GetString());
+
+				char buff[32];
+				float diff = info.currentPrice - info.prevClosePrice;
+				float change = diff / info.prevClosePrice * 100;
+				if (diff > 0)
+					sprintf_s(buff, "(+%g) ", diff);
+				else
+					sprintf_s(buff, "(%g) ", diff);
+				info.displayFluctuationDiff = CCommon::StrToUnicode(buff);
+				sprintf_s(buff, "%.2f%%", std::fabs(change));
+				info.displayFluctuation = CCommon::StrToUnicode(buff);
+
+				Price upperLimit = abs(info.highPrice - info.prevClosePrice);
+				Price lowerLimit = abs(info.lowPrice - info.prevClosePrice);
+				info.priceLimit = max(upperLimit, lowerLimit);
+
+				info.is_ok = true;
+			}
+
+			// 买一到买五、卖一到卖五按价格跟踪挂盘减少累计量，仅买一/卖一参与累加
+			{
+				std::map<Price, OrderPriceAccum> currentPrices;
+				auto updateLevelAccum = [&](const OrderLevel& level, bool isAskSide, bool canAccum) {
+					if (level.price <= 0)
+						return;
+
+					currentPrices[level.price] = { level.volume, 0, isAskSide };
+					auto it = stockData->orderPriceAccumMap.find(level.price);
+					if (it == stockData->orderPriceAccumMap.end() || it->second.isAskSide != isAskSide)
+					{
+						stockData->orderPriceAccumMap[level.price] = { level.volume, 0, isAskSide };
+						return;
+					}
+
+					if (canAccum && level.volume < it->second.prevVolume)
+						it->second.accumSellVolume += it->second.prevVolume - level.volume;
+					it->second.prevVolume = level.volume;
+					};
+
+				for (int i = 0; i < StockInfo::MAX_LEVEL; i++)
+				{
+					updateLevelAccum(info.askLevels[i], true, i == 0);
+					updateLevelAccum(info.bidLevels[i], false, i == 0);
+				}
+
+				for (auto it = stockData->orderPriceAccumMap.begin(); it != stockData->orderPriceAccumMap.end(); )
+				{
+					if (currentPrices.find(it->first) == currentPrices.end())
+						it = stockData->orderPriceAccumMap.erase(it);
+					else
+						++it;
+				}
+			}
 		}
 
 		// 港股实时行情补充：当新浪API未返回港股数据时，从腾讯API数据中提取
@@ -221,76 +334,32 @@ void STOCK::StockMarket::LoadFundIOPVData(const std::wstring& key, const CString
 	if (!stockData) return;
 
 	CStringA dataA(data);
-	yyjson_doc* doc = yyjson_read(dataA.GetString(), dataA.GetLength(), 0);
-	if (!doc) return;
-
-	yyjson_val* root = yyjson_doc_get_root(doc);
-	yyjson_val* dataObj = yyjson_obj_get(root, "data");
-	if (!dataObj || !yyjson_is_obj(dataObj))
-	{
-		yyjson_doc_free(doc);
-		return;
-	}
-
-	StockInfo& info = stockData->info;
-
-	// IOPV当前值
-	yyjson_val* iopvVal = yyjson_obj_get(dataObj, "iopv");
-	if (iopvVal && yyjson_is_str(iopvVal))
-		info.iopv = convert<Price>(yyjson_get_str(iopvVal));
-	else if (iopvVal && yyjson_is_real(iopvVal))
-		info.iopv = yyjson_get_real(iopvVal);
-	else if (iopvVal && yyjson_is_int(iopvVal))
-		info.iopv = static_cast<Price>(yyjson_get_int(iopvVal));
-
-	// IOPV昨收
-	yyjson_val* iopvPreVal = yyjson_obj_get(dataObj, "iopv_pre");
-	if (iopvPreVal && yyjson_is_str(iopvPreVal))
-		info.iopvPrevClose = convert<Price>(yyjson_get_str(iopvPreVal));
-	else if (iopvPreVal && yyjson_is_real(iopvPreVal))
-		info.iopvPrevClose = yyjson_get_real(iopvPreVal);
-	else if (iopvPreVal && yyjson_is_int(iopvPreVal))
-		info.iopvPrevClose = static_cast<Price>(yyjson_get_int(iopvPreVal));
-
-	// 溢价额
-	yyjson_val* premiumVal = yyjson_obj_get(dataObj, "premium");
-	if (premiumVal && yyjson_is_str(premiumVal))
-		info.iopvPremium = convert<double>(yyjson_get_str(premiumVal));
-	else if (premiumVal && yyjson_is_real(premiumVal))
-		info.iopvPremium = yyjson_get_real(premiumVal);
-	else if (premiumVal && yyjson_is_int(premiumVal))
-		info.iopvPremium = static_cast<double>(yyjson_get_int(premiumVal));
-
-	// 溢折率(%)
-	yyjson_val* premiumRateVal = yyjson_obj_get(dataObj, "premium_rate");
-	if (premiumRateVal && yyjson_is_str(premiumRateVal))
-		info.iopvPremiumRate = convert<double>(yyjson_get_str(premiumRateVal));
-	else if (premiumRateVal && yyjson_is_real(premiumRateVal))
-		info.iopvPremiumRate = yyjson_get_real(premiumRateVal);
-	else if (premiumRateVal && yyjson_is_int(premiumRateVal))
-		info.iopvPremiumRate = static_cast<double>(yyjson_get_int(premiumRateVal));
-
-	// IOPV涨跌幅(%)
-	yyjson_val* iopvChangeVal = yyjson_obj_get(dataObj, "iopv_change");
-	if (iopvChangeVal && yyjson_is_str(iopvChangeVal))
-		info.iopvChange = convert<double>(yyjson_get_str(iopvChangeVal));
-	else if (iopvChangeVal && yyjson_is_real(iopvChangeVal))
-		info.iopvChange = yyjson_get_real(iopvChangeVal);
-	else if (iopvChangeVal && yyjson_is_int(iopvChangeVal))
-		info.iopvChange = static_cast<double>(yyjson_get_int(iopvChangeVal));
-
-	yyjson_doc_free(doc);
-}
-
-void STOCK::StockMarket::LoadFundTimelineData(const std::wstring& key, const CString& data)
-{
-	auto stockData = getStock(key);
-	if (!stockData) return;
-
-	CStringA dataA(data);
 	std::string rawData(dataA.GetString(), dataA.GetLength());
 
-	yyjson_doc* doc = yyjson_read(rawData.c_str(), rawData.size(), 0);
+	// 兼容两种格式：
+	// 1. 天天基金JSONP: jsonpgz({"gsz":"0.3601","dwjz":"0.3441",...})
+	// 2. 腾讯ETF JSON: {"data":{"timeline":[...],"iopv_timeline":[...]}}
+
+	std::string jsonStr;
+
+	// 检查是否是JSONP格式（包含 jsonpgz( 前缀）
+	size_t jsonpStart = rawData.find("jsonpgz(");
+	if (jsonpStart != std::string::npos)
+	{
+		size_t startPos = rawData.find('(');
+		size_t endPos = rawData.rfind(')');
+		if (startPos != std::string::npos && endPos != std::string::npos && endPos > startPos + 1)
+			jsonStr = rawData.substr(startPos + 1, endPos - startPos - 1);
+	}
+	else
+	{
+		// 直接JSON格式
+		jsonStr = rawData;
+	}
+
+	if (jsonStr.empty()) return;
+
+	yyjson_doc* doc = yyjson_read(jsonStr.c_str(), jsonStr.size(), 0);
 	if (!doc) return;
 
 	yyjson_val* root = yyjson_doc_get_root(doc);
@@ -300,87 +369,77 @@ void STOCK::StockMarket::LoadFundTimelineData(const std::wstring& key, const CSt
 		return;
 	}
 
+	StockInfo& info = stockData->info;
+
+	// 检查是否有"data"字段（腾讯格式）
 	yyjson_val* dataObj = yyjson_obj_get(root, "data");
-	if (!dataObj || !yyjson_is_obj(dataObj))
+	if (dataObj && yyjson_is_obj(dataObj))
 	{
-		yyjson_doc_free(doc);
-		return;
-	}
-
-	// 解析分时数据
-	yyjson_val* timelineArr = yyjson_obj_get(dataObj, "timeline");
-	if (timelineArr && yyjson_is_arr(timelineArr))
-	{
-		auto timelineData = stockData->MakesureHistoricalData<TimelineData>(Period::TIMELINE);
-		timelineData->Clear();
-
-		yyjson_val* item;
-		yyjson_arr_iter iter;
-		yyjson_arr_iter_init(timelineArr, &iter);
-		while ((item = yyjson_arr_iter_next(&iter)))
+		// 腾讯ETF格式：从 iopv_timeline 获取最新IOPV值
+		yyjson_val* iopvTimeline = yyjson_obj_get(dataObj, "iopv_timeline");
+		if (iopvTimeline && yyjson_is_arr(iopvTimeline))
 		{
-			if (!item || !yyjson_is_obj(item)) continue;
+			// 取数组最后一个元素的iopv值作为当前IOPV
+			size_t count = yyjson_arr_size(iopvTimeline);
+			if (count > 0)
+			{
+				yyjson_val* lastItem = yyjson_arr_get(iopvTimeline, count - 1);
+				if (lastItem && yyjson_is_obj(lastItem))
+				{
+					// iopv字段可能在"iopv"或"price"键下
+					yyjson_val* iopvVal = yyjson_obj_get(lastItem, "iopv");
+					if (!iopvVal)
+						iopvVal = yyjson_obj_get(lastItem, "price");
 
-			TimelinePoint point;
-			point.time = utilities::JsonHelper::GetJsonString(item, "time");
-			point.price = GetJsonPrice(item, "price");
-			point.volume = GetJsonVolume(item, "volume");
-			point.averagePrice = GetJsonPrice(item, "avg");
-			point.amount = point.price * point.volume;
-			timelineData->data.push_back(point);
+					Price iopvPrice = 0;
+					if (iopvVal && yyjson_is_str(iopvVal))
+						iopvPrice = convert<Price>(yyjson_get_str(iopvVal));
+					else if (iopvVal && yyjson_is_real(iopvVal))
+						iopvPrice = yyjson_get_real(iopvVal);
+					else if (iopvVal && yyjson_is_int(iopvVal))
+						iopvPrice = static_cast<Price>(yyjson_get_int(iopvVal));
+
+					if (iopvPrice > 0)
+					{
+						info.iopv = iopvPrice;
+						info.iopvPremium = info.currentPrice - info.iopv;
+						if (info.iopv > 0)
+							info.iopvPremiumRate = info.iopvPremium / info.iopv * 100;
+					}
+
+					// 调试日志
+					CString debugLog;
+					debugLog.Format(_T("IOPV parsed: %.4f, premium: %.4f, rate: %.2f%%"), info.iopv, info.iopvPremium, info.iopvPremiumRate);
+					CCommon::WriteLog(debugLog, g_data.m_log_path.c_str());
+				}
+			}
 		}
 	}
-
-	// 解析IOPV时序数据，按最近时间匹配到分时点
-	yyjson_val* iopvTimelineArr = yyjson_obj_get(dataObj, "iopv_timeline");
-	if (iopvTimelineArr && yyjson_is_arr(iopvTimelineArr))
+	else
 	{
-		auto timelineData = stockData->MakesureHistoricalData<TimelineData>(Period::TIMELINE);
-		if (!timelineData->data.empty())
+		// 天天基金格式：gsz=盘中估算净值, dwjz=昨收净值
+		yyjson_val* gszVal = yyjson_obj_get(root, "gsz");
+		if (gszVal && yyjson_is_str(gszVal))
 		{
-			// 收集IOPV时序点
-			struct IopvTimePoint { std::string time; Price iopv; };
-			std::vector<IopvTimePoint> iopvPoints;
-
-			yyjson_val* item;
-			yyjson_arr_iter iter;
-			yyjson_arr_iter_init(iopvTimelineArr, &iter);
-			while ((item = yyjson_arr_iter_next(&iter)))
+			Price iopvVal = convert<Price>(yyjson_get_str(gszVal));
+			if (iopvVal > 0)
 			{
-				if (!item || !yyjson_is_obj(item)) continue;
-				IopvTimePoint pt;
-				pt.time = utilities::JsonHelper::GetJsonString(item, "time");
-				pt.iopv = GetJsonPrice(item, "iopv");
-				if (!pt.time.empty() && pt.iopv > 0)
-					iopvPoints.push_back(pt);
+				info.iopv = iopvVal;
+				info.iopvPremium = info.currentPrice - info.iopv;
+				if (info.iopv > 0)
+					info.iopvPremiumRate = info.iopvPremium / info.iopv * 100;
 			}
+		}
 
-			// 按最近时间匹配：对每个分时点，找到时间最接近的IOPV点
-			if (!iopvPoints.empty())
+		yyjson_val* dwjzVal = yyjson_obj_get(root, "dwjz");
+		if (dwjzVal && yyjson_is_str(dwjzVal))
+		{
+			Price prevNav = convert<Price>(yyjson_get_str(dwjzVal));
+			if (prevNav > 0)
 			{
-				for (auto& tp : timelineData->data)
-				{
-					Price bestIopv = 0;
-					int bestDist = INT_MAX;
-					for (const auto& ip : iopvPoints)
-					{
-						// 时间字符串长度不同时跳过
-						if (tp.time.size() != ip.time.size())
-							continue;
-						int dist = 0;
-						for (size_t i = 0; i < tp.time.size() && dist == 0; i++)
-						{
-							if (tp.time[i] != ip.time[i])
-								dist = abs(tp.time[i] - ip.time[i]);
-						}
-						if (dist < bestDist)
-						{
-							bestDist = dist;
-							bestIopv = ip.iopv;
-						}
-					}
-					tp.iopv = bestIopv;
-				}
+				info.iopvPrevClose = prevNav;
+				if (info.iopv > 0)
+					info.iopvChange = (info.iopv - info.iopvPrevClose) / info.iopvPrevClose * 100;
 			}
 		}
 	}

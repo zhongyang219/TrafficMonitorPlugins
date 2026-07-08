@@ -54,6 +54,9 @@
     <ClInclude Include="OptionsDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="RelateStockDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -102,6 +105,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="OptionsDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
+    <ClCompile Include="RelateStockDlg.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
     <ClCompile Include="ManagerDialog.cpp">
