@@ -306,7 +306,7 @@ private:
 
 	// 分时图指标类型
 	enum class TimelineIndicator { MACD, KDJ, WR, RSI };
-	TimelineIndicator m_timelineIndicator{ TimelineIndicator::KDJ };
+	TimelineIndicator m_timelineIndicator{ TimelineIndicator::MACD };
 	bool m_indicatorBtnsInitialized{ false };
 
 	// 分时图鼠标拖动滚动
@@ -358,7 +358,7 @@ private:
 	bool m_isHoveringKDJ{ false };
 	bool m_showTrendView{ false };
 	bool m_showChipPeak{ false };
-	bool m_expandedMode{ true };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
+	bool m_expandedMode{ false };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
 	bool m_showStockList{ true };  // 是否显示左侧股票列表面板
 	bool m_isCallAuctionMode{ false };  // 集合竞价模式
 	bool m_showT0Markers{ false };

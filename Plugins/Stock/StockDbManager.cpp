@@ -758,13 +758,16 @@ double CStockDbManager::LoadMaxAvgDiff(const std::wstring& stockCode)
 	if (m_db == nullptr) return 0.0;
 
 	std::string code(stockCode.begin(), stockCode.end());
+	std::string today = GetTodayDateString();
 
-	const char* sql = "SELECT max_avg_diff FROM max_avg_diff WHERE stock_code = ?;";
+	// 只加载今天的记录，非今天的视为过期，每日开盘后重新记录
+	const char* sql = "SELECT max_avg_diff FROM max_avg_diff WHERE stock_code = ? AND update_time = ?;";
 	sqlite3_stmt* stmt = nullptr;
 	double result = 0.0;
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
 	{
 		sqlite3_bind_text(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 2, today.c_str(), -1, SQLITE_TRANSIENT);
 		if (sqlite3_step(stmt) == SQLITE_ROW)
 		{
 			result = sqlite3_column_double(stmt, 0);
