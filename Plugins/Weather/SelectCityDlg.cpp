@@ -60,7 +60,7 @@ void CSelectCityDlg::ShowList()
             {
                 const CityCodeItem& item{ g_data.CityList()[index] };
                 m_list_ctrl.InsertItem(i, item.name.c_str());
-                m_list_ctrl.SetItemText(i, 1, item.code.c_str());
+                //m_list_ctrl.SetItemText(i, 1, item.code.c_str());
                 i++;
             }
         }
@@ -71,7 +71,7 @@ void CSelectCityDlg::ShowList()
         for (const auto& item : g_data.CityList())
         {
             m_list_ctrl.InsertItem(i, item.name.c_str());
-            m_list_ctrl.SetItemText(i, 1, item.code.c_str());
+            //m_list_ctrl.SetItemText(i, 1, item.code.c_str());
             i++;
         }
     }
@@ -110,11 +110,7 @@ BOOL CSelectCityDlg::OnInitDialog()
     CRect rect;
     m_list_ctrl.GetClientRect(rect);
     m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_LABELTIP);
-    int width0, width1;
-    width0 = rect.Width() / 2;
-    width1 = rect.Width() - width0 - g_data.DPI(20) - 1;
-    m_list_ctrl.InsertColumn(0, g_data.StringRes(IDS_CITY), LVCFMT_LEFT, width0);
-    m_list_ctrl.InsertColumn(1, g_data.StringRes(IDS_CITY_CODE), LVCFMT_LEFT, width1);
+    m_list_ctrl.InsertColumn(0, g_data.StringRes(IDS_CITY), LVCFMT_LEFT, rect.Width() - g_data.DPI(20) - 1);
 
     m_search_edit.SetCueBanner(g_data.StringRes(IDS_INPUT_KEY_WORD));
     ShowList();
