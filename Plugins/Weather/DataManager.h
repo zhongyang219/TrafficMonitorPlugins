@@ -1,12 +1,18 @@
 ﻿#pragma once
 #include <string>
 #include <map>
+#include <vector>
 #include "resource.h"
-#include "CityCode.h"
 #include "HistoryWeatherMgr.h"
 #include "CommonData.h"
 
 #define g_data CDataManager::Instance()
+
+struct CityCodeItem
+{
+    std::wstring name;
+    std::wstring code;
+};
 
 class CDataManager
 {
@@ -17,6 +23,7 @@ private:
 public:
     static CDataManager& Instance();
 
+    void InitCityList();        //初始化城市列表
     void LoadConfig(const std::wstring& config_dir);
     void SaveConfig() const;
     const CString& StringRes(UINT id);      //根据资源id获取一个字符串资源
@@ -27,18 +34,18 @@ public:
     HICON GetIcon(UINT id);
     CityCodeItem CurCity() const;
     void ResetText();
-    HICON GetWeatherIcon(const std::wstring weather_type);
+    HICON GetWeatherIcon(const std::wstring& weather_type);
     CHistoryWeatherMgr& HistoryWeatherMgr();
+    const std::vector<CityCodeItem>& CityList() const { return m_city_list; }
 
     WeatherInfo& GetWeather();
 
     std::map<WeahterSelected, WeatherInfo> m_weather_info;
     CTime m_update_time;        //更新时间
-    float m_pm2_5{};            //PM2.5
+    std::wstring m_aqi{};       //AQI
     std::wstring m_quality;     //空气质量
 
     CString GetUpdateTimeAsString();  //获取更新日间的字符串格式
-    CString GetPM25AsString() const;
 
     SettingData m_setting_data;
     std::wstring m_config_dir;
@@ -53,4 +60,5 @@ private:
     std::map<std::wstring, UINT> m_weather_icon_id;     //保存所有天气图标的ID
     int m_dpi{ 96 };
     CHistoryWeatherMgr m_history_weather_mgr;
+    std::vector<CityCodeItem> m_city_list;
 };

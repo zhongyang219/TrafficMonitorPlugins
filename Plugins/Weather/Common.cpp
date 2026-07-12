@@ -118,3 +118,32 @@ int CCommon::CaculateWeekDay(int y, int m, int d)
     }
     return (d + 2 * m + 3 * (m + 1) / 5 + y + y / 4 - y / 100 + y / 400 + 1) % 7;
 }
+
+CString CCommon::GetTextResource(UINT id, int code_type)
+{
+    CString res_str;
+    HMODULE hModule = reinterpret_cast<HMODULE>(&__ImageBase);
+    HRSRC hRes = FindResource(hModule, MAKEINTRESOURCE(id), _T("TEXT"));
+    auto err = GetLastError();
+    if (hRes != NULL)
+    {
+        DWORD resSize = SizeofResource(hModule, hRes);  // 获取资源的大小
+        HGLOBAL hglobal = LoadResource(hModule, hRes);
+        if (hglobal != NULL)
+        {
+            LPVOID pResourceData = LockResource(hglobal);  // 获取资源数据的指针
+            if (code_type == 2)
+            {
+                // 资源是宽字符字符串
+                res_str = CString((const wchar_t*)pResourceData, resSize / sizeof(wchar_t));
+            }
+            else
+            {
+                // 资源是窄字符字符串
+                std::string strData((const char*)pResourceData, resSize);
+                res_str = CCommon::StrToUnicode(strData.c_str(), (code_type != 0)).c_str();
+            }
+        }
+    }
+    return res_str;
+}

@@ -71,6 +71,7 @@
 #define IDI_UPDATE                      145
 #define IDD_DIALOG1                     146
 #define IDD_WEATHER_HISTORY_DIALOG      146
+#define IDR_CITY_LIST                   147
 #define IDC_CITY_EDIT                   1001
 #define IDC_CITY_LIST                   1005
 #define IDC_SELECT_CITY_BUTTON          1006

@@ -3,6 +3,7 @@
 #include "DataManager.h"
 #include <string>
 #include "../utilities/Common.h"
+#include "Weather.h"
 
 
 bool CHistoryWeatherMgr::Date::operator==(const Date& another) const
@@ -122,25 +123,24 @@ void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
     {
         //解析日期
         Date date{};
-        std::string str_date = utilities::JsonHelper::GetJsonString(forecast, "ymd");
+        std::string str_date = utilities::JsonHelper::GetJsonString(forecast, "date");
         std::vector<std::string> vec_date;
         utilities::StringHelper::StringSplit(str_date, '-', vec_date);
-        if (vec_date.size() > 0)
-            date.year = atoi(vec_date[0].c_str());
-        if (vec_date.size() > 1)
-            date.month = atoi(vec_date[1].c_str());
-        if (vec_date.size() > 2)
-            date.day = atoi(vec_date[2].c_str());
+        if (vec_date.size() < 3)
+            return;
+        date.year = atoi(vec_date[0].c_str());
+        date.month = atoi(vec_date[1].c_str());
+        date.day = atoi(vec_date[2].c_str());
 
         //解析天气
+        WeatherInfo info;
+        CWeather::ParseWeatherInfo(info, forecast);
+
         HistoryWeather weather;
-        weather.type = utilities::JsonHelper::GetJsonWString(forecast, "type").c_str();
-        weather.high_temp = _wtoi(utilities::JsonHelper::GetJsonWString(forecast, "high").substr(2).c_str());
-        weather.low_temp = _wtoi(utilities::JsonHelper::GetJsonWString(forecast, "low").substr(2).c_str());
-        //风向和风力
-        std::wstring fx = utilities::JsonHelper::GetJsonWString(forecast, "fx");
-        std::wstring fl = utilities::JsonHelper::GetJsonWString(forecast, "fl");
-        weather.wind = (fx + L' ' + fl).c_str();
+        weather.type = info.m_type.c_str();
+        weather.high_temp = _wtoi(info.m_high.c_str());
+        weather.low_temp = _wtoi(info.m_low.c_str());
+        weather.wind = info.m_wind.c_str();
         m_history_weather_list[date] = weather;
     }
 }

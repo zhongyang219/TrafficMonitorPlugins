@@ -6,7 +6,6 @@
 #include "SelectCityDlg.h"
 #include "afxdialogex.h"
 #include "DataManager.h"
-#include "CityCode.h"
 
 
 // CSelectCityDlg 对话框
@@ -57,9 +56,9 @@ void CSelectCityDlg::ShowList()
         int i{};
         for (int index : m_search_result)
         {
-            if (index >= 0 && index < static_cast<int>(CityCode.size()))
+            if (index >= 0 && index < static_cast<int>(g_data.CityList().size()))
             {
-                const CityCodeItem& item{ CityCode[index] };
+                const CityCodeItem& item{ g_data.CityList()[index] };
                 m_list_ctrl.InsertItem(i, item.name.c_str());
                 m_list_ctrl.SetItemText(i, 1, item.code.c_str());
                 i++;
@@ -69,7 +68,7 @@ void CSelectCityDlg::ShowList()
     else
     {
         int i{};
-        for (const auto& item : CityCode)
+        for (const auto& item : g_data.CityList())
         {
             m_list_ctrl.InsertItem(i, item.name.c_str());
             m_list_ctrl.SetItemText(i, 1, item.code.c_str());
@@ -81,9 +80,9 @@ void CSelectCityDlg::ShowList()
 void CSelectCityDlg::QuickSearch(const std::wstring& key_word)
 {
     m_search_result.clear();
-    for (int i = 0; i < static_cast<int>(CityCode.size()); i++)
+    for (int i = 0; i < static_cast<int>(g_data.CityList().size()); i++)
     {
-        const auto& city = CityCode[i];
+        const auto& city = g_data.CityList()[i];
         if (city.name.find(key_word) != std::wstring::npos)
         {
             m_search_result.push_back(i);

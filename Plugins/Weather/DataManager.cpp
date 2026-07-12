@@ -63,6 +63,29 @@ CDataManager& CDataManager::Instance()
     return m_instance;
 }
 
+void CDataManager::InitCityList()
+{
+    //从资源中加载城市列表
+    CString str_city_list = CCommon::GetTextResource(IDR_CITY_LIST, 1);
+    //拆分每一行
+    std::vector<std::wstring> lines;
+    utilities::StringHelper::StringSplit(str_city_list.GetString(), '\n', lines);
+    //获取城市信息
+    m_city_list.clear();
+    for (const auto& str_line : lines)
+    {
+        size_t index = str_line.find(L',');
+        if (index < str_line.size() - 1)
+        {
+            CityCodeItem item;
+            item.name = str_line.substr(0, index);
+            item.code = str_line.substr(index + 1);
+            m_city_list.push_back(item);
+
+        }
+    }
+}
+
 void CDataManager::LoadConfig(const std::wstring& config_dir)
 {
     m_config_dir = config_dir;
@@ -147,8 +170,8 @@ HICON CDataManager::GetIcon(UINT id)
 
 CityCodeItem CDataManager::CurCity() const
 {
-    if (m_setting_data.m_city_index >= 0 && m_setting_data.m_city_index < static_cast<int>(CityCode.size()))
-        return CityCode[m_setting_data.m_city_index];
+    if (m_setting_data.m_city_index >= 0 && m_setting_data.m_city_index < static_cast<int>(m_city_list.size()))
+        return m_city_list[m_setting_data.m_city_index];
     else
         return CityCodeItem();
 }
@@ -158,17 +181,29 @@ void CDataManager::ResetText()
     m_weather_info[m_setting_data.m_weather_selected] = WeatherInfo();
 }
 
-HICON CDataManager::GetWeatherIcon(const std::wstring weather_type)
+HICON CDataManager::GetWeatherIcon(const std::wstring& weather_type)
 {
-    UINT id{};
-    auto iter = m_weather_icon_id.find(weather_type);
+    std::wstring weather_type_find = weather_type;
+    //如果weather_type中含有“~”，则截取前面部分
+    size_t index = weather_type.find(L'~');
+    if (index != std::wstring::npos)
+        weather_type_find = weather_type.substr(0, index);
+
+    UINT id{ IDI_UNKOWN_WEATHER };
+    auto iter = m_weather_icon_id.find(weather_type_find);
     if (iter != m_weather_icon_id.end())
     {
         id = iter->second;
     }
     else
     {
-        id = IDI_UNKOWN_WEATHER;
+        //没有找到时使用部分匹配再找一次
+        for (const auto& weather : m_weather_icon_id)
+        {
+            if (weather.first.find(weather_type_find) != std::wstring::npos)
+                id = weather.second;
+        }
+
     }
     //获取当前时间
     SYSTEMTIME cur_time{};
@@ -230,11 +265,4 @@ CString CDataManager::GetUpdateTimeAsString()
     strResult.Format(_T("%s %s"), strDate.GetString(), strTime.GetString());
 
     return strResult;
-}
-
-CString CDataManager::GetPM25AsString() const
-{
-    wchar_t buff[32];
-    swprintf_s(buff, L"%g", m_pm2_5);
-    return CString(buff);
 }

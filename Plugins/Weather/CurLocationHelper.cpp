@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "CurLocationHelper.h"
 #include "Common.h"
-//#include "utilities/yyjson/yyjson.h"
+#include "DataManager.h"
 
 CCurLocationHelper::CCurLocationHelper()
 {
@@ -98,19 +98,19 @@ int CCurLocationHelper::FindCityCodeItem(std::wstring city_name)
 {
     if (!city_name.empty())
     {
-        auto iter = std::find_if(CityCode.begin(), CityCode.end(), [&](const CityCodeItem& city_code_item)
+        auto iter = std::find_if(g_data.CityList().begin(), g_data.CityList().end(), [&](const CityCodeItem& city_code_item)
             {
                 return city_code_item.name == city_name;
             });
-        if (iter == CityCode.end())
+        if (iter == g_data.CityList().end())
         {
             city_name.pop_back();
-            iter = std::find_if(CityCode.begin(), CityCode.end(), [&](const CityCodeItem& city_code_item)
+            iter = std::find_if(g_data.CityList().begin(), g_data.CityList().end(), [&](const CityCodeItem& city_code_item)
                 {
                     return city_code_item.name == city_name;
                 });
         }
-        return static_cast<int>(iter - CityCode.begin());
+        return static_cast<int>(iter - g_data.CityList().begin());
     }
     return -1;
 }

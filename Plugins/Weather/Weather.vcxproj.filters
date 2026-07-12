@@ -51,9 +51,6 @@
     <ClInclude Include="Common.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CityCode.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="OptionsDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
@@ -213,5 +210,19 @@
     <Image Include="res\update.ico">
       <Filter>资源文件</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\text3.bin">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\text4.bin">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\text5.bin">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\nmc_cities.txt" />
   </ItemGroup>
 </Project>

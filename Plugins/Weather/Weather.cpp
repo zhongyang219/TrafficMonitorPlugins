@@ -49,7 +49,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         }
 
         //获取天气信息
-        std::wstring url{ L"http://t.weather.itboy.net/api/weather/city/" };
+        std::wstring url{ L"http://www.nmc.cn/rest/weather?stationid=" };
         url += g_data.CurCity().code;
         std::string weather_data;
         if (CCommon::GetURL(url, weather_data))
@@ -73,26 +73,59 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
     return 0;
 }
 
-static void ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast)
+//天气接口中获取到“9999”为无效值，将它忽略
+static std::wstring GetJsonWString(yyjson_val* obj, const char* key)
+{
+    std::wstring str_value = utilities::JsonHelper::GetJsonWString(obj, key);
+    if (str_value == L"9999")
+        return std::wstring();
+    return str_value;
+}
+
+static std::wstring GetWeatherString(const std::wstring& day_str, const std::wstring& night_str)
+{
+    if (day_str.empty())
+        return night_str;
+    if (night_str.empty())
+        return day_str;
+
+    if (day_str == night_str)
+        return day_str;
+    else
+        return day_str + L'~' + night_str;
+}
+
+void CWeather::ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast)
 {
     if (forecast != nullptr)
     {
-        weather_info.m_type = utilities::JsonHelper::GetJsonWString(forecast, "type");
-        weather_info.m_high = utilities::JsonHelper::GetJsonWString(forecast, "high");
-        weather_info.m_low = utilities::JsonHelper::GetJsonWString(forecast, "low");
+        yyjson_val* day_node = yyjson_obj_get(forecast, "day");
+        yyjson_val* night_node = yyjson_obj_get(forecast, "night");
+        if (day_node == nullptr || night_node == nullptr)
+            return;
+        yyjson_val* day_weather_node = yyjson_obj_get(day_node, "weather");
+        yyjson_val* night_weather_node = yyjson_obj_get(night_node, "weather");
+        if (day_weather_node == nullptr || night_weather_node == nullptr)
+            return;
 
-        //去掉前面的“高温”和“低温”
-        weather_info.m_high = weather_info.m_high.substr(2);
-        weather_info.m_low = weather_info.m_low.substr(2);
-        //去年低温后面的摄氏度符号
-        weather_info.m_low.pop_back();
-        utilities::StringHelper::StringNormalize(weather_info.m_high);
-        utilities::StringHelper::StringNormalize(weather_info.m_low);
+        std::wstring day_type = GetJsonWString(day_weather_node, "info");
+        std::wstring night_type = GetJsonWString(night_weather_node, "info");
+        weather_info.m_type = GetWeatherString(day_type, night_type);
+
+        weather_info.m_high = GetJsonWString(day_weather_node, "temperature");
+        weather_info.m_low = GetJsonWString(night_weather_node, "temperature");
 
         //风向和风力
-        std::wstring fx = utilities::JsonHelper::GetJsonWString(forecast, "fx");
-        std::wstring fl = utilities::JsonHelper::GetJsonWString(forecast, "fl");
-        weather_info.m_wind = fx + L' ' + fl;
+        yyjson_val* day_wind_node = yyjson_obj_get(day_node, "wind");
+        yyjson_val* night_wind_node = yyjson_obj_get(night_node, "wind");
+        std::wstring str_day_direct = GetJsonWString(day_wind_node, "direct");
+        std::wstring str_day_power = GetJsonWString(day_wind_node, "power");
+        std::wstring str_night_direct = GetJsonWString(night_wind_node, "direct");
+        std::wstring str_night_power = GetJsonWString(night_wind_node, "power");
+
+        std::wstring str_direct = GetWeatherString(str_day_direct, str_night_direct);
+        std::wstring str_power = GetWeatherString(str_day_power, str_night_power);
+        weather_info.m_wind = str_direct + L' ' + str_power;
     }
 }
 
@@ -126,6 +159,14 @@ bool CWeather::ParseJsonData(std::string json_data)
     yyjson_val* root = yyjson_doc_get_root(doc);
     if (root == nullptr)
         return false;
+    //获取数据节点
+    yyjson_val* data_node = yyjson_obj_get(root, "data");
+    if (data_node == nullptr)
+        return false;
+    //获取实时天气节点
+    yyjson_val* real_node = yyjson_obj_get(data_node, "real");
+    if (real_node == nullptr)
+        return false;
 
     g_data.ResetText();
 
@@ -133,20 +174,20 @@ bool CWeather::ParseJsonData(std::string json_data)
     int year{};
     int month{};
     int day{};
-    std::string str_date = utilities::JsonHelper::GetJsonString(root, "date");
+    std::string str_date = utilities::JsonHelper::GetJsonString(real_node, "publish_time");
     if (str_date.size() >= 4)
         year = atoi(str_date.substr(0, 4).c_str());
-    if (str_date.size() >= 6)
-        month = atoi(str_date.substr(4, 2).c_str());
-    if (str_date.size() >= 8)
-        day = atoi(str_date.substr(6, 2).c_str());
+    if (str_date.size() >= 7)
+        month = atoi(str_date.substr(5, 2).c_str());
+    if (str_date.size() >= 10)
+        day = atoi(str_date.substr(8, 2).c_str());
 
     //获取城市
-    yyjson_val* city_info = yyjson_obj_get(root, "cityInfo");
-    std::wstring str_city = utilities::JsonHelper::GetJsonWString(city_info, "city");
+    yyjson_val* station_node = yyjson_obj_get(real_node, "station");
+    std::wstring str_city = GetJsonWString(station_node, "city");
 
     //获取时间
-    std::string str_time = utilities::JsonHelper::GetJsonString(city_info, "updateTime");
+    std::string str_time = str_date.substr(11);
     std::vector<std::string> time_split;
     utilities::StringHelper::StringSplit(str_time, ':', time_split);
     int hour{};
@@ -158,16 +199,31 @@ bool CWeather::ParseJsonData(std::string json_data)
     g_data.m_update_time = CTime(year, month, day, hour, minute, 0);
 
     //获取当前天气
-    yyjson_val* data = yyjson_obj_get(root, "data");
-    g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(data, "wendu") + L"℃";
+    yyjson_val* weather_node = yyjson_obj_get(real_node, "weather");
+    g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(weather_node, "temperature") + L"℃";
+    g_data.m_weather_info[WEATHER_CURRENT].m_type = GetJsonWString(weather_node, "info");
     g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
 
+    //获取风力风向
+    yyjson_val* wind_node = yyjson_obj_get(real_node, "wind");
+    std::wstring wind_direct = GetJsonWString(wind_node, "direct");
+    std::wstring wind_power = GetJsonWString(wind_node, "power");
+    g_data.m_weather_info[WEATHER_CURRENT].m_wind = wind_direct + L' ' + wind_power;
+
     //空气质量
-    g_data.m_pm2_5 = utilities::JsonHelper::GetJsonFloat(data, "pm25");
-    g_data.m_quality = utilities::JsonHelper::GetJsonWString(data, "quality");
+    yyjson_val* air_node = yyjson_obj_get(data_node, "air");
+    if (air_node != nullptr)
+    {
+        g_data.m_aqi = GetJsonWString(air_node, "aqi");
+        g_data.m_quality = GetJsonWString(air_node, "text");
+    }
 
     //获取3天的天气
-    yyjson_val* forecast_arr = yyjson_obj_get(data, "forecast");
+    yyjson_val* predict_node = yyjson_obj_get(data_node, "predict");
+    if (predict_node == nullptr)
+        return false;
+
+    yyjson_val* forecast_arr = yyjson_obj_get(predict_node, "detail");
     if (forecast_arr != nullptr && yyjson_is_arr(forecast_arr))
     {
         yyjson_val* forecast_today = yyjson_arr_get_first(forecast_arr);
@@ -176,7 +232,6 @@ bool CWeather::ParseJsonData(std::string json_data)
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TODAY], forecast_today);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
-        g_data.m_weather_info[WEATHER_CURRENT].m_type = g_data.m_weather_info[WEATHER_TODAY].m_type;
         //添加到历史记录
         g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_today);
         g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_tommorrow);
@@ -203,7 +258,7 @@ bool CWeather::ParseJsonData(std::string json_data)
     CTime the_day_after_tomorrow_date = tomorrow_date + one_day_span;
     std::wstringstream wss;
     wss << str_city << L' ' << weather_current.ToString()
-        << L" PM2.5: " << g_data.GetPM25AsString().GetString() << L' ' << g_data.m_quality
+        << L" AQI: " << g_data.m_aqi << L' ' << g_data.m_quality
         << std::endl << g_data.StringRes(IDS_UPDATE_TIME).GetString() << L": " << g_data.GetUpdateTimeAsString().GetString()
         << std::endl << GetDateString(update_date) << L": " << weather_today.ToString()
         << std::endl << GetDateString(tomorrow_date) << L": " << weather_tomorrow.ToString()
@@ -313,6 +368,7 @@ void CWeather::OnExtenedInfo(ExtendedInfoIndex index, const wchar_t* data)
     {
     case ITMPlugin::EI_CONFIG_DIR:
     {
+        g_data.InitCityList();
         //从配置文件读取配置
         std::wstring cfg_dir(data);
         cfg_dir += L"Weather\\";

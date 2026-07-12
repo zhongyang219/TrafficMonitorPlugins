@@ -29,6 +29,7 @@ public:
     void OnPluginCommand(int command_index, void* hWnd, void* para) override;
 
     void Init();
+    static void ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast);
 
 private:
     static UINT ThreadCallback(LPVOID dwUser);

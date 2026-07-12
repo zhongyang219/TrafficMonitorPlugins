@@ -122,9 +122,9 @@ void COptionsDlg::OnBnClickedSelectCityButton()
     if (dlg.DoModal() == IDOK)
     {
         int city_index = dlg.GetCityIndex();
-        if (city_index >= 0 && city_index < static_cast<int>(CityCode.size()))
+        if (city_index >= 0 && city_index < static_cast<int>(g_data.CityList().size()))
         {
-            SetDlgItemText(IDC_CITY_EDIT, CityCode[city_index].name.c_str());
+            SetDlgItemText(IDC_CITY_EDIT, g_data.CityList()[city_index].name.c_str());
             m_data.m_city_index = city_index;
             //手动选择了城市后取消“自动定位”的勾选
             m_data.auto_locate = false;

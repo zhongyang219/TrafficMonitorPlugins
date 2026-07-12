@@ -248,7 +248,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CityCode.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="CommonData.h" />
     <ClInclude Include="CurLocationHelper.h" />
@@ -320,6 +319,14 @@
     <Image Include="res\雾.ico" />
     <Image Include="res\雾霾.ico" />
     <Image Include="res\霜.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\text3.bin" />
+    <None Include="res\text4.bin" />
+    <None Include="res\text5.bin" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\nmc_cities.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
