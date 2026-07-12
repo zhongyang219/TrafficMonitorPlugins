@@ -103,18 +103,17 @@ bool CHistoryWeatherMgr::Load()
     return false;
 }
 
-void CHistoryWeatherMgr::AddWeatherInfo(CTime date, const WeatherInfo& weather_info)
+void CHistoryWeatherMgr::AddWeatherInfo(Date date, const WeatherInfo& weather_info)
 {
-    Date _date{};
-    _date.year = date.GetYear();
-    _date.month = date.GetMonth();
-    _date.day = date.GetDay();
-    HistoryWeather weather;
+    //先获取原有天气
+    HistoryWeather weather = m_history_weather_list[date];
     weather.type = weather_info.m_type.c_str();
-    weather.high_temp = _wtoi(weather_info.m_high.c_str());
-    weather.low_temp = _wtoi(weather_info.m_low.c_str());
+    if (!weather_info.m_high.empty())
+        weather.high_temp = weather_info.m_high.c_str();
+    if (!weather_info.m_low.empty())
+        weather.low_temp = weather_info.m_low.c_str();
     weather.wind = weather_info.m_wind.c_str();
-    m_history_weather_list[_date] = weather;
+    m_history_weather_list[date] = weather;
 }
 
 void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
@@ -135,17 +134,23 @@ void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
         //解析天气
         WeatherInfo info;
         CWeather::ParseWeatherInfo(info, forecast);
-
-        HistoryWeather weather;
-        weather.type = info.m_type.c_str();
-        weather.high_temp = _wtoi(info.m_high.c_str());
-        weather.low_temp = _wtoi(info.m_low.c_str());
-        weather.wind = info.m_wind.c_str();
-        m_history_weather_list[date] = weather;
+        AddWeatherInfo(date, info);
     }
 }
 
 const std::map<CHistoryWeatherMgr::Date, CHistoryWeatherMgr::HistoryWeather>& CHistoryWeatherMgr::GetHistoryWeather() const
 {
     return m_history_weather_list;
+}
+
+CString CHistoryWeatherMgr::GetTemperatureString(const CString& low_temp, const CString& high_temp)
+{
+    if (low_temp.IsEmpty())
+        return high_temp + _T("°C");
+    if (high_temp.IsEmpty())
+        return low_temp + _T("°C");
+
+    CString str_temp;
+    str_temp.Format(_T("%s°C~%s°C"), low_temp.GetString(), high_temp.GetString());
+    return str_temp;
 }

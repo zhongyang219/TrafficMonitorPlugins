@@ -10,9 +10,6 @@ public:
     bool Save() const;
     bool Load();
 
-    void AddWeatherInfo(CTime date, const WeatherInfo& weather_info);
-    void AddWeatherInfo(yyjson_val* forecast);
-
     struct Date
     {
         int year;
@@ -23,15 +20,20 @@ public:
         bool operator<(const Date& another) const;
     };
 
+    void AddWeatherInfo(Date date, const WeatherInfo& weather_info);
+    void AddWeatherInfo(yyjson_val* forecast);
+
     struct HistoryWeather
     {
         CString type;
-        int high_temp{};
-        int low_temp{};
+        CString high_temp;
+        CString low_temp;
         CString wind;
     };
 
     const std::map<Date, HistoryWeather>& GetHistoryWeather() const;
+
+    static CString GetTemperatureString(const CString& low_temp, const CString& high_temp);
 
 private:
     std::map<Date, HistoryWeather> m_history_weather_list;

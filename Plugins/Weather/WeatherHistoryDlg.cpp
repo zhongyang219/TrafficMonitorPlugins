@@ -215,7 +215,7 @@ BOOL CWeatherHistoryDlg::OnInitDialog()
         m_list_ctrl.InsertItem(index, date_str.c_str());
 
         //天气
-        StringCchPrintfW(buff, 256, L"%s %d°C~%d°C %s", iter->second.type.GetString(), iter->second.low_temp, iter->second.high_temp, iter->second.wind.GetString());
+        StringCchPrintfW(buff, 256, L"%s %s %s", iter->second.type.GetString(), CHistoryWeatherMgr::GetTemperatureString(iter->second.low_temp, iter->second.high_temp), iter->second.wind.GetString());
         m_list_ctrl.SetItemText(index, CHistoryWeatherListCtrl::COL_WEATHER, buff);
     }
 
