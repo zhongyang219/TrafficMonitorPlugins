@@ -146,11 +146,11 @@ const std::map<CHistoryWeatherMgr::Date, CHistoryWeatherMgr::HistoryWeather>& CH
 CString CHistoryWeatherMgr::GetTemperatureString(const CString& low_temp, const CString& high_temp)
 {
     if (low_temp.IsEmpty())
-        return high_temp + _T("°C");
+        return high_temp + _T("℃");
     if (high_temp.IsEmpty())
-        return low_temp + _T("°C");
+        return low_temp + _T("℃");
 
     CString str_temp;
-    str_temp.Format(_T("%s°C~%s°C"), low_temp.GetString(), high_temp.GetString());
+    str_temp.Format(_T("%s~%s℃"), low_temp.GetString(), high_temp.GetString());
     return str_temp;
 }

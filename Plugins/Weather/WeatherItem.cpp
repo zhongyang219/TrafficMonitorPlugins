@@ -56,11 +56,11 @@ int CWeatherItem::GetItemWidthEx(void* hDC) const
     if (g_data.m_setting_data.m_use_weather_icon)
     {
         int icon_width = m_double_line ? g_data.DPI(36) : g_data.DPI(20);
-        return icon_width + std::max(pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
+        return icon_width + pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx;
     }
     else
     {
-        return std::max(pDC->GetTextExtent(g_data.GetWeather().ToString().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
+        return pDC->GetTextExtent(g_data.GetWeather().ToString().c_str()).cx;
     }
 }
 

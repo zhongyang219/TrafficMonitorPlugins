@@ -199,7 +199,7 @@ bool CWeather::ParseJsonData(std::string json_data)
 
     //获取当前天气
     yyjson_val* weather_node = yyjson_obj_get(real_node, "weather");
-    g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(weather_node, "temperature") + L"℃";
+    g_data.m_weather_info[WEATHER_CURRENT].m_high = utilities::JsonHelper::GetJsonWString(weather_node, "temperature");
     g_data.m_weather_info[WEATHER_CURRENT].m_type = GetJsonWString(weather_node, "info");
     g_data.m_weather_info[WEATHER_CURRENT].is_cur_weather = true;
 

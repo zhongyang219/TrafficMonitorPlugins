@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "CommonData.h"
 #include <sstream>
 
@@ -25,5 +25,8 @@ std::wstring WeatherInfo::WeatherInfo::ToStringTemperature() const
         wss << m_low;
     else
         wss << m_low << '~' << m_high;
-    return wss.str();
+    std::wstring str_temp = wss.str();
+    if (str_temp.size() < 1 || str_temp.back() != L'℃')
+        str_temp.push_back(L'℃');
+    return str_temp;
 }
