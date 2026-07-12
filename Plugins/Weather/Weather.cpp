@@ -300,14 +300,16 @@ const wchar_t* CWeather::GetTooltipInfo()
 
 void CWeather::DataRequired()
 {
-    static int last_time{ -1 };
+    static int last_minute{ -1 };
+    static int last_hour{ -1 };
     SYSTEMTIME system_time{};
     GetLocalTime(&system_time);
-    //每隔10分钟获取一次天气
-    int cur_time = system_time.wMinute / 10;
-    if (cur_time != last_time)
+    //每隔30分钟获取一次天气
+    int cur_minute = system_time.wMinute / 30;
+    if (cur_minute != last_minute || last_hour != system_time.wHour)
     {
-        last_time = cur_time;
+        last_minute = cur_minute;
+        last_hour = system_time.wHour;
         SendWetherInfoQequest();
     }
 
