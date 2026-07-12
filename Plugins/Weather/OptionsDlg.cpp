@@ -163,9 +163,7 @@ void COptionsDlg::OnBnClickedTestButton()
 {
     // TODO: 在此添加控件通知处理程序代码
     std::wstring cur_city = CCurLocationHelper::GetCurrentCity();
-    CCurLocationHelper::Location location = CCurLocationHelper::ParseCityName(cur_city);
-    int city_code_index = CCurLocationHelper::FindCityCodeItem(location);
-    int a = 0;
+    int city_code_index = CCurLocationHelper::FindCityCodeItem(cur_city);
 }
 
 

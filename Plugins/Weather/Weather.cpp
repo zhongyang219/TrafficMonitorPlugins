@@ -40,8 +40,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         if (g_data.m_setting_data.auto_locate)      //自动获取当前城市
         {
             std::wstring cur_city = CCurLocationHelper::GetCurrentCity();
-            CCurLocationHelper::Location location = CCurLocationHelper::ParseCityName(cur_city);
-            int auto_located_city = CCurLocationHelper::FindCityCodeItem(location);
+            int auto_located_city = CCurLocationHelper::FindCityCodeItem(cur_city);
             g_data.m_auto_locate_succeed = (auto_located_city >= 0);
             g_data.m_auto_located = true;
             if (g_data.m_auto_locate_succeed)

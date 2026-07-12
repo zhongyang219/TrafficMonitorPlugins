@@ -111,7 +111,7 @@ BOOL CSelectCityDlg::OnInitDialog()
     m_list_ctrl.GetClientRect(rect);
     m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_LABELTIP);
     int width0, width1;
-    width0 = rect.Width() / 4;
+    width0 = rect.Width() / 2;
     width1 = rect.Width() - width0 - g_data.DPI(20) - 1;
     m_list_ctrl.InsertColumn(0, g_data.StringRes(IDS_CITY), LVCFMT_LEFT, width0);
     m_list_ctrl.InsertColumn(1, g_data.StringRes(IDS_CITY_CODE), LVCFMT_LEFT, width1);
