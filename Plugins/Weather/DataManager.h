@@ -31,10 +31,10 @@ public:
     int DPI(int pixel);
     float DPIF(float pixel);
     int RDPI(int pixel);
-    HICON GetIcon(UINT id);
+    HICON GetIcon(UINT id, bool big = false);   //获取一个图标。big为true时大小为24x24，否则为16x16
     CityCodeItem CurCity() const;
     void ResetText();
-    HICON GetWeatherIcon(const std::wstring& weather_type);
+    HICON GetWeatherIcon(const std::wstring& weather_type, bool big = false);
     CHistoryWeatherMgr& HistoryWeatherMgr();
     const std::vector<CityCodeItem>& CityList() const { return m_city_list; }
 
@@ -56,7 +56,8 @@ private:
     static CDataManager m_instance;
     std::wstring m_config_path;
     std::map<UINT, CString> m_string_table;
-    std::map<UINT, HICON> m_icons;
+    std::map<UINT, HICON> m_icons;      //保存16x16大小的图标资源
+    std::map<UINT, HICON> m_icons_big;  //保存24x24大小的图标资源
     std::map<std::wstring, UINT> m_weather_icon_id;     //保存所有天气图标的ID
     int m_dpi{ 96 };
     CHistoryWeatherMgr m_history_weather_mgr;

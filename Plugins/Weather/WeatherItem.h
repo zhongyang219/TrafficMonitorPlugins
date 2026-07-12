@@ -14,4 +14,7 @@ public:
     virtual void DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode) override;
     virtual int OnMouseEvent(MouseEventType type, int x, int y, void* hWnd, int flag) override;
 
+private:
+    bool m_double_line{};
+
 };

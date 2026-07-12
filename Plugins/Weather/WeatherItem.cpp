@@ -55,7 +55,8 @@ int CWeatherItem::GetItemWidthEx(void* hDC) const
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     if (g_data.m_setting_data.m_use_weather_icon)
     {
-        return g_data.DPI(20) + std::max(pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
+        int icon_width = m_double_line ? g_data.DPI(36) : g_data.DPI(20);
+        return icon_width + std::max(pDC->GetTextExtent(g_data.GetWeather().ToStringTemperature().c_str()).cx, pDC->GetTextExtent(GetItemValueSampleText()).cx);
     }
     else
     {
@@ -65,6 +66,8 @@ int CWeatherItem::GetItemWidthEx(void* hDC) const
 
 void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 {
+    //判断是否为双行显示
+    m_double_line = h >= g_data.DPI(32);
     //绘图句柄
     CDC* pDC = CDC::FromHandle((HDC)hDC);
     //矩形区域
@@ -72,8 +75,8 @@ void CWeatherItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mod
     if (g_data.m_setting_data.m_use_weather_icon)
     {
         //绘制天气图标
-        const int icon_size{ g_data.DPI(16) };
-        HICON hIcon = g_data.GetWeatherIcon(g_data.GetWeather().m_type);
+        const int icon_size{ m_double_line ? g_data.DPI(24) : g_data.DPI(16) };
+        HICON hIcon = g_data.GetWeatherIcon(g_data.GetWeather().m_type, m_double_line);
         CPoint icon_point{ rect.TopLeft() };
         icon_point.x = rect.left + g_data.DPI(2);
         icon_point.y = rect.top + (rect.Height() - icon_size) / 2;

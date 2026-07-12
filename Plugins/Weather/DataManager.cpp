@@ -152,20 +152,29 @@ int CDataManager::RDPI(int pixel)
     return pixel * 96 / m_dpi;
 }
 
-HICON CDataManager::GetIcon(UINT id)
+static HICON _GetIcon(std::map<UINT, HICON>& icon_map, UINT id, int size)
 {
-    auto iter = m_icons.find(id);
-    if (iter != m_icons.end())
+    auto iter = icon_map.find(id);
+    if (iter != icon_map.end())
     {
         return iter->second;
     }
     else
     {
         AFX_MANAGE_STATE(AfxGetStaticModuleState());
-        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, DPI(16), DPI(16), 0);;
-        m_icons[id] = hIcon;
+        HICON hIcon = (HICON)LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(id), IMAGE_ICON, size, size, 0);
+        icon_map[id] = hIcon;
         return hIcon;
     }
+
+}
+
+HICON CDataManager::GetIcon(UINT id, bool big)
+{
+    if (big)
+        return _GetIcon(m_icons_big, id, DPI(24));
+    else
+        return _GetIcon(m_icons, id, DPI(16));
 }
 
 CityCodeItem CDataManager::CurCity() const
@@ -181,7 +190,7 @@ void CDataManager::ResetText()
     m_weather_info[m_setting_data.m_weather_selected] = WeatherInfo();
 }
 
-HICON CDataManager::GetWeatherIcon(const std::wstring& weather_type)
+HICON CDataManager::GetWeatherIcon(const std::wstring& weather_type, bool big)
 {
     std::wstring weather_type_find = weather_type;
     //如果weather_type中含有“~”，则截取前面部分
@@ -215,7 +224,7 @@ HICON CDataManager::GetWeatherIcon(const std::wstring& weather_type)
         if (id == IDI_CLOUDY2)
             id = IDI_CLOUDY_NIGHT;
     }
-    return GetIcon(id);
+    return GetIcon(id, big);
 }
 
 CHistoryWeatherMgr& CDataManager::HistoryWeatherMgr()
