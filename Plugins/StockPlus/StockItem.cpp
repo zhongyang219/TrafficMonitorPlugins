@@ -61,7 +61,7 @@ int StockItem::GetItemWidthEx(void *hDC) const
         // 居右对齐：使用固定宽度（缓存）
         if (m_needs_width_recalc || m_fixed_width <= 0)
         {
-            int maxW = 80;
+            int maxW = 150;
             for (const auto &sid : m_queue)
             {
                 if (sid.empty()) continue;
@@ -83,7 +83,7 @@ int StockItem::GetItemWidthEx(void *hDC) const
         // 居左对齐：按当前股票宽度，翻卡时会跳动
         std::wstring txt = GetDisplayText(g_data.m_setting_data.m_show_stock_name);
         int width = pDC->GetTextExtent(txt.c_str()).cx + 20;
-        return (std::max)(width, 80);
+        return (std::max)(width, 150);
     }
 }
 

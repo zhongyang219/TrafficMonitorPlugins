@@ -72,7 +72,13 @@ UINT Stock::ThreadCallback(LPVOID dwUser)
 
         g_data.RequestRealtimeData();
 
-        // 启用选项设置中的“更新”按钮
+        // 数据更新后刷新宽度缓存，避免显示框截断
+        for (auto &item : m_instance.m_items)
+        {
+            item.m_needs_width_recalc = true;
+        }
+
+        // 启用选项设置中的”更新”按钮
         m_instance.EnableUpdateCommand();
     }
     return 0;
