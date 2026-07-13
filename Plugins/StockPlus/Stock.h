@@ -54,8 +54,9 @@ public:
 public:
     std::mutex m_stockDataMutex;
 
+public:
+    static UINT ThreadCallback(LPVOID dwUser); // public 供 CreateThread 包装调用
 private:
-    static UINT ThreadCallback(LPVOID dwUser);
     void LoadContextMenu();
     void updateItems();
 
@@ -70,6 +71,7 @@ private:
 
     std::mutex m_wndMutex;
     CFloatingWnd *m_pFloatingWnd;
+    HANDLE m_hRequestThread{nullptr}; // CreateThread 句柄（禁止用 AfxBeginThread，避免 MFC 在 DLL 卸载时等待）
 };
 
 #ifdef __cplusplus

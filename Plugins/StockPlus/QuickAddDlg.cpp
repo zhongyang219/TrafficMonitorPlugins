@@ -49,6 +49,13 @@ END_MESSAGE_MAP()
 
 // CQuickAddDlg 消息处理程序
 
+// CreateThread 兼容包装
+static DWORD WINAPI SearchThreadProcWrapper(LPVOID pParam)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    return CQuickAddDlg::SearchThreadProc(pParam);
+}
+
 BOOL CQuickAddDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
@@ -91,7 +98,9 @@ void CQuickAddDlg::OnTimer(UINT_PTR nIDEvent)
         m_searching = true;
 
         auto *ctx = new SearchCtx{GetSafeHwnd(), std::wstring(keyword.GetString())};
-        AfxBeginThread(SearchThreadProc, ctx);
+        // 用 CreateThread 避免 MFC 线程追踪
+        HANDLE hThread = CreateThread(nullptr, 0, SearchThreadProcWrapper, ctx, 0, nullptr);
+        if (hThread) CloseHandle(hThread);
     }
     CDialog::OnTimer(nIDEvent);
 }

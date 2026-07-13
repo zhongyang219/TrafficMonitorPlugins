@@ -1,13 +1,11 @@
 ﻿#include "pch.h"
 #include "FloatingWnd.h"
-#include <afxinet.h>
-#include <memory>
 #include <algorithm>
 #include "Common.h"
 #include "DataManager.h"
 #include <Stock.h>
 
-#pragma comment(lib, "gdiplus.lib")
+// K线图已注释，不再需要 GDI+
 
 constexpr auto WEB_USERAGENT = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0");
 
@@ -20,17 +18,17 @@ ON_MESSAGE(FWND_MSG_UPDATE_STATUS, OnUpdateStatus)
 ON_MESSAGE(FWND_MSG_REQUEST_DATA, OnRequestData)
 END_MESSAGE_MAP()
 
-// 将新浪代码（sh600000/sz002497/bj430047）映射为东方财富 nid（1.600000/0.002497）
-static std::wstring SinaToEastmoneyNid(const std::wstring &stock_id)
-{
-    if (stock_id.size() < 3)
-        return L"";
-    if (stock_id.compare(0, 2, kSH) == 0)
-        return L"1." + stock_id.substr(2);
-    if (stock_id.compare(0, 2, kSZ) == 0 || stock_id.compare(0, 2, kBJ) == 0)
-        return L"0." + stock_id.substr(2);
-    return L""; // 港股/美股不支持
-}
+//// 将新浪代码（sh600000/sz002497/bj430047）映射为东方财富 nid（1.600000/0.002497）
+//static std::wstring SinaToEastmoneyNid(const std::wstring &stock_id)
+//{
+//    if (stock_id.size() < 3)
+//        return L"";
+//    if (stock_id.compare(0, 2, kSH) == 0)
+//        return L"1." + stock_id.substr(2);
+//    if (stock_id.compare(0, 2, kSZ) == 0 || stock_id.compare(0, 2, kBJ) == 0)
+//        return L"0." + stock_id.substr(2);
+//    return L""; // 港股/美股不支持
+//}
 
 int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
@@ -44,14 +42,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 // 处理消息
 LRESULT CFloatingWnd::OnUpdateStatus(WPARAM wParam, LPARAM lParam)
 {
-    if (lParam)
-    {
-        // worker 线程通过 lParam 传回图片字节（堆分配，取所有权）
-        std::unique_ptr<std::vector<BYTE>> bytes(reinterpret_cast<std::vector<BYTE> *>(lParam));
-        std::lock_guard<std::mutex> lock(m_imgMutex);
-        m_imageBytes = std::move(*bytes);
-        m_imageDirty = true;
-    }
+    // K线图图片更新已注释
     Invalidate();
     return 0;
 }
@@ -81,12 +72,14 @@ CFloatingWnd::~CFloatingWnd()
 {
     // 标记窗口正在销毁
     m_isDestroying = TRUE;
-    m_pCachedImage.reset();
-    if (m_pImgStream)
+
+    // 只关闭句柄，不等待线程（避免 MFC DllMain 死锁）
+    if (m_hNetworkThread != nullptr)
     {
-        m_pImgStream->Release();
-        m_pImgStream = nullptr;
+        CloseHandle(m_hNetworkThread);
+        m_hNetworkThread = nullptr;
     }
+
     if (m_CTransparentWnd.GetSafeHwnd())
         m_CTransparentWnd.DestroyWindow();
 }
@@ -190,57 +183,11 @@ void CFloatingWnd::OnPaint()
 
     // 绘制背景
     memDC.FillSolidRect(rect, RGB(255, 255, 255));
-
-    // 若图片字节有更新，在 UI 线程解码
-    {
-        std::lock_guard<std::mutex> lock(m_imgMutex);
-        if (m_imageDirty && !m_imageBytes.empty())
-        {
-            m_pCachedImage.reset();
-            if (m_pImgStream)
-            {
-                m_pImgStream->Release();
-                m_pImgStream = nullptr;
-            }
-            HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, m_imageBytes.size());
-            if (hGlobal)
-            {
-                void *pData = GlobalLock(hGlobal);
-                memcpy(pData, m_imageBytes.data(), m_imageBytes.size());
-                GlobalUnlock(hGlobal);
-                if (CreateStreamOnHGlobal(hGlobal, TRUE, &m_pImgStream) == S_OK)
-                {
-                    m_pCachedImage.reset(Gdiplus::Image::FromStream(m_pImgStream));
-                    if (m_pCachedImage && m_pCachedImage->GetLastStatus() != Gdiplus::Ok)
-                    {
-                        m_pCachedImage.reset();
-                        CCommon::WriteLog(L"image decode failed", g_data.m_log_path.c_str());
-                    }
-                }
-            }
-            m_imageDirty = false;
-        }
-    }
-
-    bool drawn = false;
-    if (m_pCachedImage)
-    {
-        Gdiplus::Graphics graphics(memDC.GetSafeHdc());
-        graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBilinear);
-        if (graphics.DrawImage(m_pCachedImage.get(),
-                               Gdiplus::RectF(0, 0, (Gdiplus::REAL)rect.Width(), (Gdiplus::REAL)rect.Height())) == Gdiplus::Ok)
-        {
-            drawn = true;
-        }
-    }
-
-    if (!drawn)
-    {
-        memDC.SetBkMode(TRANSPARENT);
-        memDC.SetTextColor(RGB(154, 151, 157));
-        CString txt = loading_state_txt.IsEmpty() ? CString(g_data.StringRes(IDS_LOADING)) : loading_state_txt;
-        memDC.DrawText(txt, rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-    }
+    memDC.SetBkMode(TRANSPARENT);
+    memDC.SetTextColor(RGB(154, 151, 157));
+    // K线图已注释，仅显示加载状态文本
+    CString txt = loading_state_txt.IsEmpty() ? CString(g_data.StringRes(IDS_LOADING)) : loading_state_txt;
+    memDC.DrawText(txt, rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
     // 复制到屏幕
     dc.BitBlt(0, 0, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
@@ -258,12 +205,33 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
     // DestroyWindow();
 }
 
+// CreateThread 兼容包装
+static DWORD WINAPI NetworkThreadProcWrapper(LPVOID pParam)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    return CFloatingWnd::NetworkThreadProc(pParam);
+}
+
 void CFloatingWnd::RequestData()
 {
     if (!m_is_thread_running)
     {
         loading_state_txt = g_data.StringRes(IDS_LOADING).GetString();
-        AfxBeginThread(NetworkThreadProc, this);
+
+        // 清理上一个已退出的线程句柄
+        if (m_hNetworkThread != nullptr)
+        {
+            CloseHandle(m_hNetworkThread);
+            m_hNetworkThread = nullptr;
+        }
+
+        // 用 CreateThread 代替 AfxBeginThread
+        DWORD tid;
+        HANDLE hThread = CreateThread(nullptr, 0, NetworkThreadProcWrapper, this, 0, &tid);
+        if (hThread)
+        {
+            m_hNetworkThread = hThread;
+        }
     }
 }
 
@@ -277,26 +245,23 @@ UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
     if (pFW->m_isDestroying || pFW->m_stock_id.empty())
         return 0;
 
-    // 早期捕获 HWND 与 nid，之后不再访问 pFW 成员（避免窗口销毁后悬空访问）
-    HWND hWnd = pFW->GetSafeHwnd();
-    std::wstring nid = SinaToEastmoneyNid(pFW->m_stock_id);
-    if (nid.empty() || hWnd == NULL)
-        return 0;
-
-    std::wstring url = L"https://webquotepic.eastmoney.com/GetPic.aspx?nid=" + nid + L"&imageType=RJY";
-
-    auto *bytes = new std::vector<BYTE>();
-    if (CCommon::GetURLBinary(url, *bytes, WEB_USERAGENT) && !bytes->empty())
-    {
-        // 交回 UI 线程；窗口已销毁则 PostMessage 失败，自行释放
-        if (!::PostMessage(hWnd, FWND_MSG_UPDATE_STATUS, 0, reinterpret_cast<LPARAM>(bytes)))
-            delete bytes;
-    }
-    else
-    {
-        delete bytes;
-        CCommon::WriteLog(L"trend image download failed", g_data.m_log_path.c_str());
-    }
+    // K线图已注释，不再下载图片
+    // HWND hWnd = pFW->GetSafeHwnd();
+    // std::wstring nid = SinaToEastmoneyNid(pFW->m_stock_id);
+    // if (nid.empty() || hWnd == NULL)
+    //     return 0;
+    // std::wstring url = L"https://webquotepic.eastmoney.com/GetPic.aspx?nid=" + nid + L"&imageType=RJY";
+    // auto *bytes = new std::vector<BYTE>();
+    // if (CCommon::GetURLBinary(url, *bytes, WEB_USERAGENT) && !bytes->empty())
+    // {
+    //     if (!::PostMessage(hWnd, FWND_MSG_UPDATE_STATUS, 0, reinterpret_cast<LPARAM>(bytes)))
+    //         delete bytes;
+    // }
+    // else
+    // {
+    //     delete bytes;
+    //     CCommon::WriteLog(L"trend image download failed", g_data.m_log_path.c_str());
+    // }
 
     return 0;
 }

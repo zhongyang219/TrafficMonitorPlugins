@@ -39,8 +39,8 @@ protected:
 
     DECLARE_MESSAGE_MAP()
 
-private:
-    static UINT SearchThreadProc(LPVOID pParam);
+public:
+    static UINT SearchThreadProc(LPVOID pParam); // public 供 CreateThread 包装调用
 
     CEdit m_search_edit;
     CListBox m_result_list;

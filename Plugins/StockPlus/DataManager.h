@@ -68,7 +68,5 @@ private:
     std::map<UINT, HICON> m_icons;
     int m_dpi{96};
 
-    ULONG_PTR m_gdiplusToken{0}; // GDI+ 初始化令牌
-
     STOCK::StockMarket stockMarket;
 };

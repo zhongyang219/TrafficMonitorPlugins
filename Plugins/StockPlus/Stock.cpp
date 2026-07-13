@@ -23,6 +23,12 @@ Stock::Stock() : m_pFloatingWnd(NULL)
 Stock::~Stock()
 {
     DestroyFloatingWnd();
+    // 不等待线程退出（MFC DllMain 不会等 CreateThread），只关闭句柄防泄漏
+    if (m_hRequestThread != nullptr)
+    {
+        CloseHandle(m_hRequestThread);
+        m_hRequestThread = nullptr;
+    }
 }
 
 Stock &Stock::Instance()
@@ -311,10 +317,32 @@ INT_PTR Stock::ShowStockListDlg(CWnd *pWnd)
     return dlg.DoModal();
 }
 
+// CreateThread 兼容包装，避免 MFC 的 AfxBeginThread 在 DLL 卸载时等待导致进程残留
+static DWORD WINAPI ThreadCallbackWrapper(LPVOID lpParam)
+{
+    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+    return Stock::ThreadCallback(lpParam);
+}
+
 void Stock::SendStockInfoRequest()
 {
     if (!m_is_thread_runing) // 确保线程已退出
-        AfxBeginThread(ThreadCallback, nullptr);
+    {
+        // 清理上一个已退出的线程句柄
+        if (m_hRequestThread != nullptr)
+        {
+            CloseHandle(m_hRequestThread);
+            m_hRequestThread = nullptr;
+        }
+
+        // 用 CreateThread 代替 AfxBeginThread，避免 MFC 线程追踪导致 DllMain 死锁
+        DWORD tid;
+        HANDLE hThread = CreateThread(nullptr, 0, ThreadCallbackWrapper, nullptr, 0, &tid);
+        if (hThread)
+        {
+            m_hRequestThread = hThread;
+        }
+    }
 }
 
 void Stock::ShowContextMenu(CWnd *pWnd)

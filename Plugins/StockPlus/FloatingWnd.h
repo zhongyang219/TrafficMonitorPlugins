@@ -3,9 +3,6 @@
 #include <StockDef.h>
 #include <TransparentWnd.h>
 #include <vector>
-#include <memory>
-#include <mutex>
-#include <gdiplus.h>
 
 // 定义自定义消息
 #define FWND_MSG_UPDATE_STATUS (WM_USER + 100)
@@ -29,8 +26,8 @@ protected:
     LRESULT OnUpdateStatus(WPARAM wParam, LPARAM lParam);
     LRESULT OnRequestData(WPARAM wParam, LPARAM lParam);
 
-private:
-    static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
+public:
+    static UINT NetworkThreadProc(LPVOID pParam); // 线程函数（public 供 CreateThread 包装调用）
 
     CTransparentWnd m_CTransparentWnd;
     std::wstring m_stock_id;
@@ -41,10 +38,5 @@ private:
 
     unsigned __int64 m_last_request_time{};
 
-    // 走势图图片（东方财富 RPS 分时图）
-    std::vector<BYTE> m_imageBytes;
-    bool m_imageDirty{true};
-    std::unique_ptr<Gdiplus::Image> m_pCachedImage;
-    IStream *m_pImgStream{nullptr};
-    std::mutex m_imgMutex;
+    HANDLE m_hNetworkThread{nullptr}; // CreateThread 句柄
 };

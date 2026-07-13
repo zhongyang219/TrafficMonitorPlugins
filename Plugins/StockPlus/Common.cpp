@@ -42,6 +42,10 @@ bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, LP
     try
     {
         pSession = new CInternetSession(user_agent);
+        // 设置连接和接收超时，避免线程无限阻塞
+        pSession->SetOption(INTERNET_OPTION_CONNECT_TIMEOUT, 5000);
+        pSession->SetOption(INTERNET_OPTION_RECEIVE_TIMEOUT, 10000);
+        pSession->SetOption(INTERNET_OPTION_SEND_TIMEOUT, 5000);
         //pfile = (CHttpFile*)pSession->OpenURL(url.c_str());
         //CCommon::WriteLog(L"request>>>>", g_data.m_log_path.c_str());
         pfile = (CHttpFile*)pSession->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_ASCII, headers, dwHeadersLength);
@@ -90,6 +94,10 @@ bool CCommon::GetURLBinary(const std::wstring& url, std::vector<BYTE>& result, L
     try
     {
         pSession = new CInternetSession(user_agent);
+        // 设置超时，避免线程无限阻塞
+        pSession->SetOption(INTERNET_OPTION_CONNECT_TIMEOUT, 5000);
+        pSession->SetOption(INTERNET_OPTION_RECEIVE_TIMEOUT, 10000);
+        pSession->SetOption(INTERNET_OPTION_SEND_TIMEOUT, 5000);
         pfile = (CHttpFile*)pSession->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_BINARY);
         DWORD dwStatusCode;
         pfile->QueryInfoStatusCode(dwStatusCode);

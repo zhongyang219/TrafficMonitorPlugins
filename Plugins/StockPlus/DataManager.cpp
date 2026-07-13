@@ -6,8 +6,6 @@
 #include "../utilities/IniHelper.h"
 #include <iomanip>
 #include <afxinet.h>
-#include <gdiplus.h>
-#pragma comment(lib, "gdiplus.lib")
 
 constexpr auto WEB_USERAGENT = _T("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0");
 
@@ -19,17 +17,11 @@ CDataManager::CDataManager()
     HDC hDC = ::GetDC(HWND_DESKTOP);
     m_dpi = GetDeviceCaps(hDC, LOGPIXELSY);
     ::ReleaseDC(HWND_DESKTOP, hDC);
-
-    // 初始化 GDI+（走势图图片解码需要）
-    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
-    Gdiplus::GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, NULL);
 }
 
 CDataManager::~CDataManager()
 {
     SaveConfig();
-    if (m_gdiplusToken)
-        Gdiplus::GdiplusShutdown(m_gdiplusToken);
 }
 
 CDataManager &CDataManager::Instance()
