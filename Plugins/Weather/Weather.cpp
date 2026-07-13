@@ -51,7 +51,7 @@ UINT CWeather::ThreadCallback(LPVOID dwUser)
         std::wstring url{ L"http://www.nmc.cn/rest/weather?stationid=" };
         url += g_data.CurCity().code;
         std::string weather_data;
-        if (CCommon::GetURL(url, weather_data))
+        if (CCommon::GetURL(url, weather_data, std::wstring(), true))
         {
             if (m_instance.ParseJsonData(weather_data))
             {

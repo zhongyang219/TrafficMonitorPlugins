@@ -32,7 +32,7 @@ std::string CCommon::UnicodeToStr(const wchar_t* wstr, bool utf8)
     return result;
 }
 
-bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, const std::wstring& user_agent)
+bool CCommon::GetURL(const std::wstring& url, std::string& result, const std::wstring& user_agent, bool force_reload)
 {
     bool succeed{ false };
     CInternetSession* pSession{};
@@ -40,7 +40,13 @@ bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, co
     try
     {
         pSession = new CInternetSession(user_agent.c_str());
-        pfile = (CHttpFile*)pSession->OpenURL(url.c_str());
+        DWORD dwFlags = INTERNET_FLAG_TRANSFER_ASCII;
+        if (force_reload)
+        {
+            dwFlags |= INTERNET_FLAG_RELOAD;
+            dwFlags |= INTERNET_FLAG_DONT_CACHE;
+        }
+        pfile = (CHttpFile*)pSession->OpenURL(url.c_str(), 1, dwFlags);
         DWORD dwStatusCode;
         pfile->QueryInfoStatusCode(dwStatusCode);
         if (dwStatusCode == HTTP_STATUS_OK)

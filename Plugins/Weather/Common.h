@@ -9,7 +9,15 @@ public:
     static std::string UnicodeToStr(const wchar_t* wstr, bool utf8 = false);
 
     //获取URL的内容
-    static bool GetURL(const std::wstring& url, std::string& result, bool utf8 = false, const std::wstring& user_agent = std::wstring());
+    /**
+     * @brief 获取URL的内容
+     * @param url 链接
+     * @param[out] result 接收返回的结果
+     * @param user_agent
+     * @param force_reload 是否强制从服务器下载数据
+     * @return 
+     */
+    static bool GetURL(const std::wstring& url, std::string& result, const std::wstring& user_agent = std::wstring(), bool force_reload = false);
 
     //将一个字符串转换成URL编码（以UTF8编码格式）
     static std::wstring URLEncode(const std::wstring& wstr);
