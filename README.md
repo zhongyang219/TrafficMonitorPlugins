@@ -1,6 +1,19 @@
 # TrafficMonitorPlugins
 这是用于[TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor)的插件。
 
+## StockPlus 股票增强插件
+
+![StockPlus截图1](images/image-202607130001.png)
+
+![StockPlus截图2](images/image-202607130002.png)
+
+股票插件的增强版，相比原股票插件增加了以下功能：
+- 支持香港交易所（`rt_hk`）和美股（`gb_`）股票
+- 显示买卖五档盘口数据
+- 分时走势图展示
+- 浮动窗口显示详细行情信息
+- 便捷的股票管理功能
+
 ## 插件下载
 
 请点击以下链接转到插件下载页面：
