@@ -50,6 +50,8 @@ namespace HardwareMonitor {
         void TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e);
         void TreeView_Resize(Object^ sender, EventArgs^ e);
         void OnFormClosing(Object^ sender, FormClosingEventArgs^ e);
+		void AddSelectedItem();
+		void EnableCtrl();
 
     private: System::Windows::Forms::TreeView^ treeView1;
 
@@ -57,7 +59,8 @@ namespace HardwareMonitor {
     protected:
         System::Windows::Forms::ContextMenuStrip^ contextMenuStrip;
     private: System::Windows::Forms::CheckBox^ autoRefreshCheck;
-    protected:
+	private: System::Windows::Forms::Button^ addSelectedBtn;
+	protected:
 
     private:
         ToolStripMenuItem^ addItem;
@@ -75,35 +78,45 @@ namespace HardwareMonitor {
 		/// </summary>
 		void InitializeComponent(void)
 		{
-            System::ComponentModel::ComponentResourceManager^ resources = (gcnew System::ComponentModel::ComponentResourceManager(HardwareInfoForm::typeid));
-            this->treeView1 = (gcnew System::Windows::Forms::TreeView());
-            this->autoRefreshCheck = (gcnew System::Windows::Forms::CheckBox());
-            this->SuspendLayout();
-            // 
-            // treeView1
-            // 
-            resources->ApplyResources(this->treeView1, L"treeView1");
-            this->treeView1->Name = L"treeView1";
-            // 
-            // autoRefreshCheck
-            // 
-            resources->ApplyResources(this->autoRefreshCheck, L"autoRefreshCheck");
-            this->autoRefreshCheck->Name = L"autoRefreshCheck";
-            this->autoRefreshCheck->UseVisualStyleBackColor = true;
-            this->autoRefreshCheck->CheckedChanged += gcnew System::EventHandler(this, &HardwareInfoForm::autoRefreshCheck_CheckedChanged);
-            // 
-            // HardwareInfoForm
-            // 
-            resources->ApplyResources(this, L"$this");
-            this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->Controls->Add(this->autoRefreshCheck);
-            this->Controls->Add(this->treeView1);
-            this->Name = L"HardwareInfoForm";
-            this->ResumeLayout(false);
-            this->PerformLayout();
+			System::ComponentModel::ComponentResourceManager^ resources = (gcnew System::ComponentModel::ComponentResourceManager(HardwareInfoForm::typeid));
+			this->treeView1 = (gcnew System::Windows::Forms::TreeView());
+			this->autoRefreshCheck = (gcnew System::Windows::Forms::CheckBox());
+			this->addSelectedBtn = (gcnew System::Windows::Forms::Button());
+			this->SuspendLayout();
+			// 
+			// treeView1
+			// 
+			resources->ApplyResources(this->treeView1, L"treeView1");
+			this->treeView1->Name = L"treeView1";
+			// 
+			// autoRefreshCheck
+			// 
+			resources->ApplyResources(this->autoRefreshCheck, L"autoRefreshCheck");
+			this->autoRefreshCheck->Name = L"autoRefreshCheck";
+			this->autoRefreshCheck->UseVisualStyleBackColor = true;
+			this->autoRefreshCheck->CheckedChanged += gcnew System::EventHandler(this, &HardwareInfoForm::autoRefreshCheck_CheckedChanged);
+			// 
+			// addSelectedBtn
+			// 
+			resources->ApplyResources(this->addSelectedBtn, L"addSelectedBtn");
+			this->addSelectedBtn->Name = L"addSelectedBtn";
+			this->addSelectedBtn->UseVisualStyleBackColor = true;
+			this->addSelectedBtn->Click += gcnew System::EventHandler(this, &HardwareInfoForm::addSelectedBtn_Click);
+			// 
+			// HardwareInfoForm
+			// 
+			resources->ApplyResources(this, L"$this");
+			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+			this->Controls->Add(this->addSelectedBtn);
+			this->Controls->Add(this->autoRefreshCheck);
+			this->Controls->Add(this->treeView1);
+			this->Name = L"HardwareInfoForm";
+			this->ResumeLayout(false);
+			this->PerformLayout();
 
-        }
+		}
 #pragma endregion
     private: System::Void autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
-    };
+	private: System::Void addSelectedBtn_Click(System::Object^ sender, System::EventArgs^ e);
+};
 }

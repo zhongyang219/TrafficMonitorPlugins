@@ -118,11 +118,36 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="treeView1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>14, 13</value>
+  </data>
+  <data name="treeView1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>419, 435</value>
+  </data>
+  <data name="autoRefreshCheck.Location" type="System.Drawing.Point, System.Drawing">
+    <value>14, 464</value>
+  </data>
   <data name="autoRefreshCheck.Size" type="System.Drawing.Size, System.Drawing">
     <value>91, 24</value>
   </data>
   <data name="autoRefreshCheck.Text" xml:space="preserve">
     <value>自动刷新</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="addSelectedBtn.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="addSelectedBtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>306, 456</value>
+  </data>
+  <data name="addSelectedBtn.Size" type="System.Drawing.Size, System.Drawing">
+    <value>127, 32</value>
+  </data>
+  <data name="addSelectedBtn.Text" xml:space="preserve">
+    <value>添加选中项</value>
+  </data>
+  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
+    <value>447, 500</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>硬件信息</value>

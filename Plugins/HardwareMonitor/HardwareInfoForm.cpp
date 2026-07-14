@@ -50,6 +50,8 @@ namespace HardwareMonitor
 
         Common::LoadFormSize(this, L"hardware_info");
 
+        Common::SetButtonIcon(addSelectedBtn, "Add");
+
         //填充数据
         auto computer = MonitorGlobal::Instance()->computer;
         for (int i = 0; i < computer->Hardware->Count; i++)
@@ -71,6 +73,8 @@ namespace HardwareMonitor
         else
             //恢复节点的展开状态
             Common::RestoreTreeNodeExpandStatus(treeView1, MonitorGlobal::Instance()->treeCollapseNodes);
+
+        EnableCtrl();
     }
 
     //更新一个树节点的值
@@ -150,28 +154,12 @@ namespace HardwareMonitor
 
     void HardwareInfoForm::AddItem_Click(System::Object^ sender, System::EventArgs^ e)
     {
-        // 获取选中的节点
-        TreeNode^ selectedNode = treeView1->SelectedNode;
-        if (selectedNode != nullptr)
-        {
-            SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
-            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
-            {
-                if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor))
-                    CHardwareMonitor::GetInstance()->SaveConfig();
-                else
-                    MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"),
-                        MonitorGlobal::Instance()->GetString(L"PluginName"),
-                        MessageBoxButtons::OK, MessageBoxIcon::Information);
-            }
-        }
+        AddSelectedItem();
     }
 
     void HardwareInfoForm::ContextMenuStrip_Opening(Object^ sender, CancelEventArgs^ e)
     {
-        TreeNode^ selectedNode = treeView1->SelectedNode;
-        // 检查是否为叶子节点（仅第叶子允许添加监控项目）
-        addItem->Enabled = (selectedNode != nullptr && selectedNode->Nodes->Count == 0);
+        EnableCtrl();
     }
 
     void HardwareInfoForm::TreeView_MouseClick(Object^ sender, MouseEventArgs^ e)
@@ -183,6 +171,7 @@ namespace HardwareMonitor
             // 选中点击的节点
             treeView1->SelectedNode = clickedNode;
         }
+        EnableCtrl();
     }
     void HardwareInfoForm::TreeView_DrawNode(Object^ sender, DrawTreeNodeEventArgs^ e)
     {
@@ -274,8 +263,48 @@ namespace HardwareMonitor
         CHardwareMonitor::GetInstance()->SaveConfig();
     }
 
+    void HardwareInfoForm::AddSelectedItem()
+    {
+        // 获取选中的节点
+        TreeNode^ selectedNode = treeView1->SelectedNode;
+        if (selectedNode != nullptr)
+        {
+            SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
+            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+            {
+                if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor))
+                    CHardwareMonitor::GetInstance()->SaveConfig();
+                else
+                    MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"),
+                        MonitorGlobal::Instance()->GetString(L"PluginName"),
+                        MessageBoxButtons::OK, MessageBoxIcon::Information);
+            }
+        }
+    }
+
+    void HardwareInfoForm::EnableCtrl()
+    {
+        TreeNode^ selectedNode = treeView1->SelectedNode;
+        //检查是否允许添加监控项
+        bool add_item_enable = false;
+        if (selectedNode != nullptr)
+        {
+            SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
+            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+                add_item_enable = true;
+        }
+
+        addItem->Enabled = add_item_enable;
+        addSelectedBtn->Enabled = add_item_enable;
+    }
+
     System::Void HardwareInfoForm::autoRefreshCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
     {
         CHardwareMonitor::GetInstance()->m_settings.hardware_info_auto_refresh = autoRefreshCheck->Checked;
+    }
+
+    System::Void HardwareInfoForm::addSelectedBtn_Click(System::Object^ sender, System::EventArgs^ e)
+    {
+        AddSelectedItem();
     }
 }
