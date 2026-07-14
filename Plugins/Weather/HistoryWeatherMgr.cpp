@@ -134,8 +134,23 @@ void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
         //解析天气
         WeatherInfo info;
         CWeather::ParseWeatherInfo(info, forecast);
+
+        //如果当前日期的天气已存在且解析到的天气中缺失日间温度，则不添加到历史天气中
+        if (IsWeatherExist(date) && info.m_high.empty())
+            return;
+
         AddWeatherInfo(date, info);
     }
+}
+
+bool CHistoryWeatherMgr::IsWeatherExist(const Date& date) const
+{
+    auto iter = m_history_weather_list.find(date);
+    if (iter == m_history_weather_list.end())
+        return false;
+    if (!iter->second.IsValid())
+        return false;
+    return true;
 }
 
 const std::map<CHistoryWeatherMgr::Date, CHistoryWeatherMgr::HistoryWeather>& CHistoryWeatherMgr::GetHistoryWeather() const
@@ -153,4 +168,9 @@ CString CHistoryWeatherMgr::GetTemperatureString(const CString& low_temp, const 
     CString str_temp;
     str_temp.Format(_T("%s~%s℃"), low_temp.GetString(), high_temp.GetString());
     return str_temp;
+}
+
+bool CHistoryWeatherMgr::HistoryWeather::IsValid() const
+{
+    return !type.IsEmpty() && !high_temp.IsEmpty() && !low_temp.IsEmpty();
 }
