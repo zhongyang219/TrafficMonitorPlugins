@@ -158,41 +158,18 @@ void CWeatherHistoryDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
     DDX_Control(pDX, IDC_LIST1, m_list_ctrl);
+    DDX_Control(pDX, IDC_CITY_COMBO, m_city_combo);
 }
 
-
-BEGIN_MESSAGE_MAP(CWeatherHistoryDlg, CDialog)
-    ON_WM_GETMINMAXINFO()
-END_MESSAGE_MAP()
-
-
-// CWeatherHistoryDlg 消息处理程序
-
-BOOL CWeatherHistoryDlg::OnInitDialog()
+void CWeatherHistoryDlg::InitListData(const CString& cur_city)
 {
-    CDialog::OnInitDialog();
-
-    SetIcon(g_data.GetIcon(IDI_WEATHER), FALSE);
-    SetWindowText(g_data.StringRes(IDS_WEATHER_HISTORY));
-
-    //获取初始时窗口的大小
-    CRect rect;
-    GetWindowRect(rect);
-    m_min_size.cx = rect.Width();
-    m_min_size.cy = rect.Height();
-
-    //初始化列表控件
-    m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
-    m_list_ctrl.GetClientRect(rect);
-    int width0 = g_data.DPI(120);
-    int width1 = rect.Width() - width0 - g_data.DPI(20) - 1;
-    m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
-    m_list_ctrl.InsertColumn(CHistoryWeatherListCtrl::COL_DATE, g_data.StringRes(IDS_DATE), LVCFMT_LEFT, width0);
-    m_list_ctrl.InsertColumn(CHistoryWeatherListCtrl::COL_WEATHER, g_data.StringRes(IDS_WEATHER), LVCFMT_LEFT, width1);
-
-    //填充数据
+    m_list_ctrl.DeleteAllItems();
     const auto& history_weather{ g_data.HistoryWeatherMgr().GetHistoryWeather() };
-    for (auto iter = history_weather.rbegin(); iter != history_weather.rend(); ++iter)
+    auto weather_iter = history_weather.find(cur_city);
+    if (weather_iter == history_weather.end())
+        return;
+
+    for (auto iter = weather_iter->second.rbegin(); iter != weather_iter->second.rend(); ++iter)
     {
         wchar_t buff[256]{};
         //日期
@@ -215,9 +192,52 @@ BOOL CWeatherHistoryDlg::OnInitDialog()
         m_list_ctrl.InsertItem(index, date_str.c_str());
 
         //天气
-        StringCchPrintfW(buff, 256, L"%s %s %s", iter->second.type.GetString(), CHistoryWeatherMgr::GetTemperatureString(iter->second.low_temp, iter->second.high_temp), iter->second.wind.GetString());
+        StringCchPrintfW(buff, 256, L"%s %s %s", iter->second.type.GetString(), CHistoryWeatherMgr::GetTemperatureString(iter->second.low_temp, iter->second.high_temp).GetString(), iter->second.wind.GetString());
         m_list_ctrl.SetItemText(index, CHistoryWeatherListCtrl::COL_WEATHER, buff);
     }
+}
+
+
+BEGIN_MESSAGE_MAP(CWeatherHistoryDlg, CDialog)
+    ON_WM_GETMINMAXINFO()
+    ON_CBN_SELCHANGE(IDC_CITY_COMBO, &CWeatherHistoryDlg::OnCbnSelchangeCityCombo)
+END_MESSAGE_MAP()
+
+
+// CWeatherHistoryDlg 消息处理程序
+
+BOOL CWeatherHistoryDlg::OnInitDialog()
+{
+    CDialog::OnInitDialog();
+
+    SetIcon(g_data.GetIcon(IDI_WEATHER), FALSE);
+    SetWindowText(g_data.StringRes(IDS_WEATHER_HISTORY));
+
+    //获取初始时窗口的大小
+    CRect rect;
+    GetWindowRect(rect);
+    m_min_size.cx = rect.Width();
+    m_min_size.cy = rect.Height();
+
+    const auto& history_weather{ g_data.HistoryWeatherMgr().GetHistoryWeather() };
+    //初始化下拉框
+    for (const auto& item : history_weather)
+    {
+        m_city_combo.AddString(item.first);
+    }
+    m_city_combo.SelectString(0, CWeather::Instance().GetCurCity());
+
+    //初始化列表控件
+    m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
+    m_list_ctrl.GetClientRect(rect);
+    int width0 = g_data.DPI(120);
+    int width1 = rect.Width() - width0 - g_data.DPI(20) - 1;
+    m_list_ctrl.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP);
+    m_list_ctrl.InsertColumn(CHistoryWeatherListCtrl::COL_DATE, g_data.StringRes(IDS_DATE), LVCFMT_LEFT, width0);
+    m_list_ctrl.InsertColumn(CHistoryWeatherListCtrl::COL_WEATHER, g_data.StringRes(IDS_WEATHER), LVCFMT_LEFT, width1);
+
+    //填充数据
+    InitListData(CWeather::Instance().GetCurCity());
 
     return TRUE;  // return TRUE unless you set the focus to a control
     // 异常: OCX 属性页应返回 FALSE
@@ -230,4 +250,12 @@ void CWeatherHistoryDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
     lpMMI->ptMinTrackSize.y = m_min_size.cy;		//设置最小高度
 
     CDialog::OnGetMinMaxInfo(lpMMI);
+}
+
+
+void CWeatherHistoryDlg::OnCbnSelchangeCityCombo()
+{
+    CString cur_city;
+    m_city_combo.GetWindowText(cur_city);
+    InitListData(cur_city);
 }

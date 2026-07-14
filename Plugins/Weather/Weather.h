@@ -30,6 +30,7 @@ public:
 
     void Init();
     static void ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast);
+    const CString& GetCurCity();
 
 private:
     static UINT ThreadCallback(LPVOID dwUser);
@@ -44,6 +45,7 @@ private:
     COptionsDlg* m_option_dlg{};      //保存选项设置对话框的句柄
     unsigned __int64 m_last_request_time{}; //上次请求天气的时间
     CMenu m_menu;
+    CString m_cur_city;
 };
 
 #ifdef __cplusplus

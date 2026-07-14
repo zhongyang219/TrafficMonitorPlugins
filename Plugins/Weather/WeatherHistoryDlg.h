@@ -40,12 +40,16 @@ public:
 private:
     CHistoryWeatherListCtrl m_list_ctrl;
     CSize m_min_size;		//窗口的最小大小
+    CComboBox m_city_combo;
 
 protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+
+    void InitListData(const CString& cur_city);
 
     DECLARE_MESSAGE_MAP()
 public:
     virtual BOOL OnInitDialog();
     afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+    afx_msg void OnCbnSelchangeCityCombo();
 };

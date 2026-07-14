@@ -20,25 +20,28 @@ public:
         bool operator<(const Date& another) const;
     };
 
-    void AddWeatherInfo(Date date, const WeatherInfo& weather_info);
-    void AddWeatherInfo(yyjson_val* forecast);
-    bool IsWeatherExist(const Date& date) const;
-
     struct HistoryWeather
     {
         CString type;
         CString high_temp;
         CString low_temp;
         CString wind;
+        CString city;
 
         bool IsValid() const;
     };
 
-    const std::map<Date, HistoryWeather>& GetHistoryWeather() const;
+    //保存每个城市每个日期的历史天气
+    using HistoryWeahterMap = std::map<CString, std::map<Date, HistoryWeather>>;
+
+    void AddWeatherInfo(const CString& city, Date date, const WeatherInfo& weather_info);
+    void AddWeatherInfo(const CString& city, yyjson_val* forecast);
+    bool IsWeatherExist(const CString& city, const Date& date) const;
+    const HistoryWeahterMap& GetHistoryWeather() const;
 
     static CString GetTemperatureString(const CString& low_temp, const CString& high_temp);
 
 private:
-    std::map<Date, HistoryWeather> m_history_weather_list;
+    HistoryWeahterMap m_history_weather_list;
 };
 

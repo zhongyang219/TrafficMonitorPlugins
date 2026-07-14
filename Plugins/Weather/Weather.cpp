@@ -128,6 +128,11 @@ void CWeather::ParseWeatherInfo(WeatherInfo& weather_info, yyjson_val* forecast)
     }
 }
 
+const CString& CWeather::GetCurCity()
+{
+    return m_cur_city;
+}
+
 //获取一个日期的字符串。如果日期是今天、明天或后天，则返回“今天”、“明天”和“后天”的字符串，否则返回几月几日
 static std::wstring GetDateString(CTime date)
 {
@@ -183,7 +188,9 @@ bool CWeather::ParseJsonData(std::string json_data)
 
     //获取城市
     yyjson_val* station_node = yyjson_obj_get(real_node, "station");
+    std::wstring str_province = GetJsonWString(station_node, "province");
     std::wstring str_city = GetJsonWString(station_node, "city");
+    m_cur_city.Format(_T("%s %s"), str_province.c_str(), str_city.c_str());
 
     //获取时间
     std::string str_time = str_date.substr(11);
@@ -232,15 +239,15 @@ bool CWeather::ParseJsonData(std::string json_data)
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_TOMMORROW], forecast_tommorrow);
         ParseWeatherInfo(g_data.m_weather_info[WEATHER_DAY2], forecast_day2);
         //添加到历史记录
-        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_today);
-        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_tommorrow);
-        g_data.HistoryWeatherMgr().AddWeatherInfo(forecast_day2);
+        g_data.HistoryWeatherMgr().AddWeatherInfo(m_cur_city, forecast_today);
+        g_data.HistoryWeatherMgr().AddWeatherInfo(m_cur_city, forecast_tommorrow);
+        g_data.HistoryWeatherMgr().AddWeatherInfo(m_cur_city, forecast_day2);
         //获取所有天气并添加到历史记录
         for (int i = 3; ; i++)
         {
             yyjson_val* forecast = yyjson_arr_get(forecast_arr, i);
             if (forecast != nullptr)
-                g_data.HistoryWeatherMgr().AddWeatherInfo(forecast);
+                g_data.HistoryWeatherMgr().AddWeatherInfo(m_cur_city, forecast);
             else
                 break;
         }

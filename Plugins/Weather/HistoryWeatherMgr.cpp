@@ -37,20 +37,26 @@ bool CHistoryWeatherMgr::Save() const
     // 构造CArchive对象
     CArchive ar(&file, CArchive::store);
     // 写版本号
-    const int version{ 0 };
+    const int version{ 1 };
     ar << version;
     // 写数据
     ar << static_cast<int>(m_history_weather_list.size());
     for (const auto& item : m_history_weather_list)
     {
-        ar << item.first.year
-            << item.first.month
-            << item.first.day
-            << item.second.type
-            << item.second.high_temp
-            << item.second.low_temp
-            << item.second.wind
-            ;
+        ar << item.first;
+        const auto& weather_list = item.second;
+        ar << static_cast<int>(weather_list.size());
+        for (const auto& weather : weather_list)
+        {
+            ar << weather.first.year
+                << weather.first.month
+                << weather.first.day
+                << weather.second.type
+                << weather.second.high_temp
+                << weather.second.low_temp
+                << weather.second.wind
+                ;
+        }
     }
     // 关闭CArchive对象
     ar.Close();
@@ -69,25 +75,37 @@ bool CHistoryWeatherMgr::Load()
         // 构造CArchive对象
         CArchive ar(&file, CArchive::load);
         // 读数据
-        int version{}, size{};
+        int version{};
         CString temp_str;
         try
         {
             ar >> version;
-            ar >> size;
-            for (int i{}; i < size; ++i)
+            if (version >= 1)
             {
-                Date date{};
-                ar >> date.year;
-                ar >> date.month;
-                ar >> date.day;
-                HistoryWeather list_item{};
-                ar >> list_item.type;
-                ar >> list_item.high_temp;
-                ar >> list_item.low_temp;
-                ar >> list_item.wind;
-                // 插入m_list
-                m_history_weather_list[date] = list_item;
+                int city_size{};
+                ar >> city_size;
+                for (int i{}; i < city_size; i++)
+                {
+                    CString city;
+                    ar >> city;
+                    int weather_size{};
+                    ar >> weather_size;
+                    std::map<Date, HistoryWeather> weather_map;
+                    for (int j{}; j < weather_size; j++)
+                    {
+                        Date date{};
+                        ar >> date.year;
+                        ar >> date.month;
+                        ar >> date.day;
+                        HistoryWeather list_item{};
+                        ar >> list_item.type;
+                        ar >> list_item.high_temp;
+                        ar >> list_item.low_temp;
+                        ar >> list_item.wind;
+                        weather_map[date] = list_item;
+                    }
+                    m_history_weather_list[city] = weather_map;
+                }
             }
         }
         catch (CArchiveException* exception)
@@ -103,20 +121,20 @@ bool CHistoryWeatherMgr::Load()
     return false;
 }
 
-void CHistoryWeatherMgr::AddWeatherInfo(Date date, const WeatherInfo& weather_info)
+void CHistoryWeatherMgr::AddWeatherInfo(const CString& city, Date date, const WeatherInfo& weather_info)
 {
     //先获取原有天气
-    HistoryWeather weather = m_history_weather_list[date];
+    HistoryWeather weather = m_history_weather_list[city][date];
     weather.type = weather_info.m_type.c_str();
     if (!weather_info.m_high.empty())
         weather.high_temp = weather_info.m_high.c_str();
     if (!weather_info.m_low.empty())
         weather.low_temp = weather_info.m_low.c_str();
     weather.wind = weather_info.m_wind.c_str();
-    m_history_weather_list[date] = weather;
+    m_history_weather_list[city][date] = weather;
 }
 
-void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
+void CHistoryWeatherMgr::AddWeatherInfo(const CString& city, yyjson_val* forecast)
 {
     if (forecast != nullptr)
     {
@@ -136,24 +154,28 @@ void CHistoryWeatherMgr::AddWeatherInfo(yyjson_val* forecast)
         CWeather::ParseWeatherInfo(info, forecast);
 
         //如果当前日期的天气已存在且解析到的天气中缺失日间温度，则不添加到历史天气中
-        if (IsWeatherExist(date) && info.m_high.empty())
+        if (IsWeatherExist(city, date) && info.m_high.empty())
             return;
 
-        AddWeatherInfo(date, info);
+        AddWeatherInfo(city, date, info);
     }
 }
 
-bool CHistoryWeatherMgr::IsWeatherExist(const Date& date) const
+bool CHistoryWeatherMgr::IsWeatherExist(const CString& city, const Date& date) const
 {
-    auto iter = m_history_weather_list.find(date);
+
+    auto iter = m_history_weather_list.find(city);
     if (iter == m_history_weather_list.end())
         return false;
-    if (!iter->second.IsValid())
+    auto iter_weather = iter->second.find(date);
+    if (iter_weather == iter->second.end())
+        return false;
+    if (!iter_weather->second.IsValid())
         return false;
     return true;
 }
 
-const std::map<CHistoryWeatherMgr::Date, CHistoryWeatherMgr::HistoryWeather>& CHistoryWeatherMgr::GetHistoryWeather() const
+const CHistoryWeatherMgr::HistoryWeahterMap& CHistoryWeatherMgr::GetHistoryWeather() const
 {
     return m_history_weather_list;
 }
