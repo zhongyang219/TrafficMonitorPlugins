@@ -29,6 +29,8 @@ namespace HardwareMonitor
         std::wstring item_value_main_wnd;
         std::wstring label_text;
         int sensor_type{};
-        float item_value_num{};
+        float item_value_num{}; //项目的原始数值
+        float item_value_with_unit{};           //根据单位转换过的数值
+        float last_item_value_with_unit{};      //上次根据单位转换过的数值
     };
 }

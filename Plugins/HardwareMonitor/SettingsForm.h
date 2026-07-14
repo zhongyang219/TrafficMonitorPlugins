@@ -73,6 +73,10 @@ namespace HardwareMonitor {
     private: System::Windows::Forms::Button^ moveUpButton;
     private: System::Windows::Forms::Button^ moveDownButton;
     private: System::Windows::Forms::CheckBox^ showUnitCheck;
+    private: System::Windows::Forms::CheckBox^ showNotifyCheck;
+    private: System::Windows::Forms::NumericUpDown^ notifyValueEdit;
+
+
 
 
     private: System::Windows::Forms::Button^ addItemBtn;
@@ -124,6 +128,8 @@ namespace HardwareMonitor {
             this->valueWidthEdit = (gcnew System::Windows::Forms::NumericUpDown());
             this->label4 = (gcnew System::Windows::Forms::Label());
             this->groupBox2 = (gcnew System::Windows::Forms::GroupBox());
+            this->notifyValueEdit = (gcnew System::Windows::Forms::NumericUpDown());
+            this->showNotifyCheck = (gcnew System::Windows::Forms::CheckBox());
             this->showUnitCheck = (gcnew System::Windows::Forms::CheckBox());
             this->label5 = (gcnew System::Windows::Forms::Label());
             this->unitCombo = (gcnew System::Windows::Forms::ComboBox());
@@ -132,6 +138,7 @@ namespace HardwareMonitor {
             this->groupBox1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->BeginInit();
             this->groupBox2->SuspendLayout();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->notifyValueEdit))->BeginInit();
             this->SuspendLayout();
             // 
             // monitorItemListBox
@@ -281,6 +288,8 @@ namespace HardwareMonitor {
             // groupBox2
             // 
             resources->ApplyResources(this->groupBox2, L"groupBox2");
+            this->groupBox2->Controls->Add(this->notifyValueEdit);
+            this->groupBox2->Controls->Add(this->showNotifyCheck);
             this->groupBox2->Controls->Add(this->showUnitCheck);
             this->groupBox2->Controls->Add(this->label5);
             this->groupBox2->Controls->Add(this->label3);
@@ -291,6 +300,21 @@ namespace HardwareMonitor {
             this->groupBox2->Controls->Add(this->specifyValueWidthCheck);
             this->groupBox2->Name = L"groupBox2";
             this->groupBox2->TabStop = false;
+            // 
+            // notifyValueEdit
+            // 
+            this->notifyValueEdit->DecimalPlaces = 3;
+            resources->ApplyResources(this->notifyValueEdit, L"notifyValueEdit");
+            this->notifyValueEdit->Maximum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1000, 0, 0, 0 });
+            this->notifyValueEdit->Name = L"notifyValueEdit";
+            this->notifyValueEdit->ValueChanged += gcnew System::EventHandler(this, &SettingsForm::notifyValueEdit_ValueChanged);
+            // 
+            // showNotifyCheck
+            // 
+            resources->ApplyResources(this->showNotifyCheck, L"showNotifyCheck");
+            this->showNotifyCheck->Name = L"showNotifyCheck";
+            this->showNotifyCheck->UseVisualStyleBackColor = true;
+            this->showNotifyCheck->CheckedChanged += gcnew System::EventHandler(this, &SettingsForm::showNotifyCheck_CheckedChanged);
             // 
             // showUnitCheck
             // 
@@ -348,6 +372,7 @@ namespace HardwareMonitor {
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->valueWidthEdit))->EndInit();
             this->groupBox2->ResumeLayout(false);
             this->groupBox2->PerformLayout();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->notifyValueEdit))->EndInit();
             this->ResumeLayout(false);
             this->PerformLayout();
 
@@ -362,5 +387,7 @@ namespace HardwareMonitor {
     private: System::Void moveDownButton_Click(System::Object^ sender, System::EventArgs^ e);
     private: System::Void SettingsForm_Resize(System::Object^ sender, System::EventArgs^ e);
     private: System::Void showUnitCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void showNotifyCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e);
+    private: System::Void notifyValueEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e);
 };
 }

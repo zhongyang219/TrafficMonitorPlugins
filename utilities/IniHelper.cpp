@@ -170,6 +170,18 @@ namespace utilities
         SplitStringList(values, str_value);
     }
 
+    void CIniHelper::WriteDouble(const wchar_t* AppName, const wchar_t* KeyName, double value)
+    {
+        std::wstring str = std::to_wstring(value);
+        _WriteString(AppName, KeyName, str);
+    }
+
+    double CIniHelper::GetDouble(const wchar_t* AppName, const wchar_t* KeyName, double default_value) const
+    {
+        std::wstring str = _GetString(AppName, KeyName, std::to_wstring(default_value).c_str());
+        return _wtof(str.c_str());
+    }
+
     bool CIniHelper::Save()
     {
         std::ofstream file_stream{ m_file_path };

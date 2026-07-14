@@ -13,6 +13,8 @@ namespace HardwareMonitor
         int value_width{ 3 };       //数值宽度
         std::wstring unit;          //单位
         bool show_unit{ true };     //是否显示单位
+        bool show_notify{ false };  //是否在超过一定数值时显示通知
+        double notify_value{};      //显示通知时的数值
 
         ItemInfo()
         {}

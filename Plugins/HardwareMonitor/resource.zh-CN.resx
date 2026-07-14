@@ -346,4 +346,7 @@
   <data name="Discharge Current" xml:space="preserve">
     <value>放电电流</value>
   </data>
+  <data name="ValueExceedNotifyMsg" xml:space="preserve">
+    <value>{0} 已达到 {1}！</value>
+  </data>
 </root>

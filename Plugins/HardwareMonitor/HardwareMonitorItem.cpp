@@ -113,6 +113,21 @@ namespace HardwareMonitor
                 item_value_num = 0;
             }
             sensor_type = static_cast<int>(sensor->SensorType);
+
+            //判断是否要显示通知
+            item_value_with_unit = HardwareMonitorHelper::GetSensorValue(sensor, unit);
+            if (item_info.show_notify)
+            {
+                if (last_item_value_with_unit < item_info.notify_value && item_value_with_unit >= item_info.notify_value)
+                {
+                    String^ format_str = MonitorGlobal::Instance()->GetString(L"ValueExceedNotifyMsg");
+                    String^ value_with_unit = HardwareMonitorHelper::GetSensorValueText(sensor, unit);
+                    String^ str_msg = String::Format(format_str, gcnew String(item_name.c_str()), value_with_unit);
+                    CHardwareMonitor::GetInstance()->GetMainApp()->ShowNotifyMessage(Common::StringToStdWstring(str_msg).c_str());
+                    last_item_value_with_unit = item_value_with_unit;
+                }
+            }
+            last_item_value_with_unit = item_value_with_unit;
         }
     }
 

@@ -385,4 +385,7 @@
   <data name="Discharge Current" xml:space="preserve">
     <value>Discharge Current</value>
   </data>
+  <data name="ValueExceedNotifyMsg" xml:space="preserve">
+    <value>{0} has been reached {1}!</value>
+  </data>
 </root>

@@ -136,73 +136,79 @@ namespace HardwareMonitor
         return sensor;
     }
 
+    float HardwareMonitorHelper::GetSensorValue(LibreHardwareMonitor::Hardware::ISensor^ sensor, System::String^ unit)
+    {
+        float value = sensor->Value.Value;
+        //电压
+        if (sensor->SensorType == SensorType::Voltage)
+        {
+            if (unit->Equals("mV"))
+                value *= 1000.0f;
+        }
+        //电流
+        else if (sensor->SensorType == SensorType::Current)
+        {
+            if (unit->Equals("mA"))
+                value *= 1000.0f;
+        }
+        //功率
+        else if (sensor->SensorType == SensorType::Power)
+        {
+            if (unit->Equals("mW"))
+                value *= 1000.0f;
+        }
+        //时钟频率
+        else if (sensor->SensorType == SensorType::Clock)
+        {
+            if (unit->Equals("GHz"))
+                value /= 1024.0f;
+        }
+        //温度
+        else if (sensor->SensorType == SensorType::Temperature)
+        {
+            if (unit->Equals("°F"))
+                value = (value * 9.0f / 5.0f) + 32.0f;
+        }
+
+        //数据（默认GB）
+        else if (sensor->SensorType == SensorType::Data)
+        {
+            if (unit->Equals("MB"))
+                value *= 1024.0f;
+        }
+        //数据（默认MB）
+        else if (sensor->SensorType == SensorType::SmallData)
+        {
+            if (unit->Equals("GB"))
+                value /= 1024.0f;
+        }
+        //速率
+        else if (sensor->SensorType == SensorType::Throughput)
+        {
+            if (unit->Equals("MB/s")) //MB/s
+                value /= (1024.0f * 1024.0f);
+            else                    //KB/s
+                value /= 1024.0f;
+        }
+        //电量
+        else if (sensor->SensorType == SensorType::Energy)
+        {
+            if (unit->Equals("Wh"))
+                value /= 1024.0f;
+        }
+        if (sensor->SensorType == SensorType::Power && sensor->Name == L"Discharge Rate")   //放电功率显示为负数
+            value = -value;
+        if (sensor->SensorType == SensorType::Current && sensor->Name == L"Discharge Current")   //放电电流显示为负数
+            value = -value;
+        return value;
+    }
+
     String^ HardwareMonitorHelper::GetSensorValueText(ISensor^ sensor, String^ unit, int decimal_place, bool show_unit, bool seperate_with_space)
     {
         String^ sensor_str;
         if (sensor->Value.HasValue)
         {
-            float value = sensor->Value.Value;
-            //电压
-            if (sensor->SensorType == SensorType::Voltage)
-            {
-                if (unit->Equals("mV"))
-                    value *= 1000.0f;
-            }
-            //电流
-            else if (sensor->SensorType == SensorType::Current)
-            {
-                if (unit->Equals("mA"))
-                    value *= 1000.0f;
-            }
-            //功率
-            else if (sensor->SensorType == SensorType::Power)
-            {
-                if (unit->Equals("mW"))
-                    value *= 1000.0f;
-            }
-            //时钟频率
-            else if (sensor->SensorType == SensorType::Clock)
-            {
-                if (unit->Equals("GHz"))
-                    value /= 1024.0f;
-            }
-            //温度
-            else if (sensor->SensorType == SensorType::Temperature)
-            {
-                if (unit->Equals("°F"))
-                    value = (value * 9.0f / 5.0f) + 32.0f;
-            }
-
-            //数据（默认GB）
-            else if (sensor->SensorType == SensorType::Data)
-            {
-                if (unit->Equals("MB"))
-                    value *= 1024.0f;
-            }
-            //数据（默认MB）
-            else if (sensor->SensorType == SensorType::SmallData)
-            {
-                if (unit->Equals("GB"))
-                    value /= 1024.0f;
-            }
-            //速率
-            else if (sensor->SensorType == SensorType::Throughput)
-            {
-                if (unit->Equals("MB/s")) //MB/s
-                    value /= (1024.0f * 1024.0f);
-                else                    //KB/s
-                    value /= 1024.0f;
-            }
-            //电量
-            else if (sensor->SensorType == SensorType::Energy)
-            {
-                if (unit->Equals("Wh"))
-                    value /= 1024.0f;
-            }
-            if (sensor->SensorType == SensorType::Power && sensor->Name == L"Discharge Rate")   //放电功率显示为负数
-                value = -value;
-            if (sensor->SensorType == SensorType::Current && sensor->Name == L"Discharge Current")   //放电电流显示为负数
-                value = -value;
+            float value = GetSensorValue(sensor, unit);
             String^ formatString = String::Format("F{0}", decimal_place);
             sensor_str += value.ToString(formatString);
         }

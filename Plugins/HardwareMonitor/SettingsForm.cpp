@@ -143,6 +143,8 @@ namespace HardwareMonitor
         int index = monitorItemListBox->SelectedIndex;
         moveUpButton->Enabled = selection_enabled && index > 0;
         moveDownButton->Enabled = selection_enabled && index < monitorItemListBox->Items->Count - 1;
+        showNotifyCheck->Enabled = selection_enabled;
+        notifyValueEdit->Enabled = selection_enabled && showNotifyCheck->Checked;
     }
 
     void SettingsForm::listBox_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e)
@@ -186,6 +188,9 @@ namespace HardwareMonitor
                 else
                     unitCombo->SelectedIndex = 0;
             }
+            //设置超过指定数值时显示通知
+            showNotifyCheck->Checked = item_info.show_notify;
+            notifyValueEdit->Value = System::Decimal(item_info.notify_value);
         }
     }
 
@@ -402,6 +407,25 @@ namespace HardwareMonitor
         {
             ItemInfo& item_info = GetSelectedItemInfo();
             item_info.show_unit = showUnitCheck->Checked;
+        }
+    }
+
+    System::Void SettingsForm::showNotifyCheck_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = GetSelectedItemInfo();
+            item_info.show_notify = showNotifyCheck->Checked;
+        }
+        EnableControls();
+    }
+
+    System::Void SettingsForm::notifyValueEdit_ValueChanged(System::Object^ sender, System::EventArgs^ e)
+    {
+        if (IsSelectionValid())
+        {
+            ItemInfo& item_info = GetSelectedItemInfo();
+            item_info.notify_value = static_cast<double>(notifyValueEdit->Value);
         }
     }
 }

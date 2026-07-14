@@ -21,6 +21,9 @@ namespace HardwareMonitor
         //根据一个传感器的唯一标识符查找一个传感器
         static LibreHardwareMonitor::Hardware::ISensor^ FindSensorByIdentifyer(System::String^ identifyer);
 
+        //根据指定单位，获取一个传感器数值
+        static float GetSensorValue(LibreHardwareMonitor::Hardware::ISensor^ sensor, System::String^ unit);
+
         //获取一个传感器数值的文本，并指定小数位数
         static System::String^ GetSensorValueText(LibreHardwareMonitor::Hardware::ISensor^ sensor, System::String^ unit, int decimal_place = 2, bool show_unit = true, bool seperate_with_space = true);
 

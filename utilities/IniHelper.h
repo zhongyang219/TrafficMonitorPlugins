@@ -29,6 +29,8 @@ namespace utilities
         void GetBoolArray(const wchar_t * AppName, const wchar_t * KeyName, bool* values, int size, bool default_value = false) const;
         void WriteStringList(const wchar_t* AppName, const wchar_t* KeyName, const std::vector<std::wstring>& values);      //写入一个字符串列表，由于保存到ini文件中时字符串前后会加上引号，所以字符串中不能包含引号
         void GetStringList(const wchar_t* AppName, const wchar_t* KeyName, std::vector<std::wstring>& values, const std::vector<std::wstring>& default_value) const;
+        void WriteDouble(const wchar_t* AppName, const wchar_t* KeyName, double value);
+        double GetDouble(const wchar_t* AppName, const wchar_t* KeyName, double default_value = 0.0) const;
 
         bool Save();		//将ini文件保存到文件，成功返回true
 
