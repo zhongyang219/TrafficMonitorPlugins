@@ -1,6 +1,6 @@
 #pragma once
+#include <map>
 #include "Common.h"
-#include <vector>
 
 //保存一个网络连接信息
 struct NetWorkConection
@@ -18,10 +18,9 @@ public:
 	~CAdapterCommon();
 
 	//获取网络连接列表，填充网络描述、IP地址、子网掩码、默认网关信息
-	static void GetAdapterInfo(std::vector<NetWorkConection>& adapters);
+	static void GetAdapterInfo(std::map<std::wstring, NetWorkConection>& adapters);
 
 	//刷新网络连接列表中的IP地址、子网掩码、默认网关信息
-	static void RefreshIpAddress(std::vector<NetWorkConection>& adapters);
+	static void RefreshIpAddress(std::map<std::wstring, NetWorkConection>& adapters);
 
 };
-

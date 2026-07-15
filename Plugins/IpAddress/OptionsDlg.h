@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <afxdialogex.h>
 #include "DataManager.h"
 
 // COptionsDlg 对话框
@@ -20,6 +21,8 @@ public:
 
 private:
     CComboBox m_connections_combo;
+    CSpinButtonCtrl m_ip_query_interval_spin;
+    CComboBox m_ip_provider_combo;
 
 protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "PluginInterface.h"
 #include "IpAddressItem.h"
+#include "ExternalIpAddressItem.h"
 #include <string>
 
 class CIpAddress : public ITMPlugin
@@ -28,6 +29,7 @@ private:
 private:
     static CIpAddress m_instance;
     CIpAddressItem m_item;
+    CExternalIpAddressItem m_external_item;
     std::wstring m_tooltip_info;
 };
 
