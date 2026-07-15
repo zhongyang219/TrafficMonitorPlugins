@@ -322,5 +322,12 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 主页：[Mariomoprc/TrafficMonitorPlugins](https://github.com/Mariomoprc/TrafficMonitorPlugins)
 * 下载链接：https://github.com/Mariomoprc/TrafficMonitorPlugins/releases/latest
 
+### TMFetchPlugin 通用 HTTP/JSON 数据抓取插件
 
+用于 [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor)的一个通用 HTTP / JSON 数据抓取插件。把任意 HTTP 接口返回的 JSON 字段显示到任务栏 / 主窗口，**一份 DLL + 一份配置就能搞定，无需再为每个 API 单独写插件**。
+
+* 作者：[bestK](https://github.com/bestK)
+* 主页：[bestK/TMFetchPlugin: Generic HTTP/JSON fetcher plugin for TrafficMonitor show any REST API field on the taskbar via a free-form template](https://github.com/bestK/TMFetchPlugin)
+* 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
+* 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 

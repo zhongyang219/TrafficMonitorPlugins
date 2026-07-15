@@ -309,3 +309,13 @@ A TrafficMonitor plugin which is used to display the remaining battery time on t
 * Author: [Mariomoprc](https://github.com/Mariomoprc)
 * Homepage: [Mariomoprc/TrafficMonitorPlugins](https://github.com/Mariomoprc/TrafficMonitorPlugins)
 * Download url: https://github.com/Mariomoprc/TrafficMonitorPlugins/releases/latest
+
+### TMFetchPlugin A generic HTTP / JSON fetcher plugin
+
+A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor). Point it at any REST API, write a one-line **display template** mixing literal text with references, and the resolved value is rendered onto your TrafficMonitor taskbar / main window on a configurable schedule.`$.path.x`
+
+* Author: [bestK](https://github.com/bestK)
+* Homepage: [bestK/TMFetchPlugin: Generic HTTP/JSON fetcher plugin for TrafficMonitor show any REST API field on the taskbar via a free-form template](https://github.com/bestK/TMFetchPlugin)
+* Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
+* Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
+
