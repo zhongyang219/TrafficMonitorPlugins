@@ -90,7 +90,7 @@ A plugin for displaying the battery level of your computer.
 
 ### Stock plugin
 
-![image-20250308114302152](images/image-20250308114302152.png)
+![image-20250308114302152](images/stock.png)
 
 Displays real-time trading information for specified stocks. Use the Sina interface.
 
@@ -235,7 +235,7 @@ A plugin used to display the current system volume.
 * Homepage: [cxhoyo/MijiaPluginForTM: 米家智能插座功率显示插件_TrafficMonitor](https://github.com/cxhoyo/MijiaPluginForTM/tree/main?tab=readme-ov-file)
 * Download url: [Releases · cxhoyo/MijiaPluginForTM](https://github.com/cxhoyo/MijiaPluginForTM/releases)
 
-# IP Location Plugin
+### IP Location Plugin
 
 I’ve built a brand-new IPLocation plugin for TrafficMonitor! It accurately displays your public egress IP and its geographic location with auto-refresh every 30s, perfectly fixing the original plugin’s flaws of inaccurate IP display and no location support.
 Super practical for these scenarios:✅ VPN/Proxy users: Instantly verify node switching results & confirm egress IP/region✅ Remote work/development: Quick check of public IP for server connection/port mapping✅ Network troubleshooting: Fast confirm real egress IP to locate network issues✅ Multi-node testing: Effortlessly check IP status when switching different proxy/VPN nodes
@@ -244,6 +244,16 @@ It’s lightweight and works seamlessly with TrafficMonitor v1.85.1 (Win10/11 x6
 * Author: [byLennert](https://github.com/byLennert)
 * Homepage: [byLennert/IPLocation_for_TrafficMonitor: a tool for TrafficMonitor to show current ip and region.](https://github.com/byLennert/IPLocation_for_TrafficMonitor)
 * Download url: [Releases · byLennert/IPLocation_for_TrafficMonitor](https://github.com/byLennert/IPLocation_for_TrafficMonitor/releases)
+
+### IPRegionMon
+
+A plugin for TrafficMonitor that displays the current public IP and regional information, supports comparison of proxy exports and customization of delay measurement targets.
+
+![](https://private-user-images.githubusercontent.com/118657956/485441173-50a8f5fc-4a52-4051-8378-bc267fb93dec.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODQxMDM5MjYsIm5iZiI6MTc4NDEwMzYyNiwicGF0aCI6Ii8xMTg2NTc5NTYvNDg1NDQxMTczLTUwYThmNWZjLTRhNTItNDA1MS04Mzc4LWJjMjY3ZmI5M2RlYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNzE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDcxNVQwODIwMjZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04ZGEwMTc4MWQ4MTgxZmEyMzcwMjNhYmNmMjMwNTViNGI0OTc2MzY0NjU4NzFlNmY4NmNiZmY0YWZiOWRhODU5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.7V-QCJT2nW-Khip2JHZ06JAWoBrO_sk-uFmtDZIX4vM)
+
+* Author: [AHLLX](https://github.com/AHLLX)
+* Homepage: [AHLLX/IPRegionMon-For-TrafficMonitor: 一个用于 TrafficMonitor 的插件，显示当前公网 IP 与地区信息，支持代理出口对比与自定义测延迟目标。](https://github.com/AHLLX/IPRegionMon-For-TrafficMonitor)
+* Download url: https://github.com/AHLLX/IPRegionMon-For-TrafficMonitor/releases/latest
 
 ### Ping Plugin
 
@@ -279,4 +289,23 @@ Taskbar usage limits for Claude and Codex through [TrafficMonitor](https://githu
 
 * Download url: https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
 
-  
+
+### CodexUsage TrafficMonitor Plugin
+
+This is a TrafficMonitor plugin, which is used to obtain and display the remaining usage of Codex from the usage interface of ChatGPT.
+
+![](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin/raw/main/example2.png)
+
+* Author: [HCLonely](https://github.com/HCLonely)
+* Homepage: [HCLonely/TrafficMonitor_Codex_Plugin: TrafficMonitor的Codex用量显示插件](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin)
+* Download url: https://github.com/HCLonely/TrafficMonitor_Codex_Plugin/releases/latest
+
+### BatteryTime - TrafficMonitor Battery Remaining Time Plugin
+
+A TrafficMonitor plugin which is used to display the remaining battery time on the taskbar. It supports progress bars, customizable formats, and automatic adaptation to dark/light themes.
+
+![](https://github.com/Mariomoprc/TrafficMonitorPlugins/raw/main/Plugins/BatteryTime/%E4%BB%BB%E5%8A%A1%E6%A0%8F.gif)
+
+* Author: [Mariomoprc](https://github.com/Mariomoprc)
+* Homepage: [Mariomoprc/TrafficMonitorPlugins](https://github.com/Mariomoprc/TrafficMonitorPlugins)
+* Download url: https://github.com/Mariomoprc/TrafficMonitorPlugins/releases/latest

@@ -260,6 +260,16 @@
 * 主页：[byLennert/IPLocation_for_TrafficMonitor: a tool for TrafficMonitor to show current ip and region.](https://github.com/byLennert/IPLocation_for_TrafficMonitor)
 * 下载链接：[Releases · byLennert/IPLocation_for_TrafficMonitor](https://github.com/byLennert/IPLocation_for_TrafficMonitor/releases)
 
+### IPRegionMon
+
+一个用于 TrafficMonitor 的插件，显示当前公网 IP 与地区信息，支持代理出口对比与自定义测延迟目标。
+
+![](https://private-user-images.githubusercontent.com/118657956/485441173-50a8f5fc-4a52-4051-8378-bc267fb93dec.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODQxMDM5MjYsIm5iZiI6MTc4NDEwMzYyNiwicGF0aCI6Ii8xMTg2NTc5NTYvNDg1NDQxMTczLTUwYThmNWZjLTRhNTItNDA1MS04Mzc4LWJjMjY3ZmI5M2RlYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNzE1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDcxNVQwODIwMjZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04ZGEwMTc4MWQ4MTgxZmEyMzcwMjNhYmNmMjMwNTViNGI0OTc2MzY0NjU4NzFlNmY4NmNiZmY0YWZiOWRhODU5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.7V-QCJT2nW-Khip2JHZ06JAWoBrO_sk-uFmtDZIX4vM)
+
+* 作者：[AHLLX](https://github.com/AHLLX)
+* 主页：[AHLLX/IPRegionMon-For-TrafficMonitor: 一个用于 TrafficMonitor 的插件，显示当前公网 IP 与地区信息，支持代理出口对比与自定义测延迟目标。](https://github.com/AHLLX/IPRegionMon-For-TrafficMonitor)
+* 下载链接：https://github.com/AHLLX/IPRegionMon-For-TrafficMonitor/releases/latest
+
 ### Ping Plugin
 
 A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) that displays **real-time ping latency** to a configurable host directly in your Windows taskbar.
@@ -289,9 +299,28 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 ![](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/raw/main/docs/images/trafficmonitor-taskbar-compact.png)
 
 * 作者：[bemaru](https://github.com/bemaru)
-
 * 主页：[trafficmonitor-ai-usage-plugin/README.zh-CN.md at main · bemaru/trafficmonitor-ai-usage-plugin](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/blob/main/README.zh-CN.md)
-
 * 下载链接：https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
 
-  
+### CodexUsage TrafficMonitor 插件
+
+这是一个 TrafficMonitor 插件，用于从 ChatGPT 的用量接口获取并显示 Codex 剩余用量。
+
+![](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin/raw/main/example2.png)
+
+* 作者：[HCLonely](https://github.com/HCLonely)
+* 主页：[HCLonely/TrafficMonitor_Codex_Plugin: TrafficMonitor的Codex用量显示插件](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin)
+* 下载链接：https://github.com/HCLonely/TrafficMonitor_Codex_Plugin/releases/latest
+
+### BatteryTime - TrafficMonitor 电池剩余时间插件
+
+用于在任务栏显示电池剩余时间的 TrafficMonitor 插件，支持进度条、自定义格式、深色/浅色模式自动适配。
+
+![](https://github.com/Mariomoprc/TrafficMonitorPlugins/raw/main/Plugins/BatteryTime/%E4%BB%BB%E5%8A%A1%E6%A0%8F.gif)
+
+* 作者：[Mariomoprc](https://github.com/Mariomoprc)
+* 主页：[Mariomoprc/TrafficMonitorPlugins](https://github.com/Mariomoprc/TrafficMonitorPlugins)
+* 下载链接：https://github.com/Mariomoprc/TrafficMonitorPlugins/releases/latest
+
+
+
