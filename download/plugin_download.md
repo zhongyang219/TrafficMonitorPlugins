@@ -281,3 +281,17 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 作者：[deYangar](https://github.com/deYangar)
 * 主页：[deYangar/ProcessNetMonitor: TrafficMonitor 的插件，显示每个进程的网络速度，参考火绒流量悬浮窗风格。TrafficMonitor plugin: per-process network speed with rich tooltip popup](https://github.com/deYangar/ProcessNetMonitor)
 * 下载链接：https://github.com/deYangar/ProcessNetMonitor/releases/latest
+
+### TrafficMonitor AI Usage Limits
+
+这是一个用于 Windows [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 的插件，可以在任务栏中显示 Claude 和 Codex 的用量限制状态。 发布包包含 `ClaudeUsagePlugin.dll` 和随插件附带的 helper 文件。在 TrafficMonitor 中，插件显示为 `AI Usage Limits`。
+
+![](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/raw/main/docs/images/trafficmonitor-taskbar-compact.png)
+
+* 作者：[bemaru](https://github.com/bemaru)
+
+* 主页：[trafficmonitor-ai-usage-plugin/README.zh-CN.md at main · bemaru/trafficmonitor-ai-usage-plugin](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/blob/main/README.zh-CN.md)
+
+* 下载链接：https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
+
+  

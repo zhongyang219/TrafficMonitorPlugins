@@ -266,3 +266,17 @@ Per-process network speed with rich tooltip popup.
 * Author: [deYangar](https://github.com/deYangar)
 * Homepage: [deYangar/ProcessNetMonitor: TrafficMonitor 的插件，显示每个进程的网络速度，参考火绒流量悬浮窗风格。TrafficMonitor plugin: per-process network speed with rich tooltip popup](https://github.com/deYangar/ProcessNetMonitor)
 * Download url: https://github.com/deYangar/ProcessNetMonitor/releases/latest
+
+### TrafficMonitor AI Usage Limits
+
+Taskbar usage limits for Claude and Codex through [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) on Windows. Release packages include `ClaudeUsagePlugin.dll` plus the bundled helper files. Inside TrafficMonitor, the plugin appears as `AI Usage Limits`.
+
+![](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/raw/main/docs/images/trafficmonitor-taskbar-compact.png)
+
+* Author: [bemaru](https://github.com/bemaru)
+
+* Homepage: [trafficmonitor-ai-usage-plugin/README.zh-CN.md at main · bemaru/trafficmonitor-ai-usage-plugin](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/blob/main/README.zh-CN.md)
+
+* Download url: https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
+
+  
