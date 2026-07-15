@@ -253,4 +253,16 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 
 * Author: [wwwroot](https://github.com/wwwroot)
 * Homepage: [wwwroot/TrafficMonitorPingPlugin: A TrafficMonitor plugin to display ping latency to configurable hosts (e.g. google.com)](https://github.com/wwwroot/TrafficMonitorPingPlugin)
-* Download url: [Releases · wwwroot/TrafficMonitorPingPlugin](
+* Download url: [Releases · wwwroot/TrafficMonitorPingPlugin](https://github.com/wwwroot/TrafficMonitorPingPlugin/releases)
+
+### ProcessNetMonitor
+
+Per-process network speed with rich tooltip popup.
+
+![](https://github.com/deYangar/ProcessNetMonitor/blob/master/docs/screenshot-main.jpg)
+
+![](https://github.com/deYangar/ProcessNetMonitor/raw/master/docs/screenshot-detail-realtime.jpg)
+
+* Author: [deYangar](https://github.com/deYangar)
+* Homepage: [deYangar/ProcessNetMonitor: TrafficMonitor 的插件，显示每个进程的网络速度，参考火绒流量悬浮窗风格。TrafficMonitor plugin: per-process network speed with rich tooltip popup](https://github.com/deYangar/ProcessNetMonitor)
+* Download url: https://github.com/deYangar/ProcessNetMonitor/releases/latest
