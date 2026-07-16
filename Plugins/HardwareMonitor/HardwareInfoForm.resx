@@ -177,6 +177,9 @@
   <data name="&gt;&gt;autoRefreshCheck.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="addSelectedBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
+  </data>
   <data name="addSelectedBtn.Location" type="System.Drawing.Point, System.Drawing">
     <value>249, 453</value>
   </data>
@@ -201,9 +204,6 @@
   <data name="&gt;&gt;addSelectedBtn.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
-  <metadata name="$this.Language" type="System.Globalization.CultureInfo, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>zh-CN</value>
-  </metadata>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
