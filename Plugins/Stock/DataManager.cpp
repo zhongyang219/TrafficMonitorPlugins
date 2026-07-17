@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "DataManager.h"
 #include "Common.h"
 #include "Stock.h"
@@ -209,6 +209,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	LoadKLineCache(STOCK::Period::DAY);
 	LoadKLineCache(STOCK::Period::MIN5);
 	LoadKLineCache(STOCK::Period::MIN30);
+	LoadFundNavCache();
 
 	// 从数据库加载关联股票的最高均幅
 	for (const auto& item : m_stock_related)
@@ -239,6 +240,11 @@ bool CDataManager::SaveTimelineCache(const std::wstring& stockCode, const std::v
 bool CDataManager::SaveKLineCache(const std::wstring& stockCode, STOCK::Period period, const std::vector<STOCK::KLinePoint>& data)
 {
 	return m_db_mgr.SaveKLineCache(stockCode, period, data);
+}
+
+bool CDataManager::SaveFundNavCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data)
+{
+	return m_db_mgr.SaveFundNavCache(stockCode, data);
 }
 
 bool CDataManager::HasTimelineCache(const std::wstring& stockCode)
@@ -280,12 +286,19 @@ void CDataManager::LoadKLineCache(STOCK::Period period)
 		auto points = m_db_mgr.LoadKLineCache(code, period);
 		if (points.empty()) continue;
 
-		// 5分钟/30分钟K线：如果缓存最新数据不是今天的，跳过加载（等网络请求更新）
+		// 5分钟/30分钟K线：如果缓存最新数据超过7天，跳过加载（等网络请求更新）
 		if (period == STOCK::Period::MIN5 || period == STOCK::Period::MIN30)
 		{
 			std::string todayStr = GetTodayDateString();
+			// 7天前的日期字符串
+			time_t cutoffTime = time(nullptr) - 7 * 24 * 60 * 60;
+			tm cutoffTm = {};
+			localtime_s(&cutoffTm, &cutoffTime);
+			char cutoffBuf[16];
+			sprintf_s(cutoffBuf, "%04d-%02d-%02d", cutoffTm.tm_year + 1900, cutoffTm.tm_mon + 1, cutoffTm.tm_mday);
+			std::string cutoffStr(cutoffBuf);
 			const auto& lastPoint = points.back();
-			if (lastPoint.day.length() < 10 || lastPoint.day.substr(0, 10) != todayStr)
+			if (lastPoint.day.length() < 10 || lastPoint.day.substr(0, 10) < cutoffStr)
 				continue;
 		}
 
@@ -307,6 +320,37 @@ void CDataManager::LoadKLineCache(STOCK::Period period)
 			stockData->clearMin30KLineData();
 			for (const auto& point : points)
 				stockData->addMin30KLinePoint(point);
+		}
+	}
+}
+
+void CDataManager::LoadFundNavCache()
+{
+	if (!m_db_mgr.IsOpen()) return;
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		// 仅对基金代码加载净值缓存
+		if (!CCommon::IsFundCode(code)) continue;
+		auto stockData = GetStockData(code);
+		if (!stockData) continue;
+		auto navPoints = m_db_mgr.LoadLatestFundNavCache(code);
+		if (navPoints.empty()) continue;
+
+		// 将基金净值数据合并到分时数据的iopv字段
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		auto timelineData = stockData->getTimelineData();
+		if (timelineData && !timelineData->data.empty())
+		{
+			// 按时间匹配，将缓存的净值填入分时点的iopv字段
+			size_t navIdx = 0;
+			for (auto& tp : timelineData->data)
+			{
+				if (navIdx < navPoints.size() && tp.time == navPoints[navIdx].time)
+				{
+					tp.iopv = navPoints[navIdx].iopv;
+					navIdx++;
+				}
+			}
 		}
 	}
 }
@@ -1153,7 +1197,7 @@ void CDataManager::RequestInnerOuterData()
 
 void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 {
-	// 仅对ETF基金代码获取IOPV，使用天天基金实时估值接口
+	// 仅对ETF基金代码获取IOPV
 	if (!CCommon::IsFundCode(stock_id))
 		return;
 
@@ -1162,21 +1206,60 @@ void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 	if (pureCode.size() >= 8 && iswalpha(pureCode[0]) && iswalpha(pureCode[1]))
 		pureCode = pureCode.substr(2);
 
-	// 天天基金实时估值接口（JSONP格式）
-	// 返回: jsonpgz({"fundcode":"513770","name":"...","dwjz":"0.3441","gsz":"0.3601","gszzl":"4.65","gztime":"2026-07-08 13:32"});
-	std::wstring url{ L"http://fundgz.1234567.com.cn/js/" + pureCode + L".js" };
+	// 上交所ETF使用上交所实时行情接口（含IOPV）
+	// 返回JSONP: jQuery...({"code":"513060","snap":["恒生医疗",0.5220,...,0.5201,...]})
+	// snap[12] = IOPV值
+	// 深交所ETF使用天天基金实时估值接口
+	std::wstring url;
+	CString strHeaders;
 
-	CString strHeaders = _T("Referer: http://fund.eastmoney.com");
+	if (stock_id.find(L"sh") == 0)
+	{
+		// 上交所ETF：yunhq.sse.com.cn接口，含真实IOPV
+		url = L"https://yunhq.sse.com.cn:32042/v1/sh1/snap/" + pureCode
+			+ L"?callback=jQuery&select=name,last,chg_rate,change,open,prev_close,high,low,volume,amount,iopv";
+		strHeaders = _T("Referer: https://etf.sse.com.cn");
+	}
+	else
+	{
+		// 深交所ETF：天天基金实时估值接口（JSONP格式）
+		// 返回: jsonpgz({"fundcode":"159920","gsz":"0.3601","dwjz":"0.3441",...})
+		url = L"http://fundgz.1234567.com.cn/js/" + pureCode + L".js";
+		strHeaders = _T("Referer: http://fund.eastmoney.com");
+	}
 
 	std::string stock_data;
 	if (CCommon::GetURL(url, stock_data, false, WEB_USERAGENT, strHeaders, strHeaders.GetLength()))
 	{
 		CString strData(stock_data.c_str());
+		// 调试日志：输出API返回数据前200字符
+		{
+			std::string logMsg = "FundIOPV OK: " + CCommon::UnicodeToStr(stock_id.c_str()) + " len=" + std::to_string(stock_data.size()) + " data=" + stock_data.substr(0, 200);
+			CCommon::WriteLog(logMsg.c_str(), g_data.m_log_path.c_str());
+		}
 		stockMarket.LoadFundIOPVData(stock_id, strData);
+
+		// 将当前IOPV值按分钟保存到数据库
+		auto stockData = GetStockData(stock_id);
+		if (stockData && stockData->info.iopv > 0)
+		{
+			// 获取当前时间的分钟字符串（HH:MM）
+			time_t now = time(nullptr);
+			tm localTm = {};
+			localtime_s(&localTm, &now);
+			char timeBuf[16];
+			sprintf_s(timeBuf, "%02d:%02d", localTm.tm_hour, localTm.tm_min);
+
+			STOCK::TimelinePoint navPoint;
+			navPoint.time = timeBuf;
+			navPoint.iopv = stockData->info.iopv;
+			std::vector<STOCK::TimelinePoint> navData = { navPoint };
+			SaveFundNavCache(stock_id, navData);
+		}
 	}
 	else
 	{
-		CCommon::WriteLog(_T("RequestFundIOPV: GetURL failed"), m_log_path.c_str());
+		CCommon::WriteLog("FundIOPV FAIL: GetURL failed", g_data.m_log_path.c_str());
 	}
 }
 

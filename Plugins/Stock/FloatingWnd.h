@@ -9,7 +9,6 @@
 
 // 定义自定义消息
 #define FWND_MSG_UPDATE_STATUS (WM_USER + 100)
-#define FWND_MSG_REQUEST_DATA (WM_USER + 101)
 #define FWND_MSG_SHOW_EDIT_DLG (WM_USER + 102)
 #define FWND_MSG_SHOW_ADD_DLG (WM_USER + 103)
 #define FWND_MSG_SHOW_TRADE_DLG (WM_USER + 104)
@@ -21,7 +20,8 @@ public:
 	virtual ~CFloatingWnd();
 
 	BOOL Create(CFont* font, CPoint pt, std::wstring stock_id);
-	void RequestData();
+	const std::wstring& GetStockId() const { return m_stock_id; }
+	void SetStockId(const std::wstring& stockId);
 	void ToggleKLineMode(); // 切换分时/日K模式
 
 protected:
@@ -34,7 +34,6 @@ protected:
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnDestroy();
 	LRESULT OnUpdateStatus(WPARAM wParam, LPARAM lParam);
-	LRESULT OnRequestData(WPARAM wParam, LPARAM lParam);
 	LRESULT OnCloseWindow(WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowEditDialog(WPARAM wParam, LPARAM lParam);
 	LRESULT OnShowAddDialog(WPARAM wParam, LPARAM lParam);
@@ -64,10 +63,9 @@ private:
 	static void SafeSetWindowPos(CWnd& wnd, int x, int y, int cx, int cy);
 	static void SafeShowWindow(CWnd& wnd, bool show);
 	static void SafeSetButtonStyle(CButton& btn, UINT style);
-	static UINT NetworkThreadProc(LPVOID pParam); // 线程函数
 	CPoint Stock2Point(int x, int y, int w, int h, double unitY, const STOCK::TimelinePoint& item, const STOCK::Price prevClosePrice);
 	void DrawOrderBook(CDC& memDC, int left, int right, int height, const STOCK::StockInfo& stockInfo, const std::vector<STOCK::KLinePoint>& klineData);
-	void DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo = nullptr, int startIndex = 0, int visibleCount = -1);
+	void DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo = nullptr, int startIndex = 0, int visibleCount = -1, int xAxisPoints = 0);
 
 	// 分时图绘制相关
 	struct TimelineDrawContext {
@@ -84,6 +82,7 @@ private:
 		int macdChartHeight;
 		int positionY;
 		int visibleCount{ 0 };   // 可见数据点数（≤120）
+		int xAxisPoints{ 0 };   // X轴总格数（=m_timelineVisibleCount，数据不足时右侧留白）
 		int startIndex{ 0 };     // 可见数据起始索引
 		int scrollRange{ 0 };    // 滚动范围
 		STOCK::Price maxPrice{ 0 };   // 可见区间最大价（含内边距）
@@ -145,6 +144,12 @@ private:
 	static void CalcAllRollingAvgPrices(std::vector<STOCK::TimelinePoint>& timelinePoint);
 	// 计算滚动均价：N分钟成交额/N分钟成交量（单次查询）
 	static STOCK::Price CalcRollingAvgPrice(const std::vector<STOCK::TimelinePoint>& timelinePoint, int nMinutes);
+	// 计算Y轴整齐刻度步长（Nice Number算法：1-2-3-4-5-10序列）
+	static double CalcNiceStep(double range, double divCount, double minStep = 0.001);
+	// 根据数据范围计算Y轴整齐边界（分时/竞价模式：带边距约束和负数保护）
+	static void CalcNiceAxisRange(double visMin, double visMax, double divCount, double minStep, double& outAxisMin, double& outAxisMax, double& outNiceStep);
+	// 根据数据范围计算Y轴整齐边界（K线模式：中心对称扩展）
+	static void CalcNiceAxisRangeSymmetric(double visMin, double visMax, double divCount, double minStep, double& outMin, double& outMax, double& outNiceStep);
 	std::vector<MACDCrossSignal> DetectMACDCross(const std::vector<MACDData>& macdData);
 	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
 	CSignalAnalyzer::T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
@@ -286,12 +291,6 @@ private:
 	CFont m_chipPeakFont;        // 筹码峰按钮小字体
 	CScrollBar m_hScrollBar;
 	std::wstring m_stock_id;
-	bool m_is_thread_running{};
-	bool m_is_thread_stopping{};  // 通知 NetworkThreadProc 尽快退出
-	bool m_pendingRequest{};  // 切换股票时如果线程正在运行，标记待请求
-	bool m_isFirstRequest{ true };  // 启动后首次请求标志，不受交易时段限制
-	HANDLE m_hNetworkThread{ nullptr };     // NetworkThreadProc 线程句柄（用于退出等待）
-	class CWinThread* m_pNetworkThread{ nullptr };  // 对应 CWinThread 对象（m_bAutoDelete=FALSE，需手动释放）
 	bool m_isKLineMode{};
 	bool m_isMin5KLineMode{};  // 5分钟K线模式（m_isKLineMode为true时的子模式）
 	bool m_isMin30KLineMode{};  // 30分钟K线模式（m_isKLineMode为true时的子模式）
@@ -321,11 +320,6 @@ private:
 	volatile BOOL m_isDestroying;
 	CFont* m_pfont{};
 	CString loading_state_txt;
-
-	unsigned __int64 m_last_request_time{};
-	unsigned __int64 m_last_min5_fetch_time{};   // 上次获取5分钟K线的时间（固定60秒间隔，与视图无关）
-	unsigned __int64 m_last_min30_fetch_time{};  // 上次获取30分钟K线的时间（固定600秒间隔，与视图无关）
-	unsigned __int64 m_last_iopv_fetch_time{};   // 上次获取IOPV的时间（15秒间隔，独立于K线）
 
 	// 鼠标悬停数据
 	CPoint m_mousePos;

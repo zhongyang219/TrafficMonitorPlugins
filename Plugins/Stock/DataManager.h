@@ -131,8 +131,10 @@ public:
 private:
 	bool SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data);
 	bool SaveKLineCache(const std::wstring& stockCode, STOCK::Period period, const std::vector<STOCK::KLinePoint>& data);
+	bool SaveFundNavCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data);
 	void LoadTimelineCache();
 	void LoadKLineCache(STOCK::Period period);
+	void LoadFundNavCache();
 
 	// 数据库管理器：所有 SQLite 操作由此类负责
 	CStockDbManager m_db_mgr;

@@ -33,7 +33,7 @@ static std::string GetTodayDateString()
 
 static std::string GetCacheCutoffDateString()
 {
-	return GetLocalDateString(GetLocalMidnightTime(-30));
+	return GetLocalDateString(GetLocalMidnightTime(-7));
 }
 
 static const char* GetKLineCacheTable(STOCK::Period period)
@@ -242,6 +242,19 @@ bool CStockDbManager::Init(const std::wstring& config_path)
 	rc = sqlite3_exec(m_db, maxAvgDiffSql, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) sqlite3_free(errMsg);
 
+	// 基金净值按分钟缓存表
+	const char* fundNavSql = "CREATE TABLE IF NOT EXISTS fund_nav_cache ("
+		"stock_code TEXT NOT NULL,"
+		"trade_date TEXT NOT NULL,"
+		"time TEXT NOT NULL,"
+		"nav REAL NOT NULL,"
+		"updated_at INTEGER NOT NULL,"
+		"PRIMARY KEY(stock_code, trade_date, time)"
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, fundNavSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK) sqlite3_free(errMsg);
+
 	return true;
 }
 
@@ -259,7 +272,7 @@ void CStockDbManager::CleanExpiredData()
 {
 	if (m_db == nullptr) return;
 
-	time_t cutoffTime = GetLocalMidnightTime(-30);
+	time_t cutoffTime = GetLocalMidnightTime(-7);
 	std::string cutoffDate = GetCacheCutoffDateString();
 
 	const char* cleanSql = "DELETE FROM inner_outer_snapshots WHERE snapshot_time < ?;";
@@ -310,6 +323,15 @@ void CStockDbManager::CleanExpiredData()
 	const char* cleanMin30Sql = "DELETE FROM kline_min30_cache WHERE day < ?;";
 	stmt = nullptr;
 	if (sqlite3_prepare_v2(m_db, cleanMin30Sql, -1, &stmt, nullptr) == SQLITE_OK)
+	{
+		sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	}
+
+	const char* cleanFundNavSql = "DELETE FROM fund_nav_cache WHERE trade_date < ?;";
+	stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, cleanFundNavSql, -1, &stmt, nullptr) == SQLITE_OK)
 	{
 		sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
 		sqlite3_step(stmt);
@@ -423,12 +445,13 @@ bool CStockDbManager::SaveTimelineCache(const std::wstring& stockCode, const std
 bool CStockDbManager::HasTimelineCache(const std::wstring& stockCode)
 {
 	if (m_db == nullptr) return false;
-	const char* sql = "SELECT 1 FROM timeline_cache WHERE stock_code = ? AND trade_date = ? LIMIT 1;";
+	// 检查7天内是否有分时缓存
+	std::string cutoffDate = GetCacheCutoffDateString();
+	const char* sql = "SELECT 1 FROM timeline_cache WHERE stock_code = ? AND trade_date >= ? LIMIT 1;";
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
-	std::string tradeDate = GetTodayDateString();
 	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
 	bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
 	sqlite3_finalize(stmt);
 	return hasCache;
@@ -542,7 +565,7 @@ bool CStockDbManager::HasKLineCache(const std::wstring& stockCode, STOCK::Period
 		return hasCache;
 	}
 
-	// 5分钟/30分钟K线：缓存中最新数据必须包含今天才算有效
+	// 5分钟/30分钟K线：缓存中最新数据在7天内即算有效
 	std::wstring sql = L"SELECT day FROM " + table + L" WHERE stock_code = ? ORDER BY day DESC LIMIT 1;";
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare16_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
@@ -555,8 +578,8 @@ bool CStockDbManager::HasKLineCache(const std::wstring& stockCode, STOCK::Period
 		{
 			// day格式为 "YYYY-MM-DD HH:MM" 或 "YYYY-MM-DD"，取前10字符比较日期
 			std::string dayStr = reinterpret_cast<const char*>(dayText);
-			std::string todayStr = GetTodayDateString();
-			hasCache = (dayStr.length() >= 10 && dayStr.substr(0, 10) == todayStr);
+			std::string cutoffStr = GetCacheCutoffDateString();
+			hasCache = (dayStr.length() >= 10 && dayStr.substr(0, 10) >= cutoffStr);
 		}
 	}
 	sqlite3_finalize(stmt);
@@ -791,4 +814,98 @@ void CStockDbManager::CleanExpiredMaxAvgDiff()
 		sqlite3_step(stmt);
 	}
 	sqlite3_finalize(stmt);
+}
+
+bool CStockDbManager::SaveFundNavCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data)
+{
+	if (m_db == nullptr || data.empty()) return false;
+
+	const char* sql = "INSERT OR IGNORE INTO fund_nav_cache(stock_code, trade_date, time, nav, updated_at) VALUES(?, ?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	std::string tradeDate = GetTodayDateString();
+	time_t now = time(nullptr);
+	bool ok = true;
+	for (const auto& item : data)
+	{
+		if (item.time.empty() || item.iopv <= 0) continue;
+		sqlite3_reset(stmt);
+		sqlite3_clear_bindings(stmt);
+		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 3, item.time.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_double(stmt, 4, item.iopv);
+		sqlite3_bind_int64(stmt, 5, static_cast<sqlite3_int64>(now));
+		rc = sqlite3_step(stmt);
+		if (rc != SQLITE_DONE)
+			ok = false;
+	}
+	sqlite3_finalize(stmt);
+	return ok;
+}
+
+std::vector<STOCK::TimelinePoint> CStockDbManager::LoadFundNavCache(const std::wstring& stockCode, const std::string& tradeDate)
+{
+	std::vector<STOCK::TimelinePoint> points;
+	if (m_db == nullptr) return points;
+
+	const char* sql = "SELECT time, nav FROM fund_nav_cache WHERE stock_code = ? AND trade_date = ? ORDER BY time ASC;";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return points;
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		STOCK::TimelinePoint point;
+		const unsigned char* timeText = sqlite3_column_text(stmt, 0);
+		point.time = timeText ? reinterpret_cast<const char*>(timeText) : "";
+		point.iopv = sqlite3_column_double(stmt, 1);
+		points.push_back(point);
+	}
+	sqlite3_finalize(stmt);
+	return points;
+}
+
+std::vector<STOCK::TimelinePoint> CStockDbManager::LoadLatestFundNavCache(const std::wstring& stockCode)
+{
+	std::string tradeDate = GetTodayDateString();
+	auto points = LoadFundNavCache(stockCode, tradeDate);
+	if (!points.empty()) return points;
+
+	// 今天没有缓存时，回退加载最近交易日的基金净值
+	if (m_db == nullptr) return points;
+
+	const char* fallbackSql = "SELECT time, nav FROM fund_nav_cache WHERE stock_code = ? AND trade_date = (SELECT trade_date FROM fund_nav_cache WHERE stock_code = ? ORDER BY trade_date DESC LIMIT 1) ORDER BY time ASC;";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, fallbackSql, -1, &stmt, nullptr) != SQLITE_OK) return points;
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text16(stmt, 2, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		STOCK::TimelinePoint point;
+		const unsigned char* timeText = sqlite3_column_text(stmt, 0);
+		point.time = timeText ? reinterpret_cast<const char*>(timeText) : "";
+		point.iopv = sqlite3_column_double(stmt, 1);
+		points.push_back(point);
+	}
+	sqlite3_finalize(stmt);
+	return points;
+}
+
+bool CStockDbManager::HasFundNavCache(const std::wstring& stockCode)
+{
+	if (m_db == nullptr) return false;
+	const char* sql = "SELECT 1 FROM fund_nav_cache WHERE stock_code = ? AND trade_date = ? LIMIT 1;";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
+	std::string tradeDate = GetTodayDateString();
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	bool hasCache = sqlite3_step(stmt) == SQLITE_ROW;
+	sqlite3_finalize(stmt);
+	return hasCache;
 }

@@ -1,4 +1,4 @@
-﻿﻿// ManagerDialog.cpp: 实现文件
+﻿// ManagerDialog.cpp: 实现文件
 //
 
 #include "pch.h"
@@ -6,6 +6,7 @@
 #include "afxdialogex.h"
 #include "ManagerDialog.h"
 #include "Common.h"
+#include "StockFetchThread.h"
 #include "OptionsDlg.h"
 #include <Windows.h>
 
@@ -245,16 +246,12 @@ void CManagerDialog::OnBnClickedOk()
 		// 为新增的股票异步获取日K线数据
 		if (!new_codes.empty())
 		{
-			std::vector<std::wstring>* pNewCodes = new std::vector<std::wstring>(new_codes);
-			AfxBeginThread([](LPVOID pParam) -> UINT {
-				std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
-				for (const auto& code : *pCodes)
+			CStockFetchThread::Instance().PostBackgroundTask([new_codes]() {
+				for (const auto& code : new_codes)
 				{
 					g_data.RequestKLineData(code, 750);
 				}
-				delete pCodes;
-				return 0;
-				}, pNewCodes);
+			});
 		}
 	}
 	CDialog::OnOK();

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <cmath>
 
 #include "Stock.h"
@@ -88,11 +88,15 @@ void Stock::DataRequired()
 				});
 		}
 	}
-	std::lock_guard<std::mutex> lock(m_wndMutex);
-	if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
+	// 图表数据由 StockFetchThread 工作线程自主定时获取，无需外部驱动
+	// 此处仅通知 UI 刷新显示
 	{
-		if (bTradingSession || bCallAuction)
-			m_pFloatingWnd->SendMessage(FWND_MSG_REQUEST_DATA, cur_time, 0);
+		std::lock_guard<std::mutex> lock(m_wndMutex);
+		if (m_pFloatingWnd != NULL && ::IsWindow(m_pFloatingWnd->GetSafeHwnd()))
+		{
+			if (bTradingSession || bCallAuction)
+				m_pFloatingWnd->PostMessage(FWND_MSG_UPDATE_STATUS, 0, 0);
+		}
 	}
 }
 
@@ -299,6 +303,11 @@ void Stock::ShowFloatingWnd(void* hWnd, CPoint ptScreen, std::wstring stock_id)
 		delete m_pFloatingWnd;
 		m_pFloatingWnd = NULL;
 	}
+	else
+	{
+		// 通知获取线程开始为当前股票定时获取图表数据
+		CStockFetchThread::Instance().SetFocusStockId(stock_id);
+	}
 }
 
 void Stock::DestroyFloatingWnd()
@@ -323,9 +332,9 @@ void Stock::PreloadAllKLineData()
 	if (codes.empty())
 		return;
 
-	auto preloadThread = [](LPVOID pParam) -> UINT {
-		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
-		for (const auto& code : *pCodes)
+	// 通过 StockFetchThread 后台任务队列执行，避免创建临时线程
+	CStockFetchThread::Instance().PostBackgroundTask([codes]() {
+		for (const auto& code : codes)
 		{
 			if (!g_data.HasKLineCache(code, STOCK::Period::DAY))
 				g_data.RequestKLineData(code, 750);
@@ -334,12 +343,7 @@ void Stock::PreloadAllKLineData()
 			if (!g_data.HasKLineCache(code, STOCK::Period::MIN30))
 				g_data.RequestMin30KLineData(code, 250);
 		}
-		delete pCodes;
-		return 0;
-		};
-
-	std::vector<std::wstring>* pCodes = new std::vector<std::wstring>(codes);
-	AfxBeginThread(preloadThread, pCodes);
+	});
 }
 
 void Stock::PreloadAllChipDistributionData()
@@ -348,18 +352,12 @@ void Stock::PreloadAllChipDistributionData()
 	if (codes.empty())
 		return;
 
-	auto preloadThread = [](LPVOID pParam) -> UINT {
-		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
-		for (const auto& code : *pCodes)
+	CStockFetchThread::Instance().PostBackgroundTask([codes]() {
+		for (const auto& code : codes)
 		{
 			g_data.RequestChipDistributionData(code);
 		}
-		delete pCodes;
-		return 0;
-		};
-
-	std::vector<std::wstring>* pCodes = new std::vector<std::wstring>(codes);
-	AfxBeginThread(preloadThread, pCodes);
+	});
 }
 
 void Stock::PreloadAllStockBasicData()
@@ -368,18 +366,12 @@ void Stock::PreloadAllStockBasicData()
 	if (codes.empty())
 		return;
 
-	auto preloadThread = [](LPVOID pParam) -> UINT {
-		std::vector<std::wstring>* pCodes = (std::vector<std::wstring>*)pParam;
-		for (const auto& code : *pCodes)
+	CStockFetchThread::Instance().PostBackgroundTask([codes]() {
+		for (const auto& code : codes)
 		{
 			g_data.RequestStockBasicData(code);
 		}
-		delete pCodes;
-		return 0;
-		};
-
-	std::vector<std::wstring>* pCodes = new std::vector<std::wstring>(codes);
-	AfxBeginThread(preloadThread, pCodes);
+	});
 }
 
 void Stock::UpdateKLine()

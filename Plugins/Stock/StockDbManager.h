@@ -25,7 +25,7 @@ public:
 	bool Init(const std::wstring& config_path);
 	void Close();
 	bool IsOpen() const { return m_db != nullptr; }
-	// 清理超过1个月的快照、K线和筹码峰缓存
+	// 清理超过7天的快照、K线和筹码峰缓存
 	void CleanExpiredData();
 
 	// 交易记录
@@ -72,6 +72,14 @@ public:
 	bool SaveMaxAvgDiff(const std::wstring& stockCode, double maxAvgDiff);
 	double LoadMaxAvgDiff(const std::wstring& stockCode);
 	void CleanExpiredMaxAvgDiff();
+
+	// 基金净值按分钟缓存
+	bool SaveFundNavCache(const std::wstring& stockCode,
+		const std::vector<STOCK::TimelinePoint>& data);
+	std::vector<STOCK::TimelinePoint> LoadFundNavCache(const std::wstring& stockCode,
+		const std::string& tradeDate);
+	std::vector<STOCK::TimelinePoint> LoadLatestFundNavCache(const std::wstring& stockCode);
+	bool HasFundNavCache(const std::wstring& stockCode);
 
 private:
 	sqlite3* m_db{ nullptr };

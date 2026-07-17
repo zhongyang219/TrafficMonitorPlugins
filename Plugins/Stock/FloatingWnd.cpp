@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include "OptionsDlg.h"
 #include "TradeRecordDialog.h"
+#include "StockFetchThread.h"
 
 // 大盘指数优先级列表（用于总览列表排序）
 const std::vector<std::wstring> IndexPriority = {
@@ -255,7 +256,6 @@ BEGIN_MESSAGE_MAP(CFloatingWnd, CWnd)
 	ON_WM_HSCROLL()
 	ON_WM_DESTROY()
 	ON_MESSAGE((WM_USER + 100), OnUpdateStatus)
-	ON_MESSAGE((WM_USER + 101), OnRequestData)
 	ON_MESSAGE((WM_USER + 102), OnShowEditDialog)
 	ON_MESSAGE((WM_USER + 103), OnShowAddDialog)
 	ON_MESSAGE((WM_USER + 104), OnShowTradeDialog)
@@ -371,7 +371,7 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	UpdateModeButtons();
 	UpdatePeriodComboVisibility();
 
-	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
+	Invalidate();
 	return 0;
 }
 
@@ -382,35 +382,7 @@ LRESULT CFloatingWnd::OnUpdateStatus(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-LRESULT CFloatingWnd::OnRequestData(WPARAM wParam, LPARAM lParam)
-{
-	time_t req_time = (time_t)wParam;
-	if (req_time)
-	{
-		time_t now = req_time;
-		bool need = false;
 
-		// 视图相关数据（分时/日K线）：仅在非5min/30min视图下按10秒间隔获取
-		if (!m_isMin5KLineMode && !m_isMin30KLineMode)
-		{
-			if (now - (time_t)m_last_request_time > 10)
-				need = true;
-		}
-		// 5分钟K线：固定60秒间隔获取，与当前视图无关
-		if (now - (time_t)m_last_min5_fetch_time > 60)
-			need = true;
-		// 30分钟K线：固定600秒间隔获取，与当前视图无关
-		if (now - (time_t)m_last_min30_fetch_time > 600)
-			need = true;
-
-		if (need)
-			RequestData();
-
-		loading_state_txt += L".";
-		Invalidate();
-	}
-	return 0;
-}
 
 CFloatingWnd::CFloatingWnd() : m_isDestroying(FALSE), m_klineDataLoaded(false), m_isOverviewMode(false)
 {
@@ -782,6 +754,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		return;
 
 	const int totalPoints = static_cast<int>(timelinePoint.size());
+	const int xAxisPts = ctx.xAxisPoints > 0 ? ctx.xAxisPoints : totalPoints;
 
 	// Y轴范围：直接使用ctx中预计算的参数，确保与标签/网格线/悬停提示完全一致
 	STOCK::Price maxPrice = ctx.maxPrice;
@@ -809,7 +782,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 	for (int i = 0; i < totalPoints; i++)
 	{
 		const auto& item = timelinePoint[i];
-		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 		double yVal = (item.price - minPrice) * unitY;
 		dataPoints.push_back(CPoint(pointX, static_cast<int>(round(yVal))));
 	}
@@ -870,7 +843,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				firstAvgPoint = true;
 				continue;
 			}
-			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+			int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.averagePrice - minPrice) * unitY));
 			py = max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
 			if (firstAvgPoint)
@@ -908,7 +881,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 				case 20: maVal = item.ma20; break;
 				}
 				if (maVal <= 0) { first = true; continue; }
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 				double yVal = (maVal - minPrice) * unitY;
 				int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round(yVal));
 				if (first)
@@ -980,7 +953,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 			for (int i = 0; i < totalPoints; i++)
 			{
 				if (band[i] <= 0) continue;
-				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 				int py = priceToY(band[i]);
 				if (first)
 				{
@@ -1025,7 +998,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 					double avgP = timelinePoint[i].averagePrice;
 					if (avgP <= 0) { first = true; continue; }
 					double upperPrice = avgP * (1 + ampRatio);
-					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 					int py = priceToY(upperPrice);
 					if (first) { memDC.MoveTo(pointX, py); first = false; }
 					else { memDC.LineTo(pointX, py); }
@@ -1041,7 +1014,7 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 					double avgP = timelinePoint[i].averagePrice;
 					if (avgP <= 0) { first = true; continue; }
 					double lowerPrice = avgP * (1 - ampRatio);
-					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
+					int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
 					int py = priceToY(lowerPrice);
 					if (first) { memDC.MoveTo(pointX, py); first = false; }
 					else { memDC.LineTo(pointX, py); }
@@ -1260,8 +1233,9 @@ void CFloatingWnd::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContex
 	}
 
 	// 重新计算悬停点位置（按索引比例分配X坐标）
+	const int xSlots = ctx.xAxisPoints > 0 ? ctx.xAxisPoints : static_cast<int>(timelinePoint.size());
 	const auto& item = timelinePoint[m_hoveredBarIndex];
-	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(timelinePoint.size()) * m_hoveredBarIndex + ctx.chartWidth / static_cast<float>(timelinePoint.size()) / 2);
+	int hoverX = static_cast<int>(ctx.chartWidth / static_cast<float>(xSlots) * m_hoveredBarIndex + ctx.chartWidth / static_cast<float>(xSlots) / 2);
 
 	int dotY = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((item.price - minPrice) * unitY));
 
@@ -1366,6 +1340,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 		return;
 
 	const int totalPoints = static_cast<int>(timelinePoint.size());
+	const int xAxisPts = ctx.xAxisPoints > 0 ? ctx.xAxisPoints : totalPoints;
 
 	// Y轴范围：直接使用ctx中预计算的参数，确保与标签/网格线/悬停提示完全一致
 	STOCK::Price maxPrice = ctx.maxPrice;
@@ -1398,7 +1373,7 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 		return;
 
 	// 计算K线柱的宽度和间距
-	float barTotalWidth = static_cast<float>(ctx.chartWidth) / totalPoints;
+	float barTotalWidth = static_cast<float>(ctx.chartWidth) / xAxisPts;
 	int barWidth = max(1, static_cast<int>(barTotalWidth * 0.7));
 	int gap = static_cast<int>(barTotalWidth) - barWidth;
 	if (gap < 1) gap = 1;
@@ -1443,8 +1418,8 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 				if (firstIdx >= 0 && lastIdx >= 0)
 				{
 					// 计算最新一天区间对应的像素范围
-					int xLeft = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * firstIdx);
-					int xRight = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * (lastIdx + 1));
+					int xLeft = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * firstIdx);
+					int xRight = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * (lastIdx + 1));
 
 					// 价格图区域高亮
 					CBrush highlightBrush(COLOR_LIGHT_BLUE);
@@ -2081,7 +2056,7 @@ void CFloatingWnd::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext&
 
 void CFloatingWnd::DrawTimelineVolumeSection(CDC& memDC, const TimelineDrawContext& ctx)
 {
-	DrawVolumeChart(memDC, 0, ctx.volumeChartTop, ctx.chartWidth, ctx.volumeChartHeight, *ctx.timelinePoint, &ctx.realtimeData);
+	DrawVolumeChart(memDC, 0, ctx.volumeChartTop, ctx.chartWidth, ctx.volumeChartHeight, *ctx.timelinePoint, &ctx.realtimeData, 0, -1, ctx.xAxisPoints);
 
 	// 5分钟K线量柱图：绘制成交量MA5/MA10（最近5/10根5分钟K成交量算术平均）
 	if (m_isMin5KLineMode && ctx.fullTimeline && !ctx.fullTimeline->empty() && ctx.timelinePoint && !ctx.timelinePoint->empty())
@@ -2554,28 +2529,9 @@ void CFloatingWnd::OnPaint()
 			}
 
 			const double DIV_COUNT = 6.0;
-			double range = visMax - visMin;
-			double rawStep = range / (DIV_COUNT - 2.0);
-			double mag = pow(10.0, floor(log10(rawStep)));
-			double norm = rawStep / mag;
-			double niceStep;
-			if (norm <= 1.0) niceStep = 1.0 * mag;
-			else if (norm <= 2.0) niceStep = 2.0 * mag;
-			else if (norm <= 5.0) niceStep = 5.0 * mag;
-			else niceStep = 10.0 * mag;
-			niceStep = (std::max)(niceStep, 0.001);
-			double centerPrice = (visMin + visMax) / 2.0;
-			double axisRange = DIV_COUNT * niceStep;
-			double centeredMin = centerPrice - axisRange / 2.0;
-			double lowerBound = visMax - (DIV_COUNT - 1.0) * niceStep;
-			double upperBound = visMin - niceStep;
-			double axisMin = round(centeredMin / niceStep) * niceStep;
-			if (axisMin < lowerBound)
-				axisMin = ceil((lowerBound - niceStep * 1e-9) / niceStep) * niceStep;
-			if (axisMin > upperBound)
-				axisMin = floor((upperBound + niceStep * 1e-9) / niceStep) * niceStep;
-			axisMin = round(axisMin * 1000.0) / 1000.0;
-			double axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
+			const double MIN_STEP = 0.001;
+			double axisMin, axisMax, niceStep;
+			CalcNiceAxisRange(visMin, visMax, DIV_COUNT, MIN_STEP, axisMin, axisMax, niceStep);
 			ctx.maxPrice = axisMax;
 			ctx.minPrice = axisMin;
 			ctx.niceStep = niceStep;
@@ -2680,6 +2636,7 @@ void CFloatingWnd::OnPaint()
 			ctx.fullTimeline = &timelinePoint;  // 完整分时数据，供布林带等指标回溯
 			ctx.startIndex = startIndex;
 			ctx.visibleCount = visibleCount;
+			ctx.xAxisPoints = m_isKLineMode ? 0 : m_timelineVisibleCount;  // 仅分时模式固定X轴，K线模式动态
 			ctx.klineData = &klineData;
 
 			// 使用完整数据中已计算好的MA值
@@ -2775,45 +2732,12 @@ void CFloatingWnd::OnPaint()
 					visMin = ctx.realtimeData.prevClosePrice - priceLimit;
 				}
 
-				// Y轴固定6等分7根横线：至少保留上下各1格边距，最小刻度0.001
+				// Y轴固定6等分7根横线：Nice Number算法向上取整本身已提供边距，无需额外除以(DIV_COUNT-2)
 				// 先把轴边界对齐到实际显示的价格刻度，再让网格线、标签、曲线共用同一组刻度值，避免标签四舍五入后与曲线位置错位
 				const double DIV_COUNT = 6.0;
 				const double MIN_STEP = 0.001;
-				double range = visMax - visMin;
-				if (range <= 0) range = MIN_STEP;
-
-				double rawStep = range / (DIV_COUNT - 2.0);
-				if (rawStep <= 0) rawStep = MIN_STEP;
-				double mag = pow(10.0, floor(log10(rawStep)));
-				double norm = rawStep / mag;
-				double niceStep;
-				if (norm <= 1.0) niceStep = 1.0 * mag;
-				else if (norm <= 2.0) niceStep = 2.0 * mag;
-				else if (norm <= 5.0) niceStep = 5.0 * mag;
-				else niceStep = 10.0 * mag;
-				niceStep = (std::max)(niceStep, MIN_STEP);
-
-				double centerPrice = (visMin + visMax) / 2.0;
-				double axisRange = DIV_COUNT * niceStep;
-				double centeredMin = centerPrice - axisRange / 2.0;
-				double lowerBound = visMax - (DIV_COUNT - 1.0) * niceStep;
-				double upperBound = visMin - niceStep;
-				double axisMin = round(centeredMin / niceStep) * niceStep;
-				if (axisMin < lowerBound)
-					axisMin = ceil((lowerBound - niceStep * 1e-9) / niceStep) * niceStep;
-				if (axisMin > upperBound)
-					axisMin = floor((upperBound + niceStep * 1e-9) / niceStep) * niceStep;
-
-				// 与FormatFloat的三位小数显示精度保持一致，确保标签值就是网格线和曲线映射使用的实际值
-				axisMin = round(axisMin * 1000.0) / 1000.0;
-				double axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
-
-				// 股价不能为负数，Y轴最小值至少为0
-				if (axisMin < 0)
-				{
-					axisMin = 0;
-					axisMax = round((axisMin + axisRange) * 1000.0) / 1000.0;
-				}
+				double axisMin, axisMax, niceStep;
+				CalcNiceAxisRange(visMin, visMax, DIV_COUNT, MIN_STEP, axisMin, axisMax, niceStep);
 
 				ctx.maxPrice = axisMax;
 				ctx.minPrice = axisMin;
@@ -3485,6 +3409,70 @@ STOCK::Price CFloatingWnd::CalcRollingAvgPrice(const std::vector<STOCK::Timeline
 	if (sumVolume == 0)
 		return 0;
 	return sumAmount / sumVolume;
+}
+
+double CFloatingWnd::CalcNiceStep(double range, double divCount, double minStep)
+{
+	if (range <= 0) range = minStep;
+	double rawStep = range / divCount;
+	if (rawStep <= 0) rawStep = minStep;
+	double mag = pow(10.0, floor(log10(rawStep)));
+	double norm = rawStep / mag;
+	// norm ∈ [1,10)，映射到1~10的整数步长，平滑过渡
+	static const double thresholds[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+	double niceNorm = 10.0;
+	for (int i = 0; i < _countof(thresholds); i++)
+	{
+		if (norm <= thresholds[i] + 1e-9)
+		{
+			niceNorm = thresholds[i];
+			break;
+		}
+	}
+	return (std::max)(niceNorm * mag, minStep);
+}
+
+void CFloatingWnd::CalcNiceAxisRange(double visMin, double visMax, double divCount, double minStep, double& outAxisMin, double& outAxisMax, double& outNiceStep)
+{
+	double range = visMax - visMin;
+	double niceStep = CalcNiceStep(range, divCount, minStep);
+
+	// 先对齐axisMin到niceStep的整数倍，确保数据完全包含在轴范围内
+	double axisMin = floor((visMin + niceStep * 1e-9) / niceStep) * niceStep;
+	double axisMax = axisMin + divCount * niceStep;
+
+	// 如果axisRange不够包含所有数据，增加等分数
+	while (axisMax < visMax - 1e-9)
+	{
+		axisMax += niceStep;
+	}
+
+	// 三位小数精度截断（与显示格式一致）
+	axisMin = round(axisMin * 1000.0) / 1000.0;
+	axisMax = round(axisMax * 1000.0) / 1000.0;
+
+	// 股价非负约束
+	if (axisMin < 0)
+	{
+		axisMin = 0;
+		axisMax = round((axisMin + ceil((visMax + niceStep * 1e-9) / niceStep) * niceStep) * 1000.0) / 1000.0;
+	}
+
+	outAxisMin = axisMin;
+	outAxisMax = axisMax;
+	outNiceStep = niceStep;
+}
+
+void CFloatingWnd::CalcNiceAxisRangeSymmetric(double visMin, double visMax, double divCount, double minStep, double& outMin, double& outMax, double& outNiceStep)
+{
+	double range = visMax - visMin;
+	double niceStep = CalcNiceStep(range, divCount, minStep);
+
+	double centerPrice = (visMin + visMax) / 2.0;
+	double halfAxisRange = (divCount / 2.0) * niceStep;
+	outMin = centerPrice - halfAxisRange;
+	outMax = centerPrice + halfAxisRange;
+	outNiceStep = niceStep;
 }
 
 std::vector<CFloatingWnd::MACDData> CFloatingWnd::CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint)
@@ -5023,7 +5011,7 @@ void CFloatingWnd::DrawTimelineRSISection(CDC& memDC, const TimelineDrawContext&
 	}
 }
 
-void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo /* = nullptr */, int startIndex /* = 0 */, int visibleCount /* = -1 */)
+void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const STOCK::StockInfo* stockInfo /* = nullptr */, int startIndex /* = 0 */, int visibleCount /* = -1 */, int xAxisPoints /* = 0 */)
 {
 	if (timelinePoint.empty())
 		return;
@@ -5052,17 +5040,17 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	if (maxVolume == 0)
 		return;
 
-	// 动态计算柱子宽度：间距固定1像素，柱子宽度随缩放增大
-	const int totalPts = static_cast<int>(timelinePoint.size());
+	// X轴总格数：xAxisPoints>0时使用固定格数（数据不足时右侧留白），否则按实际数据点数
+	const int xSlots = (xAxisPoints > 0) ? xAxisPoints : static_cast<int>(timelinePoint.size());
 	const int fixedGap = 1;
-	int slotWidth = totalPts > 0 ? width / totalPts : 1;
+	int slotWidth = xSlots > 0 ? width / xSlots : 1;
 	int barWidth = max(2, slotWidth - fixedGap);
 	int halfSlot = slotWidth / 2;
 
 	for (int i = startIndex; i < endIdx; i++)
 	{
 		const auto& item = timelinePoint[i];
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot - barWidth / 2;
+		int barX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + halfSlot - barWidth / 2;
 
 		float ratio = static_cast<float>(item.volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -5084,7 +5072,7 @@ void CFloatingWnd::DrawVolumeChart(CDC& memDC, int x, int y, int width, int heig
 	if (m_isHoveringVolume && m_hoveredBarIndex >= 0 && m_hoveredBarIndex < timelinePoint.size())
 	{
 		const auto& item = timelinePoint[m_hoveredBarIndex];
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * m_hoveredBarIndex) + halfSlot - barWidth / 2;
+		int barX = x + static_cast<int>(width / static_cast<float>(xSlots) * m_hoveredBarIndex) + halfSlot - barWidth / 2;
 
 		float ratio = static_cast<float>(timelinePoint[m_hoveredBarIndex].volume) / maxVolume;
 		int barHeight = static_cast<int>(ratio * height);
@@ -5667,24 +5655,10 @@ void CFloatingWnd::DrawKLineChart(CDC& memDC, int x, int y, int w, int h, const 
 	{
 		const double DIV_COUNT = 6.0;
 		const double MIN_STEP = 0.001;
-		double range = drawData.maxPrice - drawData.minPrice;
-		if (range <= 0) range = MIN_STEP;
-
-		double rawStep = range / (DIV_COUNT - 2.0);
-		if (rawStep <= 0) rawStep = MIN_STEP;
-		double mag = pow(10.0, floor(log10(rawStep)));
-		double norm = rawStep / mag;
-		double niceStep;
-		if (norm <= 1.0) niceStep = 1.0 * mag;
-		else if (norm <= 2.0) niceStep = 2.0 * mag;
-		else if (norm <= 5.0) niceStep = 5.0 * mag;
-		else niceStep = 10.0 * mag;
-		niceStep = (std::max)(niceStep, MIN_STEP);
-
-		double centerPrice = (drawData.minPrice + drawData.maxPrice) / 2.0;
-		double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
-		drawData.minPrice = centerPrice - halfAxisRange;
-		drawData.maxPrice = centerPrice + halfAxisRange;
+		double niceMin, niceMax, niceStep;
+		CalcNiceAxisRangeSymmetric(drawData.minPrice, drawData.maxPrice, DIV_COUNT, MIN_STEP, niceMin, niceMax, niceStep);
+		drawData.minPrice = niceMin;
+		drawData.maxPrice = niceMax;
 		drawData.unitY = drawData.h / (drawData.maxPrice - drawData.minPrice);
 	}
 
@@ -6059,24 +6033,10 @@ void CFloatingWnd::DrawKLineTrendChart(CDC& memDC, int x, int y, int w, int h, c
 	{
 		const double DIV_COUNT = 6.0;
 		const double MIN_STEP = 0.001;
-		double range = drawData.maxPrice - drawData.minPrice;
-		if (range <= 0) range = MIN_STEP;
-
-		double rawStep = range / (DIV_COUNT - 2.0);
-		if (rawStep <= 0) rawStep = MIN_STEP;
-		double mag = pow(10.0, floor(log10(rawStep)));
-		double norm = rawStep / mag;
-		double niceStep;
-		if (norm <= 1.0) niceStep = 1.0 * mag;
-		else if (norm <= 2.0) niceStep = 2.0 * mag;
-		else if (norm <= 5.0) niceStep = 5.0 * mag;
-		else niceStep = 10.0 * mag;
-		niceStep = (std::max)(niceStep, MIN_STEP);
-
-		double centerPrice = (drawData.minPrice + drawData.maxPrice) / 2.0;
-		double halfAxisRange = (DIV_COUNT / 2.0) * niceStep;
-		drawData.minPrice = centerPrice - halfAxisRange;
-		drawData.maxPrice = centerPrice + halfAxisRange;
+		double niceMin, niceMax, niceStep;
+		CalcNiceAxisRangeSymmetric(drawData.minPrice, drawData.maxPrice, DIV_COUNT, MIN_STEP, niceMin, niceMax, niceStep);
+		drawData.minPrice = niceMin;
+		drawData.maxPrice = niceMax;
 		drawData.unitY = drawData.h / (drawData.maxPrice - drawData.minPrice);
 	}
 
@@ -8493,16 +8453,8 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				const std::wstring& clickedCode = stockCodes[rowIndex];
 				if (clickedCode != m_stock_id)
 				{
-					m_stock_id = clickedCode;
-					m_isFirstRequest = true;
-					// 切换股票后重置各K线获取计时器，立即获取新股票数据
-					m_last_request_time = 0;
-					m_last_min5_fetch_time = 0;
-					m_last_min30_fetch_time = 0;
-					m_timelineScrollOffset = -1;
+					SetStockId(clickedCode);
 					UpdateModeButtons();
-					Invalidate();
-					RequestData();
 				}
 				return;
 			}
@@ -8538,16 +8490,9 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 					m_isMin5KLineMode = false;
 					m_isMin30KLineMode = false;
 					m_showChipPeak = false;
-					m_stock_id = rowInfo.code;
-					m_isFirstRequest = true;  // 切换股票后允许首次请求
-					// 切换股票后重置各K线获取计时器，立即获取新股票数据
-					m_last_request_time = 0;
-					m_last_min5_fetch_time = 0;
-					m_last_min30_fetch_time = 0;
+					SetStockId(rowInfo.code);
 					UpdateModeButtons();
 					UpdatePeriodComboVisibility();
-					Invalidate();
-					RequestData();
 					return;
 				}
 				else if (rowInfo.deleteBtnStartX > 0 && point.x >= rowInfo.deleteBtnStartX && point.x <= rowInfo.deleteBtnEndX)
@@ -9379,10 +9324,10 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			if (p < prevClose) return COLOR_GREEN_DOWN;
 			return COLOR_BLACK;
 			};
-		// 均价
-		drawLabelValue(_T("均价:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice));
+		// 现价
+		drawLabelValue(_T("现:"), ctx.realtimeData.currentPrice, COLOR_BLACK, cmpPrevClose(ctx.realtimeData.currentPrice));
 
-		// ETF基金：显示IOPV和溢折率
+		// ETF基金：显示IOPV和溢折率，然后均价
 		if (ctx.realtimeData.IsETF() && ctx.realtimeData.iopv > 0)
 		{
 			// IOPV颜色：高于现价红色，低于现价绿色，等于黑色
@@ -9392,9 +9337,10 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			else if (ctx.realtimeData.iopv < ctx.realtimeData.currentPrice)
 				iopvColor = COLOR_GREEN_DOWN;
 
-			// IOPV值
+			// IOPV值保留4位小数
 			CString iopvLabel = _T("IOPV:");
-			CString iopvVal = CCommon::FormatFloat(ctx.realtimeData.iopv);
+			CString iopvVal;
+			iopvVal.Format(_T("%.4f"), ctx.realtimeData.iopv);
 			memDC.SetTextColor(COLOR_BLACK);
 			CSize iopvLs = memDC.GetTextExtent(iopvLabel);
 			memDC.TextOut(xPos, centerY - iopvLs.cy / 2, iopvLabel);
@@ -9405,7 +9351,7 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			xPos += iopvVs.cx + g_data.RDPI(4);
 
 			// 溢折率：大于0红色，小于0绿色
-			CString premLabel = _T("溢折:");
+			CString premLabel = _T("溢:");
 			CString premVal;
 			double premRate = ctx.realtimeData.iopvPremiumRate;
 			if (premRate >= 0)
@@ -9421,6 +9367,14 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 			CSize premVs = memDC.GetTextExtent(premVal);
 			memDC.TextOut(xPos, centerY - premVs.cy / 2, premVal);
 			xPos += premVs.cx + g_data.RDPI(4);
+
+			// 均价
+			drawLabelValue(_T("均:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice));
+		}
+		else
+		{
+			// 非ETF：显示均价
+			drawLabelValue(_T("均:"), dispAvgPrice, COLOR_BLACK, cmpPrevClose(dispAvgPrice));
 		}
 
 		// 分时模式：在标题栏正中间显示实时指标信号指示器
@@ -9923,7 +9877,6 @@ void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
 		Invalidate();
-		RequestData();
 	}
 }
 
@@ -10409,28 +10362,15 @@ void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)
 	}
 }
 
-void CFloatingWnd::RequestData()
+void CFloatingWnd::SetStockId(const std::wstring& stockId)
 {
-	if (!m_is_thread_running)
-	{
-		m_pendingRequest = false;
-		loading_state_txt = g_data.StringRes(IDS_LOADING).GetString();
-		// CREATE_SUSPENDED 以便安全获取线程句柄并设置 m_bAutoDelete = FALSE，
-		// 从而在 OnDestroy 中可对其等待，避免进程退出时仍卡在 HTTP 请求
-		CWinThread* pThread = AfxBeginThread(NetworkThreadProc, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
-		if (pThread != nullptr)
-		{
-			pThread->m_bAutoDelete = FALSE;
-			m_hNetworkThread = pThread->m_hThread;
-			m_pNetworkThread = pThread;
-			ResumeThread(m_hNetworkThread);
-		}
-	}
-	else
-	{
-		// 线程正在运行，标记待请求，线程结束后会自动触发
-		m_pendingRequest = true;
-	}
+	if (m_stock_id == stockId)
+		return;
+	m_stock_id = stockId;
+	// 通知获取线程切换关注股票，线程自动重置计时器并立即获取新股数据
+	CStockFetchThread::Instance().SetFocusStockId(m_stock_id);
+	m_timelineScrollOffset = -1;
+	Invalidate();
 }
 
 void CFloatingWnd::ToggleKLineMode()
@@ -10469,7 +10409,6 @@ void CFloatingWnd::ToggleKLineMode()
 		EnsureChipPeakData();
 	}
 	Invalidate();
-	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 }
 
 void CFloatingWnd::UpdateModeButtons()
@@ -10866,7 +10805,6 @@ void CFloatingWnd::OnBnClickedTimeLineBtn()
 		UpdatePeriodComboVisibility();
 		EnsureChipPeakData();
 		Invalidate();
-		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
 }
 
@@ -10899,7 +10837,6 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		UpdatePeriodComboVisibility();
 		EnsureChipPeakData();
 		Invalidate();
-		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
 	else if (!m_isKLineMode || m_isMin5KLineMode || m_isMin30KLineMode || m_isCallAuctionMode)
 	{
@@ -10931,7 +10868,6 @@ void CFloatingWnd::OnBnClickedKLineBtn()
 		UpdatePeriodComboVisibility();
 		EnsureChipPeakData();
 		Invalidate();
-		PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 	}
 	else if (m_showTrendView)
 	{
@@ -11045,19 +10981,15 @@ void CFloatingWnd::EnsureChipPeakData()
 
 		if (needRequest)
 		{
-			auto requestThread = [](LPVOID pParam) -> UINT {
-				auto param = static_cast<std::pair<HWND, std::wstring>*>(pParam);
-				HWND hWnd = param->first;
-				std::wstring stockId = param->second;
-				delete param;
-
+			// 通过 StockFetchThread 后台任务队列执行，避免创建临时线程
+			HWND hWnd = GetSafeHwnd();
+			std::wstring stockId = m_stock_id;
+			CStockFetchThread::Instance().PostBackgroundTask([hWnd, stockId]() {
 				g_data.RequestStockBasicData(stockId);
 				g_data.RequestChipDistributionData(stockId);
 				if (::IsWindow(hWnd))
 					::PostMessage(hWnd, FWND_MSG_UPDATE_STATUS, 0, 0);
-				return 0;
-				};
-			AfxBeginThread(requestThread, new std::pair<HWND, std::wstring>(GetSafeHwnd(), m_stock_id));
+			});
 		}
 	}
 }
@@ -11134,7 +11066,6 @@ void CFloatingWnd::OnBnClickedMin5KLineBtn()
 	UpdatePeriodComboVisibility();
 	EnsureChipPeakData();
 	Invalidate();
-	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 }
 
 void CFloatingWnd::OnBnClickedMin30KLineBtn()
@@ -11195,7 +11126,6 @@ void CFloatingWnd::OnBnClickedMin30KLineBtn()
 	UpdatePeriodComboVisibility();
 	EnsureChipPeakData();
 	Invalidate();
-	PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
 }
 
 void CFloatingWnd::OnBnClickedBollBtn()
@@ -11621,79 +11551,7 @@ void CFloatingWnd::DrawStockListPanel(CDC& memDC, int x, int y, int w, int h, co
 	memDC.SelectObject(pOldPen);
 }
 
-UINT CFloatingWnd::NetworkThreadProc(LPVOID pParam)
-{
-	CFloatingWnd* pFW = (CFloatingWnd*)pParam;
 
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-	CFlagLocker flag_locker(pFW->m_is_thread_running);
-
-	if (pFW->m_stock_id.empty())
-	{
-		return 0;
-	}
-
-	time_t now = time(nullptr);
-
-	// ETF基金IOPV数据：独立15秒间隔获取（交易所每15秒更新一次）
-	// IOPV不受交易时段限制，首次请求和盘中都获取
-	if (CCommon::IsFundCode(pFW->m_stock_id) && now - (time_t)pFW->m_last_iopv_fetch_time > 15)
-	{
-		pFW->m_last_iopv_fetch_time = now;
-		if (!pFW->m_is_thread_stopping)
-			g_data.RequestFundIOPV(pFW->m_stock_id);
-	}
-
-	// 收盘后/盘前/周末不请求数据（午休期间允许请求）
-	// 但启动后首次请求不受此限制，以确保能获取当天盘中数据
-	if (!pFW->m_isFirstRequest && !CDataManager::IsTradingDaySession())
-	{
-		return 0;
-	}
-	pFW->m_isFirstRequest = false;
-
-	// 视图相关数据（分时/日K线）：仅在非5min/30min视图下按10秒间隔获取
-	if (!pFW->m_isMin5KLineMode && !pFW->m_isMin30KLineMode)
-	{
-		if (now - (time_t)pFW->m_last_request_time > 10)
-		{
-			pFW->m_last_request_time = now;
-			if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
-			if (pFW->m_isKLineMode)
-				g_data.RequestKLineData(pFW->m_stock_id);
-			else
-			{
-				g_data.RequestTimelineData(pFW->m_stock_id);
-			}
-		}
-	}
-
-	// 5分钟K线：固定60秒间隔获取，与当前视图无关
-	// 这样切换到5分钟视图时数据已是最新，无需临时触发请求
-	if (now - (time_t)pFW->m_last_min5_fetch_time > 60)
-	{
-		pFW->m_last_min5_fetch_time = now;
-		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
-		g_data.RequestMin5KLineData(pFW->m_stock_id, 250);
-	}
-
-	// 30分钟K线：固定600秒间隔获取，与当前视图无关
-	if (now - (time_t)pFW->m_last_min30_fetch_time > 600)
-	{
-		pFW->m_last_min30_fetch_time = now;
-		if (pFW->m_is_thread_stopping) return 0;   // 关闭中，跳过 HTTP
-		g_data.RequestMin30KLineData(pFW->m_stock_id, 250);
-	}
-
-	// 线程结束前检查是否有待处理的请求（切换股票时线程正在运行导致的）
-	// 关闭窗口期间不再投递新请求，避免窗口销毁过程中再起新线程
-	if (!pFW->m_is_thread_stopping && pFW->m_pendingRequest && ::IsWindow(pFW->GetSafeHwnd()))
-	{
-		pFW->PostMessage(FWND_MSG_REQUEST_DATA, time(nullptr), 0);
-	}
-
-	return 0;
-}
 
 void CFloatingWnd::OnBnClickedCloseBtn()
 {
@@ -11734,7 +11592,6 @@ LRESULT CFloatingWnd::OnShowEditDialog(WPARAM wParam, LPARAM lParam)
 			}
 		}
 		Invalidate();
-		RequestData();
 	}
 	return 0;
 }
@@ -11752,7 +11609,6 @@ LRESULT CFloatingWnd::OnShowAddDialog(WPARAM wParam, LPARAM lParam)
 
 		m_vScrollOffset = 0;
 		Invalidate();
-		RequestData();
 	}
 	return 0;
 }
@@ -12068,24 +11924,6 @@ LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
 void CFloatingWnd::OnDestroy()
 {
 	CWnd::OnDestroy();
-
-	// 通知 NetworkThreadProc 尽快退出（在每个 HTTP 请求之间检查）
-	m_is_thread_stopping = true;
-
-	// 等待后台线程退出（HTTP 请求可能尚未完成，给最多 2 秒）
-	// 不阻塞过久，避免影响主程序退出体验
-	if (m_hNetworkThread != nullptr)
-	{
-		WaitForSingleObject(m_hNetworkThread, 2000);
-		CloseHandle(m_hNetworkThread);
-		m_hNetworkThread = nullptr;
-	}
-	// m_bAutoDelete = FALSE，需手动释放 CWinThread 对象
-	if (m_pNetworkThread != nullptr)
-	{
-		delete m_pNetworkThread;
-		m_pNetworkThread = nullptr;
-	}
 
 	if (m_CTransparentWnd.GetSafeHwnd())
 	{
