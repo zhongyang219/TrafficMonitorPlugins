@@ -985,7 +985,7 @@ bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK:
 
 	// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
 	if (trendState == STOCK::TrendState30m::STATE_WEAK)
-		return false;
+		return narrowBand;  // 弱势下BOLL极窄禁止买入（窄带变盘方向不确定，弱势接回风险大）
 	if (trendState == STOCK::TrendState30m::STATE_STRONG)
 		return kdjBottomPassive || wrBottomPassive;
 	return bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
@@ -1030,7 +1030,10 @@ CString CSignalAnalyzer::GetForbidReason(const std::vector<STOCK::Bar>& bars5, S
 
 	// 按优先级返回第一个命中的风险原因（4字简短描述）
 	if (trendState == STOCK::TrendState30m::STATE_WEAK)
+	{
+		if (narrowBand) return _T("BOLL过窄");
 		return _T("");
+	}
 	if (trendState == STOCK::TrendState30m::STATE_STRONG)
 	{
 		if (kdjBottomPassive) return _T("KDJ钝化");
@@ -1255,7 +1258,11 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
 		bool forbid = false;
 		bool narrowBand = IsNarrowBoll(bollMid[i], CalcAverageBollBandwidth(bollBand, i));
-		if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		if (trendState == STOCK::TrendState30m::STATE_WEAK)
+		{
+			forbid = narrowBand;  // 弱势下BOLL极窄禁止买入
+		}
+		else if (trendState == STOCK::TrendState30m::STATE_STRONG)
 		{
 			forbid = kdjBottomPassive || wrBottomPassive;
 		}

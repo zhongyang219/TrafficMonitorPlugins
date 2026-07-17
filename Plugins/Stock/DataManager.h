@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <deque>
 #include <ctime>
 #include "resource.h"
 #include "StockDef.h"
@@ -9,6 +10,14 @@
 #include <mutex>
 
 using namespace STOCK;
+
+// 线性回归结果
+struct RegResult
+{
+	bool valid;    // true=数据足够，结果可信
+	double slope;  // 回归斜率k
+	double r2;     // 拟合优度R²
+};
 
 #define g_data CDataManager::Instance()
 
@@ -112,6 +121,20 @@ public:
 	void ResetMaxAvgDiff(const std::wstring& code);
 	bool SaveMaxAvgDiffDb(const std::wstring& stockCode, double maxAvgDiff);
 
+	// 关联股票最低均幅
+	double GetMinAvgDiff(const std::wstring& code);
+	void UpdateMinAvgDiff(const std::wstring& code, double avgDiff);
+	void ResetMinAvgDiff(const std::wstring& code);
+	bool SaveMinAvgDiffDb(const std::wstring& stockCode, double minAvgDiff);
+
+	// 关联股票均值历史队列
+	void PushAvgDiffHistory(const std::wstring& code, double avgDiff);
+	const std::deque<double>& GetAvgDiffHistory(const std::wstring& code);
+
+	// 均值线性回归趋势（基于历史队列）
+	RegResult Get1MinAvgTrend(const std::wstring& code);   // 1分钟（最近12个点）
+	RegResult Get5MinAvgTrend(const std::wstring& code);   // 5分钟（全部60个点）
+
 	// 计算N日均线 (当前价格 + 前N-1天收盘价) / N
 	double CalculateMA(const std::wstring& code, double currentPrice, int N);
 
@@ -162,4 +185,10 @@ private:
 
 	// 关联股票最高均幅: code -> max_avg_diff_percent
 	std::map<std::wstring, double> m_max_avg_diff;
+
+	// 关联股票最低均幅: code -> min_avg_diff_percent
+	std::map<std::wstring, double> m_min_avg_diff;
+
+	// 关联股票均值历史队列: code -> deque<avg_diff>，每5秒采样一次，最多60个（5分钟）
+	std::map<std::wstring, std::deque<double>> m_avg_diff_history;
 };

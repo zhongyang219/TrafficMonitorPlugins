@@ -202,6 +202,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	m_db_mgr.Init(m_config_path);
 	m_db_mgr.CleanExpiredData();
 	m_db_mgr.CleanExpiredMaxAvgDiff();
+	m_db_mgr.CleanExpiredMinAvgDiff();
 	LoadTodayInnerOuterSnapshots();
 	LoadChipDistributions();
 	LoadStockBasicData();
@@ -217,6 +218,9 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 		double maxAvg = m_db_mgr.LoadMaxAvgDiff(item.first);
 		if (maxAvg != 0.0)
 			m_max_avg_diff[item.first] = maxAvg;
+		double minAvg = m_db_mgr.LoadMinAvgDiff(item.first);
+		if (minAvg != 0.0)
+			m_min_avg_diff[item.first] = minAvg;
 	}
 }
 
@@ -756,6 +760,7 @@ void CDataManager::SetRelatedStocks(const std::wstring& code, const std::vector<
 	{
 		m_stock_related.erase(code);
 		m_max_avg_diff.erase(code);
+		m_min_avg_diff.erase(code);
 	}
 	else
 	{
@@ -788,6 +793,138 @@ void CDataManager::UpdateMaxAvgDiff(const std::wstring& code, double avgDiff)
 void CDataManager::ResetMaxAvgDiff(const std::wstring& code)
 {
 	m_max_avg_diff.erase(code);
+}
+
+double CDataManager::GetMinAvgDiff(const std::wstring& code)
+{
+	auto it = m_min_avg_diff.find(code);
+	if (it != m_min_avg_diff.end())
+		return it->second;
+	return 0.0;
+}
+
+void CDataManager::UpdateMinAvgDiff(const std::wstring& code, double avgDiff)
+{
+	auto it = m_min_avg_diff.find(code);
+	if (it != m_min_avg_diff.end())
+	{
+		if (avgDiff < it->second)
+			it->second = avgDiff;
+	}
+	else
+	{
+		m_min_avg_diff[code] = avgDiff;
+	}
+}
+
+void CDataManager::ResetMinAvgDiff(const std::wstring& code)
+{
+	m_min_avg_diff.erase(code);
+}
+
+bool CDataManager::SaveMinAvgDiffDb(const std::wstring& stockCode, double minAvgDiff)
+{
+	return m_db_mgr.SaveMinAvgDiff(stockCode, minAvgDiff);
+}
+
+void CDataManager::PushAvgDiffHistory(const std::wstring& code, double avgDiff)
+{
+	auto& queue = m_avg_diff_history[code];
+	queue.push_back(avgDiff);
+	if (queue.size() > 60)
+		queue.pop_front();
+}
+
+const std::deque<double>& CDataManager::GetAvgDiffHistory(const std::wstring& code)
+{
+	static const std::deque<double> emptyQueue;
+	auto it = m_avg_diff_history.find(code);
+	if (it != m_avg_diff_history.end())
+		return it->second;
+	return emptyQueue;
+}
+
+// 核心线性回归计算（纯计算，无IO）
+static RegResult CalcLinearReg(const std::deque<double>& win)
+{
+	RegResult result;
+	result.valid = false;
+	result.slope = 0.0;
+	result.r2 = 0.0;
+
+	int n = static_cast<int>(win.size());
+	if (n < 12)
+		return result;
+
+	double Sx = 0, Sy = 0, Sxx = 0, Syy = 0, Sxy = 0;
+	for (int i = 0; i < n; i++)
+	{
+		double x = static_cast<double>(i);
+		double y = win[i];
+		Sx += x;
+		Sy += y;
+		Sxx += x * x;
+		Syy += y * y;
+		Sxy += x * y;
+	}
+
+	double dn = static_cast<double>(n);
+	double denom = dn * Sxx - Sx * Sx;
+	if (denom == 0.0)
+		return result;
+
+	double numer = dn * Sxy - Sx * Sy;
+	result.slope = numer / denom;
+
+	double SStotal = dn * Syy - Sy * Sy;
+	if (SStotal == 0.0)
+	{
+		// 所有y值相同，完美拟合
+		result.r2 = 1.0;
+	}
+	else
+	{
+		double SSres = SStotal - numer * numer / denom;
+		result.r2 = 1.0 - SSres / SStotal;
+	}
+
+	result.valid = true;
+	return result;
+}
+
+RegResult CDataManager::Get1MinAvgTrend(const std::wstring& code)
+{
+	auto it = m_avg_diff_history.find(code);
+	if (it == m_avg_diff_history.end())
+	{
+		RegResult r;
+		r.valid = false;
+		r.slope = 0.0;
+		r.r2 = 0.0;
+		return r;
+	}
+
+	const auto& queue = it->second;
+	// 取最近12个点（1分钟：12×5秒=60秒）
+	int startIdx = max(0, static_cast<int>(queue.size()) - 12);
+	std::deque<double> win(queue.begin() + startIdx, queue.end());
+	return CalcLinearReg(win);
+}
+
+RegResult CDataManager::Get5MinAvgTrend(const std::wstring& code)
+{
+	auto it = m_avg_diff_history.find(code);
+	if (it == m_avg_diff_history.end())
+	{
+		RegResult r;
+		r.valid = false;
+		r.slope = 0.0;
+		r.r2 = 0.0;
+		return r;
+	}
+
+	// 5分钟：全部60个点
+	return CalcLinearReg(it->second);
 }
 
 double CDataManager::CalculateMA(const std::wstring& code, double currentPrice, int N)
@@ -1255,6 +1392,21 @@ void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 			navPoint.iopv = stockData->info.iopv;
 			std::vector<STOCK::TimelinePoint> navData = { navPoint };
 			SaveFundNavCache(stock_id, navData);
+
+			// 同时更新分时数据中对应时间点的iopv字段，供净值曲线绘制使用
+			auto* timelineObj = stockData->getTimelineData();
+			if (timelineObj && !timelineObj->data.empty())
+			{
+				std::string curTime(timeBuf);
+				for (auto it = timelineObj->data.rbegin(); it != timelineObj->data.rend(); ++it)
+				{
+					if (it->time == curTime || it->time.find(curTime) == 0)
+					{
+						it->iopv = stockData->info.iopv;
+						break;
+					}
+				}
+			}
 		}
 	}
 	else
@@ -1545,7 +1697,26 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
 			auto stockData = GetStockData(stock_id);
 			auto timelineData = stockData ? stockData->getTimelineData() : nullptr;
 			if (timelineData && !timelineData->data.empty())
+			{
 				SaveTimelineCache(stock_id, timelineData->data);
+				// 分时数据加载后，合并基金净值缓存到iopv字段
+				if (CCommon::IsFundCode(stock_id))
+				{
+					auto navPoints = m_db_mgr.LoadLatestFundNavCache(stock_id);
+					if (!navPoints.empty())
+					{
+						size_t navIdx = 0;
+						for (auto& tp : timelineData->data)
+						{
+							if (navIdx < navPoints.size() && tp.time == navPoints[navIdx].time)
+							{
+								tp.iopv = navPoints[navIdx].iopv;
+								navIdx++;
+							}
+						}
+					}
+				}
+			}
 		}
 
 		// 清理资源

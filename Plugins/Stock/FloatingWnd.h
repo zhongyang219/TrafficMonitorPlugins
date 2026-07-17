@@ -42,7 +42,7 @@ protected:
 	afx_msg void OnBnClickedKLineBtn();
 	afx_msg void OnBnClickedMin5KLineBtn();
 	afx_msg void OnBnClickedMin30KLineBtn();
-	afx_msg void OnBnClickedT0Btn();
+	afx_msg void OnBnClickedJZBtn();
 	afx_msg void OnBnClickedCloseBtn();
 	afx_msg void OnBnClickedMABtn();
 	afx_msg void OnBnClickedBollBtn();
@@ -273,7 +273,7 @@ private:
 	CButton m_btnKLine;
 	CButton m_btnMin5KLine;
 	CButton m_btnMin30KLine;
-	CButton m_btnT0;
+	CButton m_btnJZ;
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
@@ -355,7 +355,7 @@ private:
 	bool m_expandedMode{ false };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
 	bool m_showStockList{ true };  // 是否显示左侧股票列表面板
 	bool m_isCallAuctionMode{ false };  // 集合竞价模式
-	bool m_showT0Markers{ false };
+	bool m_showJZCurve{ false };  // 基金净值曲线
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };
 	bool m_showAmplitudeBands{ false };  // 振幅上下线（与布林带互斥）

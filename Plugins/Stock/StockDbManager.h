@@ -73,6 +73,11 @@ public:
 	double LoadMaxAvgDiff(const std::wstring& stockCode);
 	void CleanExpiredMaxAvgDiff();
 
+	// 关联股票最低均幅
+	bool SaveMinAvgDiff(const std::wstring& stockCode, double minAvgDiff);
+	double LoadMinAvgDiff(const std::wstring& stockCode);
+	void CleanExpiredMinAvgDiff();
+
 	// 基金净值按分钟缓存
 	bool SaveFundNavCache(const std::wstring& stockCode,
 		const std::vector<STOCK::TimelinePoint>& data);
