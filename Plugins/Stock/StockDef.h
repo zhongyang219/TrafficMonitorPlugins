@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 #include <vector>
@@ -156,9 +156,21 @@ namespace STOCK
 	// 30分钟趋势状态
 	enum class TrendState30m
 	{
-		STATE_WEAK,    // 弱势：仅反T，禁止加仓正T
-		STATE_STRONG,  // 强势：回踩可低吸正T
-		STATE_SHAKE    // 震荡：正反T均可
+		STATE_WEAK,        // 弱势：仅反T，禁止加仓正T
+		STATE_WEAK_SHAKE,  // 弱震荡：偏弱但信号不足，谨慎操作
+		STATE_SHAKE,       // 震荡：正反T均可
+		STATE_STRONG       // 强势：回踩可低吸正T
+	};
+
+	// 30分钟趋势判定结果（含置信度）
+	struct TrendStateResult
+	{
+		TrendState30m state;     // 趋势状态
+		int confidence;          // 置信度 0-100，越高越可信（<50为低可信度）
+		double weakScore;        // 弱势加权得分
+		double strongScore;      // 强势加权得分
+
+		TrendStateResult() : state(TrendState30m::STATE_SHAKE), confidence(0), weakScore(0), strongScore(0) {}
 	};
 
 	// 5分钟共振信号

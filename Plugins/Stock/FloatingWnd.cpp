@@ -94,6 +94,8 @@ CString TrendStateToText(STOCK::TrendState30m state)
 	{
 	case STOCK::TrendState30m::STATE_WEAK:
 		return _T("弱势");
+	case STOCK::TrendState30m::STATE_WEAK_SHAKE:
+		return _T("弱震荡");
 	case STOCK::TrendState30m::STATE_STRONG:
 		return _T("强势");
 	case STOCK::TrendState30m::STATE_SHAKE:
@@ -1085,115 +1087,218 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 		}
 	}
 
-	// 绘制智能分析买卖点标记（基于5min/30min K线共振判定）
+	// 绘制智能分析买卖点标记
 	// T0标记始终绘制
 	{
 		auto stockData = g_data.GetStockData(m_stock_id);
 		if (stockData)
 		{
-			auto min5KLineObj = stockData->getMin5KLineData();
 			auto min30KLineObj = stockData->getMin30KLineData();
 
-			if (min5KLineObj && min5KLineObj->data.size() >= 60 &&
-				min30KLineObj && min30KLineObj->data.size() >= 22)
+			if (min30KLineObj && min30KLineObj->data.size() >= 22)
 			{
-				// 将KLinePoint转换为Bar
-				std::vector<STOCK::Bar> bars5, bars30;
-				bars5.reserve(min5KLineObj->data.size());
-				for (const auto& kp : min5KLineObj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+				// 30分钟K线数据（分时和K线模式共用）
+				std::vector<STOCK::Bar> bars30;
 				bars30.reserve(min30KLineObj->data.size());
 				for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 
-				// 批量检测信号（用全部K线计算指标保证EMA等递推稳定）
-				auto allSignals = CSignalAnalyzer::BatchDetectSignals(bars5, bars30);
-
-				// 获取5分钟K线的最新日期，仅保留当天信号用于分时图映射
-				std::string latestBarDate;
-				for (auto it5 = min5KLineObj->data.rbegin(); it5 != min5KLineObj->data.rend(); ++it5)
-				{
-					auto sp = it5->day.find(' ');
-					if (sp != std::string::npos)
-					{
-						latestBarDate = it5->day.substr(0, sp);
-						break;
-					}
-				}
-				std::vector<CSignalAnalyzer::SmartSignalPoint> signals;
-				for (const auto& sig : allSignals)
-				{
-					if (sig.barIndex < 0 || sig.barIndex >= static_cast<int>(min5KLineObj->data.size()))
-						continue;
-					if (!latestBarDate.empty())
-					{
-						const auto& bar5Time = min5KLineObj->data[sig.barIndex].day;
-						auto sp = bar5Time.find(' ');
-						if (sp != std::string::npos && bar5Time.substr(0, sp) != latestBarDate)
-							continue;
-					}
-					signals.push_back(sig);
-				}
-
-				// 构建分时时间→索引查找表（支持HH:MM和HH:MM:SS格式）
-				std::map<std::string, int> timeIndexMap;
-				for (int k = 0; k < totalPoints; k++)
-				{
-					const auto& t = timelinePoint[k].time;
-					// 同时存原始格式和截断到HH:MM的格式
-					timeIndexMap[t] = k;
-					if (t.length() > 5 && t[5] == ':')
-						timeIndexMap[t.substr(0, 5)] = k;
-				}
-
-				// 将5分钟K线信号映射到分时数据点
+				// 信号数组
 				auto buySignals = std::vector<bool>(totalPoints, false);
 				auto sellSignals = std::vector<bool>(totalPoints, false);
 				auto forbidSignals = std::vector<bool>(totalPoints, false);
 				auto buyReasons = std::vector<CString>(totalPoints);
 				auto sellReasons = std::vector<CString>(totalPoints);
+				auto noLabelSignals = std::vector<bool>(totalPoints, false);  // 只绘制圆点不绘制文字
 
-				for (const auto& sig : signals)
+				if (!m_isKLineMode && ctx.fullTimeline && ctx.fullTimeline->size() >= 120)
 				{
-					const auto& bar5Time = min5KLineObj->data[sig.barIndex].day;
+					// ===== 分时图模式：使用1分钟粒度信号（用完整分时数据，不受缩放影响） =====
+					std::vector<STOCK::Bar> bars1m = CSignalAnalyzer::ConvertTimelineToBars(*ctx.fullTimeline);
+					auto ar = CSignalAnalyzer::AnalyzeSignalAtFromTimeline(bars1m, bars30, static_cast<int>(bars1m.size()) - 1);
+					auto& allSignals = ar.batchSignals;
 
-					// 提取 "HH:MM" 部分
-					std::string timeStr;
-					auto spacePos = bar5Time.find(' ');
-					if (spacePos != std::string::npos && bar5Time.length() > spacePos + 5)
-						timeStr = bar5Time.substr(spacePos + 1, 5);
-					else if (bar5Time.length() >= 5 && bar5Time[2] == ':')
-						timeStr = bar5Time.substr(0, 5);
-					else
-						timeStr = bar5Time;
+					// 计算可见区域的起始偏移（将完整数据索引转换为可见区域索引）
+					int fullToVisibleOffset = ctx.startIndex;  // 可见区域在完整数据中的起始位置
 
-					// 在查找表中匹配
-					auto it = timeIndexMap.find(timeStr);
-					if (it == timeIndexMap.end() && timeStr.length() >= 8)
+					// 连续同方向信号过滤：同方向连续信号只有第一个绘制文字，后续只绘制圆点
+					// 方向变化时重新计数
+					std::vector<bool> filteredSignals(allSignals.size(), false);
 					{
-						// 尝试截断 "HH:MM:SS" → "HH:MM"
-						it = timeIndexMap.find(timeStr.substr(0, 5));
+						bool lastDirIsBuy = false;
+						bool hasLastDir = false;
+						for (size_t i = 0; i < allSignals.size(); i++)
+						{
+							if (allSignals[i].isForbid) { hasLastDir = false; continue; }
+							if (hasLastDir && allSignals[i].isBuy == lastDirIsBuy)
+							{
+								// 同方向连续，只绘制圆点
+								filteredSignals[i] = true;
+							}
+							else
+							{
+								// 方向变化或首个信号，绘制文字
+								lastDirIsBuy = allSignals[i].isBuy;
+								hasLastDir = true;
+							}
+						}
 					}
-					if (it != timeIndexMap.end())
+
+					// 1分钟信号映射到分时数据点（barIndex是完整数据索引，需减去偏移得到可见索引）
+					for (size_t si = 0; si < allSignals.size(); si++)
 					{
-						int k = it->second;
+						const auto& sig = allSignals[si];
+						int k = sig.barIndex - fullToVisibleOffset;  // 转换为可见区域索引
+						if (k < 0 || k >= totalPoints) continue;
 						if (sig.isForbid)
 						{
-							// 禁止信号优先级最高，覆盖已有的买卖信号
 							forbidSignals[k] = true;
 							buySignals[k] = false;
-							sellSignals[k] = false;
 						}
-						else if (!forbidSignals[k])
+						else if (!forbidSignals[k] || !sig.isBuy)
 						{
-							// 非禁止信号且当前点不是禁止，才设置买卖信号
 							if (sig.isBuy)
 							{
-								buySignals[k] = true;
-								buyReasons[k] = sig.reason;
+								if (!forbidSignals[k])
+								{
+									buySignals[k] = true;
+									buyReasons[k] = sig.reason;
+									if (filteredSignals[si])
+										noLabelSignals[k] = true;  // 只绘制圆点不绘制文字
+								}
 							}
 							else
 							{
 								sellSignals[k] = true;
 								sellReasons[k] = sig.reason;
+								if (filteredSignals[si])
+									noLabelSignals[k] = true;  // 只绘制圆点不绘制文字
+							}
+						}
+					}
+				}
+				else if (m_isKLineMode)
+				{
+					// ===== K线模式：使用5分钟K线信号 =====
+					auto min5KLineObj = stockData->getMin5KLineData();
+					if (min5KLineObj && min5KLineObj->data.size() >= 60)
+					{
+						// 获取5分钟K线的最新日期
+						std::string latestBarDate;
+						for (auto it5 = min5KLineObj->data.rbegin(); it5 != min5KLineObj->data.rend(); ++it5)
+						{
+							auto sp = it5->day.find(' ');
+							if (sp != std::string::npos)
+							{
+								latestBarDate = it5->day.substr(0, sp);
+								break;
+							}
+						}
+
+						std::vector<STOCK::Bar> bars5;
+						bars5.reserve(min5KLineObj->data.size());
+						for (const auto& kp : min5KLineObj->data) bars5.push_back(STOCK::Bar::FromKLinePoint(kp));
+
+						auto ar = CSignalAnalyzer::AnalyzeSignalAt(bars5, bars30, static_cast<int>(bars5.size()) - 1);
+						auto& allSignals = ar.batchSignals;
+
+						// 仅保留当天信号
+						std::vector<CSignalAnalyzer::SmartSignalPoint> signals;
+						for (const auto& sig : allSignals)
+						{
+							if (sig.barIndex < 0 || sig.barIndex >= static_cast<int>(min5KLineObj->data.size()))
+								continue;
+							if (!latestBarDate.empty())
+							{
+								const auto& bar5Time = min5KLineObj->data[sig.barIndex].day;
+								auto sp = bar5Time.find(' ');
+								if (sp != std::string::npos && bar5Time.substr(0, sp) != latestBarDate)
+									continue;
+							}
+							signals.push_back(sig);
+						}
+
+						// 构建分时时间→索引查找表
+						std::map<std::string, int> timeIndexMap;
+						for (int k = 0; k < totalPoints; k++)
+						{
+							const auto& t = timelinePoint[k].time;
+							timeIndexMap[t] = k;
+							if (t.length() > 5 && t[5] == ':')
+								timeIndexMap[t.substr(0, 5)] = k;
+						}
+
+						// 连续同方向信号过滤：同方向连续信号只有第一个绘制文字，后续只绘制圆点
+						// 方向变化时重新计数
+						std::set<int> klineFilteredBarIndices;  // 需要过滤文字的barIndex集合
+						{
+							bool lastDirIsBuy = false;
+							bool hasLastDir = false;
+							int lastBarIdx = -1;
+							for (const auto& sig : signals)
+							{
+								if (sig.isForbid) { hasLastDir = false; continue; }
+								int bi = sig.barIndex;
+								// 同一根K线可能有多个信号，只看第一个
+								if (bi == lastBarIdx) continue;
+								if (hasLastDir && sig.isBuy == lastDirIsBuy)
+								{
+									// 同方向连续，只绘制圆点
+									klineFilteredBarIndices.insert(bi);
+								}
+								else
+								{
+									// 方向变化或首个信号，绘制文字
+									lastDirIsBuy = sig.isBuy;
+									hasLastDir = true;
+								}
+								lastBarIdx = bi;
+							}
+						}
+
+						// 将5分钟K线信号映射到分时数据点
+						for (const auto& sig : signals)
+						{
+							const auto& bar5Time = min5KLineObj->data[sig.barIndex].day;
+							std::string timeStr;
+							auto spacePos = bar5Time.find(' ');
+							if (spacePos != std::string::npos && bar5Time.length() > spacePos + 5)
+								timeStr = bar5Time.substr(spacePos + 1, 5);
+							else if (bar5Time.length() >= 5 && bar5Time[2] == ':')
+								timeStr = bar5Time.substr(0, 5);
+							else
+								timeStr = bar5Time;
+
+							auto it = timeIndexMap.find(timeStr);
+							if (it == timeIndexMap.end() && timeStr.length() >= 8)
+								it = timeIndexMap.find(timeStr.substr(0, 5));
+							if (it != timeIndexMap.end())
+							{
+								int k = it->second;
+								if (sig.isForbid)
+								{
+									forbidSignals[k] = true;
+									buySignals[k] = false;
+								}
+								else if (!forbidSignals[k] || !sig.isBuy)
+								{
+									if (sig.isBuy)
+									{
+										if (!forbidSignals[k])
+										{
+											buySignals[k] = true;
+											buyReasons[k] = sig.reason;
+											if (klineFilteredBarIndices.count(sig.barIndex))
+												noLabelSignals[k] = true;
+										}
+									}
+									else
+									{
+										sellSignals[k] = true;
+										sellReasons[k] = sig.reason;
+										if (klineFilteredBarIndices.count(sig.barIndex))
+											noLabelSignals[k] = true;
+									}
+								}
 							}
 						}
 					}
@@ -1247,12 +1352,15 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 						CBrush* pOldB = memDC.SelectObject(&brush);
 						CPen* pOldP = memDC.SelectObject(&pen);
 						memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
-						memDC.SetTextColor(COLOR_GREEN_DOWN);
-						CString label = buyReasons[i].IsEmpty() ? _T("B") : buyReasons[i];
-						CSize sz = memDC.GetTextExtent(label);
-						int labelY = ptY + dotR + labelOff;
-						memDC.TextOut(ptX - sz.cx / 2, labelY, label);
-						drawSignalArrow(ptX, labelY, ptY + dotR, COLOR_GREEN_DOWN);
+						if (!noLabelSignals[i])
+						{
+							memDC.SetTextColor(COLOR_GREEN_DOWN);
+							CString label = buyReasons[i].IsEmpty() ? _T("B") : buyReasons[i];
+							CSize sz = memDC.GetTextExtent(label);
+							int labelY = ptY + dotR + labelOff;
+							memDC.TextOut(ptX - sz.cx / 2, labelY, label);
+							drawSignalArrow(ptX, labelY, ptY + dotR, COLOR_GREEN_DOWN);
+						}
 						memDC.SelectObject(pOldB);
 						memDC.SelectObject(pOldP);
 					}
@@ -1263,12 +1371,15 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 						CBrush* pOldB = memDC.SelectObject(&brush);
 						CPen* pOldP = memDC.SelectObject(&pen);
 						memDC.Ellipse(ptX - dotR, ptY - dotR, ptX + dotR, ptY + dotR);
-						memDC.SetTextColor(COLOR_RED_UP);
-						CString label = sellReasons[i].IsEmpty() ? _T("S") : sellReasons[i];
-						CSize sz = memDC.GetTextExtent(label);
-						int labelY = ptY - dotR - labelOff - sz.cy;
-						memDC.TextOut(ptX - sz.cx / 2, labelY, label);
-						drawSignalArrow(ptX, labelY + sz.cy, ptY - dotR, COLOR_RED_UP);
+						if (!noLabelSignals[i])
+						{
+							memDC.SetTextColor(COLOR_RED_UP);
+							CString label = sellReasons[i].IsEmpty() ? _T("S") : sellReasons[i];
+							CSize sz = memDC.GetTextExtent(label);
+							int labelY = ptY - dotR - labelOff - sz.cy;
+							memDC.TextOut(ptX - sz.cx / 2, labelY, label);
+							drawSignalArrow(ptX, labelY + sz.cy, ptY - dotR, COLOR_RED_UP);
+						}
 						memDC.SelectObject(pOldB);
 						memDC.SelectObject(pOldP);
 					}
@@ -1797,7 +1908,35 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 				bars30.reserve(min30KLineObj->data.size());
 				for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 
-				auto signals = CSignalAnalyzer::BatchDetectSignals(bars5, bars30);
+				// 统一信号分析（与弹窗使用相同算法）
+				auto ar = CSignalAnalyzer::AnalyzeSignalAt(bars5, bars30, static_cast<int>(bars5.size()) - 1);
+				auto& signals = ar.batchSignals;
+
+				// 连续同方向信号过滤：连续5根以上同方向信号只有第一个绘制文字，后续只绘制圆点
+				std::set<int> kline5FilteredBarIndices;
+				{
+					int runCount = 0;
+					bool runIsBuy = false;
+					int runStart = -1;
+					for (const auto& sig : signals)
+					{
+						if (sig.isForbid) { runCount = 0; continue; }
+						int bi = sig.barIndex;
+						if (bi == runStart + runCount && runCount > 0 && sig.isBuy == runIsBuy)
+						{
+							runCount++;
+							if (runCount >= 2)
+								kline5FilteredBarIndices.insert(bi);
+						}
+						else
+						{
+							runStart = bi;
+							runCount = 1;
+							runIsBuy = sig.isBuy;
+						}
+					}
+				}
+
 				int oldBkMode = memDC.SetBkMode(TRANSPARENT);
 				auto drawSignalArrow = [&](int x, int fromY, int toY, COLORREF color) {
 					CPen pen(PS_SOLID, 1, color);
@@ -1847,11 +1986,14 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 						int r = g_data.RDPI(3);
 						int labelOff = g_data.RDPI(8);
 						memDC.Ellipse(barX - r, barY, barX + r, barY + 2 * r);
-						memDC.SetTextColor(COLOR_GREEN_DOWN);
-						CSize sz = memDC.GetTextExtent(sig.reason);
-						int labelY = barY + 2 * r + labelOff;
-						memDC.TextOut(barX - sz.cx / 2, labelY, sig.reason);
-						drawSignalArrow(barX, labelY, barY + 2 * r, COLOR_GREEN_DOWN);
+						if (!kline5FilteredBarIndices.count(klineIdx))
+						{
+							memDC.SetTextColor(COLOR_GREEN_DOWN);
+							CSize sz = memDC.GetTextExtent(sig.reason);
+							int labelY = barY + 2 * r + labelOff;
+							memDC.TextOut(barX - sz.cx / 2, labelY, sig.reason);
+							drawSignalArrow(barX, labelY, barY + 2 * r, COLOR_GREEN_DOWN);
+						}
 						memDC.SelectObject(pOldB);
 						memDC.SelectObject(pOldP);
 					}
@@ -1865,11 +2007,14 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 						int r = g_data.RDPI(3);
 						int labelOff = g_data.RDPI(8);
 						memDC.Ellipse(barX - r, barY - 2 * r, barX + r, barY);
-						memDC.SetTextColor(COLOR_RED_UP);
-						CSize sz = memDC.GetTextExtent(sig.reason);
-						int labelY = barY - 2 * r - sz.cy - labelOff;
-						memDC.TextOut(barX - sz.cx / 2, labelY, sig.reason);
-						drawSignalArrow(barX, labelY + sz.cy, barY - 2 * r, COLOR_RED_UP);
+						if (!kline5FilteredBarIndices.count(klineIdx))
+						{
+							memDC.SetTextColor(COLOR_RED_UP);
+							CSize sz = memDC.GetTextExtent(sig.reason);
+							int labelY = barY - 2 * r - sz.cy - labelOff;
+							memDC.TextOut(barX - sz.cx / 2, labelY, sig.reason);
+							drawSignalArrow(barX, labelY + sz.cy, barY - 2 * r, COLOR_RED_UP);
+						}
 						memDC.SelectObject(pOldB);
 						memDC.SelectObject(pOldP);
 					}
@@ -7950,12 +8095,12 @@ void CFloatingWnd::DrawOrderBook(CDC& memDC, int left, int right, int height, co
 					std::vector<STOCK::Bar> bars30;
 					bars30.reserve(min30Obj->data.size());
 					for (const auto& kp : min30Obj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-					STOCK::TrendState30m state30 = CSignalAnalyzer::Get30mTrendState(bars30);
+					STOCK::TrendState30m state30 = CSignalAnalyzer::Get30mTrendState(bars30).state;
 					if (dirCur == STOCK::TrendDir::DIR_SIDE)
 					{
 						if (state30 == STOCK::TrendState30m::STATE_STRONG)
 							curSideTag = STOCK::SideTag::SIDE_LONG_POINT;
-						else if (state30 == STOCK::TrendState30m::STATE_WEAK)
+						else if (state30 == STOCK::TrendState30m::STATE_WEAK || state30 == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 							curSideTag = STOCK::SideTag::SIDE_SHORT_POINT;
 					}
 					validCur = true;
@@ -9640,8 +9785,8 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 								std::vector<STOCK::Bar> bars30;
 								bars30.reserve(min30KLineObj->data.size());
 								for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-								STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30);
-								CString reason = CSignalAnalyzer::GetForbidReason(bars5, trendState);
+								STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30).state;
+								CString reason = CSignalAnalyzer::CalcForbidResult(bars5, trendState).forbidBuyReason;
 								if (reason.IsEmpty())
 								{
 									riskText = _T("\u221A");  // √
@@ -9773,8 +9918,8 @@ void CFloatingWnd::DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& 
 								std::vector<STOCK::Bar> bars30;
 								bars30.reserve(min30KLineObj->data.size());
 								for (const auto& kp : min30KLineObj->data) bars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-								STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30);
-								CString reason = CSignalAnalyzer::GetForbidReason(bars5, trendState);
+								STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30).state;
+								CString reason = CSignalAnalyzer::CalcForbidResult(bars5, trendState).forbidBuyReason;
 								if (reason.IsEmpty())
 								{
 									riskText = _T("\u221A");  // √
@@ -11826,7 +11971,7 @@ void CFloatingWnd::TestSmartSignalOnDoubleClick(int timelineIndex)
 
 	std::vector<STOCK::Bar> allBars5, allBars30;
 	std::vector<std::string> allBars5Time;
-	CString dataStatus;
+	std::vector<STOCK::TimelinePoint> timelineData;
 	{
 		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 		auto stockData = g_data.GetStockData(m_stock_id);
@@ -11854,14 +11999,176 @@ void CFloatingWnd::TestSmartSignalOnDoubleClick(int timelineIndex)
 			for (const auto& kp : min30KLineObj->data)
 				allBars30.push_back(STOCK::Bar::FromKLinePoint(kp));
 		}
+		// 分时图模式获取分时数据
+		if (!m_isKLineMode)
+		{
+			auto timelineObj = stockData->getTimelineData();
+			if (timelineObj)
+				timelineData = timelineObj->data;
+		}
 	}
 
+	// 分时图模式：使用1分钟粒度信号
+	if (!m_isKLineMode && timelineData.size() >= 120 && !allBars30.empty())
+	{
+		std::vector<STOCK::Bar> bars1m = CSignalAnalyzer::ConvertTimelineToBars(timelineData);
+		int barIndex = max(0, min(timelineIndex, static_cast<int>(bars1m.size()) - 1));
+
+		CString mappedBarTime;
+		if (barIndex >= 0 && barIndex < static_cast<int>(timelineData.size()))
+			mappedBarTime = CString(timelineData[barIndex].fullTime.c_str());
+
+		auto ar = CSignalAnalyzer::AnalyzeSignalAtFromTimeline(bars1m, allBars30, barIndex);
+
+		CString clickedBatchText;
+		if (ar.clickedSignal)
+		{
+			clickedBatchText.Format(_T("%s（%s）"),
+				ar.clickedSignal->isForbid ? _T("风控禁止") : (ar.clickedSignal->isBuy ? _T("买入") : _T("卖出")),
+				ar.clickedSignal->reason.GetString());
+		}
+		else
+			clickedBatchText = _T("无信号");
+
+		CString latestSignalText = clickedBatchText;
+
+		CString bollPos;
+		if (ar.boll.up > 0 && ar.boll.dn > 0)
+		{
+			double lastClose = bars1m[barIndex].close;
+			if (lastClose >= ar.boll.up) bollPos = _T("上轨上方");
+			else if (lastClose <= ar.boll.dn) bollPos = _T("下轨下方");
+			else if (lastClose >= ar.boll.mid) bollPos = _T("中轨上方");
+			else bollPos = _T("中轨下方");
+		}
+		else bollPos = _T("N/A");
+
+		CString macdState;
+		if (ar.macd.dif > 0 && ar.macd.macd_bar > 0) macdState = _T("多头增强");
+		else if (ar.macd.dif > 0 && ar.macd.macd_bar <= 0) macdState = _T("多头减弱");
+		else if (ar.macd.dif < 0 && ar.macd.macd_bar < 0) macdState = _T("空头增强");
+		else if (ar.macd.dif < 0 && ar.macd.macd_bar >= 0) macdState = _T("空头减弱");
+		else macdState = _T("零轴");
+
+		CString kdjState;
+		if (ar.kdj.k > 80) kdjState = _T("超买");
+		else if (ar.kdj.k < 20) kdjState = _T("超卖");
+		else kdjState = _T("中性");
+
+		CString wrState;
+		if (ar.wr < 20) wrState = _T("超买");
+		else if (ar.wr > 80) wrState = _T("超卖");
+		else wrState = _T("中性");
+
+		CString rsiState;
+		if (ar.rsi > 70) rsiState = _T("超买");
+		else if (ar.rsi < 30) rsiState = _T("超卖");
+		else rsiState = _T("中性");
+
+		CString riskInfo;
+		if (ar.forbidResult.forbidBuy || ar.forbidResult.forbidSell)
+		{
+			riskInfo.Format(_T("禁止买入=%s(%s) 禁止卖出=%s(%s)"),
+				BoolToText(ar.forbidResult.forbidBuy).GetString(), ar.forbidResult.forbidBuyReason.GetString(),
+				BoolToText(ar.forbidResult.forbidSell).GetString(), ar.forbidResult.forbidSellReason.GetString());
+		}
+		else
+			riskInfo = _T("无拦截");
+
+		CString sellDiag;
+		sellDiag.Format(_T("必要=%s(触轨=%s 红柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
+			BoolToText(ar.sellNecessary).GetString(),
+			BoolToText(ar.sellS1).GetString(), BoolToText(ar.sellS2_redShrink).GetString(),
+			ar.sellAuxCount,
+			BoolToText(ar.sellA1).GetString(), BoolToText(ar.sellA2).GetString(), BoolToText(ar.sellA3).GetString(), BoolToText(ar.sellA4).GetString());
+
+		CString buyDiag;
+		buyDiag.Format(_T("必要=%s(触轨=%s 绿柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
+			BoolToText(ar.buyNecessary).GetString(),
+			BoolToText(ar.buyB1).GetString(), BoolToText(ar.buyB2_greenShrink).GetString(),
+			ar.buyAuxCount,
+			BoolToText(ar.buyA1).GetString(), BoolToText(ar.buyA2).GetString(), BoolToText(ar.buyA3).GetString(), BoolToText(ar.buyA4).GetString());
+
+		CString msg;
+		msg.Format(_T("=== %s %.3f %s [1分钟] ===\r\n")
+			_T("\r\n【信号】%s\r\n")
+			_T("【30分钟趋势】%s（置信度%d%%，弱%.1f/强%.1f）\r\n")
+			_T("【风控】%s\r\n")
+			_T("\r\n【指标】\r\n")
+			_T("BOLL: 带宽%.4f 位置%s 上轨=%.4f 下轨=%.4f\r\n")
+			_T("MACD: DIF=%.3f DEA=%.3f BAR=%.3f %s\r\n")
+			_T("KDJ:  K=%.1f D=%.1f J=%.1f %s\r\n")
+			_T("WR:   %.1f %s\r\n")
+			_T("RSI:  %.1f %s\r\n")
+			_T("\r\n【卖出条件】%s\r\n")
+			_T("【买入条件】%s\r\n")
+			_T("\r\n【批量判定链】hasSell=%s hasBuy=%s forbidBuy=%s forbidSell=%s 过滤=%s\r\n"),
+			CString(m_stock_id.c_str()).GetString(),
+			static_cast<double>(m_pendingTradePrice),
+			mappedBarTime.GetString(),
+			latestSignalText.GetString(),
+			TrendStateToText(ar.trendResult.state).GetString(),
+			ar.trendResult.confidence, ar.trendResult.weakScore, ar.trendResult.strongScore,
+			riskInfo.GetString(),
+			ar.boll.bandwidth, bollPos.GetString(), ar.boll.up, ar.boll.dn,
+			ar.macd.dif, ar.macd.dea, ar.macd.macd_bar, macdState.GetString(),
+			ar.kdj.k, ar.kdj.d, ar.kdj.j, kdjState.GetString(),
+			ar.wr, wrState.GetString(),
+			ar.rsi, rsiState.GetString(),
+			sellDiag.GetString(),
+			buyDiag.GetString(),
+			BoolToText(ar.batchHasSell).GetString(),
+			BoolToText(ar.batchHasBuy).GetString(),
+			BoolToText(ar.batchForbidBuy).GetString(),
+			BoolToText(ar.batchForbidSell).GetString(),
+			ar.batchFilterReason.GetString());
+
+		// 弹框定位
+		CRect wndRect;
+		GetWindowRect(&wndRect);
+		int msgX = wndRect.right - 8;
+		CRect workArea;
+		SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+		int msgBottom = workArea.bottom + 8;
+		static int g_msgBoxX = 0;
+		static int g_msgBoxBottom = 0;
+		g_msgBoxX = msgX;
+		g_msgBoxBottom = msgBottom;
+		static HHOOK g_hHook = NULL;
+		static auto cbtProc = [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
+			if (nCode == HCBT_ACTIVATE)
+			{
+				HWND hWnd = (HWND)wParam;
+				wchar_t cls[32] = {};
+				GetClassNameW(hWnd, cls, 32);
+				if (wcscmp(cls, L"#32770") == 0)
+				{
+					RECT rect;
+					::GetWindowRect(hWnd, &rect);
+					int w = rect.right - rect.left;
+					int h = rect.bottom - rect.top;
+					int x = g_msgBoxX;
+					int y = g_msgBoxBottom - h;
+					::SetWindowPos(hWnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+					if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
+				}
+			}
+			return CallNextHookEx(g_hHook, nCode, wParam, lParam);
+			};
+		if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
+		g_hHook = SetWindowsHookExW(WH_CBT, cbtProc, NULL, GetCurrentThreadId());
+		MessageBox(msg, _T("信号分析(1分钟)"), MB_ICONINFORMATION);
+		if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
+		return;
+	}
+
+	// K线模式：使用5分钟K线信号（原有逻辑）
 	if (allBars5.empty() || allBars30.empty())
 	{
-		dataStatus.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu\r\n30分钟K线数量：%zu\r\n双击价格：%.3f\r\n双击时间：%s\r\n"),
+		CString msg;
+		msg.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu\r\n30分钟K线数量：%zu\r\n双击价格：%.3f\r\n双击时间：%s\r\n\r\n缺少5分钟或30分钟K线数据，无法进行信号分析。"),
 			CString(m_stock_id.c_str()), allBars5.size(), allBars30.size(), static_cast<double>(m_pendingTradePrice), m_pendingTradeTime.GetString());
-		CString msg = dataStatus + _T("\r\n测试结果：缺少5分钟或30分钟K线数据，无法调用买卖点检测函数。\r\n原因：SignalAnalyzer 需要 bars5 与 bars30 同时存在。 ");
-		MessageBox(msg, _T("买卖点检测测试"), MB_ICONINFORMATION);
+		MessageBox(msg, _T("信号分析"), MB_ICONINFORMATION);
 		return;
 	}
 
@@ -11918,204 +12225,163 @@ void CFloatingWnd::TestSmartSignalOnDoubleClick(int timelineIndex)
 		barIndex = static_cast<int>(allBars5.size()) - 1;
 	barIndex = max(0, min(barIndex, static_cast<int>(allBars5.size()) - 1));
 
-	std::vector<STOCK::Bar> bars5(allBars5.begin(), allBars5.begin() + barIndex + 1);
-	std::vector<STOCK::Bar> bars30 = allBars30;
-
 	CString mappedBarTime;
 	if (barIndex >= 0 && barIndex < static_cast<int>(allBars5Time.size()))
 		mappedBarTime = CString(allBars5Time[barIndex].c_str());
-	dataStatus.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu / 全部%zu\r\n30分钟K线数量：%zu\r\n双击分时索引：%d\r\n双击分钟：%d\r\n匹配交易日：%s\r\n映射5分钟K线索引：%d\r\n映射5分钟K线时间：%s\r\n双击价格：%.3f\r\n双击时间：%s\r\n"),
-		CString(m_stock_id.c_str()), bars5.size(), allBars5.size(), bars30.size(), timelineIndex, clickedMinute, CString(latestDate.c_str()).GetString(), barIndex, mappedBarTime.GetString(), static_cast<double>(m_pendingTradePrice), m_pendingTradeTime.GetString());
 
-	STOCK::TrendState30m trendState = CSignalAnalyzer::Get30mTrendState(bars30);
-	STOCK::Signal5m sig5m = CSignalAnalyzer::Get5mSignal(bars5, trendState);
-	bool forbid = CSignalAnalyzer::IsForbidTrade(bars5, trendState);
-	CSignalAnalyzer::T0Signal smartSignal = CSignalAnalyzer::DetectSmartSignal(bars5, bars30);
-	auto batchSignals = CSignalAnalyzer::BatchDetectSignals(allBars5, bars30);
-	const CSignalAnalyzer::SmartSignalPoint* clickedBatchSignal = nullptr;
-	for (const auto& item : batchSignals)
-	{
-		if (item.barIndex == barIndex)
-		{
-			clickedBatchSignal = &item;
-			break;
-		}
-	}
-
-	int buyCount = 0;
-	int sellCount = 0;
-	int forbidCount = 0;
-	for (const auto& item : batchSignals)
-	{
-		if (item.isForbid)
-			forbidCount++;
-		else if (item.isBuy)
-			buyCount++;
-		else
-			sellCount++;
-	}
-
-	CString riskDetail;
-	if (bars5.size() < 60)
-	{
-		riskDetail = _T("风控未运行：5分钟K线不足60根。\r\n");
-	}
-	else
-	{
-		std::vector<double> bollBandSeq(bars5.size(), 0.0);
-		for (size_t i = 19; i < bars5.size(); i++)
-		{
-			std::vector<double> closes;
-			closes.reserve(20);
-			for (size_t j = i - 19; j <= i; j++)
-				closes.push_back(bars5[j].close);
-			bollBandSeq[i] = 4.0 * CSignalAnalyzer::CalcStdDev(closes);
-		}
-
-		size_t lastIndex = bars5.size() - 1;
-		bool bandExpand = false;
-		bool bandHighPercentile = false;
-		if (lastIndex > 0 && bollBandSeq[lastIndex] > 0 && bollBandSeq[lastIndex - 1] > 0)
-		{
-			bandExpand = bollBandSeq[lastIndex] > bollBandSeq[lastIndex - 1] * 1.4;
-			size_t start = lastIndex > 60 ? lastIndex - 60 : 0;
-			int validCount = 0;
-			int lowerOrEqualCount = 0;
-			for (size_t i = start; i < lastIndex; i++)
-			{
-				if (bollBandSeq[i] <= 0)
-					continue;
-				validCount++;
-				if (bollBandSeq[lastIndex] >= bollBandSeq[i])
-					lowerOrEqualCount++;
-			}
-			bandHighPercentile = validCount >= 20 && lowerOrEqualCount * 100 >= validCount * 90;
-		}
-
-		STOCK::BollResult boll = CSignalAnalyzer::CalcBoll(bars5, 20);
-		double bandRatio = boll.mid > 0 ? boll.bandwidth / boll.mid : 0.0;
-		size_t avgStart = lastIndex + 1 > 10 ? lastIndex + 1 - 10 : 0;
-		double avgBollBandwidth = 0.0;
-		size_t avgBollCount = 0;
-		for (size_t i = avgStart; i <= lastIndex; i++)
-		{
-			if (bollBandSeq[i] <= 0)
-				continue;
-			avgBollBandwidth += bollBandSeq[i];
-			avgBollCount++;
-		}
-		if (avgBollCount > 0)
-			avgBollBandwidth /= avgBollCount;
-		double absNarrowThreshold = boll.mid > 0 && boll.mid < 1.5 ? 0.05 : 0.03;
-		double relativeNarrowThreshold = boll.mid > 0 ? boll.mid * 0.005 : 0.0;
-		double narrowThreshold = max(relativeNarrowThreshold, absNarrowThreshold);
-		bool narrowBand = avgBollBandwidth > 0 && avgBollBandwidth < narrowThreshold;
-
-		std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
-		std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
-		STOCK::KDJResult kdj = CSignalAnalyzer::CalcKDJ(bars5, 9);
-		STOCK::KDJResult prevKdj = CSignalAnalyzer::CalcKDJ(prevBars, 9);
-		STOCK::KDJResult prevPrevKdj = CSignalAnalyzer::CalcKDJ(prevPrevBars, 9);
-		bool kdjTopPassive = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
-			&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
-		bool kdjBottomPassive = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
-			&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
-
-		double wr6 = CSignalAnalyzer::CalcWR(bars5, 6);
-		double wrPrev = CSignalAnalyzer::CalcWR(prevBars, 6);
-		double wrPrevPrev = CSignalAnalyzer::CalcWR(prevPrevBars, 6);
-		bool wrTopPassive = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
-			&& wr6 > wrPrev && wrPrev > wrPrevPrev);
-		bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
-			&& wr6 < wrPrev && wrPrev < wrPrevPrev);
-
-		bool bollRiskActive = (trendState == STOCK::TrendState30m::STATE_SHAKE && (bandExpand || bandHighPercentile || narrowBand))
-			|| (trendState == STOCK::TrendState30m::STATE_WEAK && narrowBand);
-		bool kdjBottomActive = trendState == STOCK::TrendState30m::STATE_STRONG || trendState == STOCK::TrendState30m::STATE_SHAKE;
-		bool wrBottomActive = trendState != STOCK::TrendState30m::STATE_WEAK;
-
-		CString line;
-		line.Format(_T("BOLL带宽快速扩张：%s（当前=%.4f，上一根=%.4f，阈值=1.4，仅震荡趋势限制买入）\r\n"), BoolToText(bandExpand).GetString(), bollBandSeq[lastIndex], bollBandSeq[lastIndex - 1]);
-		riskDetail += line;
-		line.Format(_T("BOLL带宽历史高分位：%s（阈值=90，仅震荡趋势限制买入）\r\n"), BoolToText(bandHighPercentile).GetString());
-		riskDetail += line;
-		line.Format(_T("BOLL极窄：%s（当前带宽=%.4f，近10根平均带宽=%.4f，中轨=%.4f，当前带宽/中轨=%.4f%%，阈值=%.4f，低价阈值=%s，弱势/震荡趋势限制买入）\r\n"),
-			BoolToText(narrowBand).GetString(), boll.bandwidth, avgBollBandwidth, boll.mid, bandRatio * 100.0, narrowThreshold,
-			boll.mid > 0 && boll.mid < 1.5 ? _T("0.05") : _T("0.03"));
-		riskDetail += line;
-		line.Format(_T("KDJ高位钝化：%s（K=%.2f，前K=%.2f，前前K=%.2f，当前策略不作为拦截项）\r\n"), BoolToText(kdjTopPassive).GetString(), kdj.k, prevKdj.k, prevPrevKdj.k);
-		riskDetail += line;
-		line.Format(_T("KDJ低位钝化：%s（K=%.2f，前K=%.2f，前前K=%.2f，当前趋势%s）\r\n"), BoolToText(kdjBottomPassive).GetString(), kdj.k, prevKdj.k, prevPrevKdj.k, kdjBottomActive ? _T("会拦截") : _T("不拦截"));
-		riskDetail += line;
-		line.Format(_T("WR高位钝化：%s（WR6=%.2f，前=%.2f，前前=%.2f，当前策略不作为拦截项）\r\n"), BoolToText(wrTopPassive).GetString(), wr6, wrPrev, wrPrevPrev);
-		riskDetail += line;
-		line.Format(_T("WR低位钝化：%s（WR6=%.2f，前=%.2f，前前=%.2f，当前趋势%s）\r\n"), BoolToText(wrBottomPassive).GetString(), wr6, wrPrev, wrPrevPrev, wrBottomActive ? _T("会拦截") : _T("不拦截"));
-		riskDetail += line;
-		line.Format(_T("实际参与拦截：BOLL=%s，KDJ低位=%s，WR低位=%s（风控仅限制买入，不屏蔽卖出）\r\n"),
-			BoolToText(bollRiskActive).GetString(),
-			BoolToText(kdjBottomActive && kdjBottomPassive).GetString(),
-			BoolToText(wrBottomActive && wrBottomPassive).GetString());
-		riskDetail += line;
-	}
+	// 统一信号分析（与走势图绘制使用相同算法）
+	auto ar = CSignalAnalyzer::AnalyzeSignalAt(allBars5, allBars30, barIndex);
 
 	CString clickedBatchText;
-	if (clickedBatchSignal)
+	if (ar.clickedSignal)
 	{
-		clickedBatchText.Format(_T("%s（趋势=%s，原因=%s）"),
-			clickedBatchSignal->isForbid ? _T("风控禁止") : (clickedBatchSignal->isBuy ? _T("买入") : _T("卖出")),
-			TrendStateToText(clickedBatchSignal->trendState).GetString(),
-			clickedBatchSignal->reason.GetString());
+		clickedBatchText.Format(_T("%s（%s）"),
+			ar.clickedSignal->isForbid ? _T("风控禁止") : (ar.clickedSignal->isBuy ? _T("买入") : _T("卖出")),
+			ar.clickedSignal->reason.GetString());
 	}
 	else
-	{
-		clickedBatchText = _T("该K线无批量绘制信号");
-	}
+		clickedBatchText = _T("无信号");
 
-	CString latestSignalText;
-	if (smartSignal.isForbid)
-		latestSignalText = _T("风控禁止");
-	else if (!smartSignal.valid)
-		latestSignalText = _T("无有效综合信号");
+	// 综合判定直接使用BatchDetectSignals结果（与走势图绘制一致）
+	CString latestSignalText = clickedBatchText;
+
+	CString bollPos;
+	if (ar.boll.up > 0 && ar.boll.dn > 0)
+	{
+		double lastClose = allBars5[barIndex].close;
+		if (lastClose >= ar.boll.up) bollPos = _T("上轨上方");
+		else if (lastClose <= ar.boll.dn) bollPos = _T("下轨下方");
+		else if (lastClose >= ar.boll.mid) bollPos = _T("中轨上方");
+		else bollPos = _T("中轨下方");
+	}
+	else bollPos = _T("N/A");
+
+	CString macdState;
+	if (ar.macd.dif > 0 && ar.macd.macd_bar > 0) macdState = _T("多头增强");
+	else if (ar.macd.dif > 0 && ar.macd.macd_bar <= 0) macdState = _T("多头减弱");
+	else if (ar.macd.dif < 0 && ar.macd.macd_bar < 0) macdState = _T("空头增强");
+	else if (ar.macd.dif < 0 && ar.macd.macd_bar >= 0) macdState = _T("空头减弱");
+	else macdState = _T("零轴");
+
+	CString kdjState;
+	if (ar.kdj.k > 80) kdjState = _T("超买");
+	else if (ar.kdj.k < 20) kdjState = _T("超卖");
+	else kdjState = _T("中性");
+
+	CString wrState;
+	if (ar.wr < 20) wrState = _T("超买");
+	else if (ar.wr > 80) wrState = _T("超卖");
+	else wrState = _T("中性");
+
+	CString rsiState;
+	if (ar.rsi > 70) rsiState = _T("超买");
+	else if (ar.rsi < 30) rsiState = _T("超卖");
+	else rsiState = _T("中性");
+
+	CString riskInfo;
+	if (ar.forbidResult.forbidBuy || ar.forbidResult.forbidSell)
+	{
+		riskInfo.Format(_T("禁止买入=%s(%s) 禁止卖出=%s(%s)"),
+			BoolToText(ar.forbidResult.forbidBuy).GetString(), ar.forbidResult.forbidBuyReason.GetString(),
+			BoolToText(ar.forbidResult.forbidSell).GetString(), ar.forbidResult.forbidSellReason.GetString());
+	}
 	else
-		latestSignalText = smartSignal.isBuy ? _T("买入") : _T("卖出");
+		riskInfo = _T("无拦截");
+
+	CString sellDiag;
+	sellDiag.Format(_T("必要=%s(触轨=%s 红柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
+		BoolToText(ar.sellNecessary).GetString(),
+		BoolToText(ar.sellS1).GetString(), BoolToText(ar.sellS2_redShrink).GetString(),
+		ar.sellAuxCount,
+		BoolToText(ar.sellA1).GetString(), BoolToText(ar.sellA2).GetString(), BoolToText(ar.sellA3).GetString(), BoolToText(ar.sellA4).GetString());
+
+	CString buyDiag;
+	buyDiag.Format(_T("必要=%s(触轨=%s 绿柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
+		BoolToText(ar.buyNecessary).GetString(),
+		BoolToText(ar.buyB1).GetString(), BoolToText(ar.buyB2_greenShrink).GetString(),
+		ar.buyAuxCount,
+		BoolToText(ar.buyA1).GetString(), BoolToText(ar.buyA2).GetString(), BoolToText(ar.buyA3).GetString(), BoolToText(ar.buyA4).GetString());
 
 	CString msg;
-	msg.Format(_T("%s\r\n")
-		_T("一、单项信号测试结果\r\n")
-		_T("图上该K线绘制信号：%s\r\n")
-		_T("30分钟趋势：%s\r\n")
-		_T("5分钟买卖信号：%s\r\n")
-		_T("\r\n二、风险运行结果\r\n")
-		_T("是否触发风控禁止：%s\r\n")
-		_T("风控明细：\r\n%s")
-		_T("\r\n三、综合判定结果\r\n")
-		_T("有效：%s\r\n")
-		_T("方向：%s\r\n")
-		_T("价格：%.3f\r\n")
-		_T("强度：%d\r\n")
-		_T("原因：%s\r\n")
-		_T("\r\n四、批量信号测试结果\r\n")
-		_T("总信号数：%zu\r\n")
-		_T("买入信号：%d\r\n")
-		_T("卖出信号：%d\r\n")
-		_T("风控禁止：%d"),
-		dataStatus.GetString(),
-		clickedBatchText.GetString(),
-		TrendStateToText(trendState).GetString(),
-		Signal5mToText(sig5m).GetString(),
-		BoolToText(forbid).GetString(),
-		riskDetail.GetString(),
-		BoolToText(smartSignal.valid).GetString(),
+	msg.Format(_T("=== %s %.3f(H%.3f/L%.3f) %s ===\r\n")
+		_T("\r\n【信号】%s\r\n")
+		_T("【30分钟趋势】%s（置信度%d%%，弱%.1f/强%.1f）\r\n")
+		_T("【5分钟信号】%s\r\n")
+		_T("【风控】%s\r\n")
+		_T("\r\n【指标】\r\n")
+		_T("BOLL: 带宽%.4f 位置%s 上轨=%.4f 下轨=%.4f\r\n")
+		_T("MACD: DIF=%.3f DEA=%.3f BAR=%.3f %s\r\n")
+		_T("KDJ:  K=%.1f D=%.1f J=%.1f %s\r\n")
+		_T("WR:   %.1f %s\r\n")
+		_T("RSI:  %.1f %s\r\n")
+		_T("\r\n【卖出条件】%s\r\n")
+		_T("【买入条件】%s\r\n")
+		_T("\r\n【批量判定链】hasSell=%s hasBuy=%s forbidBuy=%s forbidSell=%s 过滤=%s\r\n"),
+		CString(m_stock_id.c_str()).GetString(),
+		static_cast<double>(m_pendingTradePrice),
+		allBars5[barIndex].high,
+		allBars5[barIndex].low,
+		mappedBarTime.GetString(),
 		latestSignalText.GetString(),
-		static_cast<double>(smartSignal.price),
-		smartSignal.strength,
-		smartSignal.reason.IsEmpty() ? _T("无") : smartSignal.reason.GetString(),
-		batchSignals.size(),
-		buyCount,
-		sellCount,
-		forbidCount);
+		TrendStateToText(ar.trendResult.state).GetString(),
+		ar.trendResult.confidence, ar.trendResult.weakScore, ar.trendResult.strongScore,
+		Signal5mToText(ar.sig5m).GetString(),
+		riskInfo.GetString(),
+		ar.boll.bandwidth, bollPos.GetString(), ar.boll.up, ar.boll.dn,
+		ar.macd.dif, ar.macd.dea, ar.macd.macd_bar, macdState.GetString(),
+		ar.kdj.k, ar.kdj.d, ar.kdj.j, kdjState.GetString(),
+		ar.wr, wrState.GetString(),
+		ar.rsi, rsiState.GetString(),
+		sellDiag.GetString(),
+		buyDiag.GetString(),
+		BoolToText(ar.batchHasSell).GetString(),
+		BoolToText(ar.batchHasBuy).GetString(),
+		BoolToText(ar.batchForbidBuy).GetString(),
+		BoolToText(ar.batchForbidSell).GetString(),
+		ar.batchFilterReason.GetString());
 
-	MessageBox(msg, _T("买卖点检测测试"), MB_ICONINFORMATION);
+	// 计算弹框位置：左侧与股票对话框右边对齐，底部与系统状态栏平齐
+	CRect wndRect;
+	GetWindowRect(&wndRect);
+	int msgX = wndRect.right - 8;
+	CRect workArea;
+	SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+	int msgBottom = workArea.bottom + 8;
+
+	// 全局变量传递位置给钩子回调
+	static int g_msgBoxX = 0;
+	static int g_msgBoxBottom = 0;
+	g_msgBoxX = msgX;
+	g_msgBoxBottom = msgBottom;
+
+	// CBT钩子：MessageBox激活时定位（HCBT_ACTIVATE时窗口已完成布局）
+	static HHOOK g_hMsgBoxHook = NULL;
+	g_hMsgBoxHook = SetWindowsHookEx(WH_CBT,
+		[](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
+			if (nCode == HCBT_ACTIVATE)
+			{
+				HWND hWnd = (HWND)wParam;
+				wchar_t cls[8] = {};
+				GetClassName(hWnd, cls, 8);
+				if (wcscmp(cls, L"#32770") == 0)
+				{
+					RECT rc;
+					::GetWindowRect(hWnd, &rc);
+					int w = rc.right - rc.left;
+					int h = rc.bottom - rc.top;
+					int x = g_msgBoxX;
+					int y = g_msgBoxBottom - h;
+					::SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+					// 定位后立即卸载钩子
+					UnhookWindowsHookEx(g_hMsgBoxHook);
+					g_hMsgBoxHook = NULL;
+				}
+			}
+			return CallNextHookEx(g_hMsgBoxHook, nCode, wParam, lParam);
+		}, NULL, GetCurrentThreadId());
+
+	MessageBox(msg, _T("信号分析"), MB_ICONINFORMATION);
+	if (g_hMsgBoxHook) { UnhookWindowsHookEx(g_hMsgBoxHook); g_hMsgBoxHook = NULL; }
 }
 
 LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)

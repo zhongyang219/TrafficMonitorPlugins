@@ -1,20 +1,95 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SignalAnalyzer.h"
 #include "StockDef.h"
 #include <cmath>
+#include <map>
+#include <set>
 
 namespace
 {
+	// ========== 日志分级 ==========
+	enum class LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR };
+	// 日志输出：指标计算异常、风控拦截、信号触发分别打印不同级别
+	// 生产环境可通过编译宏控制日志级别
+#ifdef _DEBUG
+	static LogLevel g_minLogLevel = LogLevel::LOG_DEBUG;
+#else
+	static LogLevel g_minLogLevel = LogLevel::LOG_WARN;
+#endif
+
+	static void SignalLog(LogLevel level, const CString& msg)
+	{
+		if (level < g_minLogLevel) return;
+		// 使用VS OutputDebugString输出，支持线上监控
+		CString prefix;
+		switch (level)
+		{
+		case LogLevel::LOG_DEBUG: prefix = _T("[SIG-DBG] "); break;
+		case LogLevel::LOG_INFO:  prefix = _T("[SIG-INF] "); break;
+		case LogLevel::LOG_WARN:  prefix = _T("[SIG-WRN] "); break;
+		case LogLevel::LOG_ERROR: prefix = _T("[SIG-ERR] "); break;
+		}
+		OutputDebugString(prefix + msg + _T("\n"));
+	}
+
+	// ========== 性能埋点 ==========
+	struct PerfCounter {
+		const char* name;
+		DWORD startTick;
+		PerfCounter(const char* n) : name(n), startTick(GetTickCount()) {}
+		~PerfCounter() {
+			DWORD elapsed = GetTickCount() - startTick;
+			if (elapsed > 10) {  // >10ms才记录，避免噪音
+				CString msg;
+				msg.Format(_T("[PERF] %s: %ums"), CString(name), elapsed);
+				OutputDebugString(msg + _T("\n"));
+			}
+		}
+	};
+
+	// ========== 回测模式控制 ==========
+	static bool g_backtestMode = false;
+
+	// ========== 跨周期时间对齐 ==========
+	// 5min Bar的time戳是秒级时间戳，30min Bar的time戳也是秒级
+	// 一根30min Bar覆盖6根5min Bar
+	// 对齐规则：5min Bar的时间戳落在30min Bar的[start, end)区间内
+	size_t Find30mBarFor5m(long timestamp5m, const std::vector<STOCK::Bar>& bars30)
+	{
+		// 30min K线时间戳就是该周期的起始时间
+		// 使用二分查找找到最大的 <= timestamp5m 的30min Bar
+		if (bars30.empty()) return SIZE_MAX;
+
+		size_t lo = 0, hi = bars30.size() - 1;
+		size_t result = SIZE_MAX;
+		while (lo <= hi && hi < bars30.size())
+		{
+			size_t mid = lo + (hi - lo) / 2;
+			if (bars30[mid].time <= timestamp5m)
+			{
+				result = mid;
+				lo = mid + 1;
+			}
+			else
+			{
+				if (mid == 0) break;
+				hi = mid - 1;
+			}
+		}
+		// 验证5min Bar是否在该30min Bar的区间内（30min = 1800秒）
+		if (result != SIZE_MAX && bars30[result].time <= timestamp5m &&
+			timestamp5m < bars30[result].time + 1800)
+			return result;
+		return SIZE_MAX;
+	}
+
 	constexpr double MACD_DIF_PRICE_RATIO = 0.001;
 	constexpr double MIN_SIGNAL_PRICE_RATIO = 0.003;
 	constexpr double MIN_SIGNAL_ATR_RATIO = 0.2;
-	constexpr double NARROW_BOLL_RATIO = 0.005;
-	constexpr double NARROW_BOLL_LOW_PRICE_ABS_THRESHOLD = 0.05;
-	constexpr double NARROW_BOLL_ABS_THRESHOLD = 0.03;
-	constexpr double NARROW_BOLL_LOW_PRICE_LIMIT = 1.5;
+	constexpr double NARROW_BOLL_ATR_RATIO = 1.5;       // 窄布林ATR动态阈值：带宽 < ATR×此比例视为窄布林
 	constexpr size_t NARROW_BOLL_AVG_PERIOD = 10;
 	constexpr double BOLL_EXPAND_RATIO = 1.4;
-	constexpr int BOLL_HIGH_PERCENTILE = 90;
+	constexpr size_t BOLL_EXPAND_CONSECUTIVE = 2;  // 连续N根带宽放大判定扩张（替代60根分位，消除未来函数）
 	constexpr double SELL_KDJ_D_OVERBUY = 70.0;
 	constexpr double SELL_WR_OVERBUY = 30.0;
 	constexpr double KDJ_OVERBUY = 80.0;
@@ -25,12 +100,66 @@ namespace
 	constexpr size_t TREND_30M_LOOKBACK = 25;      // 30分钟K线回看根数
 	constexpr size_t TREND_5M_LOOKBACK = 20;       // 5分钟K线回看根数
 	constexpr double MA20_SLOPE_THRESHOLD = 0.001;  // MA20斜率阈值，低于此视为走平
-	constexpr size_t SWING_MIN_BARS = 3;            // 波段极值最小间隔K线数
+	constexpr size_t SWING_MIN_BARS = 3;            // 波段极值最小间隔K线数（回测模式）
+	constexpr size_t SWING_MIN_BARS_REALTIME = 0;   // 实时模式：仅左侧确认，无需右侧未来K线
+	constexpr double SWING_MIN_ATR_RATIO = 0.3;     // 极值振幅过滤：小于ATR×此比例的微型高低点丢弃
+	constexpr size_t CONSECUTIVE_BAR_TREND = 5;     // 连续同向K线判定趋势兜底
+	constexpr double DIV_ATR_RATIO = 0.3;           // 背离幅度阈值：价格/DIF差值须大于ATR×此比例
+	constexpr size_t DIV_LOOKBACK = 30;             // 背离检测回看K线数
 	constexpr double VOL_RATIO_THRESHOLD = 1.3;     // 量比阈值（上涨放量/回调缩量）
 
-	double GetMacdDifThreshold(double price)
+	// 安全除法：分母为0、NaN、Inf时返回0.0
+	double SafeDiv(double numerator, double denominator)
 	{
-		return price > 0 ? price * MACD_DIF_PRICE_RATIO : 0.0;
+		if (!std::isfinite(denominator) || std::isnan(denominator) || denominator == 0.0)
+			return 0.0;
+		return numerator / denominator;
+	}
+
+	// 安全浮点数：所有指标写入序列前统一过滤，非法值强制置0并打印ERROR日志
+	double SafeDouble(double val, const char* context = nullptr)
+	{
+		if (std::isfinite(val) && !std::isnan(val))
+			return val;
+		if (context)
+		{
+			CStringA ctxA(context);
+			CString msg;
+			msg.Format(_T("非法浮点数: %s"), CString(ctxA));
+			SignalLog(LogLevel::LOG_ERROR, msg);
+		}
+		return 0.0;
+	}
+
+	// 检查价格值是否有限（非NaN、非Inf、非0）
+	bool IsFinitePrice(double v)
+	{
+		return std::isfinite(v) && !std::isnan(v) && v != 0.0;
+	}
+
+	// CalcMA安全包装：结果非有限时返回0.0
+	double SafeCalcMA(const std::vector<double>& values, int N)
+	{
+		double result = CSignalAnalyzer::CalcMA(values, N);
+		return std::isfinite(result) ? result : 0.0;
+	}
+
+	// CalcStdDev安全包装：结果非有限时返回0.0
+	double SafeCalcStdDev(const std::vector<double>& values)
+	{
+		double result = CSignalAnalyzer::CalcStdDev(values);
+		return std::isfinite(result) ? result : 0.0;
+	}
+
+	// MACD DIF有效阈值：兼顾股价比例与真实波动率
+	// 公式：max(price*0.001, ATR*0.2)
+	// 高价/低价/高波动标的自动适配
+	double GetMacdDifThreshold(double price, double atr = 0.0)
+	{
+		double priceThreshold = price > 0 ? price * MACD_DIF_PRICE_RATIO : 0.0;
+		double atrThreshold = atr > 0 ? atr * 0.2 : 0.0;
+		double result = priceThreshold > atrThreshold ? priceThreshold : atrThreshold;
+		return result > 0 ? result : 0.0;
 	}
 
 	double CalcATR(const std::vector<STOCK::Bar>& bars, size_t endIndex, int N = 14)
@@ -55,21 +184,45 @@ namespace
 		return count > 0 ? sum / count : 0.0;
 	}
 
-	double GetSignalPriceDiffThreshold(const std::vector<STOCK::Bar>& bars, size_t endIndex)
+	// 信号价差阈值（多空拆分版）
+	// 下跌行情（30min弱势）放大买入价差阈值，过滤小幅回调假买点
+	// 上涨行情（30min强势）缩小卖出价差阈值，捕捉精准止盈点
+	// 震荡统一阈值
+	double GetLongThreshold(const std::vector<STOCK::Bar>& bars, size_t endIndex, STOCK::TrendState30m trendState)
 	{
 		if (bars.empty() || endIndex >= bars.size())
 			return 0.0;
 
 		double priceThreshold = bars[endIndex].close > 0 ? bars[endIndex].close * MIN_SIGNAL_PRICE_RATIO : 0.0;
 		double atrThreshold = CalcATR(bars, endIndex) * MIN_SIGNAL_ATR_RATIO;
-		return atrThreshold > priceThreshold ? atrThreshold : priceThreshold;
+		double base = atrThreshold > priceThreshold ? atrThreshold : priceThreshold;
+
+		// 弱势放大买入价差：1.5倍，过滤小幅回调假买点
+		if (trendState == STOCK::TrendState30m::STATE_WEAK || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			return base * 1.5;
+		return base;
 	}
 
-	double GetNarrowBollThreshold(double mid)
+	double GetShortThreshold(const std::vector<STOCK::Bar>& bars, size_t endIndex, STOCK::TrendState30m trendState)
 	{
-		double absThreshold = mid > 0 && mid < NARROW_BOLL_LOW_PRICE_LIMIT ? NARROW_BOLL_LOW_PRICE_ABS_THRESHOLD : NARROW_BOLL_ABS_THRESHOLD;
-		double relativeThreshold = mid > 0 ? mid * NARROW_BOLL_RATIO : 0.0;
-		return relativeThreshold > absThreshold ? relativeThreshold : absThreshold;
+		if (bars.empty() || endIndex >= bars.size())
+			return 0.0;
+
+		double priceThreshold = bars[endIndex].close > 0 ? bars[endIndex].close * MIN_SIGNAL_PRICE_RATIO : 0.0;
+		double atrThreshold = CalcATR(bars, endIndex) * MIN_SIGNAL_ATR_RATIO;
+		double base = atrThreshold > priceThreshold ? atrThreshold : priceThreshold;
+
+		// 强势缩小卖出价差：0.7倍，捕捉精准止盈点
+		if (trendState == STOCK::TrendState30m::STATE_STRONG)
+			return base * 0.7;
+		return base;
+	}
+
+	// 窄布林ATR动态阈值：带宽 < ATR × NARROW_BOLL_ATR_RATIO 视为窄布林
+	// 自动适配高价股（ATR大→阈值大）和低价股（ATR小→阈值小），消除固定数值适配缺陷
+	double GetNarrowBollThresholdATR(double atr)
+	{
+		return atr > 0 ? atr * NARROW_BOLL_ATR_RATIO : 0.0;
 	}
 
 	double CalcAverageBollBandwidth(const std::vector<double>& bollBand, size_t index, size_t period = NARROW_BOLL_AVG_PERIOD)
@@ -90,40 +243,40 @@ namespace
 		return count > 0 ? sum / count : 0.0;
 	}
 
-	bool IsNarrowBoll(double mid, double avgBandwidth)
+	// 窄布林判定（ATR动态阈值版）
+	bool IsNarrowBoll(double avgBandwidth, double atr)
 	{
 		if (avgBandwidth <= 0)
 			return false;
 
-		return avgBandwidth < GetNarrowBollThreshold(mid);
+		return avgBandwidth < GetNarrowBollThresholdATR(atr);
 	}
 
-	bool IsBollBandwidthHighPercentile(const std::vector<double>& bollBand, size_t index, size_t lookback = 60)
-	{
-		if (index >= bollBand.size() || bollBand[index] <= 0)
-			return false;
-
-		size_t start = index > lookback ? index - lookback : 0;
-		int validCount = 0;
-		int lowerOrEqualCount = 0;
-		for (size_t i = start; i < index; i++)
-		{
-			if (bollBand[i] <= 0)
-				continue;
-			validCount++;
-			if (bollBand[index] >= bollBand[i])
-				lowerOrEqualCount++;
-		}
-
-		return validCount >= 20 && lowerOrEqualCount * 100 >= validCount * BOLL_HIGH_PERCENTILE;
-	}
-
+	// 布林扩张判定：连续N根带宽放大（替代60根历史分位，消除未来函数）
+	// 实盘实时：仅使用左侧历史数据，不包含未来K线
+	// 回测批量：同样仅用左侧数据，保证一致性
 	bool IsBollExpand(const std::vector<double>& bollBand, size_t index)
 	{
 		if (index == 0 || index >= bollBand.size() || bollBand[index] <= 0 || bollBand[index - 1] <= 0)
 			return false;
 
-		return bollBand[index] > bollBand[index - 1] * BOLL_EXPAND_RATIO || IsBollBandwidthHighPercentile(bollBand, index);
+		// 条件1：当前带宽 > 前一根 × 扩张倍数
+		if (bollBand[index] > bollBand[index - 1] * BOLL_EXPAND_RATIO)
+			return true;
+
+		// 条件2：连续N根带宽逐根放大（环比扩张）
+		size_t consecCount = 0;
+		for (size_t i = index; i > 0; i--)
+		{
+			if (bollBand[i] > bollBand[i - 1])
+				consecCount++;
+			else
+				break;
+			if (consecCount >= BOLL_EXPAND_CONSECUTIVE)
+				return true;
+		}
+
+		return false;
 	}
 
 	void CalcKDJSeries(const std::vector<STOCK::Bar>& bars, int N, std::vector<double>& kSeq, std::vector<double>& dSeq, std::vector<double>& jSeq)
@@ -137,23 +290,57 @@ namespace
 
 		double k = 50.0;
 		double d = 50.0;
+		double rsvSmooth = 50.0;  // RSV平滑缓存
+
+		// 滑动窗口极值缓存：维护窗口内的最高价和最低价计数
+		// 避免移出极值时全量重扫N根K线
+		std::multiset<double> highWindow;  // 允许重复值的有序集合
+		std::multiset<double> lowWindow;
+
 		for (size_t i = static_cast<size_t>(N) - 1; i < n; i++)
 		{
-			size_t start = i + 1 - static_cast<size_t>(N);
-			double lowN = bars[start].low;
-			double highN = bars[start].high;
-			for (size_t j = start + 1; j <= i; j++)
+			if (i == static_cast<size_t>(N) - 1)
 			{
-				if (bars[j].low < lowN) lowN = bars[j].low;
-				if (bars[j].high > highN) highN = bars[j].high;
+				// 首根：初始化窗口
+				for (size_t j = 0; j <= i; j++)
+				{
+					highWindow.insert(bars[j].high);
+					lowWindow.insert(bars[j].low);
+				}
+			}
+			else
+			{
+				// 滑动窗口：移除i-N，加入i
+				size_t outIdx = i - static_cast<size_t>(N);
+				double outHigh = bars[outIdx].high;
+				double outLow = bars[outIdx].low;
+				// 安全移除：find可能返回end()（NaN等异常值），需检查
+				auto itH = highWindow.find(outHigh);
+				if (itH != highWindow.end()) highWindow.erase(itH);
+				auto itL = lowWindow.find(outLow);
+				if (itL != lowWindow.end()) lowWindow.erase(itL);
+				highWindow.insert(bars[i].high);
+				lowWindow.insert(bars[i].low);
 			}
 
-			double rsv = highN != lowN ? (bars[i].close - lowN) / (highN - lowN) * 100.0 : 50.0;
-			k = (2.0 * k + rsv) / 3.0;
-			d = (2.0 * d + k) / 3.0;
+			// O(1)取极值：multiset的最后一个/第一个元素
+			double highN = *highWindow.rbegin();  // 最大值
+			double lowN = *lowWindow.begin();      // 最小值
+
+			double rsv = SafeDouble(highN != lowN ? (bars[i].close - lowN) / (highN - lowN) * 100.0 : 50.0, "KDJ RSV");
+
+			// RSV短期MA平滑（3周期），降低盘中价格毛刺导致KDJ剧烈抖动
+			constexpr int RSV_SMOOTH_N = 3;
+			if (i == static_cast<size_t>(N) - 1)
+				rsvSmooth = rsv;  // 首根初始化
+			else
+				rsvSmooth = SafeDouble((rsv + (RSV_SMOOTH_N - 1) * rsvSmooth) / RSV_SMOOTH_N, "KDJ rsvSmooth");
+
+			k = SafeDouble((2.0 * k + rsvSmooth) / 3.0, "KDJ K");
+			d = SafeDouble((2.0 * d + k) / 3.0, "KDJ D");
 			kSeq[i] = k;
 			dSeq[i] = d;
-			jSeq[i] = 3.0 * k - 2.0 * d;
+			jSeq[i] = SafeDouble(3.0 * k - 2.0 * d, "KDJ J");
 		}
 	}
 }
@@ -162,12 +349,15 @@ namespace
 
 double CSignalAnalyzer::CalcMA(const std::vector<double>& values, int N)
 {
-	if (static_cast<int>(values.size()) < N || N <= 0)
+	if (values.empty() || N <= 0)
+		return 0.0;
+	if (static_cast<int>(values.size()) < N)
 		return 0.0;
 	double sum = 0.0;
 	for (int i = static_cast<int>(values.size()) - N; i < static_cast<int>(values.size()); i++)
 		sum += values[i];
-	return sum / N;
+	double result = sum / N;
+	return std::isfinite(result) ? result : 0.0;
 }
 
 double CSignalAnalyzer::CalcEMA(const std::vector<double>& values, int N)
@@ -178,7 +368,7 @@ double CSignalAnalyzer::CalcEMA(const std::vector<double>& values, int N)
 	double ema = values[0];
 	for (size_t i = 1; i < values.size(); i++)
 		ema = values[i] * k + ema * (1.0 - k);
-	return ema;
+	return std::isfinite(ema) ? ema : 0.0;
 }
 
 double CSignalAnalyzer::CalcSMA(const std::vector<double>& values, int N, double M /* = 1.0 */)
@@ -193,6 +383,18 @@ double CSignalAnalyzer::CalcSMA(const std::vector<double>& values, int N, double
 	return sma;
 }
 
+// ========== 全局指标参数配置 ==========
+CSignalAnalyzer::SignalParam& CSignalAnalyzer::GetParam()
+{
+	static SignalParam g_param;
+	return g_param;
+}
+
+void CSignalAnalyzer::SetParam(const SignalParam& param)
+{
+	GetParam() = param;
+}
+
 double CSignalAnalyzer::CalcStdDev(const std::vector<double>& values)
 {
 	if (values.empty())
@@ -204,7 +406,8 @@ double CSignalAnalyzer::CalcStdDev(const std::vector<double>& values)
 	double sumSq = 0.0;
 	for (double v : values)
 		sumSq += (v - mean) * (v - mean);
-	return sqrt(sumSq / values.size());
+	double result = sqrt(sumSq / values.size());
+	return std::isfinite(result) ? result : 0.0;
 }
 
 // ========== 智能分析模块：5个核心指标计算函数 ==========
@@ -305,9 +508,25 @@ double CSignalAnalyzer::CalcRSI(const std::vector<STOCK::Bar>& bars, int N)
 	if (static_cast<int>(upList.size()) < N)
 		return 50.0;
 
-	// 用SMA平滑AU、AD
-	double au = CalcSMA(upList, N);
-	double ad = CalcSMA(dnList, N);
+	double au, ad;
+	if (GetParam().rsiUseEma)
+	{
+		// EMA平滑：与市面行情软件对齐，标准RSI计算方式
+		double k = 2.0 / (N + 1.0);
+		au = upList[0];
+		ad = dnList[0];
+		for (size_t i = 1; i < upList.size(); i++)
+		{
+			au = upList[i] * k + au * (1.0 - k);
+			ad = dnList[i] * k + ad * (1.0 - k);
+		}
+	}
+	else
+	{
+		// SMA平滑：保留原有计算方式，适配不同回测需求
+		au = CalcSMA(upList, N);
+		ad = CalcSMA(dnList, N);
+	}
 
 	if (ad == 0.0)
 		return 99.99;
@@ -323,7 +542,7 @@ double CSignalAnalyzer::CalcWR(const std::vector<STOCK::Bar>& bars, int N)
 
 	double hhv = bars[bars.size() - N].high;
 	double llv = bars[bars.size() - N].low;
-	for (int i = bars.size() - N + 1; i < static_cast<int>(bars.size()); i++)
+	for (int i = static_cast<int>(bars.size()) - N + 1; i < static_cast<int>(bars.size()); i++)
 	{
 		if (bars[i].high > hhv) hhv = bars[i].high;
 		if (bars[i].low < llv) llv = bars[i].low;
@@ -336,45 +555,88 @@ double CSignalAnalyzer::CalcWR(const std::vector<STOCK::Bar>& bars, int N)
 	return 100.0 * (hhv - c) / (hhv - llv);
 }
 
+// 成交量加权WR：放量高低点权重更大，过滤长上影假极值
+// 计算方式：对窗口内每根K线的高低点按成交量加权，取加权最高价和加权最低价
+double CSignalAnalyzer::CalcWR_VolumeWeighted(const std::vector<STOCK::Bar>& bars, int N)
+{
+	if (static_cast<int>(bars.size()) < N || N <= 0)
+		return 50.0;
+
+	double volSum = 0;
+	double wHigh = 0, wLow = 0;
+	for (int i = static_cast<int>(bars.size()) - N; i < static_cast<int>(bars.size()); i++)
+	{
+		double v = bars[i].volume;
+		if (v <= 0) v = 1.0;  // 防止零成交量
+		volSum += v;
+		wHigh += bars[i].high * v;
+		wLow += bars[i].low * v;
+	}
+	if (volSum <= 0)
+		return 50.0;
+
+	wHigh /= volSum;
+	wLow /= volSum;
+
+	double c = bars.back().close;
+	if (wHigh == wLow)
+		return 50.0;
+
+	return 100.0 * (wHigh - c) / (wHigh - wLow);
+}
+
 // ========== 智能分析模块：30分钟趋势判定 ==========
 // 输入：完整历史30分钟K线数组 bars30
-// 输出：STATE_WEAK(仅反T) / STATE_STRONG(可正T) / STATE_SHAKE(震荡双向)
+// 输出：TrendStateResult（含趋势状态、置信度、加权得分）
+// 改进：加权评分 + 中性缓冲区间 + 置信度输出
 
-STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::Bar>& bars30)
+STOCK::TrendStateResult CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::Bar>& bars30)
 {
+	STOCK::TrendStateResult result;
+
 	// 至少需要30根30min K线才能计算当前/前一根BOLL；EMA60 在数据不足时按现有序列递推
 	if (bars30.size() < 30)
-		return STOCK::TrendState30m::STATE_SHAKE;
+	{
+		result.state = STOCK::TrendState30m::STATE_SHAKE;
+		result.confidence = 0;
+		return result;
+	}
 
 	// 1. 计算30min全部指标
-	STOCK::BollResult boll = CalcBoll(bars30, 20);
+	STOCK::BollResult boll = CalcBoll(bars30, GetParam().bollPeriod);
 	double mid = boll.mid;
-	double up = boll.up;
-	double dn = boll.dn;
-	(void)up; (void)dn;  // 当前模块未直接使用上下轨
 
 	const STOCK::Bar& lastBar = bars30.back();
 
 	// 计算前一根BOLL的中轨（取bars30[-21:-1]）
 	std::vector<STOCK::Bar> prevBars(bars30.end() - 21, bars30.end() - 1);
-	STOCK::BollResult prevBoll = CalcBoll(prevBars, 20);
+	STOCK::BollResult prevBoll = CalcBoll(prevBars, GetParam().bollPeriod);
 	double prevMid = prevBoll.mid;
 
-	// BOLL条件
+	// ===== 维度1：价格轨道(BOLL) - 权重1.5 =====
+	// BOLL中轨方向 + 价格与中轨关系，反映价格轨道趋势
 	bool bollDown = (mid < prevMid) && (lastBar.close < mid);
 	bool bollUp = (mid > prevMid) && (lastBar.close > mid);
+	double bollWeight = 1.5;
+	double bollWeakScore = bollDown ? bollWeight : 0.0;
+	double bollStrongScore = bollUp ? bollWeight : 0.0;
 
-	// RSI14
-	double rsi14 = CalcRSI(bars30, 14);
-	bool rsiWeak = rsi14 < 50;
-	bool rsiStrong = rsi14 > 50;
-
-	// MACD
+	// ===== 维度2：动量(MACD) - 权重1.5 =====
+	// DIF方向反映中期动量，比简单正负更可靠
 	STOCK::MACDResult macd = CalcMACD(bars30);
-	bool macBelow = macd.dif < 0;
-	bool macAbove = macd.dif > 0;
+	double macdWeight = 1.5;
+	double macdWeakScore = (macd.dif < 0) ? macdWeight : 0.0;
+	double macdStrongScore = (macd.dif > 0) ? macdWeight : 0.0;
 
-	// EMA20/60辅助判断趋势方向和强度
+	// ===== 维度3：超买超卖(RSI) - 权重1.0 =====
+	// RSI作为辅助确认，权重较低（与BOLL/MACD有共线性）
+	double rsi14 = CalcRSI(bars30, GetParam().rsiPeriod30m);
+	double rsiWeight = 1.0;
+	double rsiWeakScore = (rsi14 < 50) ? rsiWeight : 0.0;
+	double rsiStrongScore = (rsi14 > 50) ? rsiWeight : 0.0;
+
+	// ===== 维度4：均线结构(EMA20/60) - 权重2.0 =====
+	// 均线排列是最稳定的趋势确认信号，权重最高
 	std::vector<double> closes;
 	closes.reserve(bars30.size());
 	for (const auto& bar : bars30)
@@ -385,19 +647,99 @@ STOCK::TrendState30m CSignalAnalyzer::Get30mTrendState(const std::vector<STOCK::
 	double prevEma20 = CalcEMA(prevCloses, 20);
 	bool maStrong = ema20 > ema60 && ema20 > prevEma20 && lastBar.close > ema20;
 	bool maWeak = ema20 < ema60 && ema20 < prevEma20 && lastBar.close < ema20;
+	double maWeight = 2.0;
+	double maWeakScore = maWeak ? maWeight : 0.0;
+	double maStrongScore = maStrong ? maWeight : 0.0;
 
-	// 判定行情：强势允许BOLL/RSI/MACD/均线中满足3项即可，避免强趋势被误判为震荡
-	int weakScore = (bollDown ? 1 : 0) + (rsiWeak ? 1 : 0) + (macBelow ? 1 : 0) + (maWeak ? 1 : 0);
-	int strongScore = (bollUp ? 1 : 0) + (rsiStrong ? 1 : 0) + (macAbove ? 1 : 0) + (maStrong ? 1 : 0);
-	bool condWeak = weakScore >= 3 && weakScore > strongScore;
-	bool condStrong = strongScore >= 3 && strongScore >= weakScore;
+	// ===== 加权汇总 =====
+	double weakScore = bollWeakScore + macdWeakScore + rsiWeakScore + maWeakScore;
+	double strongScore = bollStrongScore + macdStrongScore + rsiStrongScore + maStrongScore;
+	double totalWeight = bollWeight + macdWeight + rsiWeight + maWeight;  // = 6.0
 
-	if (condWeak)
-		return STOCK::TrendState30m::STATE_WEAK;    // 弱势：只做反T，禁止加仓正T
-	else if (condStrong)
-		return STOCK::TrendState30m::STATE_STRONG;  // 强势：回踩可低吸正T
+	result.weakScore = weakScore;
+	result.strongScore = strongScore;
+
+	// ===== 趋势判定（含中性缓冲区间） =====
+	// 强判定阈值：≥4.0（约67%权重方向一致），弱判定阈值：≥2.5（约42%权重方向一致）
+	// 2.5~4.0 之间为弱震荡缓冲区，不轻易切强/弱
+	double strongThreshold = 4.0;
+	double weakThreshold = 2.5;
+
+	if (strongScore >= strongThreshold && strongScore > weakScore)
+	{
+		result.state = STOCK::TrendState30m::STATE_STRONG;
+	}
+	else if (weakScore >= strongThreshold && weakScore > strongScore)
+	{
+		result.state = STOCK::TrendState30m::STATE_WEAK;
+	}
+	else if (weakScore >= weakThreshold && weakScore > strongScore)
+	{
+		// 弱震荡缓冲：偏弱但未达强判定阈值
+		result.state = STOCK::TrendState30m::STATE_WEAK_SHAKE;
+	}
+	else if (strongScore >= weakThreshold && strongScore > weakScore)
+	{
+		// 偏强但未达强判定阈值，仍归为震荡（强势需要更高确认）
+		result.state = STOCK::TrendState30m::STATE_SHAKE;
+	}
 	else
-		return STOCK::TrendState30m::STATE_SHAKE;   // 震荡：正反T均可
+	{
+		result.state = STOCK::TrendState30m::STATE_SHAKE;
+	}
+
+	// ===== 置信度计算 =====
+	// 基于优势方向的得分占比和领先幅度
+	double dominantScore = (weakScore > strongScore) ? weakScore : strongScore;
+	double scoreDiff = fabs(weakScore - strongScore);
+	// 基础置信度 = 优势方向得分占比 * 60 + 领先幅度加成 * 40
+	double baseConf = (dominantScore / totalWeight) * 60.0 + (scoreDiff / totalWeight) * 40.0;
+	// 映射到0-100
+	result.confidence = static_cast<int>(baseConf > 100.0 ? 100 : (baseConf < 0.0 ? 0 : baseConf));
+
+	return result;
+}
+
+// ========== 趋势防抖 ==========
+// 连续3根K线同状态才确认切换，期间保持旧趋势（锁定冷却周期）
+// 解决连续交替震荡/强势仍会抖动的问题
+STOCK::TrendState30m CSignalAnalyzer::DebounceTrendState(
+	const std::vector<STOCK::TrendStateResult>& recentResults,
+	STOCK::TrendState30m currentState)
+{
+	if (recentResults.empty())
+		return currentState;
+
+	// 取最近1根K线的趋势状态
+	STOCK::TrendState30m latest = recentResults.back().state;
+
+	// 如果最新状态与当前锁定状态一致，直接返回
+	if (latest == currentState)
+		return currentState;
+
+	// 新状态与当前不同，检查是否连续3根都是同一新状态
+	size_t confirmCount = 3;
+	if (recentResults.size() < confirmCount)
+		return currentState;  // 数据不足，保持旧状态
+
+	// 从最新往前数，检查连续confirmCount根是否都是同一新状态
+	STOCK::TrendState30m candidate = latest;
+	bool allSame = true;
+	for (size_t k = 0; k < confirmCount; k++)
+	{
+		size_t idx = recentResults.size() - 1 - k;
+		if (recentResults[idx].state != candidate)
+		{
+			allSame = false;
+			break;
+		}
+	}
+
+	if (allSame)
+		return candidate;  // 连续3根同状态，确认切换
+
+	// 未达确认条件，保持旧状态（锁定冷却）
+	return currentState;
 }
 
 // ========== 双周期共振趋势判定模块 ==========
@@ -411,31 +753,56 @@ namespace
 		bool isHigh;    // true=高点, false=低点
 	};
 
-	// 提取波段高低点序列：遍历K线，局部极大值为高点，局部极小值为低点
-	// minBars: 两侧至少minBars根K线才能确认极值
-	std::vector<SwingPoint> ExtractSwingPoints(const std::vector<STOCK::Bar>& bars, size_t minBars = SWING_MIN_BARS)
+	// 提取波段高低点序列
+	// realtime: true=实时盘中模式（仅左侧确认，消除滞后），false=回测全量模式（左右双侧确认，事后精准）
+	// minBars: 两侧至少minBars根K线才能确认极值（实时模式下仅左侧使用）
+	std::vector<SwingPoint> ExtractSwingPoints(const std::vector<STOCK::Bar>& bars,
+		size_t minBars = SWING_MIN_BARS, bool realtime = false)
 	{
 		std::vector<SwingPoint> points;
-		if (bars.size() < 2 * minBars + 1)
+		size_t n = bars.size();
+		size_t leftBars = minBars;
+		size_t rightBars = realtime ? 0 : minBars;  // 实时模式无需右侧确认
+
+		if (n < leftBars + 1)
 			return points;
 
-		for (size_t i = minBars; i < bars.size() - minBars; i++)
+		// 计算ATR用于极值振幅过滤
+		double atr = 0.0;
+		if (n >= 15)
+		{
+			std::vector<STOCK::Bar> barsForATR(bars.end() - 15, bars.end());
+			atr = CalcATR(barsForATR, barsForATR.size() - 1);
+		}
+		double minSwingSize = atr * SWING_MIN_ATR_RATIO;
+
+		// 遍历K线检测局部极值
+		size_t endIdx = realtime ? n : (n - rightBars);  // 实时模式可检测到最后一根
+		for (size_t i = leftBars; i < endIdx; i++)
 		{
 			// 检查是否为局部高点
 			bool isHigh = true;
-			for (size_t j = i - minBars; j < i; j++)
+			for (size_t j = i - leftBars; j < i; j++)  // 左侧确认
 			{
 				if (bars[j].high >= bars[i].high) { isHigh = false; break; }
 			}
-			if (isHigh)
+			if (isHigh && rightBars > 0)  // 右侧确认（仅回测模式）
 			{
-				for (size_t j = i + 1; j <= i + minBars; j++)
+				for (size_t j = i + 1; j <= i + rightBars && j < n; j++)
 				{
 					if (bars[j].high >= bars[i].high) { isHigh = false; break; }
 				}
 			}
+
 			if (isHigh)
 			{
+				// 极值振幅过滤：高点振幅过小则丢弃杂波
+				if (minSwingSize > 0 && i > 0)
+				{
+					double swingSize = bars[i].high - bars[i].low;
+					if (swingSize < minSwingSize)
+						continue;
+				}
 				// 避免连续同类型极值点，只保留更高的
 				if (!points.empty() && points.back().isHigh && points.back().value >= bars[i].high)
 					continue;
@@ -448,19 +815,27 @@ namespace
 
 			// 检查是否为局部低点
 			bool isLow = true;
-			for (size_t j = i - minBars; j < i; j++)
+			for (size_t j = i - leftBars; j < i; j++)  // 左侧确认
 			{
 				if (bars[j].low <= bars[i].low) { isLow = false; break; }
 			}
-			if (isLow)
+			if (isLow && rightBars > 0)  // 右侧确认（仅回测模式）
 			{
-				for (size_t j = i + 1; j <= i + minBars; j++)
+				for (size_t j = i + 1; j <= i + rightBars && j < n; j++)
 				{
 					if (bars[j].low <= bars[i].low) { isLow = false; break; }
 				}
 			}
+
 			if (isLow)
 			{
+				// 极值振幅过滤：低点振幅过小则丢弃杂波
+				if (minSwingSize > 0 && i > 0)
+				{
+					double swingSize = bars[i].high - bars[i].low;
+					if (swingSize < minSwingSize)
+						continue;
+				}
 				// 避免连续同类型极值点，只保留更低的
 				if (!points.empty() && !points.back().isHigh && points.back().value <= bars[i].low)
 					continue;
@@ -471,6 +846,221 @@ namespace
 			}
 		}
 		return points;
+	}
+
+	// 连续同向K线判定：若连续N根阳线/阴线，直接判定上升/下跌结构，不依赖波段点
+	// 返回: 1=连续阳线(上升趋势), -1=连续阴线(下跌趋势), 0=无明确方向
+	int DetectConsecutiveTrend(const std::vector<STOCK::Bar>& bars, size_t count = CONSECUTIVE_BAR_TREND)
+	{
+		if (bars.size() < count)
+			return 0;
+
+		// 检查最近count根K线是否全为阳线或全为阴线
+		bool allUp = true;
+		bool allDown = true;
+		for (size_t i = bars.size() - count; i < bars.size(); i++)
+		{
+			if (bars[i].close <= bars[i].open) allUp = false;
+			if (bars[i].close >= bars[i].open) allDown = false;
+		}
+		if (allUp) return 1;
+		if (allDown) return -1;
+		return 0;
+	}
+
+	// ========== MACD背离检测 ==========
+	// 背离等级
+	enum class DivLevel { NONE = 0, WEAK = 1, STANDARD = 2, STRONG = 3 };
+
+	// 背离检测结果
+	struct DivergenceInfo {
+		bool hasTopDiv;         // 顶背离
+		bool hasBottomDiv;      // 底背离
+		DivLevel topDivLevel;   // 顶背离等级
+		DivLevel bottomDivLevel; // 底背离等级
+		CString topDivDesc;     // 顶背离描述（用于reason）
+		CString bottomDivDesc;  // 底背离描述（用于reason）
+
+		DivergenceInfo() : hasTopDiv(false), hasBottomDiv(false),
+			topDivLevel(DivLevel::NONE), bottomDivLevel(DivLevel::NONE) {
+		}
+	};
+
+	// MACD背离检测：对比近3个极值点，而非仅相邻1根K线
+	// 顶背离：价格高点逐次抬高，DIF高点逐次降低
+	// 底背离：价格低点逐次降低，DIF低点逐次抬高
+	// 过滤条件：0轴区分 + ATR幅度阈值 + 多根极值对比
+	DivergenceInfo CalcDivergence(const std::vector<STOCK::Bar>& bars,
+		const std::vector<double>& difSeq, size_t curIdx)
+	{
+		DivergenceInfo info;
+		size_t n = curIdx + 1;
+		if (n < DIV_LOOKBACK)
+			return info;
+
+		// 计算ATR用于幅度过滤
+		double atr = 0.0;
+		if (n >= 15)
+		{
+			std::vector<STOCK::Bar> barsForATR(bars.begin() + (n - 15), bars.begin() + n);
+			atr = CalcATR(barsForATR, barsForATR.size() - 1);
+		}
+		double minPriceDiff = atr * DIV_ATR_RATIO;
+		double minDifDiff = atr * DIV_ATR_RATIO * 0.5;  // DIF差值阈值略低
+
+		size_t startIdx = (n > DIV_LOOKBACK) ? (n - DIV_LOOKBACK) : 0;
+
+		// 提取回看区间内的波段极值点（实时模式）
+		std::vector<STOCK::Bar> lookbackBars(bars.begin() + startIdx, bars.begin() + n);
+		auto swings = ExtractSwingPoints(lookbackBars, 2, !g_backtestMode);
+
+		// 分离高点和低点，同时记录原始索引
+		struct Extremum { size_t origIdx; double priceVal; double difVal; double volume; };
+		std::vector<Extremum> highExts, lowExts;
+		for (const auto& sw : swings)
+		{
+			size_t oi = sw.index + startIdx;  // 映射回原始索引
+			if (oi > curIdx) continue;
+			if (sw.isHigh)
+				highExts.push_back({ oi, sw.value, difSeq[oi], bars[oi].volume });
+			else
+				lowExts.push_back({ oi, sw.value, difSeq[oi], bars[oi].volume });
+		}
+
+		// 计算回看区间均量（用于量能校验）
+		double avgVol = 0.0;
+		{
+			double volSum = 0.0;
+			size_t volCount = 0;
+			size_t volStart = (n > 20) ? (n - 20) : 0;
+			for (size_t vi = volStart; vi < n; vi++)
+			{
+				volSum += bars[vi].volume;
+				volCount++;
+			}
+			avgVol = volCount > 0 ? volSum / volCount : 0.0;
+		}
+
+		// ===== 顶背离检测 =====
+		// 需要至少2个高点（当前+前一个），优先对比最近3个
+		if (highExts.size() >= 2)
+		{
+			size_t checkCount = highExts.size() >= 3 ? 3 : highExts.size();
+			// 取最近checkCount个高点
+			auto itEnd = highExts.end();
+			auto itStart = itEnd - checkCount;
+
+			// 价格高点是否逐次抬高
+			bool priceAsc = true;
+			for (auto it = itStart + 1; it != itEnd; ++it)
+			{
+				if (it->priceVal <= (it - 1)->priceVal) { priceAsc = false; break; }
+			}
+			// DIF高点是否逐次降低
+			bool difDesc = true;
+			for (auto it = itStart + 1; it != itEnd; ++it)
+			{
+				if (it->difVal >= (it - 1)->difVal) { difDesc = false; break; }
+			}
+
+			if (priceAsc && difDesc)
+			{
+				// 幅度过滤：最近两个高点的价格差和DIF差须大于阈值
+				double priceDiff = highExts.back().priceVal - (highExts.rbegin() + 1)->priceVal;
+				double difDiff = (highExts.rbegin() + 1)->difVal - highExts.back().difVal;
+
+				if (priceDiff >= minPriceDiff && difDiff >= minDifDiff)
+				{
+					info.hasTopDiv = true;
+
+					// 量能校验：冲高放量才认定有效顶背离，无量冲高降级为弱背离
+					bool volSurge = (avgVol > 0 && highExts.back().volume > avgVol * VOL_RATIO_THRESHOLD);
+
+					// 0轴过滤：DIF在0轴上方时顶背离做空权重降低
+					bool difAboveZero = highExts.back().difVal > 0;
+
+					// 量能不足时强制降级为弱背离
+					bool forceWeak = !volSurge;
+
+					// 等级判定
+					if (forceWeak || difAboveZero)
+					{
+						info.topDivLevel = DivLevel::WEAK;
+						info.topDivDesc = forceWeak ? _T("弱顶背(无量)") : _T("弱顶背");
+					}
+					else if (checkCount >= 3)
+					{
+						info.topDivLevel = DivLevel::STRONG; // 0轴下方+3极值+放量=强背离
+						info.topDivDesc = _T("强顶背");
+					}
+					else
+					{
+						info.topDivLevel = DivLevel::STANDARD; // 0轴下方+2极值+放量=标准背离
+						info.topDivDesc = _T("顶背离");
+					}
+				}
+			}
+		}
+
+		// ===== 底背离检测 =====
+		if (lowExts.size() >= 2)
+		{
+			size_t checkCount = lowExts.size() >= 3 ? 3 : lowExts.size();
+			auto itEnd = lowExts.end();
+			auto itStart = itEnd - checkCount;
+
+			// 价格低点是否逐次降低
+			bool priceDesc = true;
+			for (auto it = itStart + 1; it != itEnd; ++it)
+			{
+				if (it->priceVal >= (it - 1)->priceVal) { priceDesc = false; break; }
+			}
+			// DIF低点是否逐次抬高
+			bool difAsc = true;
+			for (auto it = itStart + 1; it != itEnd; ++it)
+			{
+				if (it->difVal <= (it - 1)->difVal) { difAsc = false; break; }
+			}
+
+			if (priceDesc && difAsc)
+			{
+				double priceDiff = (lowExts.rbegin() + 1)->priceVal - lowExts.back().priceVal;
+				double difDiff = lowExts.back().difVal - (lowExts.rbegin() + 1)->difVal;
+
+				if (priceDiff >= minPriceDiff && difDiff >= minDifDiff)
+				{
+					info.hasBottomDiv = true;
+
+					// 量能校验：回调缩量才认定有效底背离，放量急跌降级为弱背离
+					bool volShrink = (avgVol > 0 && lowExts.back().volume < avgVol * 0.7);
+
+					// 0轴过滤：DIF在0轴下方时底背离仅标记弱反弹
+					bool difBelowZero = lowExts.back().difVal < 0;
+
+					// 放量急跌或DIF在0轴下方时降级为弱背离
+					bool forceWeak = !volShrink || difBelowZero;
+
+					if (forceWeak)
+					{
+						info.bottomDivLevel = DivLevel::WEAK;
+						info.bottomDivDesc = (!volShrink && !difBelowZero) ? _T("弱底背(放量)") :
+							(!volShrink && difBelowZero) ? _T("弱底背(放量)") : _T("弱底背");
+					}
+					else if (checkCount >= 3)
+					{
+						info.bottomDivLevel = DivLevel::STRONG; // 0轴上方+3极值+缩量=强背离
+						info.bottomDivDesc = _T("强底背");
+					}
+					else
+					{
+						info.bottomDivLevel = DivLevel::STANDARD; // 0轴上方+2极值+缩量=标准背离
+						info.bottomDivDesc = _T("底背离");
+					}
+				}
+			}
+		}
+
+		return info;
 	}
 
 	// 从波段点中分别提取高点序列和低点序列
@@ -611,8 +1201,13 @@ bool CSignalAnalyzer::Calc30UpStruct(const std::vector<STOCK::Bar>& bars30)
 	// 取最近25根30分钟K线
 	std::vector<STOCK::Bar> recent(bars30.end() - TREND_30M_LOOKBACK, bars30.end());
 
-	// 提取波段高低点
-	auto swings = ExtractSwingPoints(recent);
+	// 连续同向K线兜底：若连续5根阳线，直接判定上升结构
+	int consecTrend = DetectConsecutiveTrend(recent);
+	if (consecTrend == 1)
+		return true;
+
+	// 提取波段高低点（实时模式：仅左侧确认）
+	auto swings = ExtractSwingPoints(recent, SWING_MIN_BARS, !g_backtestMode);
 	std::vector<double> swingHighs, swingLows;
 	SeparateSwingPoints(swings, swingHighs, swingLows);
 
@@ -641,7 +1236,12 @@ bool CSignalAnalyzer::Calc30DownStruct(const std::vector<STOCK::Bar>& bars30)
 
 	std::vector<STOCK::Bar> recent(bars30.end() - TREND_30M_LOOKBACK, bars30.end());
 
-	auto swings = ExtractSwingPoints(recent);
+	// 连续同向K线兜底：若连续5根阴线，直接判定下跌结构
+	int consecTrend = DetectConsecutiveTrend(recent);
+	if (consecTrend == -1)
+		return true;
+
+	auto swings = ExtractSwingPoints(recent, SWING_MIN_BARS, !g_backtestMode);
 	std::vector<double> swingHighs, swingLows;
 	SeparateSwingPoints(swings, swingHighs, swingLows);
 
@@ -675,7 +1275,7 @@ bool CSignalAnalyzer::Calc30SideStruct(const std::vector<STOCK::Bar>& bars30)
 	bool ma20Flat = fabs(slope) <= MA20_SLOPE_THRESHOLD;
 
 	// 条件2：高低点来回交叉，无持续抬高/降低
-	auto swings = ExtractSwingPoints(recent);
+	auto swings = ExtractSwingPoints(recent, SWING_MIN_BARS, !g_backtestMode);
 	std::vector<double> swingHighs, swingLows;
 	SeparateSwingPoints(swings, swingHighs, swingLows);
 	bool crossing = IsSwingCrossing(swingHighs, swingLows);
@@ -696,8 +1296,13 @@ bool CSignalAnalyzer::Calc5MinUp(const std::vector<STOCK::Bar>& bars5)
 
 	std::vector<STOCK::Bar> recent(bars5.end() - TREND_5M_LOOKBACK, bars5.end());
 
+	// 连续同向K线兜底：若连续5根阳线，直接判定短线多头
+	int consecTrend = DetectConsecutiveTrend(recent);
+	if (consecTrend == 1)
+		return true;
+
 	// 条件1：5分钟短期低点抬高
-	auto swings = ExtractSwingPoints(recent, 2);  // 5分钟用更短的极值间隔
+	auto swings = ExtractSwingPoints(recent, 2, !g_backtestMode);  // 5分钟用更短的极值间隔
 	std::vector<double> swingHighs, swingLows;
 	SeparateSwingPoints(swings, swingHighs, swingLows);
 	bool lowAscending = IsAscending(swingLows);
@@ -742,8 +1347,13 @@ bool CSignalAnalyzer::Calc5MinDown(const std::vector<STOCK::Bar>& bars5)
 
 	std::vector<STOCK::Bar> recent(bars5.end() - TREND_5M_LOOKBACK, bars5.end());
 
+	// 连续同向K线兜底：若连续5根阴线，直接判定短线空头
+	int consecTrend = DetectConsecutiveTrend(recent);
+	if (consecTrend == -1)
+		return true;
+
 	// 条件1：5分钟短期高点降低
-	auto swings = ExtractSwingPoints(recent, 2);
+	auto swings = ExtractSwingPoints(recent, 2, !g_backtestMode);
 	std::vector<double> swingHighs, swingLows;
 	SeparateSwingPoints(swings, swingHighs, swingLows);
 	bool highDescending = IsDescending(swingHighs);
@@ -785,6 +1395,31 @@ double CSignalAnalyzer::CalcOuterInnerRatio(STOCK::Volume outerVol, STOCK::Volum
 	STOCK::Volume total = outerVol + innerVol;
 	if (total <= 0) return 0.0;
 	return static_cast<double>(outerVol - innerVol) / total;
+}
+
+// ========== 回测模式控制 ==========
+void CSignalAnalyzer::SetBacktestMode(bool enabled)
+{
+	g_backtestMode = enabled;
+	CString msg;
+	msg.Format(_T("回测模式：%s"), enabled ? _T("开启") : _T("关闭"));
+	SignalLog(LogLevel::LOG_INFO, msg);
+}
+
+bool CSignalAnalyzer::IsBacktestMode()
+{
+	return g_backtestMode;
+}
+
+// ========== 跨周期时间对齐 ==========
+std::vector<size_t> CSignalAnalyzer::Align5mTo30m(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30)
+{
+	std::vector<size_t> alignMap(bars5.size(), SIZE_MAX);
+	for (size_t i = 0; i < bars5.size(); i++)
+	{
+		alignMap[i] = Find30mBarFor5m(bars5[i].time, bars30);
+	}
+	return alignMap;
 }
 
 // 完整趋势判定主函数：5分钟+30分钟双周期共振
@@ -854,6 +1489,7 @@ STOCK::TrendResult CSignalAnalyzer::CalcTrend(
 
 STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
 {
+	PerfCounter _perf("Get5mSignal");
 	if (bars5.size() < 60)
 		return STOCK::Signal5m::SIG_NONE;
 
@@ -861,11 +1497,11 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 	const STOCK::Bar& last = bars5.back();
 
 	// 1. 指标批量计算
-	STOCK::BollResult boll = CalcBoll(bars5, 20);
+	STOCK::BollResult boll = CalcBoll(bars5, GetParam().bollPeriod);
 	std::vector<double> difSeq, deaSeq, macdBarSeq;
 	CalcMACDSeries(bars5, difSeq, deaSeq, macdBarSeq);
 	std::vector<double> kSeq, dSeq, jSeq;
-	CalcKDJSeries(bars5, 9, kSeq, dSeq, jSeq);
+	CalcKDJSeries(bars5, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
 	if (difSeq.size() != bars5.size() || deaSeq.size() != bars5.size() || macdBarSeq.size() != bars5.size()
 		|| kSeq.size() != bars5.size() || dSeq.size() != bars5.size() || jSeq.size() != bars5.size())
 		return STOCK::Signal5m::SIG_NONE;
@@ -888,51 +1524,186 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 	prevKdj.k = kSeq[prevIndex];
 	prevKdj.d = dSeq[prevIndex];
 	prevKdj.j = jSeq[prevIndex];
-	double rsi6 = CalcRSI(bars5, 6);
-	double wr6 = CalcWR(bars5, 6);
+	double rsi6 = CalcRSI(bars5, GetParam().rsiPeriod);
+	double wr6 = CalcWR(bars5, GetParam().wrPeriod);
+
+	// ========== 趋势强度权重：30min强趋势下弱化短线超买卖出信号 ==========
+	// DIF持续0轴上方 + BOLL中轨持续上行 → 强趋势延续，压制卖出信号
+	bool strongTrendUp = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && lastIndex >= 1)
+	{
+		bool difAboveZero = (macd.dif > 0);
+		bool bollMidUp = (boll.mid > 0) && (lastIndex >= 20);
+		if (bollMidUp)
+		{
+			// 计算前一根BOLL中轨
+			std::vector<STOCK::Bar> prevBars20(bars5.end() - 21, bars5.end() - 1);
+			STOCK::BollResult prevBoll = CalcBoll(prevBars20, 20);
+			bollMidUp = (boll.mid > prevBoll.mid);
+		}
+		strongTrendUp = difAboveZero && bollMidUp;
+	}
+
+	// ========== 连续超买钝化豁免机制 ==========
+	// 连续3根K线KDJ高位钝化（K>85且逐根下降）且30min强势 → 屏蔽卖出信号，避免主升浪频繁止盈
+	bool kdjTopPassiveExempt = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && lastIndex >= 2)
+	{
+		bool kdjHigh3 = (kSeq[lastIndex] > 85 && kSeq[prevIndex] > 85 && kSeq[prevIndex - 1] > 85);
+		bool kdjDeclining3 = (kSeq[lastIndex] < kSeq[prevIndex] && kSeq[prevIndex] < kSeq[prevIndex - 1]);
+		kdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
+	}
+
+	// ========== MACD背离检测（多根极值对比+0轴过滤+ATR幅度+等级） ==========
+	DivergenceInfo divInfo = CalcDivergence(bars5, difSeq, lastIndex);
 
 	// ========== 卖出判定（必要条件组+辅助条件组） ==========
 	// 必要条件组：价格突破轨道(S1) + MACD动量减弱(S2) 至少满足1个
 	bool sellS1 = (last.high >= boll.up) || (last.close > boll.up);
 	bool sellS2_redShrink = (macd.macd_bar > 0) && (macd.macd_bar < prevMacd.macd_bar);
-	bool sellS2_topDiv = (last.high > bars5[barCount - 2].high) && (macd.dif < prevMacd.dif);
+	// 顶背离：弱背离不单独触发卖出，标准/强背离可触发
+	bool sellS2_topDiv = divInfo.hasTopDiv && (divInfo.topDivLevel >= DivLevel::STANDARD);
 	bool sellS2 = sellS2_redShrink || sellS2_topDiv;
 	bool sellNecessary = (sellS1 || sellS2);
 
-	// 辅助条件组：KDJ/RSI/WR 三个超买指标满足1个即可触发卖出辅助
+	// 辅助条件组：KDJ/RSI/WR 三个超买指标
 	bool sellA1 = ((kdj.k > KDJ_OVERBUY && kdj.d > SELL_KDJ_D_OVERBUY && kdj.j < prevKdj.j) || kdj.j > 100.0);
 	bool sellA2 = (rsi6 > 70);
 	bool sellA3 = (wr6 < SELL_WR_OVERBUY);
-	int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0);
+	// 量能辅助：冲高放量（当前成交量 > 前5根均量×1.3 且当前为上涨K线）
+	double avgVol5 = 0;
+	if (lastIndex >= 5)
+	{
+		double volSum = 0;
+		for (size_t j = lastIndex - 5; j < lastIndex; j++) volSum += bars5[j].volume;
+		avgVol5 = volSum / 5.0;
+	}
+	bool sellA4_volSurge = (avgVol5 > 0 && last.volume > avgVol5 * VOL_RATIO_THRESHOLD && last.close > last.open);
+	int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0) + (sellA4_volSurge ? 1 : 0);
 
-	bool hasSell = sellNecessary && (sellAuxCount >= 1);
+	// 分趋势差异化配置辅助指标达标数量
+	int sellAuxThreshold = 2;  // 默认：卖出辅助≥2
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		sellAuxThreshold = 2;   // 强势：卖出辅助≥2（收紧做空，防卖飞）
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+		sellAuxThreshold = 2;   // 震荡/弱震荡：卖出辅助≥2（平衡多空频率）
+	// 弱势也要求≥2，防止高位回落后仅剩1个超买指标就触发低位追卖
+
+	bool hasSell = sellNecessary && (sellAuxCount >= sellAuxThreshold);
+
+	// 趋势强度权重：强趋势延续时，仅单指标超买不足以触发卖出
+	if (hasSell && strongTrendUp && sellAuxCount < 2)
+		hasSell = false;
+
+	// 连续超买钝化豁免：主升浪中KDJ高位钝化屏蔽卖出
+	if (hasSell && kdjTopPassiveExempt)
+		hasSell = false;
+
+	// 无量冲高不过滤卖出信号（冲高抛、回落接做T思路）
 
 	// ========== 买入判定（必要条件组+辅助条件组） ==========
 	// 必要条件组：价格触及轨道(B1) + MACD信号(B2) 至少满足1个
-	bool buyB1 = (last.low <= boll.dn);
-	bool buyB2_greenShrink = (macd.macd_bar < 0) && (macd.macd_bar > prevMacd.macd_bar) && fabs(macd.dif) > GetMacdDifThreshold(last.close);
-	bool buyB2_bottomDiv = (last.low < bars5[barCount - 2].low) && (macd.dif > prevMacd.dif) && fabs(macd.dif) > GetMacdDifThreshold(last.close);
+	bool buyB1 = (last.low <= boll.dn) || (last.close < boll.dn);
+	// MACD：绿柱缩短 or 底背离（DIF远离0轴才认定有效动量信号）
+	double macdDifThreshold = GetMacdDifThreshold(last.close, CalcATR(bars5, lastIndex));
+	bool buyB2_greenShrink = (macd.macd_bar < 0) && (macd.macd_bar > prevMacd.macd_bar) && fabs(macd.dif) > macdDifThreshold;
+	// 底背离：弱背离不单独触发买入，标准/强背离可触发
+	bool buyB2_bottomDiv = divInfo.hasBottomDiv && (divInfo.bottomDivLevel >= DivLevel::STANDARD);
 	bool buyB2 = buyB2_greenShrink || buyB2_bottomDiv;
 	bool buyNecessary = (buyB1 || buyB2);
 
-	// 辅助条件组：KDJ/RSI/WR 三个超卖指标至少满足2个
+	// 辅助条件组：KDJ/RSI/WR 三个超卖指标
 	bool buyA1 = (kdj.k < KDJ_OVERSELL && kdj.d < KDJ_OVERSELL && kdj.j > prevKdj.j);
 	bool buyA2 = (rsi6 < 30);
 	bool buyA3 = (wr6 > 80);
-	int buyAuxCount = (buyA1 ? 1 : 0) + (buyA2 ? 1 : 0) + (buyA3 ? 1 : 0);
+	// 量能辅助：回调缩量（当前成交量 < 前5根均量×0.7）
+	bool buyA4_volShrink = (avgVol5 > 0 && last.volume < avgVol5 * 0.7);
+	int buyAuxCount = (buyA1 ? 1 : 0) + (buyA2 ? 1 : 0) + (buyA3 ? 1 : 0) + (buyA4_volShrink ? 1 : 0);
 
-	bool hasBuy = buyNecessary && (buyAuxCount >= 2);
+	// 分趋势差异化配置辅助指标达标数量
+	int buyAuxThreshold = 2;  // 默认：买入辅助≥2
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		buyAuxThreshold = 1;   // 强势：买入辅助≥1即可（顺势放宽做多）
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+		buyAuxThreshold = 2;   // 震荡/弱震荡：买入辅助≥2（平衡多空频率）
+
+	bool hasBuy = buyNecessary && (buyAuxCount >= buyAuxThreshold);
+
+	// 放量大跌不过滤买入信号（冲高抛、回落接做T思路）
+
+	// ========== 共振总分计算 ==========
+	// 每个指标对买入/卖出方向贡献1分强度（必要+辅助共6项：BOLL/MACD/RSI/KDJ/WR/VOL）
+	// 弱背离额外贡献0.5分（降低权重，不单独触发买卖）
+	int sellStrBoll = (sellS1 ? 1 : 0);
+	int sellStrMacd = (sellS2 ? 1 : 0) + (divInfo.hasTopDiv && divInfo.topDivLevel == DivLevel::WEAK ? 1 : 0);
+	int sellStrRsi = (sellA2 ? 1 : 0);
+	int sellStrKdj = (sellA1 ? 1 : 0);
+	int sellStrWr = (sellA3 ? 1 : 0);
+	int sellStrVol = (sellA4_volSurge ? 1 : 0);
+	int sellTotalStr = sellStrBoll + sellStrMacd + sellStrRsi + sellStrKdj + sellStrWr + sellStrVol;
+
+	int buyStrBoll = (buyB1 ? 1 : 0);
+	int buyStrMacd = (buyB2 ? 1 : 0) + (divInfo.hasBottomDiv && divInfo.bottomDivLevel == DivLevel::WEAK ? 1 : 0);
+	int buyStrRsi = (buyA2 ? 1 : 0);
+	int buyStrKdj = (buyA1 ? 1 : 0);
+	int buyStrWr = (buyA3 ? 1 : 0);
+	int buyStrVol = (buyA4_volShrink ? 1 : 0);
+	int buyTotalStr = buyStrBoll + buyStrMacd + buyStrRsi + buyStrKdj + buyStrWr + buyStrVol;
+
+	// ========== MA20位置判定（冲突仲裁辅助） ==========
+	// 强势趋势下，价格在MA20上方禁止优先卖出；弱势趋势下，价格在MA20下方禁止优先买入
+	double ma20 = 0;
+	if (bars5.size() >= 20)
+	{
+		std::vector<double> closes20;
+		closes20.reserve(20);
+		for (auto it = bars5.end() - 20; it != bars5.end(); ++it)
+			closes20.push_back(it->close);
+		ma20 = CalcMA(closes20, 20);
+	}
+	bool priceAboveMA20 = (ma20 > 0 && last.close > ma20);
+	bool priceBelowMA20 = (ma20 > 0 && last.close < ma20);
 
 	// 信号输出
 	if (hasSell && hasBuy)
 	{
-		if (sellAuxCount >= buyAuxCount)
+		// 第1优先级：共振总分高的方向优先
+		if (sellTotalStr > buyTotalStr)
+		{
+			// 卖出总分高，但强势+价格在MA20上方时禁止优先卖出
+			if (trendState == STOCK::TrendState30m::STATE_STRONG && priceAboveMA20)
+				return STOCK::Signal5m::SIG_BUY;
 			return STOCK::Signal5m::SIG_SELL;
-		if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		}
+		if (buyTotalStr > sellTotalStr)
+		{
+			// 买入总分高，但弱势+价格在MA20下方时禁止优先买入
+			if (trendState == STOCK::TrendState30m::STATE_WEAK && priceBelowMA20)
+				return STOCK::Signal5m::SIG_SELL;
 			return STOCK::Signal5m::SIG_BUY;
-		if (trendState == STOCK::TrendState30m::STATE_WEAK)
-			return STOCK::Signal5m::SIG_SELL;
+		}
 
+		// 第2优先级：总分相同时看30min趋势方向
+		if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		{
+			// 强势优先买，但价格在MA20下方时倾向卖出（破位风险）
+			if (priceBelowMA20) return STOCK::Signal5m::SIG_SELL;
+			return STOCK::Signal5m::SIG_BUY;
+		}
+		if (trendState == STOCK::TrendState30m::STATE_WEAK)
+		{
+			// 弱势优先卖，但价格在MA20上方时倾向买入（反弹信号）
+			if (priceAboveMA20) return STOCK::Signal5m::SIG_BUY;
+			return STOCK::Signal5m::SIG_SELL;
+		}
+		if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+		{
+			// 弱震荡：略偏空，价格在MA20下方时优先卖出
+			if (priceBelowMA20) return STOCK::Signal5m::SIG_SELL;
+			return STOCK::Signal5m::SIG_BUY;
+		}
+
+		// 震荡：取当前大周期方向（默认买入，震荡中回调低吸优先）
 		return STOCK::Signal5m::SIG_BUY;
 	}
 	if (hasSell) return STOCK::Signal5m::SIG_SELL;
@@ -940,112 +1711,103 @@ STOCK::Signal5m CSignalAnalyzer::Get5mSignal(const std::vector<STOCK::Bar>& bars
 	return STOCK::Signal5m::SIG_NONE;
 }
 
-// ========== 智能分析模块：单边钝化风控过滤器 ==========
-// 只要触发禁止操作，直接忽略上面买卖信号
+// ========== 双通道风控过滤器 ==========
+// 区分forbidBuy/forbidSell，不同趋势状态下差异化风控
 
-bool CSignalAnalyzer::IsForbidTrade(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
+CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
 {
+	ForbidResult result;
 	if (bars5.size() < 60)
-		return false;
+		return result;
 
 	// 布林带宽放大：使用当前带宽增长率或历史高分位，避免强制连续三根导致风控滞后
-	STOCK::BollResult boll = CalcBoll(bars5, 20);
+	STOCK::BollResult boll = CalcBoll(bars5, GetParam().bollPeriod);
+	int bollP = GetParam().bollPeriod;
 	std::vector<double> bollBandSeq(bars5.size(), 0.0);
-	for (size_t i = 19; i < bars5.size(); i++)
+	for (size_t i = bollP - 1; i < bars5.size(); i++)
 	{
 		std::vector<double> closes;
-		closes.reserve(20);
-		for (size_t j = i - 19; j <= i; j++)
+		closes.reserve(bollP);
+		for (size_t j = i - bollP + 1; j <= i; j++)
 			closes.push_back(bars5[j].close);
 		bollBandSeq[i] = 4.0 * CalcStdDev(closes);
 	}
 	bool bandExpand = IsBollExpand(bollBandSeq, bars5.size() - 1);
 	double avgBollBandwidth = CalcAverageBollBandwidth(bollBandSeq, bars5.size() - 1);
-	bool narrowBand = IsNarrowBoll(boll.mid, avgBollBandwidth);
+	double atr5 = CalcATR(bars5, bars5.size() - 1);
+	bool narrowBand = IsNarrowBoll(avgBollBandwidth, atr5);
 
 	// KDJ钝化
 	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
 	std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
-	STOCK::KDJResult kdj = CalcKDJ(bars5, 9);
-	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, 9);
-	STOCK::KDJResult prevPrevKdj = CalcKDJ(prevPrevBars, 9);
+	STOCK::KDJResult kdj = CalcKDJ(bars5, GetParam().kdjPeriod);
+	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, GetParam().kdjPeriod);
+	STOCK::KDJResult prevPrevKdj = CalcKDJ(prevPrevBars, GetParam().kdjPeriod);
 	bool kdjTopPassive = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
 		&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
 	bool kdjBottomPassive = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
 		&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
 
 	// WR钝化
-	double wr6 = CalcWR(bars5, 6);
-	double wrPrev = CalcWR(prevBars, 6);
-	double wrPrevPrev = CalcWR(prevPrevBars, 6);
+	double wr6 = CalcWR(bars5, GetParam().wrPeriod);
+	double wrPrev = CalcWR(prevBars, GetParam().wrPeriod);
+	double wrPrevPrev = CalcWR(prevPrevBars, GetParam().wrPeriod);
 	bool wrTopPassive = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
 		&& wr6 > wrPrev && wrPrev > wrPrevPrev);
 	bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
 		&& wr6 < wrPrev && wrPrev < wrPrevPrev);
 
-	// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
-	if (trendState == STOCK::TrendState30m::STATE_WEAK)
-		return narrowBand;  // 弱势下BOLL极窄禁止买入（窄带变盘方向不确定，弱势接回风险大）
-	if (trendState == STOCK::TrendState30m::STATE_STRONG)
-		return kdjBottomPassive || wrBottomPassive;
-	return bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
-}
-
-CString CSignalAnalyzer::GetForbidReason(const std::vector<STOCK::Bar>& bars5, STOCK::TrendState30m trendState)
-{
-	if (bars5.size() < 60)
-		return _T("");
-
-	STOCK::BollResult boll = CalcBoll(bars5, 20);
-	std::vector<double> bollBandSeq(bars5.size(), 0.0);
-	for (size_t i = 19; i < bars5.size(); i++)
-	{
-		std::vector<double> closes;
-		closes.reserve(20);
-		for (size_t j = i - 19; j <= i; j++)
-			closes.push_back(bars5[j].close);
-		bollBandSeq[i] = 4.0 * CalcStdDev(closes);
-	}
-	bool bandExpand = IsBollExpand(bollBandSeq, bars5.size() - 1);
-	double avgBollBandwidth = CalcAverageBollBandwidth(bollBandSeq, bars5.size() - 1);
-	bool narrowBand = IsNarrowBoll(boll.mid, avgBollBandwidth);
-
-	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
-	std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
-	STOCK::KDJResult kdj = CalcKDJ(bars5, 9);
-	STOCK::KDJResult prevKdj = CalcKDJ(prevBars, 9);
-	STOCK::KDJResult prevPrevKdj = CalcKDJ(prevPrevBars, 9);
-	bool kdjTopPassive = (kdj.k > 85 && prevKdj.k > 85 && prevPrevKdj.k > 85
-		&& kdj.k < prevKdj.k && prevKdj.k < prevPrevKdj.k);
-	bool kdjBottomPassive = (kdj.k < 15 && prevKdj.k < 15 && prevPrevKdj.k < 15
-		&& kdj.k > prevKdj.k && prevKdj.k > prevPrevKdj.k);
-
-	double wr6 = CalcWR(bars5, 6);
-	double wrPrev = CalcWR(prevBars, 6);
-	double wrPrevPrev = CalcWR(prevPrevBars, 6);
-	bool wrTopPassive = (wr6 < 18 && wrPrev < 18 && wrPrevPrev < 18
-		&& wr6 > wrPrev && wrPrev > wrPrevPrev);
-	bool wrBottomPassive = (wr6 > 82 && wrPrev > 82 && wrPrevPrev > 82
-		&& wr6 < wrPrev && wrPrev < wrPrevPrev);
-
-	// 按优先级返回第一个命中的风险原因（4字简短描述）
-	if (trendState == STOCK::TrendState30m::STATE_WEAK)
-	{
-		if (narrowBand) return _T("BOLL过窄");
-		return _T("");
-	}
+	// 按趋势状态差异化配置双通道风控
+	// 布林风控规则：
+	// 1. 窄布林统一禁止新开仓（变盘不确定性高，无论强弱/震荡）
+	// 2. 布林扩张区分多空：强势多头扩张禁止做空，弱势空头扩张禁止做多
 	if (trendState == STOCK::TrendState30m::STATE_STRONG)
 	{
-		if (kdjBottomPassive) return _T("KDJ钝化");
-		if (wrBottomPassive) return _T("WR钝化");
-		return _T("");
+		// 强势：底部钝化禁止买入，顶部钝化禁止卖出
+		if (kdjBottomPassive) { result.forbidBuy = true; result.forbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("WR钝化"); }
+		if (kdjTopPassive) { result.forbidSell = true; result.forbidSellReason = _T("KDJ钝化"); }
+		if (wrTopPassive) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("WR钝化"); }
+		// 窄布林统一禁止新开仓
+		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
+		// 强势多头布林扩张禁止做空
+		if (bandExpand) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
 	}
-	// STATE_SHAKE
-	if (bandExpand) return _T("BOLL扩张");
-	if (narrowBand) return _T("BOLL过窄");
-	if (kdjBottomPassive) return _T("KDJ钝化");
-	if (wrBottomPassive) return _T("WR钝化");
-	return _T("");
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
+	{
+		// 弱势：底部钝化禁止逆势卖出（防弱势抄底失败后割肉）
+		if (kdjBottomPassive) { result.forbidSell = true; result.forbidSellReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("WR钝化"); }
+		// 窄布林统一禁止新开仓
+		if (narrowBand) { result.forbidBuy = true; result.forbidBuyReason = _T("BOLL过窄"); }
+		// 弱势空头布林扩张禁止做多
+		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+	{
+		// 弱震荡：偏弱缓冲，底部钝化限制买入
+		if (kdjBottomPassive) { result.forbidBuy = true; result.forbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("WR钝化"); }
+		// 窄布林统一禁止新开仓
+		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+	}
+	else  // STATE_SHAKE
+	{
+		// 震荡：底部钝化限制买入，不限制卖出
+		if (kdjBottomPassive) { result.forbidBuy = true; result.forbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("WR钝化"); }
+		// 窄布林统一禁止新开仓
+		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+	}
+
+	if (result.forbidBuy)
+		SignalLog(LogLevel::LOG_WARN, _T("风控拦截：禁止买入 - ") + result.forbidBuyReason);
+	if (result.forbidSell)
+		SignalLog(LogLevel::LOG_WARN, _T("风控拦截：禁止卖出 - ") + result.forbidSellReason);
+
+	return result;
 }
 
 // ========== 智能分析模块：完整买卖点判定函数 ==========
@@ -1056,14 +1818,22 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 	T0Signal signal;
 
 	// ===== 第1步：获取30分钟全局趋势 =====
-	STOCK::TrendState30m trendState = Get30mTrendState(bars30);
+	STOCK::TrendStateResult trendResult = Get30mTrendState(bars30);
+	STOCK::TrendState30m trendState = trendResult.state;
 	signal.trendState = trendState;
 
-	// ===== 第2步：先判断是否禁止交易（风控过滤） =====
-	bool forbidTrade = IsForbidTrade(bars5, trendState);
+	// ===== 第2步：双通道风控过滤 =====
+	ForbidResult forbid = CalcForbidResult(bars5, trendState);
 
 	// ===== 第3步：获取5分钟共振买卖信号 =====
 	STOCK::Signal5m sig = Get5mSignal(bars5, trendState);
+
+	// 计算背离信息（用于reason记录，方便复盘识别假背离）
+	std::vector<double> difSeqForDiv, deaSeqForDiv, macdBarSeqForDiv;
+	CalcMACDSeries(bars5, difSeqForDiv, deaSeqForDiv, macdBarSeqForDiv);
+	DivergenceInfo divInfoForReason;
+	if (difSeqForDiv.size() == bars5.size())
+		divInfoForReason = CalcDivergence(bars5, difSeqForDiv, bars5.size() - 1);
 
 	if (sig == STOCK::Signal5m::SIG_NONE)
 	{
@@ -1071,19 +1841,36 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 		return signal;
 	}
 
-	if (forbidTrade && sig != STOCK::Signal5m::SIG_SELL)
+	// 风控分别拦截买卖信号
+	if (sig == STOCK::Signal5m::SIG_BUY && forbid.forbidBuy)
 	{
 		signal.isForbid = true;
 		signal.valid = false;
-		signal.reason = _T("风控限制买入，停止低吸做T");
+		signal.reason = _T("风控限制买入：") + forbid.forbidBuyReason;
+		signal.forbidReason = forbid.forbidBuyReason;
+		return signal;
+	}
+	if (sig == STOCK::Signal5m::SIG_SELL && forbid.forbidSell)
+	{
+		signal.isForbid = true;
+		signal.valid = false;
+		signal.reason = _T("风控限制卖出：") + forbid.forbidSellReason;
+		signal.forbidReason = forbid.forbidSellReason;
 		return signal;
 	}
 
 	// ===== 第4步：分趋势分支处理信号 =====
-	if (lastSignalPrice > 0 && fabs(bars5.back().close - lastSignalPrice) < GetSignalPriceDiffThreshold(bars5, bars5.size() - 1))
+	// 信号价差过滤：根据信号方向使用多空差异化阈值
+	if (lastSignalPrice > 0)
 	{
-		signal.valid = false;
-		return signal;
+		double diffThreshold = (sig == STOCK::Signal5m::SIG_BUY)
+			? GetLongThreshold(bars5, bars5.size() - 1, trendState)
+			: GetShortThreshold(bars5, bars5.size() - 1, trendState);
+		if (fabs(bars5.back().close - lastSignalPrice) < diffThreshold)
+		{
+			signal.valid = false;
+			return signal;
+		}
 	}
 
 	signal.valid = true;
@@ -1097,11 +1884,13 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 		{
 			signal.isBuy = false;
 			signal.reason = _T("反卖");
+			if (divInfoForReason.hasTopDiv) signal.reason += _T("+") + divInfoForReason.topDivDesc;
 		}
 		else if (sig == STOCK::Signal5m::SIG_BUY)
 		{
 			signal.isBuy = true;
 			signal.reason = _T("反买");
+			if (divInfoForReason.hasBottomDiv) signal.reason += _T("+") + divInfoForReason.bottomDivDesc;
 		}
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_STRONG)
@@ -1111,27 +1900,34 @@ CSignalAnalyzer::T0Signal CSignalAnalyzer::DetectSmartSignal(const std::vector<S
 		{
 			signal.isBuy = true;
 			signal.reason = _T("正买");
+			if (divInfoForReason.hasBottomDiv) signal.reason += _T("+") + divInfoForReason.bottomDivDesc;
 		}
 		else if (sig == STOCK::Signal5m::SIG_SELL)
 		{
 			signal.isBuy = false;
 			signal.reason = _T("正卖");
+			if (divInfoForReason.hasTopDiv) signal.reason += _T("+") + divInfoForReason.topDivDesc;
 		}
 	}
-	else  // STATE_SHAKE
+	else  // STATE_SHAKE / STATE_WEAK_SHAKE
 	{
-		// 震荡：买卖信号自由执行
+		// 震荡/弱震荡：买卖信号自由执行
 		if (sig == STOCK::Signal5m::SIG_BUY)
 		{
 			signal.isBuy = true;
-			signal.reason = _T("正买");
+			signal.reason = (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) ? _T("弱震买") : _T("正买");
+			if (divInfoForReason.hasBottomDiv) signal.reason += _T("+") + divInfoForReason.bottomDivDesc;
 		}
 		else if (sig == STOCK::Signal5m::SIG_SELL)
 		{
 			signal.isBuy = false;
-			signal.reason = _T("正卖");
+			signal.reason = (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) ? _T("弱震卖") : _T("正卖");
+			if (divInfoForReason.hasTopDiv) signal.reason += _T("+") + divInfoForReason.topDivDesc;
 		}
 	}
+
+	if (signal.valid)
+		SignalLog(LogLevel::LOG_INFO, _T("信号触发：") + signal.reason);
 
 	return signal;
 }
@@ -1144,51 +1940,85 @@ void CSignalAnalyzer::CalcMACDSeries(const std::vector<STOCK::Bar>& bars, std::v
 	if (n < 2) { difSeq.resize(n, 0); deaSeq.resize(n, 0); barSeq.resize(n, 0); return; }
 
 	std::vector<double> ema12(n), ema26(n);
-	ema12[0] = bars[0].close;
-	ema26[0] = bars[0].close;
-	double k12 = 2.0 / 13.0;
-	double k26 = 2.0 / 27.0;
-	for (size_t i = 1; i < n; i++)
-	{
-		ema12[i] = bars[i].close * k12 + ema12[i - 1] * (1.0 - k12);
-		ema26[i] = bars[i].close * k26 + ema26[i - 1] * (1.0 - k26);
+		ema12[0] = SafeDouble(bars[0].close, "MACD ema12[0]");
+		ema26[0] = SafeDouble(bars[0].close, "MACD ema26[0]");
+		double k12 = 2.0 / 13.0;
+		double k26 = 2.0 / 27.0;
+		for (size_t i = 1; i < n; i++)
+		{
+			ema12[i] = SafeDouble(bars[i].close * k12 + ema12[i - 1] * (1.0 - k12), "MACD ema12");
+			ema26[i] = SafeDouble(bars[i].close * k26 + ema26[i - 1] * (1.0 - k26), "MACD ema26");
+		}
+
+		difSeq.resize(n); deaSeq.resize(n); barSeq.resize(n);
+		deaSeq[0] = difSeq[0];
+		for (size_t i = 0; i < n; i++)
+			difSeq[i] = SafeDouble(ema12[i] - ema26[i], "MACD dif");
+
+		double k9 = 2.0 / 10.0;
+		deaSeq[0] = difSeq[0];
+		for (size_t i = 1; i < n; i++)
+			deaSeq[i] = SafeDouble(difSeq[i] * k9 + deaSeq[i - 1] * (1.0 - k9), "MACD dea");
+
+		for (size_t i = 0; i < n; i++)
+			barSeq[i] = SafeDouble(2.0 * (difSeq[i] - deaSeq[i]), "MACD bar");
 	}
-
-	difSeq.resize(n); deaSeq.resize(n); barSeq.resize(n);
-	deaSeq[0] = difSeq[0];
-	for (size_t i = 0; i < n; i++)
-		difSeq[i] = ema12[i] - ema26[i];
-
-	double k9 = 2.0 / 10.0;
-	deaSeq[0] = difSeq[0];
-	for (size_t i = 1; i < n; i++)
-		deaSeq[i] = difSeq[i] * k9 + deaSeq[i - 1] * (1.0 - k9);
-
-	for (size_t i = 0; i < n; i++)
-		barSeq[i] = 2.0 * (difSeq[i] - deaSeq[i]);
-}
 
 // ========== 智能分析模块：批量信号检测 ==========
 // 一次性计算全部指标序列，然后逐根判定信号
 
 std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSignals(const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30)
 {
+	PerfCounter _perf("BatchDetectSignals");
 	std::vector<SmartSignalPoint> result;
 	size_t n = bars5.size();
 	// EMA稳定性：至少60根K线用于盘中短线检测
 	if (n < 60) return result;
 
-	// 1. 30分钟趋势（一次性）
-	STOCK::TrendState30m trendState = Get30mTrendState(bars30);
+	// 1. 跨周期时间对齐：每根5min Bar匹配对应30min Bar
+	std::vector<size_t> alignMap = Align5mTo30m(bars5, bars30);
+
+	// 2. 预计算30min趋势序列：逐根5min Bar动态获取当期30min趋势
+	// 不再整段共用同一个trendState，消除跨周期对齐偏差
+	std::vector<STOCK::TrendState30m> trendStateSeq(n, STOCK::TrendState30m::STATE_SHAKE);
+	{
+		// 对每个30min Bar索引，计算其趋势状态（缓存避免重复计算）
+		std::map<size_t, STOCK::TrendState30m> trendCache;
+		for (size_t i = 0; i < n; i++)
+		{
+			size_t idx30 = alignMap[i];
+			if (idx30 == SIZE_MAX || idx30 < 1)
+			{
+				trendStateSeq[i] = STOCK::TrendState30m::STATE_SHAKE;
+				continue;
+			}
+			auto it = trendCache.find(idx30);
+			if (it != trendCache.end())
+			{
+				trendStateSeq[i] = it->second;
+			}
+			else
+			{
+				// 用该30min Bar及之前的K线计算趋势
+				std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + idx30 + 1);
+				STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
+				trendCache[idx30] = tr.state;
+				trendStateSeq[i] = tr.state;
+			}
+		}
+	}
+	// 当前趋势（取最后一根5min Bar对应的趋势，用于循环外逻辑）
+	STOCK::TrendState30m trendState = trendStateSeq.back();
 
 	// 2. 批量计算5分钟指标序列
 	// BOLL序列
+	int bollP = GetParam().bollPeriod;
 	std::vector<double> bollMid(n, 0), bollUp(n, 0), bollDn(n, 0), bollBand(n, 0);
-	for (size_t i = 19; i < n; i++)
+	for (size_t i = bollP - 1; i < n; i++)
 	{
 		std::vector<double> closes;
-		for (size_t j = i - 19; j <= i; j++) closes.push_back(bars5[j].close);
-		double mid = CalcMA(closes, 20);
+		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars5[j].close);
+		double mid = CalcMA(closes, bollP);
 		double sd = CalcStdDev(closes);
 		bollMid[i] = mid;
 		bollUp[i] = mid + 2.0 * sd;
@@ -1202,42 +2032,105 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 
 	// KDJ序列：每根K线先按过去N日最高/最低计算当前RSV，再从第一根有效K线开始递推K/D
 	std::vector<double> kSeq, dSeq, jSeq;
-	CalcKDJSeries(bars5, 9, kSeq, dSeq, jSeq);
+	CalcKDJSeries(bars5, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
 
-	// RSI6序列
+	// RSI序列
+	int rsiP = GetParam().rsiPeriod;
 	std::vector<double> rsi6Seq(n, 50);
 	{
-		if (n >= 7)
+		if (n >= static_cast<size_t>(rsiP + 1))
 		{
 			std::vector<double> upList, dnList;
 			for (size_t i = 1; i < n; i++) { double d = bars5[i].close - bars5[i - 1].close; upList.push_back(max(d, 0.0)); dnList.push_back(max(-d, 0.0)); }
 			double au = 0, ad = 0;
-			for (size_t i = 0; i < 6 && i < upList.size(); i++) { au += upList[i]; ad += dnList[i]; }
-			au /= 6.0; ad /= 6.0;
-			if (ad == 0) rsi6Seq[6] = 99.99; else rsi6Seq[6] = 100.0 - 100.0 / (1.0 + au / ad);
-			for (size_t i = 6; i < upList.size(); i++)
+			if (GetParam().rsiUseEma)
 			{
-				au = (upList[i] + 5.0 * au) / 6.0;
-				ad = (dnList[i] + 5.0 * ad) / 6.0;
-				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				// EMA模式
+				double k = 2.0 / (rsiP + 1.0);
+				au = upList[0]; ad = dnList[0];
+				for (size_t i = 1; i < upList.size(); i++)
+				{
+					au = upList[i] * k + au * (1.0 - k);
+					ad = dnList[i] * k + ad * (1.0 - k);
+					if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				}
+			}
+			else
+			{
+				// SMA模式
+				for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
+				au /= rsiP; ad /= rsiP;
+				if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+				for (size_t i = rsiP; i < upList.size(); i++)
+				{
+					au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
+					ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
+					if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				}
 			}
 		}
 	}
 
-	// WR6序列
+	// WR序列
+	int wrP = GetParam().wrPeriod;
 	std::vector<double> wr6Seq(n, 50);
-	for (size_t i = 5; i < n; i++)
+	for (size_t i = wrP - 1; i < n; i++)
 	{
-		double hhv = bars5[i - 5].high, llv = bars5[i - 5].low;
-		for (size_t j = i - 4; j <= i; j++) { if (bars5[j].high > hhv) hhv = bars5[j].high; if (bars5[j].low < llv) llv = bars5[j].low; }
+		double hhv = bars5[i - wrP + 1].high, llv = bars5[i - wrP + 1].low;
+		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars5[j].high > hhv) hhv = bars5[j].high; if (bars5[j].low < llv) llv = bars5[j].low; }
 		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars5[i].close) / (hhv - llv) : 50.0;
 	}
 
+	// 量能均量序列（前5根均量，用于量能辅助条件）
+	std::vector<double> avgVol5Seq(n, 0);
+	for (size_t i = 5; i < n; i++)
+	{
+		double volSum = 0;
+		for (size_t j = i - 5; j < i; j++) volSum += bars5[j].volume;
+		avgVol5Seq[i] = volSum / 5.0;
+	}
+
 	// 3. 逐根K线检测信号（使用预计算序列，缓存上一根指标结果）
-	double lastSignalPrice = 0;
+	// 预计算前一BOLL中轨序列（用于趋势强度权重判定）
+	std::vector<double> prevBollMidSeq(n, 0);
+	for (size_t i = 20; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - 20; j < i; j++) closes.push_back(bars5[j].close);
+		prevBollMidSeq[i] = CalcMA(closes, 20);
+	}
+
+	// ATR序列预计算（用于窄布林ATR动态阈值）
+	int atrPeriod = GetParam().atrPeriod;
+	std::vector<double> atrSeq(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
+	{
+		std::vector<STOCK::Bar> barsForATR(bars5.begin() + i - atrPeriod, bars5.begin() + i + 1);
+		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
+	}
+
+	// 分趋势差异化辅助指标达标数量（动态计算，每根K线根据当期trendState确定）
+	// 不再循环外固定，因为跨周期对齐后trendState逐根变化
+
 	int lastForbidBarIndex = -MIN_SIGNAL_BAR_GAP;
 	for (size_t i = 21; i < n; i++)
 	{
+		// 当期30min趋势（跨周期对齐，逐根动态获取）
+		STOCK::TrendState30m curTrendState = trendStateSeq[i];
+
+		// 分趋势差异化辅助指标达标数量
+		int sellAuxThreshold = 2;  // 默认：卖出辅助≥2（弱势也要求≥2，防低位追卖）
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+			sellAuxThreshold = 2;   // 强势：卖出辅助≥2（收紧做空，防卖飞）
+		else if (curTrendState == STOCK::TrendState30m::STATE_SHAKE || curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			sellAuxThreshold = 2;   // 震荡/弱震荡：卖出辅助≥2
+
+		int buyAuxThreshold = 2;  // 默认：买入辅助≥2
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+			buyAuxThreshold = 1;   // 强势：买入辅助≥1即可（顺势放宽做多）
+		else if (curTrendState == STOCK::TrendState30m::STATE_SHAKE || curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			buyAuxThreshold = 2;   // 震荡/弱震荡：买入辅助≥2
+
 		// ===== 风控过滤（优化版） =====
 		// 布林带宽放大：使用当前带宽增长率或历史高分位，避免强制连续三根导致风控滞后
 		bool bandExpand = IsBollExpand(bollBand, i);
@@ -1255,114 +2148,1161 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		bool wrBottomPassive = (i >= 2 && wr6Seq[i] > 82 && wr6Seq[i - 1] > 82 && wr6Seq[i - 2] > 82
 			&& wr6Seq[i] < wr6Seq[i - 1] && wr6Seq[i - 1] < wr6Seq[i - 2]);
 
-		// 风控判定：只限制低吸/买入风险，不屏蔽顺势高抛卖出
-		bool forbid = false;
-		bool narrowBand = IsNarrowBoll(bollMid[i], CalcAverageBollBandwidth(bollBand, i));
-		if (trendState == STOCK::TrendState30m::STATE_WEAK)
+		// 风控判定：双通道分别判定禁止买入/禁止卖出
+		// 布林风控规则：
+		// 1. 窄布林统一禁止新开仓（变盘不确定性高，无论强弱/震荡）
+		// 2. 布林扩张区分多空：强势多头扩张禁止做空，弱势空头扩张禁止做多
+		bool forbidBuy = false;
+		bool forbidSell = false;
+		CString forbidBuyReason;
+		CString forbidSellReason;
+		bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBand, i), atrSeq[i]);
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
 		{
-			forbid = narrowBand;  // 弱势下BOLL极窄禁止买入
+			// 强势：底部钝化禁止买入，顶部钝化禁止卖出
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			if (kdjTopPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
+			if (wrTopPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
+			// 窄布林统一禁止新开仓
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			// 强势多头布林扩张禁止做空
+			if (bandExpand) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
 		}
-		else if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
 		{
-			forbid = kdjBottomPassive || wrBottomPassive;
+			// 弱势：底部钝化禁止逆势卖出
+			if (kdjBottomPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
+			// 窄布林统一禁止新开仓
+			if (narrowBand) { forbidBuy = true; forbidBuyReason = _T("BOLL过窄"); }
+			// 弱势空头布林扩张禁止做多
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
-		else if (trendState == STOCK::TrendState30m::STATE_SHAKE)
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 		{
-			forbid = bandExpand || narrowBand || kdjBottomPassive || wrBottomPassive;
+			// 弱震荡：偏弱缓冲，底部钝化限制买入
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			// 窄布林统一禁止新开仓
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+		}
+		else  // STATE_SHAKE
+		{
+			// 震荡：底部钝化限制买入，不限制卖出
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			// 窄布林统一禁止新开仓
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 
-		if (forbid && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
+		if (forbidBuy && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
 		{
-			result.push_back({ static_cast<int>(i), false, true, trendState, _T("风控限制买入") });
+			result.push_back({ static_cast<int>(i), true, true, curTrendState, _T("风控限制买入：") + forbidBuyReason });
+			lastForbidBarIndex = static_cast<int>(i);
+		}
+		if (forbidSell && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
+		{
+			result.push_back({ static_cast<int>(i), false, true, curTrendState, _T("风控限制卖出：") + forbidSellReason });
 			lastForbidBarIndex = static_cast<int>(i);
 		}
 
 		// ===== 信号判定（优化版：必要条件组+辅助条件组，解决指标共线性） =====
 
+		// --- 趋势强度权重：30min强趋势下弱化短线超买卖出信号 ---
+		bool strongTrendUp = false;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+		{
+			bool difAboveZero = (difSeq[i] > 0);
+			bool bollMidUp = (bollMid[i] > 0 && prevBollMidSeq[i] > 0 && bollMid[i] > prevBollMidSeq[i]);
+			strongTrendUp = difAboveZero && bollMidUp;
+		}
+
+		// --- 连续超买钝化豁免机制 ---
+		// 连续3根K线KDJ高位钝化（K>85且逐根下降）且30min强势 → 屏蔽卖出信号
+		bool kdjTopPassiveExempt = false;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG && i >= 2)
+		{
+			bool kdjHigh3 = (kSeq[i] > 85 && kSeq[i - 1] > 85 && kSeq[i - 2] > 85);
+			bool kdjDeclining3 = (kSeq[i] < kSeq[i - 1] && kSeq[i - 1] < kSeq[i - 2]);
+			kdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
+		}
+
+		// --- MACD背离检测（多根极值对比+0轴过滤+ATR幅度+等级） ---
+		DivergenceInfo divInfo = CalcDivergence(bars5, difSeq, i);
+
 		// --- 卖出判定 ---
 		// 必要条件组：价格突破轨道(S1) + MACD动量减弱(S2) 至少满足1个
 		bool sellS1 = (bars5[i].high >= bollUp[i]) || (bars5[i].close > bollUp[i]);
 		bool sellS2_redShrink = (macdBarSeq[i] > 0) && (macdBarSeq[i] < macdBarSeq[i - 1]);
-		bool sellS2_topDiv = (bars5[i].high > bars5[i - 1].high) && (difSeq[i] < difSeq[i - 1]);
+		// 顶背离：弱背离不单独触发卖出，标准/强背离可触发
+		bool sellS2_topDiv = divInfo.hasTopDiv && (divInfo.topDivLevel >= DivLevel::STANDARD);
 		bool sellS2 = sellS2_redShrink || sellS2_topDiv;
 		bool sellNecessary = (sellS1 || sellS2);
 
-		// 辅助条件组：KDJ/RSI/WR 三个超买指标满足1个即可触发卖出辅助
+		// 辅助条件组：KDJ/RSI/WR 三个超买指标
 		bool sellA1 = ((kSeq[i] > KDJ_OVERBUY && dSeq[i] > SELL_KDJ_D_OVERBUY && jSeq[i] < jSeq[i - 1]) || jSeq[i] > 100.0);
 		bool sellA2 = (rsi6Seq[i] > 70);
 		bool sellA3 = (wr6Seq[i] < SELL_WR_OVERBUY);
-		int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0);
+		// 量能辅助：冲高放量
+		double avgVol5_i = avgVol5Seq[i];
+		bool sellA4_volSurge = (avgVol5_i > 0 && bars5[i].volume > avgVol5_i * VOL_RATIO_THRESHOLD && bars5[i].close > bars5[i].open);
+		int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0) + (sellA4_volSurge ? 1 : 0);
 
-		bool hasSell = sellNecessary && (sellAuxCount >= 1);
+		bool hasSell = sellNecessary && (sellAuxCount >= sellAuxThreshold);
+
+		// 趋势强度权重：强趋势延续时，仅单指标超买不足以触发卖出
+		if (hasSell && strongTrendUp && sellAuxCount < 2)
+			hasSell = false;
+
+		// 连续超买钝化豁免：主升浪中KDJ高位钝化屏蔽卖出
+		if (hasSell && kdjTopPassiveExempt)
+			hasSell = false;
+
+		// 无量冲高不过滤卖出信号（冲高抛、回落接做T思路）
 
 		// --- 买入判定 ---
 		// 必要条件组：价格触及轨道(B1) + MACD信号(B2) 至少满足1个
-		bool buyB1 = (bars5[i].low <= bollDn[i]);
-		// MACD：绿柱缩短 or 底背离（DIF远离0轴才认定有效动量信号）
-		double macdDifThreshold = GetMacdDifThreshold(bars5[i].close);
+		bool buyB1 = (bars5[i].low <= bollDn[i]) || (bars5[i].close < bollDn[i]);
+		// MACD：绿柱缩短 or 底背离
+		double macdDifThreshold = GetMacdDifThreshold(bars5[i].close, atrSeq[i]);
 		bool buyB2_greenShrink = (macdBarSeq[i] < 0) && (macdBarSeq[i] > macdBarSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
-		bool buyB2_bottomDiv = (bars5[i].low < bars5[i - 1].low) && (difSeq[i] > difSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
+		// 底背离：弱背离不单独触发买入，标准/强背离可触发
+		bool buyB2_bottomDiv = divInfo.hasBottomDiv && (divInfo.bottomDivLevel >= DivLevel::STANDARD);
 		bool buyB2 = buyB2_greenShrink || buyB2_bottomDiv;
 		bool buyNecessary = (buyB1 || buyB2);
 
-		// 辅助条件组：KDJ/RSI/WR 三个超卖指标至少满足2个
+		// 辅助条件组：KDJ/RSI/WR 三个超卖指标
 		bool buyA1 = (kSeq[i] < KDJ_OVERSELL && dSeq[i] < KDJ_OVERSELL && jSeq[i] > jSeq[i - 1]);
 		bool buyA2 = (rsi6Seq[i] < 30);
 		bool buyA3 = (wr6Seq[i] > 80);
-		int buyAuxCount = (buyA1 ? 1 : 0) + (buyA2 ? 1 : 0) + (buyA3 ? 1 : 0);
+		// 量能辅助：回调缩量
+		bool buyA4_volShrink = (avgVol5_i > 0 && bars5[i].volume < avgVol5_i * 0.7);
+		int buyAuxCount = (buyA1 ? 1 : 0) + (buyA2 ? 1 : 0) + (buyA3 ? 1 : 0) + (buyA4_volShrink ? 1 : 0);
 
-		bool hasBuy = buyNecessary && (buyAuxCount >= 2);
+		bool hasBuy = buyNecessary && (buyAuxCount >= buyAuxThreshold);
+
+		// 放量大跌不过滤买入信号（冲高抛、回落接做T思路）
 
 		if (!hasSell && !hasBuy) continue;
-		if (forbid && hasBuy && !hasSell)
+		// 风控分别拦截买卖信号
+		if (forbidBuy && hasBuy && !hasSell)
 			continue;
-		if (lastSignalPrice > 0 && fabs(bars5[i].close - lastSignalPrice) < GetSignalPriceDiffThreshold(bars5, i))
+		if (forbidSell && hasSell && !hasBuy)
 			continue;
 
-		// 买卖同时满足时，卖出辅助不弱于买入则优先保留卖点
+		// ========== 共振总分计算 ==========
+		// 弱背离额外贡献1分（降低权重，不单独触发买卖）
+		int sellStrBoll = (sellS1 ? 1 : 0);
+		int sellStrMacd = (sellS2 ? 1 : 0) + (divInfo.hasTopDiv && divInfo.topDivLevel == DivLevel::WEAK ? 1 : 0);
+		int sellStrRsi = (sellA2 ? 1 : 0);
+		int sellStrKdj = (sellA1 ? 1 : 0);
+		int sellStrWr = (sellA3 ? 1 : 0);
+		int sellStrVol = (sellA4_volSurge ? 1 : 0);
+		int sellTotalStr = sellStrBoll + sellStrMacd + sellStrRsi + sellStrKdj + sellStrWr + sellStrVol;
+
+		int buyStrBoll = (buyB1 ? 1 : 0);
+		int buyStrMacd = (buyB2 ? 1 : 0) + (divInfo.hasBottomDiv && divInfo.bottomDivLevel == DivLevel::WEAK ? 1 : 0);
+		int buyStrRsi = (buyA2 ? 1 : 0);
+		int buyStrKdj = (buyA1 ? 1 : 0);
+		int buyStrWr = (buyA3 ? 1 : 0);
+		int buyStrVol = (buyA4_volShrink ? 1 : 0);
+		int buyTotalStr = buyStrBoll + buyStrMacd + buyStrRsi + buyStrKdj + buyStrWr + buyStrVol;
+
+		// MA20位置判定（冲突仲裁辅助）
+		bool priceAboveMA20 = (bollMid[i] > 0 && bars5[i].close > bollMid[i]);
+		bool priceBelowMA20 = (bollMid[i] > 0 && bars5[i].close < bollMid[i]);
+
+		// 买卖同时满足时，按共振总分+趋势方向+MA20位置仲裁
 		bool isBuy;
 		if (hasSell && hasBuy)
 		{
-			if (sellAuxCount >= buyAuxCount) isBuy = false;
-			else if (trendState == STOCK::TrendState30m::STATE_STRONG) isBuy = true;
-			else if (trendState == STOCK::TrendState30m::STATE_WEAK) isBuy = false;
-			else isBuy = true;
+			if (sellTotalStr > buyTotalStr)
+			{
+				// 卖出总分高，但强势+价格在MA20上方时禁止优先卖出
+				if (curTrendState == STOCK::TrendState30m::STATE_STRONG && priceAboveMA20)
+					isBuy = true;
+				else
+					isBuy = false;
+			}
+			else if (buyTotalStr > sellTotalStr)
+			{
+				// 买入总分高，但弱势+价格在MA20下方时禁止优先买入
+				if (curTrendState == STOCK::TrendState30m::STATE_WEAK && priceBelowMA20)
+					isBuy = false;
+				else
+					isBuy = true;
+			}
+			else
+			{
+				// 总分相同，看30min趋势方向
+				if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+					isBuy = !priceBelowMA20;   // 强势优先买，破MA20则卖
+				else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
+					isBuy = priceAboveMA20;     // 弱势优先卖，站上MA20则买
+				else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+					isBuy = !priceBelowMA20;    // 弱震荡略偏空，破MA20则卖
+				else
+					isBuy = true;               // 震荡默认买入
+			}
 		}
 		else
 		{
 			isBuy = hasBuy;
 		}
 
+		// 风控禁止时，分别拦截对应方向的信号
+		if (forbidBuy && isBuy)
+		{
+			if (hasSell && !forbidSell)
+				isBuy = false;  // 有卖出条件且卖出未被风控时转为卖出
+			else
+				continue;  // 无可用卖出条件则跳过
+		}
+		if (forbidSell && !isBuy)
+		{
+			if (hasBuy && !forbidBuy)
+				isBuy = true;  // 有买入条件且买入未被风控时转为买入
+			else
+				continue;  // 无可用买入条件则跳过
+		}
+
 		CString reason;
-		if (trendState == STOCK::TrendState30m::STATE_WEAK)
+		if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
 			reason = isBuy ? _T("反买") : _T("反卖");
-		else if (trendState == STOCK::TrendState30m::STATE_STRONG)
+		else if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
 			reason = isBuy ? _T("正买") : _T("正卖");
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			reason = isBuy ? _T("弱震买") : _T("弱震卖");
 		else
 			reason = isBuy ? _T("正买") : _T("正卖");
 
-		result.push_back({ static_cast<int>(i), isBuy, false, trendState, reason });
-		lastSignalPrice = bars5[i].close;
+		result.push_back({ static_cast<int>(i), isBuy, false, curTrendState, reason });
 	}
 
-	// 4. 信号去重
-	std::vector<SmartSignalPoint> filtered;
-	filtered.reserve(result.size());
-	int lastSignalBarIndex = -MIN_SIGNAL_BAR_GAP;
-	for (const auto& point : result)
+	// 4. 不去重，5分钟间隔已足够，同方向可连续触发（做T需要分批止盈/分批建仓）
+
+	return result;
+}
+
+// ========== 分时图信号检测（1分钟粒度） ==========
+
+std::vector<STOCK::Bar> CSignalAnalyzer::ConvertTimelineToBars(const std::vector<STOCK::TimelinePoint>& timeline)
+{
+	std::vector<STOCK::Bar> bars;
+	bars.reserve(timeline.size());
+	for (size_t i = 0; i < timeline.size(); i++)
 	{
-		if (point.isForbid)
+		double p = timeline[i].price;
+		double v = static_cast<double>(timeline[i].volume);
+		long t = static_cast<long>(i);  // 用索引作为时间戳
+		bars.push_back(STOCK::Bar(p, p, p, p, v, t));  // open=high=low=close=price
+	}
+	return bars;
+}
+
+std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSignalsFromTimeline(
+	const std::vector<STOCK::Bar>& bars1m, const std::vector<STOCK::Bar>& bars30)
+{
+	PerfCounter _perf("BatchDetectSignalsFromTimeline");
+	std::vector<SmartSignalPoint> result;
+	size_t n = bars1m.size();
+	// 1分钟粒度需要更多数据点（至少120个点≈2小时）
+	if (n < 120) return result;
+
+	// 1. 跨周期时间对齐：每根1min Bar匹配对应30min Bar
+	// 1分钟K线每30根对应1根30分钟K线
+	std::vector<size_t> alignMap(n, SIZE_MAX);
+	{
+		// 简化对齐：按索引比例映射
+		// 30分钟K线的时间戳是5分钟K线的6倍，1分钟K线的30倍
+		// 直接按 bars30 的时间范围和 bars1m 的时间范围对齐
+		// 由于1分钟Bar没有真实时间戳，使用bars30的索引按比例映射
+		size_t n30 = bars30.size();
+		if (n30 >= 2)
 		{
-			filtered.push_back(point);
-			continue;
-		}
-		if (point.barIndex - lastSignalBarIndex >= MIN_SIGNAL_BAR_GAP)
-		{
-			filtered.push_back(point);
-			lastSignalBarIndex = point.barIndex;
+			for (size_t i = 0; i < n; i++)
+			{
+				// 按比例：1分钟Bar索引 / 总1分钟Bar数 * 总30分钟Bar数
+				size_t idx30 = static_cast<size_t>(static_cast<double>(i) / n * n30);
+				if (idx30 >= n30) idx30 = n30 - 1;
+				if (idx30 < 1) idx30 = 1;
+				alignMap[i] = idx30;
+			}
 		}
 	}
-	result.swap(filtered);
+
+	// 2. 预计算30min趋势序列
+	std::vector<STOCK::TrendState30m> trendStateSeq(n, STOCK::TrendState30m::STATE_SHAKE);
+	{
+		std::map<size_t, STOCK::TrendState30m> trendCache;
+		for (size_t i = 0; i < n; i++)
+		{
+			size_t idx30 = alignMap[i];
+			if (idx30 == SIZE_MAX || idx30 < 1)
+			{
+				trendStateSeq[i] = STOCK::TrendState30m::STATE_SHAKE;
+				continue;
+			}
+			auto it = trendCache.find(idx30);
+			if (it != trendCache.end())
+			{
+				trendStateSeq[i] = it->second;
+			}
+			else
+			{
+				std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + idx30 + 1);
+				STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
+				trendCache[idx30] = tr.state;
+				trendStateSeq[i] = tr.state;
+			}
+		}
+	}
+	STOCK::TrendState30m trendState = trendStateSeq.back();
+
+	// 3. 批量计算1分钟指标序列
+	// BOLL序列（1分钟粒度，周期参数不变）
+	int bollP = GetParam().bollPeriod;
+	std::vector<double> bollMid(n, 0), bollUp(n, 0), bollDn(n, 0), bollBand(n, 0);
+	for (size_t i = bollP - 1; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars1m[j].close);
+		double mid = CalcMA(closes, bollP);
+		double sd = CalcStdDev(closes);
+		bollMid[i] = mid;
+		bollUp[i] = mid + 2.0 * sd;
+		bollDn[i] = mid - 2.0 * sd;
+		bollBand[i] = 4.0 * sd;
+	}
+
+	// MACD序列
+	std::vector<double> difSeq, deaSeq, macdBarSeq;
+	CalcMACDSeries(bars1m, difSeq, deaSeq, macdBarSeq);
+
+	// KDJ序列
+	std::vector<double> kSeq, dSeq, jSeq;
+	CalcKDJSeries(bars1m, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
+
+	// RSI序列
+	int rsiP = GetParam().rsiPeriod;
+	std::vector<double> rsi6Seq(n, 50);
+	{
+		if (n >= static_cast<size_t>(rsiP + 1))
+		{
+			std::vector<double> upList, dnList;
+			for (size_t i = 1; i < n; i++) { double d = bars1m[i].close - bars1m[i - 1].close; upList.push_back(max(d, 0.0)); dnList.push_back(max(-d, 0.0)); }
+			double au = 0, ad = 0;
+			if (GetParam().rsiUseEma)
+			{
+				double k = 2.0 / (rsiP + 1.0);
+				au = upList[0]; ad = dnList[0];
+				for (size_t i = 1; i < upList.size(); i++)
+				{
+					au = upList[i] * k + au * (1.0 - k);
+					ad = dnList[i] * k + ad * (1.0 - k);
+					if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				}
+			}
+			else
+			{
+				for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
+				au /= rsiP; ad /= rsiP;
+				if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+				for (size_t i = rsiP; i < upList.size(); i++)
+				{
+					au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
+					ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
+					if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				}
+			}
+		}
+	}
+
+	// WR序列
+	int wrP = GetParam().wrPeriod;
+	std::vector<double> wr6Seq(n, 50);
+	for (size_t i = wrP - 1; i < n; i++)
+	{
+		double hhv = bars1m[i - wrP + 1].high, llv = bars1m[i - wrP + 1].low;
+		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars1m[j].high > hhv) hhv = bars1m[j].high; if (bars1m[j].low < llv) llv = bars1m[j].low; }
+		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars1m[i].close) / (hhv - llv) : 50.0;
+	}
+
+	// 量能均量序列
+	std::vector<double> avgVol5Seq(n, 0);
+	for (size_t i = 5; i < n; i++)
+	{
+		double volSum = 0;
+		for (size_t j = i - 5; j < i; j++) volSum += bars1m[j].volume;
+		avgVol5Seq[i] = volSum / 5.0;
+	}
+
+	// 前一BOLL中轨序列
+	std::vector<double> prevBollMidSeq(n, 0);
+	for (size_t i = 20; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - 20; j < i; j++) closes.push_back(bars1m[j].close);
+		prevBollMidSeq[i] = CalcMA(closes, 20);
+	}
+
+	// ATR序列
+	int atrPeriod = GetParam().atrPeriod;
+	std::vector<double> atrSeq(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
+	{
+		std::vector<STOCK::Bar> barsForATR(bars1m.begin() + i - atrPeriod, bars1m.begin() + i + 1);
+		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
+	}
+
+	// 4. 逐根1分钟Bar检测信号
+	int lastForbidBarIndex = -MIN_SIGNAL_BAR_GAP;
+	for (size_t i = 21; i < n; i++)
+	{
+		STOCK::TrendState30m curTrendState = trendStateSeq[i];
+
+		// 分趋势差异化辅助指标达标数量
+		int sellAuxThreshold = 2;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+			sellAuxThreshold = 2;
+		else if (curTrendState == STOCK::TrendState30m::STATE_SHAKE || curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			sellAuxThreshold = 2;
+
+		int buyAuxThreshold = 2;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+			buyAuxThreshold = 1;
+		else if (curTrendState == STOCK::TrendState30m::STATE_SHAKE || curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			buyAuxThreshold = 2;
+
+		// ===== 风控过滤 =====
+		bool bandExpand = IsBollExpand(bollBand, i);
+		bool kdjTopPassive = (i >= 2 && kSeq[i] > 85 && kSeq[i - 1] > 85 && kSeq[i - 2] > 85
+			&& kSeq[i] < kSeq[i - 1] && kSeq[i - 1] < kSeq[i - 2]);
+		bool kdjBottomPassive = (i >= 2 && kSeq[i] < 15 && kSeq[i - 1] < 15 && kSeq[i - 2] < 15
+			&& kSeq[i] > kSeq[i - 1] && kSeq[i - 1] > kSeq[i - 2]);
+		bool wrTopPassive = (i >= 2 && wr6Seq[i] < 18 && wr6Seq[i - 1] < 18 && wr6Seq[i - 2] < 18
+			&& wr6Seq[i] > wr6Seq[i - 1] && wr6Seq[i - 1] > wr6Seq[i - 2]);
+		bool wrBottomPassive = (i >= 2 && wr6Seq[i] > 82 && wr6Seq[i - 1] > 82 && wr6Seq[i - 2] > 82
+			&& wr6Seq[i] < wr6Seq[i - 1] && wr6Seq[i - 1] < wr6Seq[i - 2]);
+
+		bool forbidBuy = false;
+		bool forbidSell = false;
+		CString forbidBuyReason;
+		CString forbidSellReason;
+		bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBand, i), atrSeq[i]);
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+		{
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			if (kdjTopPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
+			if (wrTopPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+		}
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
+		{
+			if (kdjBottomPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
+			if (narrowBand) { forbidBuy = true; forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+		}
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+		{
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+		}
+		else  // STATE_SHAKE
+		{
+			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
+			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
+			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
+			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+		}
+
+		if (forbidBuy && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
+		{
+			result.push_back({ static_cast<int>(i), true, true, curTrendState, _T("风控限制买入：") + forbidBuyReason });
+			lastForbidBarIndex = static_cast<int>(i);
+		}
+		if (forbidSell && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
+		{
+			result.push_back({ static_cast<int>(i), false, true, curTrendState, _T("风控限制卖出：") + forbidSellReason });
+			lastForbidBarIndex = static_cast<int>(i);
+		}
+
+		// ===== 信号判定 =====
+		bool strongTrendUp = false;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+		{
+			bool difAboveZero = (difSeq[i] > 0);
+			bool bollMidUp = (bollMid[i] > 0 && prevBollMidSeq[i] > 0 && bollMid[i] > prevBollMidSeq[i]);
+			strongTrendUp = difAboveZero && bollMidUp;
+		}
+
+		bool kdjTopPassiveExempt = false;
+		if (curTrendState == STOCK::TrendState30m::STATE_STRONG && i >= 2)
+		{
+			bool kdjHigh3 = (kSeq[i] > 85 && kSeq[i - 1] > 85 && kSeq[i - 2] > 85);
+			bool kdjDeclining3 = (kSeq[i] < kSeq[i - 1] && kSeq[i - 1] < kSeq[i - 2]);
+			kdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
+		}
+
+		DivergenceInfo divInfo = CalcDivergence(bars1m, difSeq, i);
+
+		// --- 卖出判定 ---
+		bool sellS1 = (bars1m[i].high >= bollUp[i]) || (bars1m[i].close > bollUp[i]);
+		bool sellS2_redShrink = (macdBarSeq[i] > 0) && (macdBarSeq[i] < macdBarSeq[i - 1]);
+		bool sellS2_topDiv = divInfo.hasTopDiv && (divInfo.topDivLevel >= DivLevel::STANDARD);
+		bool sellS2 = sellS2_redShrink || sellS2_topDiv;
+		bool sellNecessary = (sellS1 || sellS2);
+
+		bool sellA1 = ((kSeq[i] > KDJ_OVERBUY && dSeq[i] > SELL_KDJ_D_OVERBUY && jSeq[i] < jSeq[i - 1]) || jSeq[i] > 100.0);
+		bool sellA2 = (rsi6Seq[i] > 70);
+		bool sellA3 = (wr6Seq[i] < SELL_WR_OVERBUY);
+		double avgVol5_i = avgVol5Seq[i];
+		bool sellA4_volSurge = (avgVol5_i > 0 && bars1m[i].volume > avgVol5_i * VOL_RATIO_THRESHOLD && bars1m[i].close > bars1m[i].open);
+		int sellAuxCount = (sellA1 ? 1 : 0) + (sellA2 ? 1 : 0) + (sellA3 ? 1 : 0) + (sellA4_volSurge ? 1 : 0);
+
+		bool hasSell = sellNecessary && (sellAuxCount >= sellAuxThreshold);
+		if (hasSell && strongTrendUp && sellAuxCount < 2)
+			hasSell = false;
+		if (hasSell && kdjTopPassiveExempt)
+			hasSell = false;
+
+		// --- 买入判定 ---
+		bool buyB1 = (bars1m[i].low <= bollDn[i]) || (bars1m[i].close < bollDn[i]);
+		double macdDifThreshold = GetMacdDifThreshold(bars1m[i].close, atrSeq[i]);
+		bool buyB2_greenShrink = (macdBarSeq[i] < 0) && (macdBarSeq[i] > macdBarSeq[i - 1]) && fabs(difSeq[i]) > macdDifThreshold;
+		bool buyB2_bottomDiv = divInfo.hasBottomDiv && (divInfo.bottomDivLevel >= DivLevel::STANDARD);
+		bool buyB2 = buyB2_greenShrink || buyB2_bottomDiv;
+		bool buyNecessary = (buyB1 || buyB2);
+
+		bool buyA1 = (kSeq[i] < KDJ_OVERSELL && dSeq[i] < KDJ_OVERSELL && jSeq[i] > jSeq[i - 1]);
+		bool buyA2 = (rsi6Seq[i] < 30);
+		bool buyA3 = (wr6Seq[i] > 80);
+		bool buyA4_volShrink = (avgVol5_i > 0 && bars1m[i].volume < avgVol5_i * 0.7);
+		int buyAuxCount = (buyA1 ? 1 : 0) + (buyA2 ? 1 : 0) + (buyA3 ? 1 : 0) + (buyA4_volShrink ? 1 : 0);
+
+		bool hasBuy = buyNecessary && (buyAuxCount >= buyAuxThreshold);
+
+		if (!hasSell && !hasBuy) continue;
+		if (forbidBuy && hasBuy && !hasSell)
+			continue;
+		if (forbidSell && hasSell && !hasBuy)
+			continue;
+
+		// ========== 共振总分计算 ==========
+		int sellStrBoll = (sellS1 ? 1 : 0);
+		int sellStrMacd = (sellS2 ? 1 : 0) + (divInfo.hasTopDiv && divInfo.topDivLevel == DivLevel::WEAK ? 1 : 0);
+		int sellStrRsi = (sellA2 ? 1 : 0);
+		int sellStrKdj = (sellA1 ? 1 : 0);
+		int sellStrWr = (sellA3 ? 1 : 0);
+		int sellStrVol = (sellA4_volSurge ? 1 : 0);
+		int sellTotalStr = sellStrBoll + sellStrMacd + sellStrRsi + sellStrKdj + sellStrWr + sellStrVol;
+
+		int buyStrBoll = (buyB1 ? 1 : 0);
+		int buyStrMacd = (buyB2 ? 1 : 0) + (divInfo.hasBottomDiv && divInfo.bottomDivLevel == DivLevel::WEAK ? 1 : 0);
+		int buyStrRsi = (buyA2 ? 1 : 0);
+		int buyStrKdj = (buyA1 ? 1 : 0);
+		int buyStrWr = (buyA3 ? 1 : 0);
+		int buyStrVol = (buyA4_volShrink ? 1 : 0);
+		int buyTotalStr = buyStrBoll + buyStrMacd + buyStrRsi + buyStrKdj + buyStrWr + buyStrVol;
+
+		bool priceAboveMA20 = (bollMid[i] > 0 && bars1m[i].close > bollMid[i]);
+		bool priceBelowMA20 = (bollMid[i] > 0 && bars1m[i].close < bollMid[i]);
+
+		bool isBuy;
+		if (hasSell && hasBuy)
+		{
+			if (sellTotalStr > buyTotalStr)
+			{
+				if (curTrendState == STOCK::TrendState30m::STATE_STRONG && priceAboveMA20)
+					isBuy = true;
+				else
+					isBuy = false;
+			}
+			else if (buyTotalStr > sellTotalStr)
+			{
+				if (curTrendState == STOCK::TrendState30m::STATE_WEAK && priceBelowMA20)
+					isBuy = false;
+				else
+					isBuy = true;
+			}
+			else
+			{
+				if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+					isBuy = !priceBelowMA20;
+				else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
+					isBuy = priceAboveMA20;
+				else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+					isBuy = !priceBelowMA20;
+				else
+					isBuy = true;
+			}
+		}
+		else
+		{
+			isBuy = hasBuy;
+		}
+
+		if (forbidBuy && isBuy)
+		{
+			if (hasSell && !forbidSell)
+				isBuy = false;
+			else
+				continue;
+		}
+		if (forbidSell && !isBuy)
+		{
+			if (hasBuy && !forbidBuy)
+				isBuy = true;
+			else
+				continue;
+		}
+
+		CString reason;
+		if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
+			reason = isBuy ? _T("反买") : _T("反卖");
+		else if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
+			reason = isBuy ? _T("正买") : _T("正卖");
+		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+			reason = isBuy ? _T("弱震买") : _T("弱震卖");
+		else
+			reason = isBuy ? _T("正买") : _T("正卖");
+
+		result.push_back({ static_cast<int>(i), isBuy, false, curTrendState, reason });
+	}
+
+	return result;
+}
+
+// ========== 统一信号分析（走势图绘制和弹窗共用） ==========
+CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
+	const std::vector<STOCK::Bar>& bars5, const std::vector<STOCK::Bar>& bars30, int barIndex)
+{
+	SignalAnalysisResult result;
+
+	// 1. 批量检测信号（使用完整数据，逐根递推无未来函数）
+	result.batchSignals = BatchDetectSignals(bars5, bars30);
+	result.clickedSignal = nullptr;
+	for (const auto& item : result.batchSignals)
+	{
+		if (item.barIndex == barIndex)
+		{
+			result.clickedSignal = &item;
+			break;
+		}
+	}
+
+	// 2. 使用与BatchDetectSignals完全相同的序列递推方式计算指标值
+	//    确保弹窗诊断与走势图绘制完全一致
+	if (barIndex < 0 || barIndex >= static_cast<int>(bars5.size()))
+		return result;
+
+	size_t n = bars5.size();
+	size_t idx = static_cast<size_t>(barIndex);
+
+	// 30分钟趋势（跨周期对齐，与BatchDetectSignals相同）
+	result.trendResult = Get30mTrendState(bars30);
+	// 使用5分钟K线对齐到30分钟K线，取barIndex处的趋势状态
+	auto alignMap = Align5mTo30m(bars5, bars30);
+	STOCK::TrendState30m trendState = result.trendResult.state;  // 默认用完整数据
+	if (idx < alignMap.size() && alignMap[idx] != SIZE_MAX && alignMap[idx] < bars30.size())
+	{
+		std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + alignMap[idx] + 1);
+		STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
+		trendState = tr.state;
+		result.trendResult = tr;
+	}
+
+	// 5分钟信号和风控（用截取子序列，无未来函数）
+	std::vector<STOCK::Bar> bars5UpToClick(bars5.begin(), bars5.begin() + barIndex + 1);
+	if (bars5UpToClick.size() < 30)
+		return result;
+	result.sig5m = Get5mSignal(bars5UpToClick, trendState);
+	result.forbidResult = CalcForbidResult(bars5UpToClick, trendState);
+	result.smartSignal = DetectSmartSignal(bars5UpToClick, bars30);
+
+	// 指标序列（与BatchDetectSignals相同的递推方式）
+	std::vector<double> difSeq, deaSeq, macdBarSeq;
+	CalcMACDSeries(bars5, difSeq, deaSeq, macdBarSeq);
+	std::vector<double> kSeq, dSeq, jSeq;
+	CalcKDJSeries(bars5, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
+
+	// BOLL序列
+	int bollP = GetParam().bollPeriod;
+	std::vector<double> bollUpSeq(n, 0), bollMidSeq(n, 0), bollDnSeq(n, 0), bollBandSeq(n, 0);
+	for (size_t i = bollP - 1; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars5[j].close);
+		double ma = CalcMA(closes, bollP);
+		double sd = CalcStdDev(closes);
+		bollUpSeq[i] = ma + 2 * sd;
+		bollMidSeq[i] = ma;
+		bollDnSeq[i] = ma - 2 * sd;
+		if (ma > 0) bollBandSeq[i] = (2 * 2 * sd) / ma;
+	}
+
+	// ATR序列
+	int atrPeriod = GetParam().atrPeriod;
+	std::vector<double> atrSeq(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
+	{
+		std::vector<STOCK::Bar> barsForATR(bars5.begin() + i - atrPeriod, bars5.begin() + i + 1);
+		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
+	}
+
+	// RSI序列（与BatchDetectSignals相同的EMA/SMA递推方式）
+	int rsiP = GetParam().rsiPeriod;
+	std::vector<double> rsi6Seq(n, 50);
+	if (n >= static_cast<size_t>(rsiP + 1))
+	{
+		std::vector<double> upList, dnList;
+		for (size_t i = 1; i < n; i++) { double d = bars5[i].close - bars5[i - 1].close; upList.push_back(max(d, 0.0)); dnList.push_back(max(-d, 0.0)); }
+		double au = 0, ad = 0;
+		if (GetParam().rsiUseEma)
+		{
+			double k = 2.0 / (rsiP + 1.0);
+			au = upList[0]; ad = dnList[0];
+			for (size_t i = 1; i < upList.size(); i++)
+			{
+				au = upList[i] * k + au * (1.0 - k);
+				ad = dnList[i] * k + ad * (1.0 - k);
+				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
+			au /= rsiP; ad /= rsiP;
+			if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+			for (size_t i = rsiP; i < upList.size(); i++)
+			{
+				au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
+				ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
+				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+			}
+		}
+	}
+
+	// WR序列（与BatchDetectSignals相同的滑动窗口方式）
+	int wrP = GetParam().wrPeriod;
+	std::vector<double> wr6Seq(n, 50);
+	for (size_t i = wrP - 1; i < n; i++)
+	{
+		double hhv = bars5[i - wrP + 1].high, llv = bars5[i - wrP + 1].low;
+		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars5[j].high > hhv) hhv = bars5[j].high; if (bars5[j].low < llv) llv = bars5[j].low; }
+		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars5[i].close) / (hhv - llv) : 50.0;
+	}
+
+	// 从序列中提取barIndex处的指标值
+	result.boll.up = bollUpSeq[idx];
+	result.boll.mid = bollMidSeq[idx];
+	result.boll.dn = bollDnSeq[idx];
+	result.boll.bandwidth = bollBandSeq[idx];
+	result.macd.dif = difSeq[idx];
+	result.macd.dea = deaSeq[idx];
+	result.macd.macd_bar = macdBarSeq[idx];
+	result.kdj.k = kSeq[idx];
+	result.kdj.d = dSeq[idx];
+	result.kdj.j = jSeq[idx];
+	result.rsi = rsi6Seq[idx];
+	result.wr = wr6Seq[idx];
+	result.atr = atrSeq[idx];
+
+	// 前一根K线指标
+	if (idx >= 1)
+	{
+		result.prevMacd.dif = difSeq[idx - 1];
+		result.prevMacd.dea = deaSeq[idx - 1];
+		result.prevMacd.macd_bar = macdBarSeq[idx - 1];
+		result.prevKdj.k = kSeq[idx - 1];
+		result.prevKdj.d = dSeq[idx - 1];
+		result.prevKdj.j = jSeq[idx - 1];
+	}
+
+	// 卖出条件诊断（使用与BatchDetectSignals完全相同的序列值，精确触轨无容差）
+	result.sellS1 = (bars5[idx].high >= bollUpSeq[idx]) || (bars5[idx].close > bollUpSeq[idx]);
+	result.sellS2_redShrink = (macdBarSeq[idx] > 0) && (macdBarSeq[idx] < macdBarSeq[idx - 1]);
+	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
+	result.sellA1 = ((kSeq[idx] > 80 && dSeq[idx] > 70 && jSeq[idx] < jSeq[idx - 1]) || jSeq[idx] > 100.0);
+	result.sellA2 = (rsi6Seq[idx] > 70);
+	result.sellA3 = (wr6Seq[idx] < 20);
+	double avgVol5 = 0;
+	if (idx >= 5)
+	{
+		double volSum = 0;
+		for (size_t j = idx - 5; j < idx; j++) volSum += bars5[j].volume;
+		avgVol5 = volSum / 5.0;
+	}
+	result.sellA4 = (avgVol5 > 0 && bars5[idx].volume > avgVol5 * 1.3 && bars5[idx].close > bars5[idx].open);
+	result.sellAuxCount = (result.sellA1 ? 1 : 0) + (result.sellA2 ? 1 : 0) + (result.sellA3 ? 1 : 0) + (result.sellA4 ? 1 : 0);
+
+	// 买入条件诊断
+	result.buyB1 = (bars5[idx].low <= bollDnSeq[idx]) || (bars5[idx].close < bollDnSeq[idx]);
+	result.buyB2_greenShrink = (macdBarSeq[idx] < 0) && (macdBarSeq[idx] > macdBarSeq[idx - 1]);
+	result.buyNecessary = result.buyB1 || result.buyB2_greenShrink;
+	result.buyA1 = (kSeq[idx] < 20 && dSeq[idx] < 20 && jSeq[idx] > jSeq[idx - 1]);
+	result.buyA2 = (rsi6Seq[idx] < 30);
+	result.buyA3 = (wr6Seq[idx] > 80);
+	result.buyA4 = (avgVol5 > 0 && bars5[idx].volume < avgVol5 * 0.7);
+	result.buyAuxCount = (result.buyA1 ? 1 : 0) + (result.buyA2 ? 1 : 0) + (result.buyA3 ? 1 : 0) + (result.buyA4 ? 1 : 0);
+
+	// 10. BatchDetectSignals完整判定链诊断
+	// 复现BatchDetectSignals在barIndex处的完整判定逻辑
+	int sellAuxThreshold = 2;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG) sellAuxThreshold = 2;
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) sellAuxThreshold = 2;
+	int buyAuxThreshold = 2;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG) buyAuxThreshold = 1;
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) buyAuxThreshold = 2;
+
+	result.batchHasSell = result.sellNecessary && (result.sellAuxCount >= sellAuxThreshold);
+	result.batchHasBuy = result.buyNecessary && (result.buyAuxCount >= buyAuxThreshold);
+
+	// 趋势强度权重
+	result.batchStrongTrendUp = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 1)
+	{
+		bool difAboveZero = (difSeq[idx] > 0);
+		bool bollMidUp = (bollMidSeq[idx] > 0 && idx >= 20);
+		if (bollMidUp)
+			bollMidUp = (bollMidSeq[idx] > (idx >= 1 ? bollMidSeq[idx - 1] : 0));
+		result.batchStrongTrendUp = difAboveZero && bollMidUp;
+	}
+	if (result.batchHasSell && result.batchStrongTrendUp && result.sellAuxCount < 2)
+		result.batchHasSell = false;
+
+	// KDJ钝化豁免
+	result.batchKdjTopPassiveExempt = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 2)
+	{
+		bool kdjHigh3 = (kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85);
+		bool kdjDeclining3 = (kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+		result.batchKdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
+	}
+	if (result.batchHasSell && result.batchKdjTopPassiveExempt)
+		result.batchHasSell = false;
+
+	// 风控判定
+	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBandSeq, idx), atrSeq[idx]);
+	bool bandExpand = IsBollExpand(bollBandSeq, idx);
+	bool kdjTopPassive = (idx >= 2 && kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85
+		&& kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+	bool kdjBottomPassive = (idx >= 2 && kSeq[idx] < 15 && kSeq[idx - 1] < 15 && kSeq[idx - 2] < 15
+		&& kSeq[idx] > kSeq[idx - 1] && kSeq[idx - 1] > kSeq[idx - 2]);
+	bool wrTopPassive = (idx >= 2 && wr6Seq[idx] < 18 && wr6Seq[idx - 1] < 18 && wr6Seq[idx - 2] < 18
+		&& wr6Seq[idx] > wr6Seq[idx - 1] && wr6Seq[idx - 1] > wr6Seq[idx - 2]);
+	bool wrBottomPassive = (idx >= 2 && wr6Seq[idx] > 82 && wr6Seq[idx - 1] > 82 && wr6Seq[idx - 2] > 82
+		&& wr6Seq[idx] < wr6Seq[idx - 1] && wr6Seq[idx - 1] < wr6Seq[idx - 2]);
+
+	result.batchForbidBuy = false;
+	result.batchForbidSell = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (kdjTopPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
+		if (wrTopPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
+	{
+		if (kdjBottomPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+	}
+	else  // STATE_SHAKE
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+	}
+
+	// 风控拦截
+	result.batchSellFilteredByForbid = false;
+	result.batchBuyFilteredByForbid = false;
+	if (!result.batchHasSell && !result.batchHasBuy)
+		result.batchFilterReason = _T("无买卖条件");
+	else if (result.batchForbidBuy && result.batchHasBuy && !result.batchHasSell)
+	{ result.batchBuyFilteredByForbid = true; result.batchFilterReason = _T("买入被风控拦截(") + result.batchForbidBuyReason + _T(")"); }
+	else if (result.batchForbidSell && result.batchHasSell && !result.batchHasBuy)
+	{ result.batchSellFilteredByForbid = true; result.batchFilterReason = _T("卖出被风控拦截(") + result.batchForbidSellReason + _T(")"); }
+	else
+		result.batchFilterReason = _T("通过");
+
+	// 信号不去重，5分钟间隔已足够
+
+	return result;
+}
+
+// ========== 分时图统一信号分析（1分钟粒度版AnalyzeSignalAt） ==========
+CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAtFromTimeline(
+	const std::vector<STOCK::Bar>& bars1m, const std::vector<STOCK::Bar>& bars30, int barIndex)
+{
+	SignalAnalysisResult result;
+
+	// 1. 批量检测信号（使用完整1分钟数据，逐根递推无未来函数）
+	result.batchSignals = BatchDetectSignalsFromTimeline(bars1m, bars30);
+	result.clickedSignal = nullptr;
+	for (const auto& item : result.batchSignals)
+	{
+		if (item.barIndex == barIndex)
+		{
+			result.clickedSignal = &item;
+			break;
+		}
+	}
+
+	// 2. 计算指标值（与BatchDetectSignalsFromTimeline相同的序列递推方式）
+	if (barIndex < 0 || barIndex >= static_cast<int>(bars1m.size()))
+		return result;
+
+	size_t n = bars1m.size();
+	size_t idx = static_cast<size_t>(barIndex);
+
+	// 30分钟趋势
+	result.trendResult = Get30mTrendState(bars30);
+	STOCK::TrendState30m trendState = result.trendResult.state;
+
+	// 1分钟信号和风控
+	std::vector<STOCK::Bar> bars1mUpToClick(bars1m.begin(), bars1m.begin() + barIndex + 1);
+	if (bars1mUpToClick.size() < 30)
+		return result;
+	result.sig5m = Get5mSignal(bars1mUpToClick, trendState);
+	result.forbidResult = CalcForbidResult(bars1mUpToClick, trendState);
+	result.smartSignal = DetectSmartSignal(bars1mUpToClick, bars30);
+
+	// 指标序列
+	std::vector<double> difSeq, deaSeq, macdBarSeq;
+	CalcMACDSeries(bars1m, difSeq, deaSeq, macdBarSeq);
+	std::vector<double> kSeq, dSeq, jSeq;
+	CalcKDJSeries(bars1m, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
+
+	// BOLL序列
+	int bollP = GetParam().bollPeriod;
+	std::vector<double> bollUpSeq(n, 0), bollMidSeq(n, 0), bollDnSeq(n, 0), bollBandSeq(n, 0);
+	for (size_t i = bollP - 1; i < n; i++)
+	{
+		std::vector<double> closes;
+		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars1m[j].close);
+		double ma = CalcMA(closes, bollP);
+		double sd = CalcStdDev(closes);
+		bollUpSeq[i] = ma + 2 * sd;
+		bollMidSeq[i] = ma;
+		bollDnSeq[i] = ma - 2 * sd;
+		if (ma > 0) bollBandSeq[i] = (2 * 2 * sd) / ma;
+	}
+
+	// ATR序列
+	int atrPeriod = GetParam().atrPeriod;
+	std::vector<double> atrSeq(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
+	{
+		std::vector<STOCK::Bar> barsForATR(bars1m.begin() + i - atrPeriod, bars1m.begin() + i + 1);
+		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
+	}
+
+	// RSI序列
+	int rsiP = GetParam().rsiPeriod;
+	std::vector<double> rsi6Seq(n, 50);
+	if (n >= static_cast<size_t>(rsiP + 1))
+	{
+		std::vector<double> upList, dnList;
+		for (size_t i = 1; i < n; i++) { double d = bars1m[i].close - bars1m[i - 1].close; upList.push_back(max(d, 0.0)); dnList.push_back(max(-d, 0.0)); }
+		double au = 0, ad = 0;
+		if (GetParam().rsiUseEma)
+		{
+			double k = 2.0 / (rsiP + 1.0);
+			au = upList[0]; ad = dnList[0];
+			for (size_t i = 1; i < upList.size(); i++)
+			{
+				au = upList[i] * k + au * (1.0 - k);
+				ad = dnList[i] * k + ad * (1.0 - k);
+				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
+			au /= rsiP; ad /= rsiP;
+			if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+			for (size_t i = rsiP; i < upList.size(); i++)
+			{
+				au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
+				ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
+				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+			}
+		}
+	}
+
+	// WR序列
+	int wrP = GetParam().wrPeriod;
+	std::vector<double> wr6Seq(n, 50);
+	for (size_t i = wrP - 1; i < n; i++)
+	{
+		double hhv = bars1m[i - wrP + 1].high, llv = bars1m[i - wrP + 1].low;
+		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars1m[j].high > hhv) hhv = bars1m[j].high; if (bars1m[j].low < llv) llv = bars1m[j].low; }
+		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars1m[i].close) / (hhv - llv) : 50.0;
+	}
+
+	// 从序列中提取barIndex处的指标值
+	result.boll.up = bollUpSeq[idx];
+	result.boll.mid = bollMidSeq[idx];
+	result.boll.dn = bollDnSeq[idx];
+	result.boll.bandwidth = bollBandSeq[idx];
+	result.macd.dif = difSeq[idx];
+	result.macd.dea = deaSeq[idx];
+	result.macd.macd_bar = macdBarSeq[idx];
+	result.kdj.k = kSeq[idx];
+	result.kdj.d = dSeq[idx];
+	result.kdj.j = jSeq[idx];
+	result.rsi = rsi6Seq[idx];
+	result.wr = wr6Seq[idx];
+	result.atr = atrSeq[idx];
+
+	// 前一根指标
+	if (idx >= 1)
+	{
+		result.prevMacd.dif = difSeq[idx - 1];
+		result.prevMacd.dea = deaSeq[idx - 1];
+		result.prevMacd.macd_bar = macdBarSeq[idx - 1];
+		result.prevKdj.k = kSeq[idx - 1];
+		result.prevKdj.d = dSeq[idx - 1];
+		result.prevKdj.j = jSeq[idx - 1];
+	}
+
+	// 卖出条件诊断
+	result.sellS1 = (bars1m[idx].high >= bollUpSeq[idx]) || (bars1m[idx].close > bollUpSeq[idx]);
+	result.sellS2_redShrink = (macdBarSeq[idx] > 0) && (macdBarSeq[idx] < macdBarSeq[idx - 1]);
+	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
+	result.sellA1 = ((kSeq[idx] > 80 && dSeq[idx] > 70 && jSeq[idx] < jSeq[idx - 1]) || jSeq[idx] > 100.0);
+	result.sellA2 = (rsi6Seq[idx] > 70);
+	result.sellA3 = (wr6Seq[idx] < 20);
+	double avgVol5 = 0;
+	if (idx >= 5)
+	{
+		double volSum = 0;
+		for (size_t j = idx - 5; j < idx; j++) volSum += bars1m[j].volume;
+		avgVol5 = volSum / 5.0;
+	}
+	result.sellA4 = (avgVol5 > 0 && bars1m[idx].volume > avgVol5 * 1.3 && bars1m[idx].close > bars1m[idx].open);
+	result.sellAuxCount = (result.sellA1 ? 1 : 0) + (result.sellA2 ? 1 : 0) + (result.sellA3 ? 1 : 0) + (result.sellA4 ? 1 : 0);
+
+	// 买入条件诊断
+	result.buyB1 = (bars1m[idx].low <= bollDnSeq[idx]) || (bars1m[idx].close < bollDnSeq[idx]);
+	result.buyB2_greenShrink = (macdBarSeq[idx] < 0) && (macdBarSeq[idx] > macdBarSeq[idx - 1]);
+	result.buyNecessary = result.buyB1 || result.buyB2_greenShrink;
+	result.buyA1 = (kSeq[idx] < 20 && dSeq[idx] < 20 && jSeq[idx] > jSeq[idx - 1]);
+	result.buyA2 = (rsi6Seq[idx] < 30);
+	result.buyA3 = (wr6Seq[idx] > 80);
+	result.buyA4 = (avgVol5 > 0 && bars1m[idx].volume < avgVol5 * 0.7);
+	result.buyAuxCount = (result.buyA1 ? 1 : 0) + (result.buyA2 ? 1 : 0) + (result.buyA3 ? 1 : 0) + (result.buyA4 ? 1 : 0);
+
+	// 批量判定链诊断
+	int sellAuxThreshold = 2;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG) sellAuxThreshold = 2;
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) sellAuxThreshold = 2;
+	int buyAuxThreshold = 2;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG) buyAuxThreshold = 1;
+	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) buyAuxThreshold = 2;
+
+	result.batchHasSell = result.sellNecessary && (result.sellAuxCount >= sellAuxThreshold);
+	result.batchHasBuy = result.buyNecessary && (result.buyAuxCount >= buyAuxThreshold);
+
+	result.batchStrongTrendUp = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 1)
+	{
+		bool difAboveZero = (difSeq[idx] > 0);
+		bool bollMidUp = (bollMidSeq[idx] > 0 && idx >= 20);
+		if (bollMidUp)
+			bollMidUp = (bollMidSeq[idx] > (idx >= 1 ? bollMidSeq[idx - 1] : 0));
+		result.batchStrongTrendUp = difAboveZero && bollMidUp;
+	}
+	if (result.batchHasSell && result.batchStrongTrendUp && result.sellAuxCount < 2)
+		result.batchHasSell = false;
+
+	result.batchKdjTopPassiveExempt = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 2)
+	{
+		bool kdjHigh3 = (kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85);
+		bool kdjDeclining3 = (kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+		result.batchKdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
+	}
+	if (result.batchHasSell && result.batchKdjTopPassiveExempt)
+		result.batchHasSell = false;
+
+	// 风控判定
+	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBandSeq, idx), atrSeq[idx]);
+	bool bandExpand = IsBollExpand(bollBandSeq, idx);
+	bool kdjTopPassive = (idx >= 2 && kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85
+		&& kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+	bool kdjBottomPassive = (idx >= 2 && kSeq[idx] < 15 && kSeq[idx - 1] < 15 && kSeq[idx - 2] < 15
+		&& kSeq[idx] > kSeq[idx - 1] && kSeq[idx - 1] > kSeq[idx - 2]);
+	bool wrTopPassive = (idx >= 2 && wr6Seq[idx] < 18 && wr6Seq[idx - 1] < 18 && wr6Seq[idx - 2] < 18
+		&& wr6Seq[idx] > wr6Seq[idx - 1] && wr6Seq[idx - 1] > wr6Seq[idx - 2]);
+	bool wrBottomPassive = (idx >= 2 && wr6Seq[idx] > 82 && wr6Seq[idx - 1] > 82 && wr6Seq[idx - 2] > 82
+		&& wr6Seq[idx] < wr6Seq[idx - 1] && wr6Seq[idx - 1] < wr6Seq[idx - 2]);
+
+	result.batchForbidBuy = false;
+	result.batchForbidSell = false;
+	if (trendState == STOCK::TrendState30m::STATE_STRONG)
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (kdjTopPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
+		if (wrTopPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
+	{
+		if (kdjBottomPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+	}
+	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+	}
+	else  // STATE_SHAKE
+	{
+		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
+		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
+		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+	}
+
+	// 风控拦截
+	result.batchSellFilteredByForbid = false;
+	result.batchBuyFilteredByForbid = false;
+	if (!result.batchHasSell && !result.batchHasBuy)
+		result.batchFilterReason = _T("无买卖条件");
+	else if (result.batchForbidBuy && result.batchHasBuy && !result.batchHasSell)
+	{ result.batchBuyFilteredByForbid = true; result.batchFilterReason = _T("买入被风控拦截(") + result.batchForbidBuyReason + _T(")"); }
+	else if (result.batchForbidSell && result.batchHasSell && !result.batchHasBuy)
+	{ result.batchSellFilteredByForbid = true; result.batchFilterReason = _T("卖出被风控拦截(") + result.batchForbidSellReason + _T(")"); }
+	else
+		result.batchFilterReason = _T("通过");
 
 	return result;
 }
@@ -1394,7 +3334,7 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::
 
 	// 1. BOLL：价格触碰上轨=卖出，触碰下轨=买入
 	// 强度：越远离中轨越强
-	STOCK::BollResult boll = CalcBoll(subBars, 20);
+	STOCK::BollResult boll = CalcBoll(subBars, GetParam().bollPeriod);
 	if (boll.up > 0 && boll.dn > 0 && boll.bandwidth > 0)
 	{
 		double halfBand = boll.bandwidth / 2.0;  // 中轨到上/下轨的距离
@@ -1425,7 +3365,7 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::
 		{
 			size_t n = difSeq.size();
 			double difDeaDiff = fabs(difSeq[n - 1] - deaSeq[n - 1]);
-			double difThreshold = GetMacdDifThreshold(currentPrice);
+			double difThreshold = GetMacdDifThreshold(currentPrice, CalcATR(bars5, bars5.size() - 1));
 			// 金叉：前一根DIF < DEA，当前DIF >= DEA
 			if (difSeq[n - 2] < deaSeq[n - 2] && difSeq[n - 1] >= deaSeq[n - 1])
 			{
@@ -1446,7 +3386,7 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::
 	}
 
 	// 3. RSI：超买(>70)=卖出，超卖(<30)=买入
-	double rsi6 = CalcRSI(subBars, 6);
+	double rsi6 = CalcRSI(subBars, GetParam().rsiPeriod);
 	if (rsi6 > 70)
 	{
 		sig.rsi = 1;
@@ -1463,7 +3403,7 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::
 	}
 
 	// 4. KDJ：超买(K>80)=卖出，超卖(K<20)=买入
-	STOCK::KDJResult kdj = CalcKDJ(subBars, 9);
+	STOCK::KDJResult kdj = CalcKDJ(subBars, GetParam().kdjPeriod);
 	if (kdj.k > 80)
 	{
 		sig.kdj = 1;
@@ -1480,7 +3420,7 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignals(const std::
 	}
 
 	// 5. W&R：超买(<20)=卖出，超卖(>80)=买入
-	double wr6 = CalcWR(subBars, 6);
+	double wr6 = CalcWR(subBars, GetParam().wrPeriod);
 	if (wr6 < 20)
 	{
 		sig.wr = 1;
@@ -1506,23 +3446,38 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignalsFromTimeline
 	if (timeline.size() < 26)
 		return sig;
 
-	// 将分时数据转换为Bar序列（每点只有price，无OHLC）
 	size_t lastIdx = (endIndex >= 0 && static_cast<size_t>(endIndex) < timeline.size()) ? static_cast<size_t>(endIndex) : timeline.size() - 1;
 	if (lastIdx < 25)
 		return sig;
 
+	// 滚动聚合：每6根分时点合成一根标准5min Bar，真实计算OHLC与成交量
+	// 分时点通常是1分钟采样，6根≈5分钟（含首尾）
+	constexpr size_t AGG_SIZE = 6;
 	std::vector<STOCK::Bar> bars;
-	bars.reserve(lastIdx + 1);
-	for (size_t i = 0; i <= lastIdx; i++)
+	bars.reserve(lastIdx / AGG_SIZE + 1);
+
+	for (size_t i = 0; i <= lastIdx; )
 	{
-		STOCK::Bar bar;
-		bar.close = timeline[i].price;
-		bar.open = timeline[i].price;
-		bar.high = timeline[i].price;
-		bar.low = timeline[i].price;
-		bar.volume = timeline[i].volume;
-		bars.push_back(bar);
+		size_t batchEnd = i + AGG_SIZE;
+		if (batchEnd > lastIdx + 1) batchEnd = lastIdx + 1;
+
+		double o = timeline[i].price;
+		double h = timeline[i].price;
+		double l = timeline[i].price;
+		double c = timeline[batchEnd - 1].price;
+		double v = 0;
+		for (size_t j = i; j < batchEnd; j++)
+		{
+			if (timeline[j].price > h) h = timeline[j].price;
+			if (timeline[j].price < l) l = timeline[j].price;
+			v += timeline[j].volume;
+		}
+		bars.push_back(STOCK::Bar(o, h, l, c, v, 0));
+		i = batchEnd;
 	}
+
+	if (bars.size() < 26)
+		return sig;
 
 	// 直接复用已有的Bar版计算函数
 	return CalcRealtimeSignals(bars, static_cast<int>(bars.size() - 1));
