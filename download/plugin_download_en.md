@@ -106,6 +106,28 @@ Displays real-time trading information for specified stocks. Use the Sina interf
 
 ---
 
+### StockPlus Plugin
+
+![StockPlus screenshot1](../images/image-202607130001.png)
+
+![StockPlus screenshot2](../images/image-202607130002.png)
+
+An enhanced version of the stock plugin with additional features:
+
+- Support for Hong Kong (`rt_hk`) and US (`gb_`) stock markets
+- 5-level order book data display (bid/ask)
+- Real-time timeline/tick chart
+- Floating window for detailed stock information
+- Convenient stock management tools
+
+* Download url:
+
+  GitHub: [Release StockPlus_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/StockPlus_V1.00)
+
+  Gitee: [StockPlus_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/StockPlus_V1.00)
+
+---
+
 ### Battery power detection plugin
 
 ![](images/155976271-b3e58b7a-d3ec-442d-8107-c0c69a2d7610.png)
