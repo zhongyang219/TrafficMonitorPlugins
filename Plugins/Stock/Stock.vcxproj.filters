@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="源文件">
@@ -28,6 +28,9 @@
     <Filter Include="FloatingWnd">
       <UniqueIdentifier>{bc94a766-d2ab-42d5-9671-72960500d3d5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SignalAnalyzer">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -51,6 +54,9 @@
     <ClInclude Include="OptionsDlg.h">
       <Filter>对话框</Filter>
     </ClInclude>
+    <ClInclude Include="RelateStockDlg.h">
+      <Filter>对话框</Filter>
+    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -60,11 +66,26 @@
     <ClInclude Include="FloatingWnd.h">
       <Filter>FloatingWnd</Filter>
     </ClInclude>
+    <ClInclude Include="SignalAnalyzer.h">
+      <Filter>SignalAnalyzer</Filter>
+    </ClInclude>
+    <ClInclude Include="StockFetchThread.h">
+      <Filter>Stock</Filter>
+    </ClInclude>
     <ClInclude Include="StockDef.h">
       <Filter>DataManager</Filter>
     </ClInclude>
     <ClInclude Include="TransparentWnd.h">
       <Filter>FloatingWnd</Filter>
+    </ClInclude>
+    <ClInclude Include="TradeRecordDialog.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>DataManager</Filter>
+    </ClInclude>
+    <ClInclude Include="StockDbManager.h">
+      <Filter>DataManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -86,17 +107,35 @@
     <ClCompile Include="OptionsDlg.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
+    <ClCompile Include="RelateStockDlg.cpp">
+      <Filter>对话框</Filter>
+    </ClCompile>
     <ClCompile Include="ManagerDialog.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
     <ClCompile Include="FloatingWnd.cpp">
       <Filter>FloatingWnd</Filter>
     </ClCompile>
+    <ClCompile Include="SignalAnalyzer.cpp">
+      <Filter>SignalAnalyzer</Filter>
+    </ClCompile>
+    <ClCompile Include="StockFetchThread.cpp">
+      <Filter>Stock</Filter>
+    </ClCompile>
     <ClCompile Include="StockDef.cpp">
       <Filter>DataManager</Filter>
     </ClCompile>
     <ClCompile Include="TransparentWnd.cpp">
       <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="TradeRecordDialog.cpp">
+      <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>DataManager</Filter>
+    </ClCompile>
+    <ClCompile Include="StockDbManager.cpp">
+      <Filter>DataManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

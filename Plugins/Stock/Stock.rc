@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 中文(简体，中国) resources
+// Chinese (Simplified) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
@@ -50,44 +50,73 @@ END
 // Dialog
 //
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 178, 90
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 200, 210
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "股票设置"
+CAPTION "股票编辑"
 FONT 9, "微软雅黑", 400, 0, 0x86
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,65,69,50,14
-    PUSHBUTTON      "取消",IDCANCEL,121,69,50,14
-    LTEXT           "代码：",IDC_CODE_LABEL,7,8,23,8
-    EDITTEXT        IDC_CODE_EDIT,33,7,138,12,ES_AUTOHSCROLL
-    GROUPBOX        "股票类型",IDC_STATIC,7,23,164,42
-    CONTROL         "深证",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,35,32,10
-    CONTROL         "港股",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,51,35,32,10
-    CONTROL         "北交所",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,87,35,40,10
-    CONTROL         "上证",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,131,35,32,10
-    CONTROL         "美股",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,49,32,10
-    CONTROL         "其他（需要前缀）",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,51,49,96,10
+    DEFPUSHBUTTON      "确定", IDOK, 45, 190, 50, 14
+    PUSHBUTTON         "取消", IDCANCEL, 105, 190, 50, 14
+    LTEXT           "代码:", IDC_CODE_LABEL, 7, 8, 23, 8
+    EDITTEXT        IDC_CODE_EDIT, 33, 7, 60, 12, ES_AUTOHSCROLL
+    LTEXT           "类型:", IDC_STATIC, 100, 8, 23, 8
+    COMBOBOX        IDC_MARKET_TYPE_COMBO, 148, 5, 45, 60, CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "价格预警", IDC_STATIC, 7, 28, 186, 40
+    LTEXT           "低价:", IDC_STATIC, 15, 42, 22, 8
+    EDITTEXT        IDC_ALERT_LOW_PRICE_EDIT, 40, 39, 45, 14, ES_AUTOHSCROLL
+    LTEXT           "元", IDC_STATIC, 90, 42, 8, 8
+    LTEXT           "高价:", IDC_STATIC, 100, 42, 22, 8
+    EDITTEXT        IDC_ALERT_HIGH_PRICE_EDIT, 125, 39, 45, 14, ES_AUTOHSCROLL
+    LTEXT           "元", IDC_STATIC, 175, 42, 8, 8
+    LTEXT           "设置为0则禁用", IDC_STATIC, 15, 60, 150, 8
+    GROUPBOX        "持仓信息", IDC_STATIC, 7, 73, 186, 62
+    LTEXT           "成本价", IDC_STATIC, 15, 88, 22, 8
+    EDITTEXT        IDC_COST_PRICE_EDIT, 40, 85, 45, 14, ES_AUTOHSCROLL
+    LTEXT           "元", IDC_STATIC, 90, 88, 8, 8
+    LTEXT           "持股数", IDC_STATIC, 100, 88, 22, 8
+    EDITTEXT        IDC_HOLDING_COUNT_EDIT, 125, 85, 45, 14, ES_AUTOHSCROLL
+    LTEXT           "股", IDC_STATIC, 175, 88, 8, 8
+    LTEXT           "买入时间:", IDC_STATIC, 15, 113, 38, 8
+    EDITTEXT        IDC_BUY_DATE_EDIT, 58, 110, 80, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "今天", IDC_TODAY_BUTTON, 143, 108, 35, 14
+    LTEXT           "设置为0则禁用", IDC_STATIC, 15, 130, 150, 8
+    CONTROL            "状态栏展示", IDC_STATUSBAR_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 15, 145, 80, 10
+    PUSHBUTTON         "关联股票", IDC_RELATED_STOCK_BUTTON, 100, 143, 50, 14
 END
 
-IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 126
+IDD_RELATED_STOCK_DIALOG DIALOGEX 0, 0, 200, 200
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "关联股票"
+FONT 9, "微软雅黑", 400, 0, 0x86
+BEGIN
+    DEFPUSHBUTTON      "确定", IDOK, 45, 180, 50, 14
+    PUSHBUTTON         "取消", IDCANCEL, 105, 180, 50, 14
+    LISTBOX            IDC_RELATED_STOCK_LIST, 7, 7, 186, 166, LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_BORDER | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 172
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "股票管理"
 FONT 9, "微软雅黑", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "确定",IDOK,115,105,45,14
-    PUSHBUTTON      "取消",IDCANCEL,166,105,45,14
-    PUSHBUTTON      "添加",IDC_MGR_ADD_BTN,17,102,35,14
-    PUSHBUTTON      "删除",IDC_MGR_DEL_BTN,66,102,35,14
-    CONTROL         "全天更新",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,19,59,10
-    GROUPBOX        "配置",IDC_STATIC,112,7,98,48
-    CONTROL         "显示股票名称",IDC_SHOW_STOCK_NAME_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,31,59,10
-    CONTROL         "涨跌颜色标识",IDC_COLOR_WITH_PRICE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,43,59,10
-    GROUPBOX        "股票清单",IDC_STATIC,7,7,103,112
-    LISTBOX         IDC_MGR_LIST,9,18,99,81,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "宽度",IDC_STATIC,118,67,17,8
-    EDITTEXT        IDC_KLINE_HEIGHT_EDIT,138,81,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "高度",IDC_STATIC,118,83,17,8
-    GROUPBOX        "走势图",IDC_STATIC,112,55,98,44
-    EDITTEXT        IDC_KLINE_WIDTH_EDIT,138,66,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "确定", IDOK, 115, 151, 45, 14
+    PUSHBUTTON      "取消", IDCANCEL, 166, 151, 45, 14
+    PUSHBUTTON      "添加", IDC_MGR_ADD_BTN, 17, 151, 35, 14
+    PUSHBUTTON      "删除", IDC_MGR_DEL_BTN, 66, 151, 35, 14
+    PUSHBUTTON      "上移", IDC_MGR_MOVE_UP_BTN, 115, 134, 45, 14
+    PUSHBUTTON      "下移", IDC_MGR_MOVE_DOWN_BTN, 166, 134, 45, 14
+    CONTROL         "全天更新", IDC_FULL_DAY_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 19, 59, 10
+    GROUPBOX        "显示", IDC_STATIC, 112, 7, 98, 62
+    CONTROL         "显示股票名称", IDC_SHOW_STOCK_NAME_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 31, 59, 10
+    CONTROL         "涨跌颜色标识", IDC_COLOR_WITH_PRICE_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 43, 59, 10
+    CONTROL         "显示涨跌幅", IDC_SHOW_FLUCTUATION_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 55, 59, 10
+    GROUPBOX        "股票列表", IDC_STATIC, 7, 7, 103, 144
+    CONTROL         "", IDC_MGR_LIST, "SysListView32", LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP, 9, 18, 99, 126
+    LTEXT           "宽度", IDC_STATIC, 118, 81, 17, 8
+    EDITTEXT        IDC_KLINE_HEIGHT_EDIT, 138, 95, 40, 12, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "高度", IDC_STATIC, 118, 97, 17, 8
+    GROUPBOX        "K线图", IDC_STATIC, 112, 69, 98, 44
+    EDITTEXT        IDC_KLINE_WIDTH_EDIT, 138, 80, 40, 12, ES_AUTOHSCROLL | ES_NUMBER
 END
 
 
@@ -97,21 +126,21 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_OPTIONS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 171
+        RIGHTMARGIN, 193
         TOPMARGIN, 7
-        BOTTOMMARGIN, 83
+        BOTTOMMARGIN, 178
     END
 
     IDD_MANAGER_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
         TOPMARGIN, 7
-        BOTTOMMARGIN, 119
+        BOTTOMMARGIN, 151
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -127,7 +156,6 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -154,8 +182,9 @@ BEGIN
     100, 100, 0, 0,
     100, 0, 0, 0,
     100, 0, 0, 0,
+    100, 0, 0, 0,
+    100, 0, 0, 0,
     0, 100, 0, 0,
-    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -167,24 +196,23 @@ BEGIN
     0, 0, 0, 0
 END
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,1,1
- PRODUCTVERSION 1,4,1,1
- FILEFLAGSMASK 0x3fL
+FILEVERSION 1, 4, 1, 1
+PRODUCTVERSION 1, 4, 1, 1
+FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
- FILEFLAGS 0x1L
+FILEFLAGS 0x1L
 #else
- FILEFLAGS 0x0L
+FILEFLAGS 0x0L
 #endif
- FILEOS 0x40004L
- FILETYPE 0x2L
- FILESUBTYPE 0x0L
+FILEOS 0x40004L
+FILETYPE 0x2L
+FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -205,7 +233,6 @@ BEGIN
     END
 END
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
@@ -215,11 +242,10 @@ IDR_MENU1 MENU
 BEGIN
     POPUP "1"
     BEGIN
-        MENUITEM "管理股票列表(&O)...",               ID_OPTIONS
-        MENUITEM "更新股票信息(&U)",                  ID_UPDATE
+        MENUITEM "管理股票列表(&O)...", ID_OPTIONS
+        MENUITEM "更新股票信息(&U)", ID_UPDATE
     END
 END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -230,38 +256,72 @@ END
 // remains consistent on all systems.
 IDI_STOCK               ICON                    "res\\icon.ico"
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // String Table
 //
 
-STRINGTABLE
+STRINGTABLE 
 BEGIN
     IDS_PLUGIN_NAME         "股票插件"
-    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件。"
+    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件"
     IDS_PLUGIN_ITEM_NAME    "股票"
     IDS_MENU_STOCK_MANAGE   "管理股票列表(&O)..."
     IDS_MENU_UPDATE_STOCK   "更新股票信息(&U)"
     IDS_ADD_STOCK           "添加股票"
     IDS_EDIT_STOCK          "编辑股票"
-    IDS_CHANGE_STOCK_TIP    "更新股票列表后需要重新启动TrafficMonitor才能生效。"
-    IDS_STOCK_NUM_LIMIT_WARNING "股票数量已达到上限！"
+    IDS_CHANGE_STOCK_TIP    "更新股票列表后需要重启TrafficMonitor才能生效"
+    IDS_STOCK_NUM_LIMIT_WARNING "股票数量已达到上限!"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP "暂不支持非A股的K线走势图!"
+    IDS_LOAD_FAIL           "加载失败"
+    IDS_LOADING             "加载中"
+    IDS_PRICE_ALERT_TITLE   "股票价格预警提示"
+    IDS_ALERT_LOW_PRICE_INVALID "请输入有效的低价预警值"
+    IDS_ALERT_HIGH_PRICE_INVALID "请输入有效的高价预警值"
+    IDS_ALERT_PRICE_RANGE_INVALID "低价不能高于高价"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP "暂不支持除A股外的K线走势！"
-    IDS_LOAD_FAIL           "加载失败"
-    IDS_LOADING             "加载中"
+    IDS_PRICE_ALERT_LOW_MSG  "价格已达到或低于您设置的低价预警"
+    IDS_PRICE_ALERT_HIGH_MSG "价格已达到或超过您设置的高价预警"
 END
 
-#endif    // 中文(简体，中国) resources
+IDD_TRADE_RECORD_DIALOG DIALOGEX 0, 0, 260, 180
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "交易记录"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定", IDOK, 80, 155, 50, 14
+    PUSHBUTTON      "取消", IDCANCEL, 135, 155, 50, 14
+    GROUPBOX        "类型", IDC_STATIC, 10, 10, 240, 30
+    CONTROL         "买入", IDC_TRADE_TYPE_BUY, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 20, 22, 40, 10
+    CONTROL         "卖出", IDC_TRADE_TYPE_SELL, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 80, 22, 40, 10
+    LTEXT           "时间:", IDC_STATIC, 10, 50, 30, 12
+    EDITTEXT        IDC_TRADE_TIME_EDIT, 50, 48, 80, 14, ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "价格:", IDC_STATIC, 140, 50, 30, 12
+    EDITTEXT        IDC_TRADE_PRICE_EDIT, 175, 48, 75, 14, ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "数量:", IDC_STATIC, 10, 80, 30, 12
+    EDITTEXT        IDC_TRADE_AMOUNT_EDIT, 50, 78, 80, 14, ES_AUTOHSCROLL
+    LTEXT           "金额:", IDC_STATIC, 140, 80, 30, 12
+    EDITTEXT        IDC_TRADE_AMOUNT_STATIC, 175, 78, 75, 14, ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "手续费:", IDC_STATIC, 10, 110, 50, 12
+    LTEXT           "", IDC_TRADE_FEE_STATIC, 65, 110, 50, 12
+    LTEXT           "合计:", IDC_STATIC, 140, 110, 30, 12
+    LTEXT           "", IDC_TRADE_TOTAL_STATIC, 175, 110, 75, 12
+END
+
+#endif    // Chinese (Simplified) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
+
 /////////////////////////////////////////////////////////////////////////////
-// 英语(美国) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -272,44 +332,75 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 126
+IDD_RELATED_STOCK_DIALOG DIALOGEX 0, 0, 200, 200
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Related Stocks"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON      "OK", IDOK, 45, 180, 50, 14
+    PUSHBUTTON         "Cancel", IDCANCEL, 105, 180, 50, 14
+    LISTBOX            IDC_RELATED_STOCK_LIST, 7, 7, 186, 166, LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_BORDER | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 172
 STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Stock Manage"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,115,105,45,14
-    PUSHBUTTON      "Cancel",IDCANCEL,166,105,45,14
-    PUSHBUTTON      "Add",IDC_MGR_ADD_BTN,17,102,35,14
-    PUSHBUTTON      "Remove",IDC_MGR_DEL_BTN,66,102,35,14
-    CONTROL         "All day updates",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,19,69,10
-    GROUPBOX        "Configure",IDC_STATIC,112,7,98,48
-    CONTROL         "Show stock name",IDC_SHOW_STOCK_NAME_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,31,69,10
-    CONTROL         "Show colors",IDC_COLOR_WITH_PRICE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,43,69,10
-    GROUPBOX        "Stock list",IDC_STATIC,7,7,103,112
-    LISTBOX         IDC_MGR_LIST,9,18,99,81,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Width",IDC_STATIC,118,67,22,8
-    EDITTEXT        IDC_KLINE_HEIGHT_EDIT,145,81,40,12,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Height",IDC_STATIC,118,83,22,8
-    GROUPBOX        "K-Line",IDC_STATIC,112,55,98,44
-    EDITTEXT        IDC_KLINE_WIDTH_EDIT,145,66,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "OK", IDOK, 115, 151, 45, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 166, 151, 45, 14
+    PUSHBUTTON      "Add", IDC_MGR_ADD_BTN, 17, 151, 35, 14
+    PUSHBUTTON      "Remove", IDC_MGR_DEL_BTN, 66, 151, 35, 14
+    PUSHBUTTON      "Move Up", IDC_MGR_MOVE_UP_BTN, 115, 134, 45, 14
+    PUSHBUTTON      "Move Down", IDC_MGR_MOVE_DOWN_BTN, 166, 134, 45, 14
+    CONTROL         "All day updates", IDC_FULL_DAY_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 19, 69, 10
+    GROUPBOX        "Configure", IDC_STATIC, 112, 7, 98, 62
+    CONTROL         "Show stock name", IDC_SHOW_STOCK_NAME_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 31, 69, 10
+    CONTROL         "Show colors", IDC_COLOR_WITH_PRICE_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 43, 69, 10
+    CONTROL         "Show fluctuation", IDC_SHOW_FLUCTUATION_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 118, 55, 69, 10
+    GROUPBOX        "Stock list", IDC_STATIC, 7, 7, 103, 144
+    CONTROL         "", IDC_MGR_LIST, "SysListView32", LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP, 9, 18, 99, 126
+    LTEXT           "Width", IDC_STATIC, 118, 81, 22, 8
+    EDITTEXT        IDC_KLINE_HEIGHT_EDIT, 145, 95, 40, 12, ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Height", IDC_STATIC, 118, 97, 22, 8
+    GROUPBOX        "K-Line", IDC_STATIC, 112, 69, 98, 44
+    EDITTEXT        IDC_KLINE_WIDTH_EDIT, 145, 80, 40, 12, ES_AUTOHSCROLL | ES_NUMBER
 END
 
-IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 213, 90
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 213, 215
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Stock"
 FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,101,69,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,156,69,50,14
-    LTEXT           "Code:",IDC_CODE_LABEL,7,9,28,8
-    EDITTEXT        IDC_CODE_EDIT,37,7,169,12,ES_AUTOHSCROLL
-    GROUPBOX        "Stock type",IDC_STATIC,7,23,199,42
-    CONTROL         "Shenzheng",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,35,52,10
-    CONTROL         "Ganggu",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,68,35,41,10
-    CONTROL         "Beijiaosuo",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,111,35,50,10
-    CONTROL         "Shangzheng",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,50,58,10
-    CONTROL         "Meigu",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,164,35,32,10
-    CONTROL         "Other (prefix required)",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,50,96,10
+    DEFPUSHBUTTON      "OK", IDOK, 56, 195, 50, 14
+    PUSHBUTTON         "Cancel", IDCANCEL, 116, 195, 50, 14
+    LTEXT           "Code:", IDC_CODE_LABEL, 7, 9, 28, 8
+    EDITTEXT        IDC_CODE_EDIT, 37, 7, 169, 12, ES_AUTOHSCROLL
+    GROUPBOX        "Stock type", IDC_STATIC, 7, 23, 199, 42
+    CONTROL         "Shenzhen", IDC_RADIO_SZ, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 15, 35, 52, 10
+    CONTROL         "Hong Kong", IDC_RADIO_HK, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 68, 35, 52, 10
+    CONTROL         "Beijing", IDC_RADIO_BJ, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 122, 35, 45, 10
+    CONTROL         "Shanghai", IDC_RADIO_SH, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 15, 50, 55, 10
+    CONTROL         "US", IDC_RADIO_GB, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 170, 35, 26, 10
+    CONTROL         "Other (prefix)", IDC_RADIO_OTHER, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 73, 50, 82, 10
+    GROUPBOX        "Price Alert", IDC_STATIC, 7, 68, 199, 40
+    LTEXT           "Low:", IDC_STATIC, 15, 82, 22, 8
+    EDITTEXT        IDC_ALERT_LOW_PRICE_EDIT, 42, 79, 50, 14, ES_AUTOHSCROLL
+    LTEXT           "CNY", IDC_STATIC, 95, 82, 25, 8
+    LTEXT           "High:", IDC_STATIC, 123, 82, 25, 8
+    EDITTEXT        IDC_ALERT_HIGH_PRICE_EDIT, 151, 79, 50, 14, ES_AUTOHSCROLL
+    LTEXT           "CNY", IDC_STATIC, 204, 82, 8, 8
+    LTEXT           "(Set to 0 to disable)", IDC_STATIC, 15, 100, 128, 8
+    GROUPBOX        "Position", IDC_STATIC, 7, 113, 199, 42
+    LTEXT           "Cost:", IDC_STATIC, 15, 128, 22, 8
+    EDITTEXT        IDC_COST_PRICE_EDIT, 42, 125, 50, 14, ES_AUTOHSCROLL
+    LTEXT           "CNY", IDC_STATIC, 95, 128, 25, 8
+    LTEXT           "Count:", IDC_STATIC, 123, 128, 25, 8
+    EDITTEXT        IDC_HOLDING_COUNT_EDIT, 151, 125, 50, 14, ES_AUTOHSCROLL
+    LTEXT           "shares", IDC_STATIC, 204, 128, 12, 8
+    LTEXT           "(Set to 0 to disable)", IDC_STATIC, 15, 145, 128, 8
+    CONTROL            "Show in status bar", IDC_STATUSBAR_CHECK, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 15, 160, 100, 10
+    PUSHBUTTON         "Related", IDC_RELATED_STOCK_BUTTON, 120, 158, 50, 14
 END
 
 
@@ -319,13 +410,13 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_MANAGER_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
         TOPMARGIN, 7
-        BOTTOMMARGIN, 120
+        BOTTOMMARGIN, 151
     END
 
     IDD_OPTIONS_DIALOG, DIALOG
@@ -333,7 +424,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 206
         TOPMARGIN, 7
-        BOTTOMMARGIN, 83
+        BOTTOMMARGIN, 178
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -349,14 +440,15 @@ BEGIN
     0,
     100, 100, 0, 0,
     100, 100, 0, 0,
-    0, 0, 100, 100,
+    100, 0, 0, 0,
+    100, 0, 0, 0,
     100, 0, 0, 0,
     100, 0, 0, 0,
     0, 100, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
-    0, 0, 0, 0,
+    0, 0, 100, 100,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -376,10 +468,8 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
-    0, 0, 0, 0,
     0, 0, 0, 0
 END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -390,18 +480,17 @@ IDR_MENU1 MENU
 BEGIN
     POPUP "1"
     BEGIN
-        MENUITEM "Stock List &Manage...",       ID_OPTIONS
-        MENUITEM "&Update Stock Info",          ID_UPDATE
+        MENUITEM "Stock List &Manage...", ID_OPTIONS
+        MENUITEM "&Update Stock Info", ID_UPDATE
     END
 END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // String Table
 //
 
-STRINGTABLE
+STRINGTABLE 
 BEGIN
     IDS_PLUGIN_NAME         "Stock Plugin"
     IDS_PLUGIN_DESCRIPTION  "Stock plugin for TrafficMonitor."
@@ -414,15 +503,24 @@ BEGIN
     IDS_STOCK_NUM_LIMIT_WARNING "The number of stocks has reached limit!"
 END
 
-STRINGTABLE
+STRINGTABLE 
 BEGIN
-    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP 
-                            "K-line trends other than A-shares are not supported yet!"
+    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP "K-line trends other than A-shares are not supported yet!"
     IDS_LOAD_FAIL           "Load Fail"
     IDS_LOADING             "Loading"
+    IDS_PRICE_ALERT_TITLE   "Stock Price Alert"
+    IDS_ALERT_LOW_PRICE_INVALID "Please enter a valid low price"
+    IDS_ALERT_HIGH_PRICE_INVALID "Please enter a valid high price"
+    IDS_ALERT_PRICE_RANGE_INVALID "Low price cannot be higher than high price"
 END
 
-#endif    // 英语(美国) resources
+STRINGTABLE 
+BEGIN
+    IDS_PRICE_ALERT_LOW_MSG  "The current price has reached or fallen below your set low price alert"
+    IDS_PRICE_ALERT_HIGH_MSG "The current price has reached or exceeded your set high price alert"
+END
+
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -436,4 +534,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

@@ -4,12 +4,12 @@
 // Windows 头文件
 //#include <windows.h>
 
-
 #include <SDKDDKVer.h>
 
 #include <afxwin.h>         // MFC 核心组件和标准组件
 #include <afxext.h>         // MFC 扩展
 #include <afxdisp.h>        // MFC 自动化类
+#include <afxcmn.h>         // MFC 公共控件（CListCtrl 等）
 
 #include <string>
 using std::string;
@@ -22,7 +22,6 @@ using std::deque;
 #include<fstream>
 using std::ifstream;
 using std::ofstream;
-
 
 #ifdef _UNICODE
 #if defined _M_IX86
