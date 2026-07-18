@@ -14,18 +14,28 @@ const wchar_t *StockItem::GetItemName() const
     auto data = g_data.GetStockData(stock_id);
     if (data->info.is_ok)
     {
-        if (data)
+        if (data && !data->info.displayName.empty())
         {
+            // 数据加载成功且有股票名称，显示股票名称
             item_name = data->info.displayName;
         }
         else
         {
-            item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
-            item_name += std::to_wstring(index);
+            // 数据加载成功但没有名称，显示股票代码
+            if (!stock_id.empty())
+            {
+                item_name = stock_id;
+            }
+            else
+            {
+                item_name = g_data.StringRes(IDS_PLUGIN_ITEM_NAME).GetString();
+                item_name += std::to_wstring(index);
+            }
         }
     }
     else
     {
+        // 数据加载失败，显示股票代码 + 加载失败提示
         item_name = stock_id + L" " + g_data.StringRes(IDS_LOAD_FAIL).GetString();
     }
     return item_name.c_str();

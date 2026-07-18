@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "TransparentWnd.h"
 #include "FloatingWnd.h"
 #include <Stock.h>
@@ -14,7 +14,7 @@ int CTransparentWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
     if (CWnd::OnCreate(lpCreateStruct) == -1)
         return -1;
 
-    // 添加调试输出
+    // Add debug output
     TRACE(L"CTransparentWnd Created\n");
     return 0;
 }
@@ -25,14 +25,14 @@ CTransparentWnd::CTransparentWnd() : m_pParent(nullptr)
 
 void CTransparentWnd::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    // 添加调试输出
+    // Add debug output
     TRACE(L"CTransparentWnd OnLButtonDown\n");
 
-    // 获取鼠标位置
+    // Get mouse position
     CPoint ptScreen;
     GetCursorPos(&ptScreen);
 
-    // 获取浮动窗口区域
+    // Get floating window area
     CRect rcFloat;
     if (m_pParent && m_pParent->GetSafeHwnd())
     {
@@ -45,18 +45,13 @@ void CTransparentWnd::OnLButtonDown(UINT nFlags, CPoint point)
         }
         else
         {
-            // 如果点击在浮动窗口内部，将消息传递给浮动窗口
+            // If click is inside floating window, pass message to floating window
             m_pParent->SendMessage(WM_LBUTTONDOWN, nFlags, MAKELPARAM(point.x, point.y));
         }
     }
-    // else
-    // {
-    //     TRACE(L"Destroying transparent window\n");
-    //     DestroyWindow();
-    // }
 }
 
 BOOL CTransparentWnd::OnEraseBkgnd(CDC *pDC)
 {
-    return TRUE; // 不擦除背景
+    return TRUE; // Do not erase background
 }
