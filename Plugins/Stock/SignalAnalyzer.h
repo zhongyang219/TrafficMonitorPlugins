@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "StockDef.h"
 
 class CSignalAnalyzer
@@ -167,6 +167,13 @@ public:
 		CString batchForbidBuyReason, batchForbidSellReason;
 		CString batchFilterReason;  // 综合过滤原因
 
+		// 批量计算的指标序列（由AnalyzeSignalAt/AnalyzeSignalAtFromTimeline填充，与BatchDetectSignals完全相同）
+		std::vector<double> bollUpSeq, bollMidSeq, bollDnSeq, bollBandSeq;
+		std::vector<double> difSeq, deaSeq, macdBarSeq;
+		std::vector<double> kSeq, dSeq, jSeq;
+		std::vector<double> rsi6Seq, wr6Seq, atrSeq;
+		std::vector<STOCK::TrendState30m> trendStateSeq;
+
 		SignalAnalysisResult()
 			: clickedSignal(nullptr), rsi(0), wr(0), atr(0)
 			, sig5m(STOCK::Signal5m::SIG_NONE)
@@ -201,4 +208,97 @@ public:
 	};
 	static RealtimeSignal CalcRealtimeSignals(const std::vector<STOCK::Bar>& bars5, int endIndex = -1);
 	static RealtimeSignal CalcRealtimeSignalsFromTimeline(const std::vector<STOCK::TimelinePoint>& timeline, int endIndex = -1);
+
+	// ========== 多周期MACD趋势判定（日线→30min→5min→1min联动） ==========
+
+	// 单根K线MACD数据
+	struct MacdData {
+		double dif;
+		double dea;
+		double bar;          // BAR = DIF - DEA
+		bool isAboveZero;    // 是否在零轴上方（DIF > 0）
+
+		MacdData() : dif(0), dea(0), bar(0), isAboveZero(false) {}
+	};
+
+	// 周期类型
+	enum class PeriodType {
+		DAY,    // 日线
+		M30,    // 30分钟
+		M5,     // 5分钟
+		M1      // 1分钟
+	};
+
+	// 一个周期完整序列（用来判断背离、柱子变长变短）
+	struct PeriodMacdSeq {
+		PeriodType type;
+		std::vector<MacdData> data; // 历史K线MACD序列，最新一根在末尾
+
+		// 派生状态，由工具函数计算
+		bool isAboveZero;       // 最新DIF是否在零轴上方
+		bool isLongTrend;       // 大趋势多头（整体水上+红柱为主）
+		bool isShortTrend;      // 大趋势空头（整体水下+绿柱为主）
+		bool topDivergence;     // 顶背离
+		bool botDivergence;     // 底背离
+		bool barGrowingRed;     // 红柱持续变长
+		bool barShrinkRed;      // 红柱缩短
+		bool barGrowingGreen;   // 绿柱变长
+		bool barShrinkGreen;    // 绿柱缩短
+
+		PeriodMacdSeq() : type(PeriodType::DAY), isAboveZero(false)
+			, isLongTrend(false), isShortTrend(false)
+			, topDivergence(false), botDivergence(false)
+			, barGrowingRed(false), barShrinkRed(false)
+			, barGrowingGreen(false), barShrinkGreen(false) {}
+	};
+
+	// T+0操作信号类型
+	enum class TradeSignal {
+		BUY_T,     // 低吸正T
+		SELL_T,    // 冲高反T卖出
+		HOLD,      // 持有观望
+		NO_OP      // 禁止操作，观望
+	};
+
+	// 最终决策结果
+	struct TradeResult {
+		TradeSignal sig;
+		CString desc; // 逻辑说明
+
+		TradeResult() : sig(TradeSignal::NO_OP) {}
+	};
+
+	// 工具函数：判断当前周期整体多空趋势
+	static void CalcPeriodTrend(PeriodMacdSeq& seq);
+	// 工具函数：判断柱子变化（变长/缩短）
+	static void CalcPeriodBarChange(PeriodMacdSeq& seq);
+	// 工具函数：简易背离判断（价格创新高但BAR峰值降低=顶背离，价格创新低但绿柱峰值缩小=底背离）
+	static void CalcPeriodDivergence(PeriodMacdSeq& seq, const std::vector<double>& priceSeq);
+	// 统一刷新单个周期所有状态
+	static void RefreshPeriodStatus(PeriodMacdSeq& seq, const std::vector<double>& price);
+
+	// 从K线Bar序列构建PeriodMacdSeq（复用CalcMACDSeries）
+	static PeriodMacdSeq BuildPeriodMacdSeq(const std::vector<STOCK::Bar>& bars, PeriodType type);
+
+	// 核心多层周期联动决策函数
+	// 严格遵循判断顺序：日线→30分钟→5分钟→1分钟
+	static TradeResult JudgeT0Trade(
+		PeriodMacdSeq& daySeq,
+		PeriodMacdSeq& m30Seq,
+		PeriodMacdSeq& m5Seq,
+		PeriodMacdSeq& m1Seq,
+		const std::vector<double>& dayPrice,
+		const std::vector<double>& m30Price,
+		const std::vector<double>& m5Price,
+		const std::vector<double>& m1Price
+	);
+
+	// 便捷函数：从K线数据（日K/30min/5min/分时1min）直接计算多周期MACD趋势信号
+	// 任意周期数据不足时返回NO_OP
+	static TradeResult CalcMultiPeriodMacdSignal(
+		const std::vector<STOCK::Bar>& dayBars,
+		const std::vector<STOCK::Bar>& m30Bars,
+		const std::vector<STOCK::Bar>& m5Bars,
+		const std::vector<STOCK::Bar>& m1Bars
+	);
 };

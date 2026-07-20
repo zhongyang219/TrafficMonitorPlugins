@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StockFetchThread.h"
 #include "DataManager.h"
 #include "Common.h"
@@ -250,8 +250,8 @@ void CStockFetchThread::Run()
 				// enum 按间隔从短到长排列，从前往后遍历保证短间隔任务优先执行
 				for (int i = 0; i < CHART_COUNT; i++)
 				{
-					// IOPV 仅对基金代码获取
-					if (i == CHART_IOPV && !CCommon::IsFundCode(stockId))
+					// IOPV 仅对基金代码获取，且仅在交易时段获取
+					if (i == CHART_IOPV && (!CCommon::IsFundCode(stockId) || !CDataManager::IsMarketOpen()))
 						continue;
 
 					time_t interval = GetChartInterval(i);

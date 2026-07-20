@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SignalAnalyzer.h"
 #include "StockDef.h"
 #include <cmath>
@@ -1737,6 +1737,15 @@ CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vecto
 	double atr5 = CalcATR(bars5, bars5.size() - 1);
 	bool narrowBand = IsNarrowBoll(avgBollBandwidth, atr5);
 
+	// BOLL中轨方向：上涨时扩张禁止卖出，下跌时扩张禁止买入
+	bool bollMidUp = false;
+	if (bars5.size() >= 21)
+	{
+		std::vector<STOCK::Bar> prevBars20(bars5.end() - 21, bars5.end() - 1);
+		STOCK::BollResult prevBoll = CalcBoll(prevBars20, GetParam().bollPeriod);
+		bollMidUp = (boll.mid > prevBoll.mid);
+	}
+
 	// KDJ钝化
 	std::vector<STOCK::Bar> prevBars(bars5.begin(), bars5.end() - 1);
 	std::vector<STOCK::Bar> prevPrevBars(bars5.begin(), bars5.end() - 2);
@@ -1770,8 +1779,9 @@ CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vecto
 		if (wrTopPassive) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("WR钝化"); }
 		// 窄布林统一禁止新开仓
 		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
-		// 强势多头布林扩张禁止做空
-		if (bandExpand) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出（防卖飞），中轨下行禁止买入（防追跌）
+		if (bandExpand && bollMidUp) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
 	{
@@ -1780,8 +1790,9 @@ CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vecto
 		if (wrBottomPassive) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("WR钝化"); }
 		// 窄布林统一禁止新开仓
 		if (narrowBand) { result.forbidBuy = true; result.forbidBuyReason = _T("BOLL过窄"); }
-		// 弱势空头布林扩张禁止做多
-		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 	{
@@ -1790,7 +1801,9 @@ CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vecto
 		if (wrBottomPassive) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("WR钝化"); }
 		// 窄布林统一禁止新开仓
 		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
 	}
 	else  // STATE_SHAKE
 	{
@@ -1799,7 +1812,9 @@ CSignalAnalyzer::ForbidResult CSignalAnalyzer::CalcForbidResult(const std::vecto
 		if (wrBottomPassive) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("WR钝化"); }
 		// 窄布林统一禁止新开仓
 		if (narrowBand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.forbidSell = true; if (result.forbidSellReason.IsEmpty()) result.forbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.forbidBuy = true; if (result.forbidBuyReason.IsEmpty()) result.forbidBuyReason = _T("BOLL扩张"); }
 	}
 
 	if (result.forbidBuy)
@@ -2151,12 +2166,13 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		// 风控判定：双通道分别判定禁止买入/禁止卖出
 		// 布林风控规则：
 		// 1. 窄布林统一禁止新开仓（变盘不确定性高，无论强弱/震荡）
-		// 2. 布林扩张区分多空：强势多头扩张禁止做空，弱势空头扩张禁止做多
+		// 2. 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
 		bool forbidBuy = false;
 		bool forbidSell = false;
 		CString forbidBuyReason;
 		CString forbidSellReason;
 		bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBand, i), atrSeq[i]);
+		bool bollMidUp = (bollMid[i] > prevBollMidSeq[i]);
 		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
 		{
 			// 强势：底部钝化禁止买入，顶部钝化禁止卖出
@@ -2166,8 +2182,9 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 			if (wrTopPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
 			// 窄布林统一禁止新开仓
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			// 强势多头布林扩张禁止做空
-			if (bandExpand) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
 		{
@@ -2176,8 +2193,9 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 			if (wrBottomPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
 			// 窄布林统一禁止新开仓
 			if (narrowBand) { forbidBuy = true; forbidBuyReason = _T("BOLL过窄"); }
-			// 弱势空头布林扩张禁止做多
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 		{
@@ -2186,7 +2204,9 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
 			// 窄布林统一禁止新开仓
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else  // STATE_SHAKE
 		{
@@ -2195,7 +2215,9 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
 			// 窄布林统一禁止新开仓
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 
 		if (forbidBuy && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
@@ -2593,6 +2615,7 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 		CString forbidBuyReason;
 		CString forbidSellReason;
 		bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBand, i), atrSeq[i]);
+		bool bollMidUp = (bollMid[i] > prevBollMidSeq[i]);
 		if (curTrendState == STOCK::TrendState30m::STATE_STRONG)
 		{
 			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
@@ -2600,28 +2623,36 @@ std::vector<CSignalAnalyzer::SmartSignalPoint> CSignalAnalyzer::BatchDetectSigna
 			if (kdjTopPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
 			if (wrTopPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK)
 		{
 			if (kdjBottomPassive) { forbidSell = true; forbidSellReason = _T("KDJ钝化"); }
 			if (wrBottomPassive) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("WR钝化"); }
 			if (narrowBand) { forbidBuy = true; forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else if (curTrendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 		{
 			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
 			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 		else  // STATE_SHAKE
 		{
 			if (kdjBottomPassive) { forbidBuy = true; forbidBuyReason = _T("KDJ钝化"); }
 			if (wrBottomPassive) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("WR钝化"); }
 			if (narrowBand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL过窄"); }
-			if (bandExpand) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
+			// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+			if (bandExpand && bollMidUp) { forbidSell = true; if (forbidSellReason.IsEmpty()) forbidSellReason = _T("BOLL扩张"); }
+			if (bandExpand && !bollMidUp) { forbidBuy = true; if (forbidBuyReason.IsEmpty()) forbidBuyReason = _T("BOLL扩张"); }
 		}
 
 		if (forbidBuy && static_cast<int>(i) - lastForbidBarIndex >= MIN_SIGNAL_BAR_GAP)
@@ -2787,80 +2818,74 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 {
 	SignalAnalysisResult result;
 
-	// 1. 批量检测信号（使用完整数据，逐根递推无未来函数）
-	result.batchSignals = BatchDetectSignals(bars5, bars30);
-	result.clickedSignal = nullptr;
-	for (const auto& item : result.batchSignals)
-	{
-		if (item.barIndex == barIndex)
-		{
-			result.clickedSignal = &item;
-			break;
-		}
-	}
-
-	// 2. 使用与BatchDetectSignals完全相同的序列递推方式计算指标值
-	//    确保弹窗诊断与走势图绘制完全一致
 	if (barIndex < 0 || barIndex >= static_cast<int>(bars5.size()))
 		return result;
 
 	size_t n = bars5.size();
 	size_t idx = static_cast<size_t>(barIndex);
 
-	// 30分钟趋势（跨周期对齐，与BatchDetectSignals相同）
+	// ===== 1. 计算指标序列（只算一次，与BatchDetectSignals完全相同） =====
+	// 30分钟趋势（跨周期对齐）
 	result.trendResult = Get30mTrendState(bars30);
-	// 使用5分钟K线对齐到30分钟K线，取barIndex处的趋势状态
 	auto alignMap = Align5mTo30m(bars5, bars30);
-	STOCK::TrendState30m trendState = result.trendResult.state;  // 默认用完整数据
+	// 预计算30min趋势序列：逐根5min Bar动态获取当期30min趋势
+	result.trendStateSeq.resize(n, STOCK::TrendState30m::STATE_SHAKE);
+	{
+		std::map<size_t, STOCK::TrendState30m> trendCache;
+		for (size_t i = 0; i < n; i++)
+		{
+			size_t idx30 = alignMap[i];
+			if (idx30 == SIZE_MAX || idx30 < 1)
+			{
+				result.trendStateSeq[i] = STOCK::TrendState30m::STATE_SHAKE;
+				continue;
+			}
+			auto it = trendCache.find(idx30);
+			if (it != trendCache.end())
+			{
+				result.trendStateSeq[i] = it->second;
+			}
+			else
+			{
+				std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + idx30 + 1);
+				STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
+				trendCache[idx30] = tr.state;
+				result.trendStateSeq[i] = tr.state;
+			}
+		}
+	}
+	STOCK::TrendState30m trendState = result.trendStateSeq[idx];
+	// 更新trendResult为barIndex处的趋势
 	if (idx < alignMap.size() && alignMap[idx] != SIZE_MAX && alignMap[idx] < bars30.size())
 	{
 		std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + alignMap[idx] + 1);
-		STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
-		trendState = tr.state;
-		result.trendResult = tr;
+		result.trendResult = Get30mTrendState(bars30sub);
 	}
-
-	// 5分钟信号和风控（用截取子序列，无未来函数）
-	std::vector<STOCK::Bar> bars5UpToClick(bars5.begin(), bars5.begin() + barIndex + 1);
-	if (bars5UpToClick.size() < 30)
-		return result;
-	result.sig5m = Get5mSignal(bars5UpToClick, trendState);
-	result.forbidResult = CalcForbidResult(bars5UpToClick, trendState);
-	result.smartSignal = DetectSmartSignal(bars5UpToClick, bars30);
-
-	// 指标序列（与BatchDetectSignals相同的递推方式）
-	std::vector<double> difSeq, deaSeq, macdBarSeq;
-	CalcMACDSeries(bars5, difSeq, deaSeq, macdBarSeq);
-	std::vector<double> kSeq, dSeq, jSeq;
-	CalcKDJSeries(bars5, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
 
 	// BOLL序列
 	int bollP = GetParam().bollPeriod;
-	std::vector<double> bollUpSeq(n, 0), bollMidSeq(n, 0), bollDnSeq(n, 0), bollBandSeq(n, 0);
+	result.bollUpSeq.resize(n, 0); result.bollMidSeq.resize(n, 0); result.bollDnSeq.resize(n, 0); result.bollBandSeq.resize(n, 0);
 	for (size_t i = bollP - 1; i < n; i++)
 	{
 		std::vector<double> closes;
 		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars5[j].close);
-		double ma = CalcMA(closes, bollP);
+		double mid = CalcMA(closes, bollP);
 		double sd = CalcStdDev(closes);
-		bollUpSeq[i] = ma + 2 * sd;
-		bollMidSeq[i] = ma;
-		bollDnSeq[i] = ma - 2 * sd;
-		if (ma > 0) bollBandSeq[i] = (2 * 2 * sd) / ma;
+		result.bollMidSeq[i] = mid;
+		result.bollUpSeq[i] = mid + 2.0 * sd;
+		result.bollDnSeq[i] = mid - 2.0 * sd;
+		result.bollBandSeq[i] = 4.0 * sd;
 	}
 
-	// ATR序列
-	int atrPeriod = GetParam().atrPeriod;
-	std::vector<double> atrSeq(n, 0);
-	for (size_t i = atrPeriod; i < n; i++)
-	{
-		std::vector<STOCK::Bar> barsForATR(bars5.begin() + i - atrPeriod, bars5.begin() + i + 1);
-		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
-	}
+	// MACD序列
+	CalcMACDSeries(bars5, result.difSeq, result.deaSeq, result.macdBarSeq);
+
+	// KDJ序列
+	CalcKDJSeries(bars5, GetParam().kdjPeriod, result.kSeq, result.dSeq, result.jSeq);
 
 	// RSI序列（与BatchDetectSignals相同的EMA/SMA递推方式）
 	int rsiP = GetParam().rsiPeriod;
-	std::vector<double> rsi6Seq(n, 50);
+	result.rsi6Seq.resize(n, 50);
 	if (n >= static_cast<size_t>(rsiP + 1))
 	{
 		std::vector<double> upList, dnList;
@@ -2874,94 +2899,114 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 			{
 				au = upList[i] * k + au * (1.0 - k);
 				ad = dnList[i] * k + ad * (1.0 - k);
-				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				if (ad == 0) result.rsi6Seq[i + 1] = 99.99; else result.rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
 			}
 		}
 		else
 		{
 			for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
 			au /= rsiP; ad /= rsiP;
-			if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+			if (ad == 0) result.rsi6Seq[rsiP] = 99.99; else result.rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
 			for (size_t i = rsiP; i < upList.size(); i++)
 			{
 				au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
 				ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
-				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				if (ad == 0) result.rsi6Seq[i + 1] = 99.99; else result.rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
 			}
 		}
 	}
 
 	// WR序列（与BatchDetectSignals相同的滑动窗口方式）
 	int wrP = GetParam().wrPeriod;
-	std::vector<double> wr6Seq(n, 50);
+	result.wr6Seq.resize(n, 50);
 	for (size_t i = wrP - 1; i < n; i++)
 	{
 		double hhv = bars5[i - wrP + 1].high, llv = bars5[i - wrP + 1].low;
 		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars5[j].high > hhv) hhv = bars5[j].high; if (bars5[j].low < llv) llv = bars5[j].low; }
-		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars5[i].close) / (hhv - llv) : 50.0;
+		result.wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars5[i].close) / (hhv - llv) : 50.0;
 	}
 
-	// 从序列中提取barIndex处的指标值
-	result.boll.up = bollUpSeq[idx];
-	result.boll.mid = bollMidSeq[idx];
-	result.boll.dn = bollDnSeq[idx];
-	result.boll.bandwidth = bollBandSeq[idx];
-	result.macd.dif = difSeq[idx];
-	result.macd.dea = deaSeq[idx];
-	result.macd.macd_bar = macdBarSeq[idx];
-	result.kdj.k = kSeq[idx];
-	result.kdj.d = dSeq[idx];
-	result.kdj.j = jSeq[idx];
-	result.rsi = rsi6Seq[idx];
-	result.wr = wr6Seq[idx];
-	result.atr = atrSeq[idx];
-
-	// 前一根K线指标
-	if (idx >= 1)
+	// ATR序列
+	int atrPeriod = GetParam().atrPeriod;
+	result.atrSeq.resize(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
 	{
-		result.prevMacd.dif = difSeq[idx - 1];
-		result.prevMacd.dea = deaSeq[idx - 1];
-		result.prevMacd.macd_bar = macdBarSeq[idx - 1];
-		result.prevKdj.k = kSeq[idx - 1];
-		result.prevKdj.d = dSeq[idx - 1];
-		result.prevKdj.j = jSeq[idx - 1];
+		std::vector<STOCK::Bar> barsForATR(bars5.begin() + i - atrPeriod, bars5.begin() + i + 1);
+		result.atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
 	}
 
-	// 卖出条件诊断（使用与BatchDetectSignals完全相同的序列值，精确触轨无容差）
-	result.sellS1 = (bars5[idx].high >= bollUpSeq[idx]) || (bars5[idx].close > bollUpSeq[idx]);
-	result.sellS2_redShrink = (macdBarSeq[idx] > 0) && (macdBarSeq[idx] < macdBarSeq[idx - 1]);
-	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
-	result.sellA1 = ((kSeq[idx] > 80 && dSeq[idx] > 70 && jSeq[idx] < jSeq[idx - 1]) || jSeq[idx] > 100.0);
-	result.sellA2 = (rsi6Seq[idx] > 70);
-	result.sellA3 = (wr6Seq[idx] < 20);
-	double avgVol5 = 0;
-	if (idx >= 5)
+	// 均量序列
+	std::vector<double> avgVol5Seq(n, 0);
+	for (size_t i = 5; i < n; i++)
 	{
 		double volSum = 0;
-		for (size_t j = idx - 5; j < idx; j++) volSum += bars5[j].volume;
-		avgVol5 = volSum / 5.0;
+		for (size_t j = i - 5; j < i; j++) volSum += bars5[j].volume;
+		avgVol5Seq[i] = volSum / 5.0;
 	}
-	result.sellA4 = (avgVol5 > 0 && bars5[idx].volume > avgVol5 * 1.3 && bars5[idx].close > bars5[idx].open);
+
+	// ===== 2. 从序列中提取barIndex处的指标值 =====
+	result.boll.up = result.bollUpSeq[idx];
+	result.boll.mid = result.bollMidSeq[idx];
+	result.boll.dn = result.bollDnSeq[idx];
+	result.boll.bandwidth = result.bollBandSeq[idx];
+	result.macd.dif = result.difSeq[idx];
+	result.macd.dea = result.deaSeq[idx];
+	result.macd.macd_bar = result.macdBarSeq[idx];
+	result.kdj.k = result.kSeq[idx];
+	result.kdj.d = result.dSeq[idx];
+	result.kdj.j = result.jSeq[idx];
+	result.rsi = result.rsi6Seq[idx];
+	result.wr = result.wr6Seq[idx];
+	result.atr = result.atrSeq[idx];
+	if (idx >= 1)
+	{
+		result.prevMacd.dif = result.difSeq[idx - 1];
+		result.prevMacd.dea = result.deaSeq[idx - 1];
+		result.prevMacd.macd_bar = result.macdBarSeq[idx - 1];
+		result.prevKdj.k = result.kSeq[idx - 1];
+		result.prevKdj.d = result.dSeq[idx - 1];
+		result.prevKdj.j = result.jSeq[idx - 1];
+	}
+
+	// ===== 3. 条件诊断（使用序列值，与BatchDetectSignals逐根判定完全相同） =====
+	// 卖出条件
+	result.sellS1 = (bars5[idx].high >= result.bollUpSeq[idx]) || (bars5[idx].close > result.bollUpSeq[idx]);
+	result.sellS2_redShrink = (result.macdBarSeq[idx] > 0) && (idx >= 1 && result.macdBarSeq[idx] < result.macdBarSeq[idx - 1]);
+	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
+	result.sellA1 = ((result.kSeq[idx] > KDJ_OVERBUY && result.dSeq[idx] > SELL_KDJ_D_OVERBUY && idx >= 1 && result.jSeq[idx] < result.jSeq[idx - 1]) || result.jSeq[idx] > 100.0);
+	result.sellA2 = (result.rsi6Seq[idx] > 70);
+	result.sellA3 = (result.wr6Seq[idx] < SELL_WR_OVERBUY);
+	result.sellA4 = (avgVol5Seq[idx] > 0 && bars5[idx].volume > avgVol5Seq[idx] * VOL_RATIO_THRESHOLD && bars5[idx].close > bars5[idx].open);
 	result.sellAuxCount = (result.sellA1 ? 1 : 0) + (result.sellA2 ? 1 : 0) + (result.sellA3 ? 1 : 0) + (result.sellA4 ? 1 : 0);
 
-	// 买入条件诊断
-	result.buyB1 = (bars5[idx].low <= bollDnSeq[idx]) || (bars5[idx].close < bollDnSeq[idx]);
-	result.buyB2_greenShrink = (macdBarSeq[idx] < 0) && (macdBarSeq[idx] > macdBarSeq[idx - 1]);
+	// 买入条件
+	result.buyB1 = (bars5[idx].low <= result.bollDnSeq[idx]) || (bars5[idx].close < result.bollDnSeq[idx]);
+	double macdDifThreshold = GetMacdDifThreshold(bars5[idx].close, result.atrSeq[idx]);
+	result.buyB2_greenShrink = (result.macdBarSeq[idx] < 0) && (idx >= 1 && result.macdBarSeq[idx] > result.macdBarSeq[idx - 1]) && fabs(result.difSeq[idx]) > macdDifThreshold;
 	result.buyNecessary = result.buyB1 || result.buyB2_greenShrink;
-	result.buyA1 = (kSeq[idx] < 20 && dSeq[idx] < 20 && jSeq[idx] > jSeq[idx - 1]);
-	result.buyA2 = (rsi6Seq[idx] < 30);
-	result.buyA3 = (wr6Seq[idx] > 80);
-	result.buyA4 = (avgVol5 > 0 && bars5[idx].volume < avgVol5 * 0.7);
+	result.buyA1 = (result.kSeq[idx] < KDJ_OVERSELL && result.dSeq[idx] < KDJ_OVERSELL && idx >= 1 && result.jSeq[idx] > result.jSeq[idx - 1]);
+	result.buyA2 = (result.rsi6Seq[idx] < 30);
+	result.buyA3 = (result.wr6Seq[idx] > 80);
+	result.buyA4 = (avgVol5Seq[idx] > 0 && bars5[idx].volume < avgVol5Seq[idx] * 0.7);
 	result.buyAuxCount = (result.buyA1 ? 1 : 0) + (result.buyA2 ? 1 : 0) + (result.buyA3 ? 1 : 0) + (result.buyA4 ? 1 : 0);
 
-	// 10. BatchDetectSignals完整判定链诊断
-	// 复现BatchDetectSignals在barIndex处的完整判定逻辑
+	// ===== 4. 批量信号检测（使用相同的指标序列） =====
+	result.batchSignals = BatchDetectSignals(bars5, bars30);
+	result.clickedSignal = nullptr;
+	for (const auto& item : result.batchSignals)
+	{
+		if (item.barIndex == barIndex)
+		{
+			result.clickedSignal = &item;
+			break;
+		}
+	}
+
+	// ===== 5. 批量判定链诊断（与BatchDetectSignals逐根判定完全相同） =====
 	int sellAuxThreshold = 2;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG) sellAuxThreshold = 2;
-	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) sellAuxThreshold = 2;
 	int buyAuxThreshold = 2;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG) buyAuxThreshold = 1;
-	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) buyAuxThreshold = 2;
 
 	result.batchHasSell = result.sellNecessary && (result.sellAuxCount >= sellAuxThreshold);
 	result.batchHasBuy = result.buyNecessary && (result.buyAuxCount >= buyAuxThreshold);
@@ -2970,10 +3015,8 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 	result.batchStrongTrendUp = false;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 1)
 	{
-		bool difAboveZero = (difSeq[idx] > 0);
-		bool bollMidUp = (bollMidSeq[idx] > 0 && idx >= 20);
-		if (bollMidUp)
-			bollMidUp = (bollMidSeq[idx] > (idx >= 1 ? bollMidSeq[idx - 1] : 0));
+		bool difAboveZero = (result.difSeq[idx] > 0);
+		bool bollMidUp = (result.bollMidSeq[idx] > 0 && idx >= 1 && result.bollMidSeq[idx] > result.bollMidSeq[idx - 1]);
 		result.batchStrongTrendUp = difAboveZero && bollMidUp;
 	}
 	if (result.batchHasSell && result.batchStrongTrendUp && result.sellAuxCount < 2)
@@ -2983,24 +3026,25 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 	result.batchKdjTopPassiveExempt = false;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 2)
 	{
-		bool kdjHigh3 = (kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85);
-		bool kdjDeclining3 = (kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+		bool kdjHigh3 = (result.kSeq[idx] > 85 && result.kSeq[idx - 1] > 85 && result.kSeq[idx - 2] > 85);
+		bool kdjDeclining3 = (result.kSeq[idx] < result.kSeq[idx - 1] && result.kSeq[idx - 1] < result.kSeq[idx - 2]);
 		result.batchKdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
 	}
 	if (result.batchHasSell && result.batchKdjTopPassiveExempt)
 		result.batchHasSell = false;
 
-	// 风控判定
-	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBandSeq, idx), atrSeq[idx]);
-	bool bandExpand = IsBollExpand(bollBandSeq, idx);
-	bool kdjTopPassive = (idx >= 2 && kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85
-		&& kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
-	bool kdjBottomPassive = (idx >= 2 && kSeq[idx] < 15 && kSeq[idx - 1] < 15 && kSeq[idx - 2] < 15
-		&& kSeq[idx] > kSeq[idx - 1] && kSeq[idx - 1] > kSeq[idx - 2]);
-	bool wrTopPassive = (idx >= 2 && wr6Seq[idx] < 18 && wr6Seq[idx - 1] < 18 && wr6Seq[idx - 2] < 18
-		&& wr6Seq[idx] > wr6Seq[idx - 1] && wr6Seq[idx - 1] > wr6Seq[idx - 2]);
-	bool wrBottomPassive = (idx >= 2 && wr6Seq[idx] > 82 && wr6Seq[idx - 1] > 82 && wr6Seq[idx - 2] > 82
-		&& wr6Seq[idx] < wr6Seq[idx - 1] && wr6Seq[idx - 1] < wr6Seq[idx - 2]);
+	// ===== 6. 风控判定（与BatchDetectSignals完全相同，修复SHAKE缺少bandExpand的Bug） =====
+	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(result.bollBandSeq, idx), result.atrSeq[idx]);
+	bool bandExpand = IsBollExpand(result.bollBandSeq, idx);
+	bool bollMidUp = (idx >= 1 && result.bollMidSeq[idx] > result.bollMidSeq[idx - 1]);
+	bool kdjTopPassive = (idx >= 2 && result.kSeq[idx] > 85 && result.kSeq[idx - 1] > 85 && result.kSeq[idx - 2] > 85
+		&& result.kSeq[idx] < result.kSeq[idx - 1] && result.kSeq[idx - 1] < result.kSeq[idx - 2]);
+	bool kdjBottomPassive = (idx >= 2 && result.kSeq[idx] < 15 && result.kSeq[idx - 1] < 15 && result.kSeq[idx - 2] < 15
+		&& result.kSeq[idx] > result.kSeq[idx - 1] && result.kSeq[idx - 1] > result.kSeq[idx - 2]);
+	bool wrTopPassive = (idx >= 2 && result.wr6Seq[idx] < 18 && result.wr6Seq[idx - 1] < 18 && result.wr6Seq[idx - 2] < 18
+		&& result.wr6Seq[idx] > result.wr6Seq[idx - 1] && result.wr6Seq[idx - 1] > result.wr6Seq[idx - 2]);
+	bool wrBottomPassive = (idx >= 2 && result.wr6Seq[idx] > 82 && result.wr6Seq[idx - 1] > 82 && result.wr6Seq[idx - 2] > 82
+		&& result.wr6Seq[idx] < result.wr6Seq[idx - 1] && result.wr6Seq[idx - 1] < result.wr6Seq[idx - 2]);
 
 	result.batchForbidBuy = false;
 	result.batchForbidSell = false;
@@ -3011,27 +3055,36 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 		if (kdjTopPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
 		if (wrTopPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
 	{
 		if (kdjBottomPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 	{
 		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
-	else  // STATE_SHAKE
+	else  // STATE_SHAKE - 修复：添加bandExpand风控
 	{
 		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 
 	// 风控拦截
@@ -3046,7 +3099,13 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAt(
 	else
 		result.batchFilterReason = _T("通过");
 
-	// 信号不去重，5分钟间隔已足够
+	// 5分钟信号（从批量判定结果推断，不再独立计算）
+	if (result.batchHasSell && !result.batchSellFilteredByForbid)
+		result.sig5m = STOCK::Signal5m::SIG_SELL;
+	else if (result.batchHasBuy && !result.batchBuyFilteredByForbid)
+		result.sig5m = STOCK::Signal5m::SIG_BUY;
+	else
+		result.sig5m = STOCK::Signal5m::SIG_NONE;
 
 	return result;
 }
@@ -3057,70 +3116,88 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAtFromTimeli
 {
 	SignalAnalysisResult result;
 
-	// 1. 批量检测信号（使用完整1分钟数据，逐根递推无未来函数）
-	result.batchSignals = BatchDetectSignalsFromTimeline(bars1m, bars30);
-	result.clickedSignal = nullptr;
-	for (const auto& item : result.batchSignals)
-	{
-		if (item.barIndex == barIndex)
-		{
-			result.clickedSignal = &item;
-			break;
-		}
-	}
-
-	// 2. 计算指标值（与BatchDetectSignalsFromTimeline相同的序列递推方式）
 	if (barIndex < 0 || barIndex >= static_cast<int>(bars1m.size()))
 		return result;
 
 	size_t n = bars1m.size();
 	size_t idx = static_cast<size_t>(barIndex);
 
-	// 30分钟趋势
+	// ===== 1. 计算指标序列（只算一次，与BatchDetectSignalsFromTimeline完全相同） =====
+	// 30分钟趋势（跨周期对齐，1分钟粒度按比例映射）
 	result.trendResult = Get30mTrendState(bars30);
-	STOCK::TrendState30m trendState = result.trendResult.state;
-
-	// 1分钟信号和风控
-	std::vector<STOCK::Bar> bars1mUpToClick(bars1m.begin(), bars1m.begin() + barIndex + 1);
-	if (bars1mUpToClick.size() < 30)
-		return result;
-	result.sig5m = Get5mSignal(bars1mUpToClick, trendState);
-	result.forbidResult = CalcForbidResult(bars1mUpToClick, trendState);
-	result.smartSignal = DetectSmartSignal(bars1mUpToClick, bars30);
-
-	// 指标序列
-	std::vector<double> difSeq, deaSeq, macdBarSeq;
-	CalcMACDSeries(bars1m, difSeq, deaSeq, macdBarSeq);
-	std::vector<double> kSeq, dSeq, jSeq;
-	CalcKDJSeries(bars1m, GetParam().kdjPeriod, kSeq, dSeq, jSeq);
+	// 预计算30min趋势序列：逐根1min Bar动态获取当期30min趋势
+	// 与BatchDetectSignalsFromTimeline相同的对齐方式
+	std::vector<size_t> alignMap(n, SIZE_MAX);
+	{
+		size_t n30 = bars30.size();
+		if (n30 >= 2)
+		{
+			for (size_t i = 0; i < n; i++)
+			{
+				size_t idx30 = static_cast<size_t>(static_cast<double>(i) / n * n30);
+				if (idx30 >= n30) idx30 = n30 - 1;
+				if (idx30 < 1) idx30 = 1;
+				alignMap[i] = idx30;
+			}
+		}
+	}
+	result.trendStateSeq.resize(n, STOCK::TrendState30m::STATE_SHAKE);
+	{
+		std::map<size_t, STOCK::TrendState30m> trendCache;
+		for (size_t i = 0; i < n; i++)
+		{
+			size_t idx30 = alignMap[i];
+			if (idx30 == SIZE_MAX || idx30 < 1)
+			{
+				result.trendStateSeq[i] = STOCK::TrendState30m::STATE_SHAKE;
+				continue;
+			}
+			auto it = trendCache.find(idx30);
+			if (it != trendCache.end())
+			{
+				result.trendStateSeq[i] = it->second;
+			}
+			else
+			{
+				std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + idx30 + 1);
+				STOCK::TrendStateResult tr = Get30mTrendState(bars30sub);
+				trendCache[idx30] = tr.state;
+				result.trendStateSeq[i] = tr.state;
+			}
+		}
+	}
+	STOCK::TrendState30m trendState = result.trendStateSeq[idx];
+	// 更新trendResult为barIndex处的趋势
+	if (alignMap[idx] != SIZE_MAX && alignMap[idx] < bars30.size())
+	{
+		std::vector<STOCK::Bar> bars30sub(bars30.begin(), bars30.begin() + alignMap[idx] + 1);
+		result.trendResult = Get30mTrendState(bars30sub);
+	}
 
 	// BOLL序列
 	int bollP = GetParam().bollPeriod;
-	std::vector<double> bollUpSeq(n, 0), bollMidSeq(n, 0), bollDnSeq(n, 0), bollBandSeq(n, 0);
+	result.bollUpSeq.resize(n, 0); result.bollMidSeq.resize(n, 0); result.bollDnSeq.resize(n, 0); result.bollBandSeq.resize(n, 0);
 	for (size_t i = bollP - 1; i < n; i++)
 	{
 		std::vector<double> closes;
 		for (size_t j = i - bollP + 1; j <= i; j++) closes.push_back(bars1m[j].close);
-		double ma = CalcMA(closes, bollP);
+		double mid = CalcMA(closes, bollP);
 		double sd = CalcStdDev(closes);
-		bollUpSeq[i] = ma + 2 * sd;
-		bollMidSeq[i] = ma;
-		bollDnSeq[i] = ma - 2 * sd;
-		if (ma > 0) bollBandSeq[i] = (2 * 2 * sd) / ma;
+		result.bollMidSeq[i] = mid;
+		result.bollUpSeq[i] = mid + 2.0 * sd;
+		result.bollDnSeq[i] = mid - 2.0 * sd;
+		result.bollBandSeq[i] = 4.0 * sd;
 	}
 
-	// ATR序列
-	int atrPeriod = GetParam().atrPeriod;
-	std::vector<double> atrSeq(n, 0);
-	for (size_t i = atrPeriod; i < n; i++)
-	{
-		std::vector<STOCK::Bar> barsForATR(bars1m.begin() + i - atrPeriod, bars1m.begin() + i + 1);
-		atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
-	}
+	// MACD序列
+	CalcMACDSeries(bars1m, result.difSeq, result.deaSeq, result.macdBarSeq);
 
-	// RSI序列
+	// KDJ序列
+	CalcKDJSeries(bars1m, GetParam().kdjPeriod, result.kSeq, result.dSeq, result.jSeq);
+
+	// RSI序列（与BatchDetectSignalsFromTimeline相同的EMA/SMA递推方式）
 	int rsiP = GetParam().rsiPeriod;
-	std::vector<double> rsi6Seq(n, 50);
+	result.rsi6Seq.resize(n, 50);
 	if (n >= static_cast<size_t>(rsiP + 1))
 	{
 		std::vector<double> upList, dnList;
@@ -3134,130 +3211,152 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAtFromTimeli
 			{
 				au = upList[i] * k + au * (1.0 - k);
 				ad = dnList[i] * k + ad * (1.0 - k);
-				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				if (ad == 0) result.rsi6Seq[i + 1] = 99.99; else result.rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
 			}
 		}
 		else
 		{
 			for (int i = 0; i < rsiP && i < static_cast<int>(upList.size()); i++) { au += upList[i]; ad += dnList[i]; }
 			au /= rsiP; ad /= rsiP;
-			if (ad == 0) rsi6Seq[rsiP] = 99.99; else rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
+			if (ad == 0) result.rsi6Seq[rsiP] = 99.99; else result.rsi6Seq[rsiP] = 100.0 - 100.0 / (1.0 + au / ad);
 			for (size_t i = rsiP; i < upList.size(); i++)
 			{
 				au = (upList[i] + (rsiP - 1.0) * au) / rsiP;
 				ad = (dnList[i] + (rsiP - 1.0) * ad) / rsiP;
-				if (ad == 0) rsi6Seq[i + 1] = 99.99; else rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
+				if (ad == 0) result.rsi6Seq[i + 1] = 99.99; else result.rsi6Seq[i + 1] = 100.0 - 100.0 / (1.0 + au / ad);
 			}
 		}
 	}
 
-	// WR序列
+	// WR序列（与BatchDetectSignalsFromTimeline相同的滑动窗口方式）
 	int wrP = GetParam().wrPeriod;
-	std::vector<double> wr6Seq(n, 50);
+	result.wr6Seq.resize(n, 50);
 	for (size_t i = wrP - 1; i < n; i++)
 	{
 		double hhv = bars1m[i - wrP + 1].high, llv = bars1m[i - wrP + 1].low;
 		for (size_t j = i - wrP + 2; j <= i; j++) { if (bars1m[j].high > hhv) hhv = bars1m[j].high; if (bars1m[j].low < llv) llv = bars1m[j].low; }
-		wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars1m[i].close) / (hhv - llv) : 50.0;
+		result.wr6Seq[i] = (hhv != llv) ? 100.0 * (hhv - bars1m[i].close) / (hhv - llv) : 50.0;
 	}
 
-	// 从序列中提取barIndex处的指标值
-	result.boll.up = bollUpSeq[idx];
-	result.boll.mid = bollMidSeq[idx];
-	result.boll.dn = bollDnSeq[idx];
-	result.boll.bandwidth = bollBandSeq[idx];
-	result.macd.dif = difSeq[idx];
-	result.macd.dea = deaSeq[idx];
-	result.macd.macd_bar = macdBarSeq[idx];
-	result.kdj.k = kSeq[idx];
-	result.kdj.d = dSeq[idx];
-	result.kdj.j = jSeq[idx];
-	result.rsi = rsi6Seq[idx];
-	result.wr = wr6Seq[idx];
-	result.atr = atrSeq[idx];
-
-	// 前一根指标
-	if (idx >= 1)
+	// ATR序列
+	int atrPeriod = GetParam().atrPeriod;
+	result.atrSeq.resize(n, 0);
+	for (size_t i = atrPeriod; i < n; i++)
 	{
-		result.prevMacd.dif = difSeq[idx - 1];
-		result.prevMacd.dea = deaSeq[idx - 1];
-		result.prevMacd.macd_bar = macdBarSeq[idx - 1];
-		result.prevKdj.k = kSeq[idx - 1];
-		result.prevKdj.d = dSeq[idx - 1];
-		result.prevKdj.j = jSeq[idx - 1];
+		std::vector<STOCK::Bar> barsForATR(bars1m.begin() + i - atrPeriod, bars1m.begin() + i + 1);
+		result.atrSeq[i] = CalcATR(barsForATR, barsForATR.size() - 1);
 	}
 
-	// 卖出条件诊断
-	result.sellS1 = (bars1m[idx].high >= bollUpSeq[idx]) || (bars1m[idx].close > bollUpSeq[idx]);
-	result.sellS2_redShrink = (macdBarSeq[idx] > 0) && (macdBarSeq[idx] < macdBarSeq[idx - 1]);
-	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
-	result.sellA1 = ((kSeq[idx] > 80 && dSeq[idx] > 70 && jSeq[idx] < jSeq[idx - 1]) || jSeq[idx] > 100.0);
-	result.sellA2 = (rsi6Seq[idx] > 70);
-	result.sellA3 = (wr6Seq[idx] < 20);
-	double avgVol5 = 0;
-	if (idx >= 5)
+	// 均量序列
+	std::vector<double> avgVol5Seq(n, 0);
+	for (size_t i = 5; i < n; i++)
 	{
 		double volSum = 0;
-		for (size_t j = idx - 5; j < idx; j++) volSum += bars1m[j].volume;
-		avgVol5 = volSum / 5.0;
+		for (size_t j = i - 5; j < i; j++) volSum += bars1m[j].volume;
+		avgVol5Seq[i] = volSum / 5.0;
 	}
-	result.sellA4 = (avgVol5 > 0 && bars1m[idx].volume > avgVol5 * 1.3 && bars1m[idx].close > bars1m[idx].open);
+
+	// ===== 2. 从序列中提取barIndex处的指标值 =====
+	result.boll.up = result.bollUpSeq[idx];
+	result.boll.mid = result.bollMidSeq[idx];
+	result.boll.dn = result.bollDnSeq[idx];
+	result.boll.bandwidth = result.bollBandSeq[idx];
+	result.macd.dif = result.difSeq[idx];
+	result.macd.dea = result.deaSeq[idx];
+	result.macd.macd_bar = result.macdBarSeq[idx];
+	result.kdj.k = result.kSeq[idx];
+	result.kdj.d = result.dSeq[idx];
+	result.kdj.j = result.jSeq[idx];
+	result.rsi = result.rsi6Seq[idx];
+	result.wr = result.wr6Seq[idx];
+	result.atr = result.atrSeq[idx];
+	if (idx >= 1)
+	{
+		result.prevMacd.dif = result.difSeq[idx - 1];
+		result.prevMacd.dea = result.deaSeq[idx - 1];
+		result.prevMacd.macd_bar = result.macdBarSeq[idx - 1];
+		result.prevKdj.k = result.kSeq[idx - 1];
+		result.prevKdj.d = result.dSeq[idx - 1];
+		result.prevKdj.j = result.jSeq[idx - 1];
+	}
+
+	// ===== 3. 条件诊断（使用序列值，与BatchDetectSignalsFromTimeline逐根判定完全相同） =====
+	// 卖出条件
+	result.sellS1 = (bars1m[idx].high >= result.bollUpSeq[idx]) || (bars1m[idx].close > result.bollUpSeq[idx]);
+	result.sellS2_redShrink = (result.macdBarSeq[idx] > 0) && (idx >= 1 && result.macdBarSeq[idx] < result.macdBarSeq[idx - 1]);
+	result.sellNecessary = result.sellS1 || result.sellS2_redShrink;
+	result.sellA1 = ((result.kSeq[idx] > KDJ_OVERBUY && result.dSeq[idx] > SELL_KDJ_D_OVERBUY && idx >= 1 && result.jSeq[idx] < result.jSeq[idx - 1]) || result.jSeq[idx] > 100.0);
+	result.sellA2 = (result.rsi6Seq[idx] > 70);
+	result.sellA3 = (result.wr6Seq[idx] < SELL_WR_OVERBUY);
+	result.sellA4 = (avgVol5Seq[idx] > 0 && bars1m[idx].volume > avgVol5Seq[idx] * VOL_RATIO_THRESHOLD && bars1m[idx].close > bars1m[idx].open);
 	result.sellAuxCount = (result.sellA1 ? 1 : 0) + (result.sellA2 ? 1 : 0) + (result.sellA3 ? 1 : 0) + (result.sellA4 ? 1 : 0);
 
-	// 买入条件诊断
-	result.buyB1 = (bars1m[idx].low <= bollDnSeq[idx]) || (bars1m[idx].close < bollDnSeq[idx]);
-	result.buyB2_greenShrink = (macdBarSeq[idx] < 0) && (macdBarSeq[idx] > macdBarSeq[idx - 1]);
+	// 买入条件
+	result.buyB1 = (bars1m[idx].low <= result.bollDnSeq[idx]) || (bars1m[idx].close < result.bollDnSeq[idx]);
+	double macdDifThreshold = GetMacdDifThreshold(bars1m[idx].close, result.atrSeq[idx]);
+	result.buyB2_greenShrink = (result.macdBarSeq[idx] < 0) && (idx >= 1 && result.macdBarSeq[idx] > result.macdBarSeq[idx - 1]) && fabs(result.difSeq[idx]) > macdDifThreshold;
 	result.buyNecessary = result.buyB1 || result.buyB2_greenShrink;
-	result.buyA1 = (kSeq[idx] < 20 && dSeq[idx] < 20 && jSeq[idx] > jSeq[idx - 1]);
-	result.buyA2 = (rsi6Seq[idx] < 30);
-	result.buyA3 = (wr6Seq[idx] > 80);
-	result.buyA4 = (avgVol5 > 0 && bars1m[idx].volume < avgVol5 * 0.7);
+	result.buyA1 = (result.kSeq[idx] < KDJ_OVERSELL && result.dSeq[idx] < KDJ_OVERSELL && idx >= 1 && result.jSeq[idx] > result.jSeq[idx - 1]);
+	result.buyA2 = (result.rsi6Seq[idx] < 30);
+	result.buyA3 = (result.wr6Seq[idx] > 80);
+	result.buyA4 = (avgVol5Seq[idx] > 0 && bars1m[idx].volume < avgVol5Seq[idx] * 0.7);
 	result.buyAuxCount = (result.buyA1 ? 1 : 0) + (result.buyA2 ? 1 : 0) + (result.buyA3 ? 1 : 0) + (result.buyA4 ? 1 : 0);
 
-	// 批量判定链诊断
+	// ===== 4. 批量信号检测（使用相同的指标序列） =====
+	result.batchSignals = BatchDetectSignalsFromTimeline(bars1m, bars30);
+	result.clickedSignal = nullptr;
+	for (const auto& item : result.batchSignals)
+	{
+		if (item.barIndex == barIndex)
+		{
+			result.clickedSignal = &item;
+			break;
+		}
+	}
+
+	// ===== 5. 批量判定链诊断（与BatchDetectSignalsFromTimeline逐根判定完全相同） =====
 	int sellAuxThreshold = 2;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG) sellAuxThreshold = 2;
-	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) sellAuxThreshold = 2;
 	int buyAuxThreshold = 2;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG) buyAuxThreshold = 1;
-	else if (trendState == STOCK::TrendState30m::STATE_SHAKE || trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE) buyAuxThreshold = 2;
 
 	result.batchHasSell = result.sellNecessary && (result.sellAuxCount >= sellAuxThreshold);
 	result.batchHasBuy = result.buyNecessary && (result.buyAuxCount >= buyAuxThreshold);
 
+	// 趋势强度权重
 	result.batchStrongTrendUp = false;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 1)
 	{
-		bool difAboveZero = (difSeq[idx] > 0);
-		bool bollMidUp = (bollMidSeq[idx] > 0 && idx >= 20);
-		if (bollMidUp)
-			bollMidUp = (bollMidSeq[idx] > (idx >= 1 ? bollMidSeq[idx - 1] : 0));
+		bool difAboveZero = (result.difSeq[idx] > 0);
+		bool bollMidUp = (result.bollMidSeq[idx] > 0 && idx >= 1 && result.bollMidSeq[idx] > result.bollMidSeq[idx - 1]);
 		result.batchStrongTrendUp = difAboveZero && bollMidUp;
 	}
 	if (result.batchHasSell && result.batchStrongTrendUp && result.sellAuxCount < 2)
 		result.batchHasSell = false;
 
+	// KDJ钝化豁免
 	result.batchKdjTopPassiveExempt = false;
 	if (trendState == STOCK::TrendState30m::STATE_STRONG && idx >= 2)
 	{
-		bool kdjHigh3 = (kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85);
-		bool kdjDeclining3 = (kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
+		bool kdjHigh3 = (result.kSeq[idx] > 85 && result.kSeq[idx - 1] > 85 && result.kSeq[idx - 2] > 85);
+		bool kdjDeclining3 = (result.kSeq[idx] < result.kSeq[idx - 1] && result.kSeq[idx - 1] < result.kSeq[idx - 2]);
 		result.batchKdjTopPassiveExempt = kdjHigh3 && kdjDeclining3;
 	}
 	if (result.batchHasSell && result.batchKdjTopPassiveExempt)
 		result.batchHasSell = false;
 
-	// 风控判定
-	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(bollBandSeq, idx), atrSeq[idx]);
-	bool bandExpand = IsBollExpand(bollBandSeq, idx);
-	bool kdjTopPassive = (idx >= 2 && kSeq[idx] > 85 && kSeq[idx - 1] > 85 && kSeq[idx - 2] > 85
-		&& kSeq[idx] < kSeq[idx - 1] && kSeq[idx - 1] < kSeq[idx - 2]);
-	bool kdjBottomPassive = (idx >= 2 && kSeq[idx] < 15 && kSeq[idx - 1] < 15 && kSeq[idx - 2] < 15
-		&& kSeq[idx] > kSeq[idx - 1] && kSeq[idx - 1] > kSeq[idx - 2]);
-	bool wrTopPassive = (idx >= 2 && wr6Seq[idx] < 18 && wr6Seq[idx - 1] < 18 && wr6Seq[idx - 2] < 18
-		&& wr6Seq[idx] > wr6Seq[idx - 1] && wr6Seq[idx - 1] > wr6Seq[idx - 2]);
-	bool wrBottomPassive = (idx >= 2 && wr6Seq[idx] > 82 && wr6Seq[idx - 1] > 82 && wr6Seq[idx - 2] > 82
-		&& wr6Seq[idx] < wr6Seq[idx - 1] && wr6Seq[idx - 1] < wr6Seq[idx - 2]);
+	// ===== 6. 风控判定（与BatchDetectSignalsFromTimeline完全相同） =====
+	bool narrowBand = IsNarrowBoll(CalcAverageBollBandwidth(result.bollBandSeq, idx), result.atrSeq[idx]);
+	bool bandExpand = IsBollExpand(result.bollBandSeq, idx);
+	bool bollMidUp = (idx >= 1 && result.bollMidSeq[idx] > result.bollMidSeq[idx - 1]);
+	bool kdjTopPassive = (idx >= 2 && result.kSeq[idx] > 85 && result.kSeq[idx - 1] > 85 && result.kSeq[idx - 2] > 85
+		&& result.kSeq[idx] < result.kSeq[idx - 1] && result.kSeq[idx - 1] < result.kSeq[idx - 2]);
+	bool kdjBottomPassive = (idx >= 2 && result.kSeq[idx] < 15 && result.kSeq[idx - 1] < 15 && result.kSeq[idx - 2] < 15
+		&& result.kSeq[idx] > result.kSeq[idx - 1] && result.kSeq[idx - 1] > result.kSeq[idx - 2]);
+	bool wrTopPassive = (idx >= 2 && result.wr6Seq[idx] < 18 && result.wr6Seq[idx - 1] < 18 && result.wr6Seq[idx - 2] < 18
+		&& result.wr6Seq[idx] > result.wr6Seq[idx - 1] && result.wr6Seq[idx - 1] > result.wr6Seq[idx - 2]);
+	bool wrBottomPassive = (idx >= 2 && result.wr6Seq[idx] > 82 && result.wr6Seq[idx - 1] > 82 && result.wr6Seq[idx - 2] > 82
+		&& result.wr6Seq[idx] < result.wr6Seq[idx - 1] && result.wr6Seq[idx - 1] < result.wr6Seq[idx - 2]);
 
 	result.batchForbidBuy = false;
 	result.batchForbidSell = false;
@@ -3268,28 +3367,36 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAtFromTimeli
 		if (kdjTopPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
 		if (wrTopPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK)
 	{
 		if (kdjBottomPassive) { result.batchForbidSell = true; result.batchForbidSellReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 	else if (trendState == STOCK::TrendState30m::STATE_WEAK_SHAKE)
 	{
 		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 	else  // STATE_SHAKE
 	{
 		if (kdjBottomPassive) { result.batchForbidBuy = true; result.batchForbidBuyReason = _T("KDJ钝化"); }
 		if (wrBottomPassive) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("WR钝化"); }
 		if (narrowBand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL过窄"); }
-		if (bandExpand) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
+		// 布林扩张：中轨上行禁止卖出，中轨下行禁止买入
+		if (bandExpand && bollMidUp) { result.batchForbidSell = true; if (result.batchForbidSellReason.IsEmpty()) result.batchForbidSellReason = _T("BOLL扩张"); }
+		if (bandExpand && !bollMidUp) { result.batchForbidBuy = true; if (result.batchForbidBuyReason.IsEmpty()) result.batchForbidBuyReason = _T("BOLL扩张"); }
 	}
 
 	// 风控拦截
@@ -3303,6 +3410,14 @@ CSignalAnalyzer::SignalAnalysisResult CSignalAnalyzer::AnalyzeSignalAtFromTimeli
 	{ result.batchSellFilteredByForbid = true; result.batchFilterReason = _T("卖出被风控拦截(") + result.batchForbidSellReason + _T(")"); }
 	else
 		result.batchFilterReason = _T("通过");
+
+	// 5分钟信号（从批量判定结果推断，不再独立计算）
+	if (result.batchHasSell && !result.batchSellFilteredByForbid)
+		result.sig5m = STOCK::Signal5m::SIG_SELL;
+	else if (result.batchHasBuy && !result.batchBuyFilteredByForbid)
+		result.sig5m = STOCK::Signal5m::SIG_BUY;
+	else
+		result.sig5m = STOCK::Signal5m::SIG_NONE;
 
 	return result;
 }
@@ -3481,4 +3596,316 @@ CSignalAnalyzer::RealtimeSignal CSignalAnalyzer::CalcRealtimeSignalsFromTimeline
 
 	// 直接复用已有的Bar版计算函数
 	return CalcRealtimeSignals(bars, static_cast<int>(bars.size() - 1));
+}
+
+// ========== 多周期MACD趋势判定（日线→30min→5min→1min联动） ==========
+
+void CSignalAnalyzer::CalcPeriodTrend(PeriodMacdSeq& seq)
+{
+	if (seq.data.empty()) return;
+	const auto& last = seq.data.back();
+	int redCnt = 0, greenCnt = 0;
+	for (const auto& item : seq.data)
+	{
+		if (item.bar > 0) redCnt++;
+		else greenCnt++;
+	}
+
+	seq.isAboveZero = last.isAboveZero;
+	// 水上且红柱占多数 = 多头趋势
+	seq.isLongTrend = last.isAboveZero && (redCnt > greenCnt);
+	// 水下且绿柱占多数 = 空头趋势
+	seq.isShortTrend = (!last.isAboveZero) && (greenCnt > redCnt);
+}
+
+void CSignalAnalyzer::CalcPeriodBarChange(PeriodMacdSeq& seq)
+{
+	if (seq.data.size() < 3) return;
+	size_t n = seq.data.size();
+	double bar0 = seq.data[n - 1].bar;
+	double bar1 = seq.data[n - 2].bar;
+	double bar2 = seq.data[n - 3].bar;
+
+	// 当前红柱
+	if (bar0 > 0)
+	{
+		seq.barGrowingRed = (bar0 > bar1 && bar1 > bar2);
+		seq.barShrinkRed = (bar0 < bar1 && bar1 < bar2);
+		seq.barGrowingGreen = false;
+		seq.barShrinkGreen = false;
+	}
+	// 当前绿柱
+	else
+	{
+		double abs0 = std::fabs(bar0);
+		double abs1 = std::fabs(bar1);
+		double abs2 = std::fabs(bar2);
+		seq.barGrowingGreen = (abs0 > abs1 && abs1 > abs2);
+		seq.barShrinkGreen = (abs0 < abs1 && abs1 < abs2);
+		seq.barGrowingRed = false;
+		seq.barShrinkRed = false;
+	}
+}
+
+void CSignalAnalyzer::CalcPeriodDivergence(PeriodMacdSeq& seq, const std::vector<double>& priceSeq)
+{
+	seq.topDivergence = false;
+	seq.botDivergence = false;
+
+	// 需要至少10根K线才能判断背离
+	if (seq.data.size() < 10 || priceSeq.size() < seq.data.size()) return;
+
+	size_t n = seq.data.size();
+
+	// 顶背离：价格创新高，但BAR峰值降低
+	// 在最近区间内找两个红柱峰值区间进行比较
+	{
+		// 找最近两个红柱峰值
+		std::vector<size_t> redPeaks; // 红柱峰值位置索引
+		bool inRed = false;
+		double peakVal = 0;
+		size_t peakIdx = 0;
+		for (size_t i = 0; i < n; i++)
+		{
+			if (seq.data[i].bar > 0)
+			{
+				if (!inRed) { inRed = true; peakVal = seq.data[i].bar; peakIdx = i; }
+				else if (seq.data[i].bar > peakVal) { peakVal = seq.data[i].bar; peakIdx = i; }
+			}
+			else
+			{
+				if (inRed) { redPeaks.push_back(peakIdx); inRed = false; }
+			}
+		}
+		if (inRed) redPeaks.push_back(peakIdx);
+
+		// 至少两个红柱峰值区间才能比较
+		if (redPeaks.size() >= 2)
+		{
+			size_t lastPeak = redPeaks[redPeaks.size() - 1];
+			size_t prevPeak = redPeaks[redPeaks.size() - 2];
+			// 价格创新高，但BAR峰值降低 = 顶背离
+			if (priceSeq[lastPeak] > priceSeq[prevPeak] &&
+				seq.data[lastPeak].bar < seq.data[prevPeak].bar)
+			{
+				seq.topDivergence = true;
+			}
+		}
+	}
+
+	// 底背离：价格创新低，但绿柱峰值缩小
+	{
+		std::vector<size_t> greenPeaks; // 绿柱谷值位置索引（绝对值最大的位置）
+		bool inGreen = false;
+		double troughVal = 0;
+		size_t troughIdx = 0;
+		for (size_t i = 0; i < n; i++)
+		{
+			if (seq.data[i].bar < 0)
+			{
+				double absBar = std::fabs(seq.data[i].bar);
+				if (!inGreen) { inGreen = true; troughVal = absBar; troughIdx = i; }
+				else if (absBar > troughVal) { troughVal = absBar; troughIdx = i; }
+			}
+			else
+			{
+				if (inGreen) { greenPeaks.push_back(troughIdx); inGreen = false; }
+			}
+		}
+		if (inGreen) greenPeaks.push_back(troughIdx);
+
+		// 至少两个绿柱峰值区间才能比较
+		if (greenPeaks.size() >= 2)
+		{
+			size_t lastTrough = greenPeaks[greenPeaks.size() - 1];
+			size_t prevTrough = greenPeaks[greenPeaks.size() - 2];
+			// 价格创新低，但绿柱峰值缩小 = 底背离
+			if (priceSeq[lastTrough] < priceSeq[prevTrough] &&
+				std::fabs(seq.data[lastTrough].bar) < std::fabs(seq.data[prevTrough].bar))
+			{
+				seq.botDivergence = true;
+			}
+		}
+	}
+}
+
+void CSignalAnalyzer::RefreshPeriodStatus(PeriodMacdSeq& seq, const std::vector<double>& price)
+{
+	CalcPeriodTrend(seq);
+	CalcPeriodBarChange(seq);
+	CalcPeriodDivergence(seq, price);
+}
+
+CSignalAnalyzer::PeriodMacdSeq CSignalAnalyzer::BuildPeriodMacdSeq(const std::vector<STOCK::Bar>& bars, PeriodType type)
+{
+	PeriodMacdSeq seq;
+	seq.type = type;
+
+	// 复用CalcMACDSeries计算完整MACD序列
+	std::vector<double> difSeq, deaSeq, barSeq;
+	CalcMACDSeries(bars, difSeq, deaSeq, barSeq);
+
+	seq.data.resize(difSeq.size());
+	for (size_t i = 0; i < difSeq.size(); i++)
+	{
+		seq.data[i].dif = difSeq[i];
+		seq.data[i].dea = deaSeq[i];
+		seq.data[i].bar = barSeq[i];
+		seq.data[i].isAboveZero = (difSeq[i] > 0);
+	}
+
+	return seq;
+}
+
+CSignalAnalyzer::TradeResult CSignalAnalyzer::JudgeT0Trade(
+	PeriodMacdSeq& daySeq,
+	PeriodMacdSeq& m30Seq,
+	PeriodMacdSeq& m5Seq,
+	PeriodMacdSeq& m1Seq,
+	const std::vector<double>& dayPrice,
+	const std::vector<double>& m30Price,
+	const std::vector<double>& m5Price,
+	const std::vector<double>& m1Price
+)
+{
+	TradeResult result;
+
+	// 1. 刷新所有周期计算状态
+	RefreshPeriodStatus(daySeq, dayPrice);
+	RefreshPeriodStatus(m30Seq, m30Price);
+	RefreshPeriodStatus(m5Seq, m5Price);
+	RefreshPeriodStatus(m1Seq, m1Price);
+
+	// ======================
+	// 第一层：日线定全局格局
+	// ======================
+	bool dayStrongLong = daySeq.isLongTrend && !daySeq.topDivergence;
+	bool dayStrongShort = daySeq.isShortTrend && !daySeq.botDivergence;
+	bool dayHighRisk = daySeq.topDivergence;  // 日线顶背离，日内风险大
+	bool dayBottomSafe = daySeq.botDivergence; // 日线底背离，下跌空间有限
+
+	// ======================
+	// 第二层：30分钟日内主线
+	// ======================
+	bool m30LongMain = m30Seq.isLongTrend;
+	bool m30ShortMain = m30Seq.isShortTrend;
+
+	// ======================
+	// 场景1：日线多头强势（适合做正T低吸）
+	// ======================
+	if (dayStrongLong)
+	{
+		// 30分钟多头主线，5分钟绿柱缩短+1分钟底背离：回调低吸买点
+		if (m30LongMain && m5Seq.barShrinkGreen && m1Seq.botDivergence)
+		{
+			result.sig = TradeSignal::BUY_T;
+			result.desc = _T("日线多头+30分水上回调，5分绿柱衰竭+1分底背离，低吸正T");
+			return result;
+		}
+		// 多层共振多头，持有或加仓
+		if (m30LongMain && m5Seq.barGrowingRed && m1Seq.barGrowingRed)
+		{
+			result.sig = TradeSignal::HOLD;
+			result.desc = _T("四层多头共振，持有不动，等1分顶背离止盈");
+			return result;
+		}
+		// 小周期全部多头衰竭，止盈卖出T仓
+		if (m5Seq.barShrinkRed && m1Seq.topDivergence)
+		{
+			result.sig = TradeSignal::SELL_T;
+			result.desc = _T("日线多头但5/1分红柱衰竭顶背离，止盈T仓位");
+			return result;
+		}
+	}
+
+	// ======================
+	// 场景2：日线空头（只适合逢高反T，禁止新开多仓）
+	// ======================
+	if (dayStrongShort)
+	{
+		// 小周期反弹红柱，顶背离，冲高卖出
+		if (m5Seq.barGrowingRed && m1Seq.topDivergence)
+		{
+			result.sig = TradeSignal::SELL_T;
+			result.desc = _T("日线空头，5/1分反弹见顶，冲高反T减仓");
+			return result;
+		}
+		// 30分持续空头，小周期任何信号都不做多
+		if (m30ShortMain && m5Seq.barGrowingGreen)
+		{
+			result.sig = TradeSignal::NO_OP;
+			result.desc = _T("日线+30分双重空头，禁止低吸做多，观望");
+			return result;
+		}
+	}
+
+	// ======================
+	// 场景3：日线高位顶背离，震荡高风险
+	// ======================
+	if (dayHighRisk)
+	{
+		if (m1Seq.topDivergence)
+		{
+			result.sig = TradeSignal::SELL_T;
+			result.desc = _T("日线顶背离高风险，1分钟见顶立即卖出T仓");
+			return result;
+		}
+		result.sig = TradeSignal::NO_OP;
+		result.desc = _T("日线高位顶背离，严控仓位，不主动低吸");
+		return result;
+	}
+
+	// ======================
+	// 场景4：日线底部底背离，下跌有限
+	// ======================
+	if (dayBottomSafe)
+	{
+		if (m30Seq.barShrinkGreen && m1Seq.botDivergence)
+		{
+			result.sig = TradeSignal::BUY_T;
+			result.desc = _T("日线底背离安全区间，30分绿柱衰竭，小周期共振低吸");
+			return result;
+		}
+	}
+
+	// 默认无明确信号，观望
+	result.sig = TradeSignal::NO_OP;
+	result.desc = _T("多周期信号冲突，无共振，等待更好机会");
+	return result;
+}
+
+CSignalAnalyzer::TradeResult CSignalAnalyzer::CalcMultiPeriodMacdSignal(
+	const std::vector<STOCK::Bar>& dayBars,
+	const std::vector<STOCK::Bar>& m30Bars,
+	const std::vector<STOCK::Bar>& m5Bars,
+	const std::vector<STOCK::Bar>& m1Bars)
+{
+	TradeResult result;
+
+	// 各周期至少需要26根K线才能计算MACD
+	if (dayBars.size() < 26 || m30Bars.size() < 26 || m5Bars.size() < 26 || m1Bars.size() < 26)
+	{
+		result.sig = TradeSignal::NO_OP;
+		result.desc = _T("K线数据不足，无法计算多周期MACD");
+		return result;
+	}
+
+	// 构建各周期MACD序列
+	PeriodMacdSeq daySeq = BuildPeriodMacdSeq(dayBars, PeriodType::DAY);
+	PeriodMacdSeq m30Seq = BuildPeriodMacdSeq(m30Bars, PeriodType::M30);
+	PeriodMacdSeq m5Seq = BuildPeriodMacdSeq(m5Bars, PeriodType::M5);
+	PeriodMacdSeq m1Seq = BuildPeriodMacdSeq(m1Bars, PeriodType::M1);
+
+	// 提取各周期收盘价序列
+	std::vector<double> dayPrice, m30Price, m5Price, m1Price;
+	dayPrice.reserve(dayBars.size());
+	for (const auto& bar : dayBars) dayPrice.push_back(bar.close);
+	m30Price.reserve(m30Bars.size());
+	for (const auto& bar : m30Bars) m30Price.push_back(bar.close);
+	m5Price.reserve(m5Bars.size());
+	for (const auto& bar : m5Bars) m5Price.push_back(bar.close);
+	m1Price.reserve(m1Bars.size());
+	for (const auto& bar : m1Bars) m1Price.push_back(bar.close);
+
+	return JudgeT0Trade(daySeq, m30Seq, m5Seq, m1Seq, dayPrice, m30Price, m5Price, m1Price);
 }

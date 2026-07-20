@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Stock.h"
 #include "StockItem.h"
 #include <string>
@@ -188,6 +188,14 @@ private:
 	std::mutex m_t0_alert_mutex;
 
 	void CheckT0AlertForStock(const std::wstring& code);
+
+	// 多周期MACD分层计算与趋势判定
+	// 分层MACD计算：各周期按独立间隔计算MACD并缓存到StockData
+	void UpdateMacdCalcForAllStocks();
+	void UpdateMacdCalcForStock(const std::wstring& code);
+	// 趋势判定：使用缓存的MACD数据，每30秒判定一次
+	void JudgeMacdTrendForAllStocks();
+	void JudgeMacdTrendForStock(const std::wstring& code);
 };
 
 #ifdef __cplusplus

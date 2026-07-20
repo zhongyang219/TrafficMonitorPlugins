@@ -8,6 +8,14 @@
 
 struct sqlite3;
 
+// 均幅统计数据
+struct AvgDiffStats
+{
+	double minVal;
+	double maxVal;
+	double currentVal;
+};
+
 // 股票数据库管理类
 // 负责所有 SQLite 数据库的 CRUD 操作，与业务逻辑、UI 解耦。
 // CDataManager 持有其一个实例，并将原数据库方法转发到此。
@@ -68,15 +76,10 @@ public:
 	bool LoadLatestChipDistribution(const std::wstring& stockCode,
 		STOCK::ChipDistribution& chipData);
 
-	// 关联股票最高均幅
-	bool SaveMaxAvgDiff(const std::wstring& stockCode, double maxAvgDiff);
-	double LoadMaxAvgDiff(const std::wstring& stockCode);
-	void CleanExpiredMaxAvgDiff();
-
-	// 关联股票最低均幅
-	bool SaveMinAvgDiff(const std::wstring& stockCode, double minAvgDiff);
-	double LoadMinAvgDiff(const std::wstring& stockCode);
-	void CleanExpiredMinAvgDiff();
+	// 关联股票均幅统计
+	bool SaveAvgDiffStats(const std::wstring& stockCode, double minVal, double maxVal, double currentVal);
+	AvgDiffStats LoadAvgDiffStats(const std::wstring& stockCode);
+	void CleanExpiredAvgDiffStats();
 
 	// 基金净值按分钟缓存
 	bool SaveFundNavCache(const std::wstring& stockCode,

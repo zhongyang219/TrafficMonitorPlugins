@@ -119,7 +119,7 @@ private:
 		DeathCross  // 死叉：DIF从上往下跌破DEA
 	};
 
-	void DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight);
+	void DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight, const CString& macdTrendSignal = CString());
 	void DrawTimelineHeader(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineMAIndicators(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineBackgroundHighlights(CDC& memDC, const TimelineDrawContext& ctx);
@@ -136,7 +136,7 @@ private:
 	void DrawTimelineWRSection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineRSISection(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
-	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
+	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1, int xAxisPoints = 0);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
 	std::vector<MACDData> CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint);
 	std::vector<MACDData> CalculateKLineMACD(const std::vector<STOCK::KLinePoint>& klineData);
@@ -154,7 +154,6 @@ private:
 	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
 	CSignalAnalyzer::T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
 	CSignalAnalyzer::T0Signal DetectSellSignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
-	void TestSmartSignalOnDoubleClick(int timelineIndex);
 	void DrawTimelinePositionInfo(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContext& ctx);
 
@@ -214,7 +213,7 @@ private:
 	std::vector<KDJData> CalculateKDJ(const std::vector<STOCK::KLinePoint>& klineData, int period = 9);
 	std::vector<KDJData> CalculateTimelineKDJ(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period = 9);
 	void DrawKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
-	void DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex = 0);
+	void DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex = 0, int xAxisPoints = 0);
 
 	// W&R威廉指标计算与绘制
 	struct WRData {
@@ -224,7 +223,7 @@ private:
 	};
 	std::vector<WRData> CalculateTimelineWR(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
 	std::vector<WRData> CalculateKLineWR(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
-	void DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex = 0);
+	void DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex = 0, int xAxisPoints = 0);
 
 	// RSI相对强弱指标计算与绘制
 	struct RSIData {
@@ -234,7 +233,7 @@ private:
 	};
 	std::vector<RSIData> CalculateTimelineRSI(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
 	std::vector<RSIData> CalculateKLineRSI(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
-	void DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex = 0);
+	void DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex = 0, int xAxisPoints = 0);
 
 	// 走势图绘制
 	void DrawKLineTrendCurve(CDC& memDC, const KLineDrawData& drawData, std::vector<CPoint>& outPoints);

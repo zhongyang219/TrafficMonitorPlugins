@@ -44,7 +44,7 @@ bool CCommon::GetURL(const std::wstring& url, std::string& result, bool utf8, LP
 		pSession = new CInternetSession(user_agent);
 		//pfile = (CHttpFile*)pSession->OpenURL(url.c_str());
 		//CCommon::WriteLog(L"request>>>>", g_data.m_log_path.c_str());
-		pfile = (CHttpFile*)pSession->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_ASCII, headers, dwHeadersLength);
+		pfile = (CHttpFile*)pSession->OpenURL(url.c_str(), 1, INTERNET_FLAG_TRANSFER_ASCII | INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, headers, dwHeadersLength);
 		//CCommon::WriteLog(L"request<<<", g_data.m_log_path.c_str());
 		DWORD dwStatusCode;
 		pfile->QueryInfoStatusCode(dwStatusCode);

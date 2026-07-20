@@ -231,26 +231,17 @@ bool CStockDbManager::Init(const std::wstring& config_path)
 	rc = sqlite3_exec(m_db, klineMin30Sql, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) sqlite3_free(errMsg);
 
-	// 关联股票最高均幅表
-	const char* maxAvgDiffSql = "CREATE TABLE IF NOT EXISTS max_avg_diff ("
-		"stock_code TEXT NOT NULL,"
-		"max_avg_diff REAL NOT NULL,"
-		"update_time TEXT NOT NULL,"
-		"PRIMARY KEY (stock_code)"
-		");";
-	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, maxAvgDiffSql, nullptr, nullptr, &errMsg);
-	if (rc != SQLITE_OK) sqlite3_free(errMsg);
-
-	// 关联股票最低均幅表
-	const char* minAvgDiffSql = "CREATE TABLE IF NOT EXISTS min_avg_diff ("
+	// 关联股票均幅统计表
+	const char* avgDiffStatsSql = "CREATE TABLE IF NOT EXISTS avg_diff_stats ("
 		"stock_code TEXT NOT NULL,"
 		"min_avg_diff REAL NOT NULL,"
+		"max_avg_diff REAL NOT NULL,"
+		"current_avg_diff REAL NOT NULL,"
 		"update_time TEXT NOT NULL,"
 		"PRIMARY KEY (stock_code)"
 		");";
 	errMsg = nullptr;
-	rc = sqlite3_exec(m_db, minAvgDiffSql, nullptr, nullptr, &errMsg);
+	rc = sqlite3_exec(m_db, avgDiffStatsSql, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) sqlite3_free(errMsg);
 
 	// 基金净值按分钟缓存表
@@ -767,117 +758,61 @@ bool CStockDbManager::LoadLatestChipDistribution(const std::wstring& stockCode, 
 	return chipData.IsValid();
 }
 
-bool CStockDbManager::SaveMaxAvgDiff(const std::wstring& stockCode, double maxAvgDiff)
+bool CStockDbManager::SaveAvgDiffStats(const std::wstring& stockCode, double minVal, double maxVal, double currentVal)
 {
 	if (m_db == nullptr) return false;
 
 	std::string code(stockCode.begin(), stockCode.end());
 	std::string updateTime = GetTodayDateString();
 
-	const char* sql = "INSERT OR REPLACE INTO max_avg_diff (stock_code, max_avg_diff, update_time) VALUES (?, ?, ?);";
+	const char* sql = "INSERT OR REPLACE INTO avg_diff_stats (stock_code, min_avg_diff, max_avg_diff, current_avg_diff, update_time) VALUES (?, ?, ?, ?, ?);";
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
 	{
 		sqlite3_bind_text(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_double(stmt, 2, maxAvgDiff);
-		sqlite3_bind_text(stmt, 3, updateTime.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_double(stmt, 2, minVal);
+		sqlite3_bind_double(stmt, 3, maxVal);
+		sqlite3_bind_double(stmt, 4, currentVal);
+		sqlite3_bind_text(stmt, 5, updateTime.c_str(), -1, SQLITE_TRANSIENT);
 		sqlite3_step(stmt);
 	}
 	sqlite3_finalize(stmt);
 	return true;
 }
 
-double CStockDbManager::LoadMaxAvgDiff(const std::wstring& stockCode)
+AvgDiffStats CStockDbManager::LoadAvgDiffStats(const std::wstring& stockCode)
 {
-	if (m_db == nullptr) return 0.0;
+	AvgDiffStats result = { 0.0, 0.0, 0.0 };
+	if (m_db == nullptr) return result;
 
 	std::string code(stockCode.begin(), stockCode.end());
 	std::string today = GetTodayDateString();
 
 	// 只加载今天的记录，非今天的视为过期，每日开盘后重新记录
-	const char* sql = "SELECT max_avg_diff FROM max_avg_diff WHERE stock_code = ? AND update_time = ?;";
+	const char* sql = "SELECT min_avg_diff, max_avg_diff, current_avg_diff FROM avg_diff_stats WHERE stock_code = ? AND update_time = ?;";
 	sqlite3_stmt* stmt = nullptr;
-	double result = 0.0;
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
 	{
 		sqlite3_bind_text(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
 		sqlite3_bind_text(stmt, 2, today.c_str(), -1, SQLITE_TRANSIENT);
 		if (sqlite3_step(stmt) == SQLITE_ROW)
 		{
-			result = sqlite3_column_double(stmt, 0);
+			result.minVal = sqlite3_column_double(stmt, 0);
+			result.maxVal = sqlite3_column_double(stmt, 1);
+			result.currentVal = sqlite3_column_double(stmt, 2);
 		}
 	}
 	sqlite3_finalize(stmt);
 	return result;
 }
 
-void CStockDbManager::CleanExpiredMaxAvgDiff()
+void CStockDbManager::CleanExpiredAvgDiffStats()
 {
 	if (m_db == nullptr) return;
 
 	std::string cutoffDate = GetCacheCutoffDateString();
 
-	const char* sql = "DELETE FROM max_avg_diff WHERE update_time < ?;";
-	sqlite3_stmt* stmt = nullptr;
-	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
-	{
-		sqlite3_bind_text(stmt, 1, cutoffDate.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_step(stmt);
-	}
-	sqlite3_finalize(stmt);
-}
-
-bool CStockDbManager::SaveMinAvgDiff(const std::wstring& stockCode, double minAvgDiff)
-{
-	if (m_db == nullptr) return false;
-
-	std::string code(stockCode.begin(), stockCode.end());
-	std::string updateTime = GetTodayDateString();
-
-	const char* sql = "INSERT OR REPLACE INTO min_avg_diff (stock_code, min_avg_diff, update_time) VALUES (?, ?, ?);";
-	sqlite3_stmt* stmt = nullptr;
-	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
-	{
-		sqlite3_bind_text(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_double(stmt, 2, minAvgDiff);
-		sqlite3_bind_text(stmt, 3, updateTime.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_step(stmt);
-	}
-	sqlite3_finalize(stmt);
-	return true;
-}
-
-double CStockDbManager::LoadMinAvgDiff(const std::wstring& stockCode)
-{
-	if (m_db == nullptr) return 0.0;
-
-	std::string code(stockCode.begin(), stockCode.end());
-	std::string today = GetTodayDateString();
-
-	// 只加载今天的记录，非今天的视为过期，每日开盘后重新记录
-	const char* sql = "SELECT min_avg_diff FROM min_avg_diff WHERE stock_code = ? AND update_time = ?;";
-	sqlite3_stmt* stmt = nullptr;
-	double result = 0.0;
-	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
-	{
-		sqlite3_bind_text(stmt, 1, code.c_str(), -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(stmt, 2, today.c_str(), -1, SQLITE_TRANSIENT);
-		if (sqlite3_step(stmt) == SQLITE_ROW)
-		{
-			result = sqlite3_column_double(stmt, 0);
-		}
-	}
-	sqlite3_finalize(stmt);
-	return result;
-}
-
-void CStockDbManager::CleanExpiredMinAvgDiff()
-{
-	if (m_db == nullptr) return;
-
-	std::string cutoffDate = GetCacheCutoffDateString();
-
-	const char* sql = "DELETE FROM min_avg_diff WHERE update_time < ?;";
+	const char* sql = "DELETE FROM avg_diff_stats WHERE update_time < ?;";
 	sqlite3_stmt* stmt = nullptr;
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) == SQLITE_OK)
 	{

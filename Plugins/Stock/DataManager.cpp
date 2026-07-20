@@ -201,8 +201,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
 	m_db_mgr.Init(m_config_path);
 	m_db_mgr.CleanExpiredData();
-	m_db_mgr.CleanExpiredMaxAvgDiff();
-	m_db_mgr.CleanExpiredMinAvgDiff();
+	m_db_mgr.CleanExpiredAvgDiffStats();
 	LoadTodayInnerOuterSnapshots();
 	LoadChipDistributions();
 	LoadStockBasicData();
@@ -212,15 +211,12 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 	LoadKLineCache(STOCK::Period::MIN30);
 	LoadFundNavCache();
 
-	// 从数据库加载关联股票的最高均幅
+	// 从数据库加载关联股票的均幅统计
 	for (const auto& item : m_stock_related)
 	{
-		double maxAvg = m_db_mgr.LoadMaxAvgDiff(item.first);
-		if (maxAvg != 0.0)
-			m_max_avg_diff[item.first] = maxAvg;
-		double minAvg = m_db_mgr.LoadMinAvgDiff(item.first);
-		if (minAvg != 0.0)
-			m_min_avg_diff[item.first] = minAvg;
+		auto stats = m_db_mgr.LoadAvgDiffStats(item.first);
+		if (stats.minVal != 0.0 || stats.maxVal != 0.0 || stats.currentVal != 0.0)
+			m_avg_diff_stats[item.first] = stats;
 	}
 }
 
@@ -390,11 +386,6 @@ bool CDataManager::SaveChipDistribution(const std::wstring& stockCode, const STO
 bool CDataManager::LoadLatestChipDistribution(const std::wstring& stockCode, STOCK::ChipDistribution& chipData)
 {
 	return m_db_mgr.LoadLatestChipDistribution(stockCode, chipData);
-}
-
-bool CDataManager::SaveMaxAvgDiffDb(const std::wstring& stockCode, double maxAvgDiff)
-{
-	return m_db_mgr.SaveMaxAvgDiff(stockCode, maxAvgDiff);
 }
 
 void CDataManager::LoadChipDistributions()
@@ -759,8 +750,7 @@ void CDataManager::SetRelatedStocks(const std::wstring& code, const std::vector<
 	if (related_codes.empty())
 	{
 		m_stock_related.erase(code);
-		m_max_avg_diff.erase(code);
-		m_min_avg_diff.erase(code);
+		m_avg_diff_stats.erase(code);
 	}
 	else
 	{
@@ -768,63 +758,85 @@ void CDataManager::SetRelatedStocks(const std::wstring& code, const std::vector<
 	}
 }
 
-double CDataManager::GetMaxAvgDiff(const std::wstring& code)
+AvgDiffStats CDataManager::GetAvgDiffData(const std::wstring& code)
 {
-	auto it = m_max_avg_diff.find(code);
-	if (it != m_max_avg_diff.end())
+	auto it = m_avg_diff_stats.find(code);
+	if (it != m_avg_diff_stats.end())
 		return it->second;
-	return 0.0;
+	return { 0.0, 0.0, 0.0 };
 }
 
-void CDataManager::UpdateMaxAvgDiff(const std::wstring& code, double avgDiff)
+void CDataManager::UpdateAvgDiffStats(const std::wstring& code, double avgDiff)
 {
-	auto it = m_max_avg_diff.find(code);
-	if (it != m_max_avg_diff.end())
+	auto it = m_avg_diff_stats.find(code);
+	if (it != m_avg_diff_stats.end())
 	{
-		if (avgDiff > it->second)
-			it->second = avgDiff;
+		auto& data = it->second;
+		if (avgDiff < data.minVal)
+			data.minVal = avgDiff;
+		if (avgDiff > data.maxVal)
+			data.maxVal = avgDiff;
+		data.currentVal = avgDiff;
 	}
 	else
 	{
-		m_max_avg_diff[code] = avgDiff;
+		m_avg_diff_stats[code] = { avgDiff, avgDiff, avgDiff };
 	}
 }
 
-void CDataManager::ResetMaxAvgDiff(const std::wstring& code)
+void CDataManager::SetAvgDiffStats(const std::wstring& code, double minVal, double maxVal, double currentVal)
 {
-	m_max_avg_diff.erase(code);
-}
-
-double CDataManager::GetMinAvgDiff(const std::wstring& code)
-{
-	auto it = m_min_avg_diff.find(code);
-	if (it != m_min_avg_diff.end())
-		return it->second;
-	return 0.0;
-}
-
-void CDataManager::UpdateMinAvgDiff(const std::wstring& code, double avgDiff)
-{
-	auto it = m_min_avg_diff.find(code);
-	if (it != m_min_avg_diff.end())
+	auto it = m_avg_diff_stats.find(code);
+	if (it != m_avg_diff_stats.end())
 	{
-		if (avgDiff < it->second)
-			it->second = avgDiff;
+		auto& data = it->second;
+		if (minVal < data.minVal)
+			data.minVal = minVal;
+		if (maxVal > data.maxVal)
+			data.maxVal = maxVal;
+		data.currentVal = currentVal;
 	}
 	else
 	{
-		m_min_avg_diff[code] = avgDiff;
+		m_avg_diff_stats[code] = { minVal, maxVal, currentVal };
 	}
 }
 
-void CDataManager::ResetMinAvgDiff(const std::wstring& code)
+void CDataManager::ResetAvgDiffStats(const std::wstring& code)
 {
-	m_min_avg_diff.erase(code);
+	m_avg_diff_stats.erase(code);
 }
 
-bool CDataManager::SaveMinAvgDiffDb(const std::wstring& stockCode, double minAvgDiff)
+bool CDataManager::SaveAvgDiffStatsDb(const std::wstring& stockCode)
 {
-	return m_db_mgr.SaveMinAvgDiff(stockCode, minAvgDiff);
+	auto it = m_avg_diff_stats.find(stockCode);
+	if (it == m_avg_diff_stats.end())
+		return false;
+	return m_db_mgr.SaveAvgDiffStats(stockCode, it->second.minVal, it->second.maxVal, it->second.currentVal);
+}
+
+void CDataManager::CheckAndResetAvgDiffDaily()
+{
+	// 获取今天日期字符串 YYYY-MM-DD
+	time_t now = time(nullptr);
+	struct tm t;
+	localtime_s(&t, &now);
+	char dateStr[16];
+	sprintf_s(dateStr, "%04d-%02d-%02d", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+
+	if (m_avg_diff_last_date.empty())
+	{
+		m_avg_diff_last_date = dateStr;
+		return;
+	}
+
+	if (m_avg_diff_last_date != dateStr)
+	{
+		// 跨天了，清零所有均幅记录和历史队列
+		m_avg_diff_stats.clear();
+		m_avg_diff_history.clear();
+		m_avg_diff_last_date = dateStr;
+	}
 }
 
 void CDataManager::PushAvgDiffHistory(const std::wstring& code, double avgDiff)
@@ -1353,15 +1365,19 @@ void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 	if (stock_id.find(L"sh") == 0)
 	{
 		// 上交所ETF：yunhq.sse.com.cn接口，含真实IOPV
+		// 添加时间戳参数避免CDN缓存，确保获取实时数据
+		time_t now = time(nullptr);
 		url = L"https://yunhq.sse.com.cn:32042/v1/sh1/snap/" + pureCode
-			+ L"?callback=jQuery&select=name,last,chg_rate,change,open,prev_close,high,low,volume,amount,iopv";
+			+ L"?callback=jQuery&select=name,last,chg_rate,change,open,prev_close,high,low,volume,amount,iopv&_="
+			+ std::to_wstring(now);
 		strHeaders = _T("Referer: https://etf.sse.com.cn");
 	}
 	else
 	{
 		// 深交所ETF：天天基金实时估值接口（JSONP格式）
 		// 返回: jsonpgz({"fundcode":"159920","gsz":"0.3601","dwjz":"0.3441",...})
-		url = L"http://fundgz.1234567.com.cn/js/" + pureCode + L".js";
+		time_t now = time(nullptr);
+		url = L"http://fundgz.1234567.com.cn/js/" + pureCode + L".js?_=" + std::to_wstring(now);
 		strHeaders = _T("Referer: http://fund.eastmoney.com");
 	}
 

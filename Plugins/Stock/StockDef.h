@@ -765,6 +765,45 @@ namespace STOCK
 
 		// 年化收益率计算
 		double CalculateAnnualizedReturn(double costPrice, double holdingCount, const std::wstring& buyDate) const;
+
+		// ========== 多周期MACD分层缓存 ==========
+		// 每个周期独立缓存MACD序列+价格序列+计算时间戳
+		// 计算频率：日K每天1次 / 30分10分钟1次 / 5分1分钟1次 / 1分30秒1次
+		struct MacdPoint {
+			double dif{ 0 };
+			double dea{ 0 };
+			double bar{ 0 };          // BAR = DIF - DEA
+			bool isAboveZero{ false }; // DIF > 0
+		};
+		struct PeriodMacdCache {
+			std::vector<MacdPoint> macdData;  // MACD序列
+			std::vector<double> priceSeq;     // 收盘价序列
+			time_t calcTime{ 0 };             // 上次MACD计算时间戳
+			bool dataReady{ false };          // 数据是否充足（>=26根）
+
+			void Clear() {
+				macdData.clear();
+				priceSeq.clear();
+				calcTime = 0;
+				dataReady = false;
+			}
+		};
+		PeriodMacdCache dayMacdCache;     // 日K MACD缓存
+		PeriodMacdCache m30MacdCache;     // 30分钟 MACD缓存
+		PeriodMacdCache m5MacdCache;      // 5分钟 MACD缓存
+		PeriodMacdCache m1MacdCache;      // 1分钟 MACD缓存
+
+		// 趋势判定结果缓存（每30秒判定一次，使用上述MACD缓存数据）
+		CString macdTrendSignal;      // 信号标签：如"正T"/"反T"/"持有"/"观望"
+		CString macdTrendDesc;        // 逻辑说明
+		time_t macdTrendJudgeTime{ 0 };   // 上次趋势判定时间戳
+		static constexpr int MACD_TREND_JUDGE_INTERVAL = 30; // 趋势判定间隔（秒）
+
+		// 各周期MACD计算间隔
+		static constexpr int DAY_MACD_INTERVAL = 86400;    // 日K：每天1次
+		static constexpr int M30_MACD_INTERVAL = 600;      // 30分钟：10分钟1次
+		static constexpr int M5_MACD_INTERVAL = 60;        // 5分钟：1分钟1次
+		static constexpr int M1_MACD_INTERVAL = 30;        // 1分钟：30秒1次
 	};
 
 	// 股票市场类，管理多个股票

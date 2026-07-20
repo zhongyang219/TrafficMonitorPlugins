@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FloatingWnd.h"
 #include <afxinet.h>
 #include <memory>
@@ -12,6 +12,7 @@
 #include "OptionsDlg.h"
 #include "TradeRecordDialog.h"
 #include "StockFetchThread.h"
+#include "SmartSignalTestDlg.h"
 
 // 大盘指数优先级列表（用于总览列表排序）
 const std::vector<std::wstring> IndexPriority = {
@@ -86,41 +87,6 @@ bool CompareStockPriority(const std::wstring& a, const std::wstring& b)
 			return totalCostA > totalCostB;
 	}
 	return false;
-}
-
-CString TrendStateToText(STOCK::TrendState30m state)
-{
-	switch (state)
-	{
-	case STOCK::TrendState30m::STATE_WEAK:
-		return _T("弱势");
-	case STOCK::TrendState30m::STATE_WEAK_SHAKE:
-		return _T("弱震荡");
-	case STOCK::TrendState30m::STATE_STRONG:
-		return _T("强势");
-	case STOCK::TrendState30m::STATE_SHAKE:
-	default:
-		return _T("震荡");
-	}
-}
-
-CString Signal5mToText(STOCK::Signal5m signal)
-{
-	switch (signal)
-	{
-	case STOCK::Signal5m::SIG_BUY:
-		return _T("买入");
-	case STOCK::Signal5m::SIG_SELL:
-		return _T("卖出");
-	case STOCK::Signal5m::SIG_NONE:
-	default:
-		return _T("无信号");
-	}
-}
-
-CString BoolToText(bool value)
-{
-	return value ? _T("是") : _T("否");
 }
 
 // 颜色常量定义
@@ -509,7 +475,7 @@ struct TimeMarker {
 	int minutesFromStart;
 };
 
-void CFloatingWnd::DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight)
+void CFloatingWnd::DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight, const CString& macdTrendSignal)
 {
 	double diff = realtimeData.GetChangeAmount();
 	double diffPercent = realtimeData.GetChangePercent();
@@ -526,11 +492,17 @@ void CFloatingWnd::DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, 
 	else
 		diffTxt.Format(_T(" %.2f%%"), diffPercent);
 
+	// MACD趋势信号标签
+	CString macdTxt;
+	if (!macdTrendSignal.IsEmpty())
+		macdTxt.Format(_T(" [%s]"), macdTrendSignal.GetString());
+
 	// 计算总宽度，在整个标题栏水平居中
 	CSize prefixSize = memDC.GetTextExtent(prefixTxt);
 	CSize currentSize = memDC.GetTextExtent(currentTxt);
 	CSize diffSize = memDC.GetTextExtent(diffTxt);
-	int totalWidth = prefixSize.cx + currentSize.cx + diffSize.cx;
+	CSize macdSize = memDC.GetTextExtent(macdTxt);
+	int totalWidth = prefixSize.cx + currentSize.cx + diffSize.cx + macdSize.cx;
 
 	int startX = (windowWidth - totalWidth) / 2;
 	int centerY = headerHeight / 2;
@@ -544,6 +516,24 @@ void CFloatingWnd::DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, 
 
 	curX += currentSize.cx;
 	memDC.TextOut(curX, centerY - diffSize.cy / 2, diffTxt);
+
+	// 绘制MACD趋势信号
+	if (!macdTxt.IsEmpty())
+	{
+		curX += diffSize.cx;
+		// 信号颜色：正T=红色，反T=绿色，持有=橙色，观望=灰色
+		COLORREF macdColor;
+		if (macdTrendSignal == _T("正T"))
+			macdColor = RGB(255, 50, 50);
+		else if (macdTrendSignal == _T("反T"))
+			macdColor = RGB(0, 180, 0);
+		else if (macdTrendSignal == _T("持有"))
+			macdColor = RGB(255, 165, 0);
+		else
+			macdColor = RGB(128, 128, 128);
+		memDC.SetTextColor(macdColor);
+		memDC.TextOut(curX, centerY - macdSize.cy / 2, macdTxt);
+	}
 }
 
 void CFloatingWnd::DrawTimelineHeader(CDC& memDC, const TimelineDrawContext& ctx)
@@ -551,7 +541,14 @@ void CFloatingWnd::DrawTimelineHeader(CDC& memDC, const TimelineDrawContext& ctx
 	// 标题栏需要在原始坐标系绘制（当前视口已被OffsetViewportOrg偏移），恢复后再绘制
 	CPoint origOrg = memDC.GetViewportOrg();
 	memDC.SetViewportOrg(0, 0);
-	DrawHeader(memDC, ctx.realtimeData, ctx.windowWidth, g_data.RDPI(26));
+
+	// 获取当前股票的多周期MACD趋势信号
+	CString macdSignal;
+	auto stockData = g_data.GetStockData(m_stock_id);
+	if (stockData && stockData->info.is_ok)
+		macdSignal = stockData->macdTrendSignal;
+
+	DrawHeader(memDC, ctx.realtimeData, ctx.windowWidth, g_data.RDPI(26), macdSignal);
 	memDC.SetViewportOrg(origOrg);
 }
 
@@ -1120,25 +1117,28 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 					// 计算可见区域的起始偏移（将完整数据索引转换为可见区域索引）
 					int fullToVisibleOffset = ctx.startIndex;  // 可见区域在完整数据中的起始位置
 
-					// 连续同方向信号过滤：同方向连续信号只有第一个绘制文字，后续只绘制圆点
-					// 方向变化时重新计数
+					// 连续同方向信号过滤：5分钟内同方向信号只标记首个，其余只绘制圆点
+					// 1分钟粒度，5分钟=5个barIndex
 					std::vector<bool> filteredSignals(allSignals.size(), false);
 					{
-						bool lastDirIsBuy = false;
-						bool hasLastDir = false;
+						int lastDrawnBuyBar = -10, lastDrawnSellBar = -10;
 						for (size_t i = 0; i < allSignals.size(); i++)
 						{
-							if (allSignals[i].isForbid) { hasLastDir = false; continue; }
-							if (hasLastDir && allSignals[i].isBuy == lastDirIsBuy)
+							if (allSignals[i].isForbid) continue;
+							int bi = allSignals[i].barIndex;
+							if (allSignals[i].isBuy)
 							{
-								// 同方向连续，只绘制圆点
-								filteredSignals[i] = true;
+								if (bi - lastDrawnBuyBar < 5)
+									filteredSignals[i] = true;
+								else
+									lastDrawnBuyBar = bi;
 							}
 							else
 							{
-								// 方向变化或首个信号，绘制文字
-								lastDirIsBuy = allSignals[i].isBuy;
-								hasLastDir = true;
+								if (bi - lastDrawnSellBar < 5)
+									filteredSignals[i] = true;
+								else
+									lastDrawnSellBar = bi;
 							}
 						}
 					}
@@ -1228,7 +1228,6 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 						}
 
 						// 连续同方向信号过滤：同方向连续信号只有第一个绘制文字，后续只绘制圆点
-						// 方向变化时重新计数
 						std::set<int> klineFilteredBarIndices;  // 需要过滤文字的barIndex集合
 						{
 							bool lastDirIsBuy = false;
@@ -1238,16 +1237,11 @@ void CFloatingWnd::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContext&
 							{
 								if (sig.isForbid) { hasLastDir = false; continue; }
 								int bi = sig.barIndex;
-								// 同一根K线可能有多个信号，只看第一个
 								if (bi == lastBarIdx) continue;
 								if (hasLastDir && sig.isBuy == lastDirIsBuy)
-								{
-									// 同方向连续，只绘制圆点
 									klineFilteredBarIndices.insert(bi);
-								}
 								else
 								{
-									// 方向变化或首个信号，绘制文字
 									lastDirIsBuy = sig.isBuy;
 									hasLastDir = true;
 								}
@@ -1912,28 +1906,25 @@ void CFloatingWnd::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext
 				auto ar = CSignalAnalyzer::AnalyzeSignalAt(bars5, bars30, static_cast<int>(bars5.size()) - 1);
 				auto& signals = ar.batchSignals;
 
-				// 连续同方向信号过滤：连续5根以上同方向信号只有第一个绘制文字，后续只绘制圆点
+				// 连续同方向信号过滤：同方向连续信号只有第一个绘制文字，后续只绘制圆点
 				std::set<int> kline5FilteredBarIndices;
 				{
-					int runCount = 0;
-					bool runIsBuy = false;
-					int runStart = -1;
+					bool lastDirIsBuy = false;
+					bool hasLastDir = false;
+					int lastBarIdx = -1;
 					for (const auto& sig : signals)
 					{
-						if (sig.isForbid) { runCount = 0; continue; }
+						if (sig.isForbid) { hasLastDir = false; continue; }
 						int bi = sig.barIndex;
-						if (bi == runStart + runCount && runCount > 0 && sig.isBuy == runIsBuy)
-						{
-							runCount++;
-							if (runCount >= 2)
-								kline5FilteredBarIndices.insert(bi);
-						}
+						if (bi == lastBarIdx) continue;
+						if (hasLastDir && sig.isBuy == lastDirIsBuy)
+							kline5FilteredBarIndices.insert(bi);
 						else
 						{
-							runStart = bi;
-							runCount = 1;
-							runIsBuy = sig.isBuy;
+							lastDirIsBuy = sig.isBuy;
+							hasLastDir = true;
 						}
+						lastBarIdx = bi;
 					}
 				}
 
@@ -2910,8 +2901,8 @@ void CFloatingWnd::OnPaint()
 					}
 				}
 
-				// K线模式开启BOLL时，Y轴范围同时包含可见区间的布林上下轨，避免涨停等窄幅区间下BOLL被映射到价格图区外
-				if (m_isKLineMode && m_showBollBands && !timelinePoint.empty())
+				// 开启BOLL时，Y轴范围同时包含可见区间的布林上下轨，避免窄幅区间下BOLL被映射到价格图区外
+				if (m_showBollBands && !timelinePoint.empty())
 				{
 					const int N = 20;
 					const int K = 2;
@@ -3189,9 +3180,8 @@ void CFloatingWnd::OnPaint()
 						avgDiffPercent = curPct;
 						validCount = 1;
 
-						// 更新最低/最高均幅
-						g_data.UpdateMinAvgDiff(std::wstring(m_stock_id), lowPct);
-						g_data.UpdateMaxAvgDiff(std::wstring(m_stock_id), highPct);
+						// 更新最低/最高/实时均幅
+						g_data.SetAvgDiffStats(std::wstring(m_stock_id), lowPct, highPct, avgDiffPercent);
 					}
 					else
 					{
@@ -3223,13 +3213,15 @@ void CFloatingWnd::OnPaint()
 					if (showAvgDiff)
 					{
 						// 更新最低/最高均幅
-						g_data.UpdateMinAvgDiff(std::wstring(m_stock_id), avgDiffPercent);
-						g_data.UpdateMaxAvgDiff(std::wstring(m_stock_id), avgDiffPercent);
+						g_data.UpdateAvgDiffStats(std::wstring(m_stock_id), avgDiffPercent);
 					}
 				}
 
 				if (showAvgDiff)
 				{
+					// 每日开盘重置均幅记录
+					g_data.CheckAndResetAvgDiffDaily();
+
 					// 每5秒采样一次均值到历史队列（最多60个，5分钟数据）
 					static time_t lastSampleTime = 0;
 					time_t sampleNow = time(nullptr);
@@ -3245,15 +3237,13 @@ void CFloatingWnd::OnPaint()
 					if (now - lastSaveTime >= 60)
 					{
 						lastSaveTime = now;
-						double minAvg = g_data.GetMinAvgDiff(std::wstring(m_stock_id));
-						g_data.SaveMinAvgDiffDb(std::wstring(m_stock_id), minAvg);
-						double maxAvg = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
-						g_data.SaveMaxAvgDiffDb(std::wstring(m_stock_id), maxAvg);
+						g_data.SaveAvgDiffStatsDb(std::wstring(m_stock_id));
 					}
 
 					// 格式化三个值：最小值 均值 最大值（无标签）
-					double minAvgDiff = g_data.GetMinAvgDiff(std::wstring(m_stock_id));
-					double maxAvgDiff = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
+					auto avgData = g_data.GetAvgDiffData(std::wstring(m_stock_id));
+					double minAvgDiff = avgData.minVal;
+					double maxAvgDiff = avgData.maxVal;
 
 					if (minAvgDiff >= 0)
 						minAvgValueStr.Format(_T("+%.2f"), minAvgDiff);
@@ -3274,7 +3264,7 @@ void CFloatingWnd::OnPaint()
 					RegResult trend = (!m_isKLineMode)
 						? g_data.Get1MinAvgTrend(std::wstring(m_stock_id))
 						: g_data.Get5MinAvgTrend(std::wstring(m_stock_id));
-					if (trend.valid && trend.r2 >= 0.4)
+					if (trend.valid && (trend.r2 >= 0.2 || std::abs(trend.slope) >= 0.01))
 					{
 						// 箭头强度：低1个、中2个、高3个
 						int arrowCount = 1;
@@ -3438,8 +3428,9 @@ void CFloatingWnd::OnPaint()
 				// 右侧预留120像素显示：最小值 均值 最大值（固定字体大小，红绿背景）
 				if (showAvgDiff)
 				{
-					double minAvgDiff = g_data.GetMinAvgDiff(std::wstring(m_stock_id));
-					double maxAvgDiff = g_data.GetMaxAvgDiff(std::wstring(m_stock_id));
+					auto avgData2 = g_data.GetAvgDiffData(std::wstring(m_stock_id));
+					double minAvgDiff = avgData2.minVal;
+					double maxAvgDiff = avgData2.maxVal;
 					int avgAreaWidth = g_data.RDPI(120);
 					int avgAreaX = w - avgAreaWidth - GAP;
 					int avgAreaH = singleBarHeight;
@@ -3524,10 +3515,7 @@ void CFloatingWnd::OnPaint()
 					int maxX = avgAreaX + thirdWidth * 2 + (thirdWidth - memDC.GetTextExtent(maxAvgValueStr).cx) / 2;
 					memDC.TextOut(maxX, avgAreaY + g_data.RDPI(2), maxAvgValueStr);
 
-					// 恢复之前的字体
-					memDC.SelectObject(pPrevFont);
-
-					// 绘制趋势箭头（紧接120像素区域右侧）
+					// 绘制趋势箭头（紧接120像素区域右侧，仍在固定字体下）
 					if (!trendArrowStr.IsEmpty())
 					{
 						bool isUp = trendArrowStr.GetAt(0) == _T('↑');
@@ -3535,6 +3523,9 @@ void CFloatingWnd::OnPaint()
 						int arrowX = avgAreaX + avgAreaWidth + GAP;
 						memDC.TextOut(arrowX, avgAreaY + g_data.RDPI(2), trendArrowStr);
 					}
+
+					// 恢复之前的字体
+					memDC.SelectObject(pPrevFont);
 				}
 			}
 			else
@@ -4351,7 +4342,7 @@ CSignalAnalyzer::T0Signal CFloatingWnd::DetectSellSignal(const std::vector<STOCK
 	return signal;
 }
 
-void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex /* = 0 */, int visibleCount /* = -1 */)
+void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex /* = 0 */, int visibleCount /* = -1 */, int xAxisPoints /* = 0 */)
 {
 	if (timelinePoint.empty() || macdData.empty())
 		return;
@@ -4396,9 +4387,9 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 
 	// 绘制MACD柱
 	// 动态计算柱子宽度：间距固定1像素，柱子宽度随缩放增大
-	const int totalPts = static_cast<int>(timelinePoint.size());
+	const int xSlots = (xAxisPoints > 0) ? xAxisPoints : static_cast<int>(timelinePoint.size());
 	const int fixedGap = 1;
-	int slotWidth = totalPts > 0 ? width / totalPts : 1;
+	int slotWidth = xSlots > 0 ? width / xSlots : 1;
 	int barWidth = max(2, slotWidth - fixedGap);
 	int halfSlot = slotWidth / 2;
 	for (int i = startIndex; i < endIdx && i < static_cast<int>(macdData.size()); i++)
@@ -4406,7 +4397,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int barX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot - barWidth / 2;
+		int barX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + halfSlot - barWidth / 2;
 
 		double barVal = macdData[i].bar;
 		int barHeight = static_cast<int>(std::abs(barVal) * unitY);
@@ -4427,7 +4418,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + halfSlot;
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dif * unitY);
 		if (difFirst)
@@ -4450,7 +4441,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 		if (!macdData[i].valid)
 			continue;
 
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + halfSlot;
 
 		int pointY = zeroY - static_cast<int>(macdData[i].dea * unitY);
 		if (deaFirst)
@@ -4478,7 +4469,7 @@ void CFloatingWnd::DrawMACDChart(CDC& memDC, int x, int y, int width, int height
 			continue;
 
 		// 计算交叉点X坐标
-		int markX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + halfSlot;
+		int markX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + halfSlot;
 
 		// 交叉点Y坐标（DIF≈DEA处）
 		int markY = zeroY - static_cast<int>(macdData[i].dif * unitY);
@@ -4626,7 +4617,7 @@ void CFloatingWnd::DrawTimelineMACDSection(CDC& memDC, const TimelineDrawContext
 	const auto& timelinePoint = *ctx.timelinePoint;
 	auto macdData = CalculateTimelineMACD(timelinePoint);
 
-	DrawMACDChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, macdData);
+	DrawMACDChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, macdData, 0, -1, ctx.xAxisPoints);
 
 	// 绘制网格线
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
@@ -4677,7 +4668,7 @@ void CFloatingWnd::DrawTimelineKDJSection(CDC& memDC, const TimelineDrawContext&
 	const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
 	auto kdjData = CalculateTimelineKDJ(fullData);
 
-	DrawTimelineKDJChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, kdjData, ctx.startIndex);
+	DrawTimelineKDJChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, kdjData, ctx.startIndex, ctx.xAxisPoints);
 
 	// 绘制网格线
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
@@ -4721,7 +4712,7 @@ void CFloatingWnd::DrawTimelineKDJSection(CDC& memDC, const TimelineDrawContext&
 	}
 }
 
-void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex /* = 0 */)
+void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex /* = 0 */, int xAxisPoints /* = 0 */)
 {
 	if (timelinePoint.empty() || kdjData.empty())
 		return;
@@ -4763,6 +4754,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	}
 	memDC.SelectObject(pOldPen);
 
+	const int xSlots = (xAxisPoints > 0) ? xAxisPoints : static_cast<int>(timelinePoint.size());
 	const int totalPts = static_cast<int>(timelinePoint.size());
 
 	// 绘制K线（快线，红色）
@@ -4773,7 +4765,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(kdjData[idx].k);
 		if (kFirst) { memDC.MoveTo(pointX, pointY); kFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4787,7 +4779,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(kdjData[idx].d);
 		if (dFirst) { memDC.MoveTo(pointX, pointY); dFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4801,7 +4793,7 @@ void CFloatingWnd::DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!kdjData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(kdjData[idx].j);
 		if (jFirst) { memDC.MoveTo(pointX, pointY); jFirst = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -4968,7 +4960,7 @@ std::vector<CFloatingWnd::WRData> CFloatingWnd::CalculateKLineWR(const std::vect
 	return result;
 }
 
-void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex /* = 0 */)
+void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex /* = 0 */, int xAxisPoints /* = 0 */)
 {
 	if (timelinePoint.empty() || wrData.empty())
 		return;
@@ -4998,6 +4990,7 @@ void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int 
 	}
 	memDC.SelectObject(pOldPen);
 
+	const int xSlots = (xAxisPoints > 0) ? xAxisPoints : static_cast<int>(timelinePoint.size());
 	const int totalPts = static_cast<int>(timelinePoint.size());
 
 	// 绘制WR1线（短期，蓝色）
@@ -5008,7 +5001,7 @@ void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int 
 	{
 		int idx = startIndex + i;
 		if (!wrData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(wrData[idx].wr1);
 		if (wr1First) { memDC.MoveTo(pointX, pointY); wr1First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -5022,7 +5015,7 @@ void CFloatingWnd::DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int 
 	{
 		int idx = startIndex + i;
 		if (!wrData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(wrData[idx].wr2);
 		if (wr2First) { memDC.MoveTo(pointX, pointY); wr2First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -5054,7 +5047,7 @@ void CFloatingWnd::DrawTimelineWRSection(CDC& memDC, const TimelineDrawContext& 
 		wrData = CalculateTimelineWR(fullData);
 	}
 
-	DrawTimelineWRChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, wrData, ctx.startIndex);
+	DrawTimelineWRChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, wrData, ctx.startIndex, ctx.xAxisPoints);
 
 	// 绘制网格线
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
@@ -5237,7 +5230,7 @@ std::vector<CFloatingWnd::RSIData> CFloatingWnd::CalculateKLineRSI(const std::ve
 	return result;
 }
 
-void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex /* = 0 */)
+void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex /* = 0 */, int xAxisPoints /* = 0 */)
 {
 	if (timelinePoint.empty() || rsiData.empty())
 		return;
@@ -5267,6 +5260,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	}
 	memDC.SelectObject(pOldPen);
 
+	const int xSlots = (xAxisPoints > 0) ? xAxisPoints : static_cast<int>(timelinePoint.size());
 	const int totalPts = static_cast<int>(timelinePoint.size());
 
 	// 绘制RSI1线（短期，蓝色）
@@ -5277,7 +5271,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!rsiData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(rsiData[idx].rsi1);
 		if (rsi1First) { memDC.MoveTo(pointX, pointY); rsi1First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -5291,7 +5285,7 @@ void CFloatingWnd::DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int
 	{
 		int idx = startIndex + i;
 		if (!rsiData[idx].valid) continue;
-		int pointX = x + static_cast<int>(width / static_cast<float>(totalPts) * i) + static_cast<int>(width / static_cast<float>(totalPts) / 2);
+		int pointX = x + static_cast<int>(width / static_cast<float>(xSlots) * i) + static_cast<int>(width / static_cast<float>(xSlots) / 2);
 		int pointY = valueToY(rsiData[idx].rsi2);
 		if (rsi2First) { memDC.MoveTo(pointX, pointY); rsi2First = false; }
 		else memDC.LineTo(pointX, pointY);
@@ -5321,7 +5315,7 @@ void CFloatingWnd::DrawTimelineRSISection(CDC& memDC, const TimelineDrawContext&
 		rsiData = CalculateTimelineRSI(fullData);
 	}
 
-	DrawTimelineRSIChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, rsiData, ctx.startIndex);
+	DrawTimelineRSIChart(memDC, 0, ctx.macdChartTop, ctx.chartWidth, ctx.macdChartHeight, timelinePoint, rsiData, ctx.startIndex, ctx.xAxisPoints);
 
 	// 绘制网格线
 	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
@@ -8991,7 +8985,7 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				m_pendingTradeTime = item.time.c_str();
 				m_pendingTradePrice = item.price;
 				// PostMessage(FWND_MSG_SHOW_TRADE_DLG);  // 测试买卖点检测时暂时屏蔽交易记录弹窗
-				TestSmartSignalOnDoubleClick(countX);
+				CSmartSignalTestDlg::Show(m_stock_id, countX, m_isKLineMode, m_isMin5KLineMode, m_pendingTradePrice, m_pendingTradeTime, this);
 				return;
 			}
 		}
@@ -11965,424 +11959,6 @@ LRESULT CFloatingWnd::OnShowAddDialog(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-void CFloatingWnd::TestSmartSignalOnDoubleClick(int timelineIndex)
-{
-	AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-	std::vector<STOCK::Bar> allBars5, allBars30;
-	std::vector<std::string> allBars5Time;
-	std::vector<STOCK::TimelinePoint> timelineData;
-	{
-		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
-		auto stockData = g_data.GetStockData(m_stock_id);
-		if (!stockData)
-		{
-			MessageBox(_T("未获取到当前股票数据，无法测试买卖点检测。"), _T("买卖点检测测试"), MB_ICONINFORMATION);
-			return;
-		}
-
-		auto min5KLineObj = stockData->getMin5KLineData();
-		auto min30KLineObj = stockData->getMin30KLineData();
-		if (min5KLineObj)
-		{
-			allBars5.reserve(min5KLineObj->data.size());
-			allBars5Time.reserve(min5KLineObj->data.size());
-			for (const auto& kp : min5KLineObj->data)
-			{
-				allBars5.push_back(STOCK::Bar::FromKLinePoint(kp));
-				allBars5Time.push_back(kp.day);
-			}
-		}
-		if (min30KLineObj)
-		{
-			allBars30.reserve(min30KLineObj->data.size());
-			for (const auto& kp : min30KLineObj->data)
-				allBars30.push_back(STOCK::Bar::FromKLinePoint(kp));
-		}
-		// 分时图模式获取分时数据
-		if (!m_isKLineMode)
-		{
-			auto timelineObj = stockData->getTimelineData();
-			if (timelineObj)
-				timelineData = timelineObj->data;
-		}
-	}
-
-	// 分时图模式：使用1分钟粒度信号
-	if (!m_isKLineMode && timelineData.size() >= 120 && !allBars30.empty())
-	{
-		std::vector<STOCK::Bar> bars1m = CSignalAnalyzer::ConvertTimelineToBars(timelineData);
-		int barIndex = max(0, min(timelineIndex, static_cast<int>(bars1m.size()) - 1));
-
-		CString mappedBarTime;
-		if (barIndex >= 0 && barIndex < static_cast<int>(timelineData.size()))
-			mappedBarTime = CString(timelineData[barIndex].fullTime.c_str());
-
-		auto ar = CSignalAnalyzer::AnalyzeSignalAtFromTimeline(bars1m, allBars30, barIndex);
-
-		CString clickedBatchText;
-		if (ar.clickedSignal)
-		{
-			clickedBatchText.Format(_T("%s（%s）"),
-				ar.clickedSignal->isForbid ? _T("风控禁止") : (ar.clickedSignal->isBuy ? _T("买入") : _T("卖出")),
-				ar.clickedSignal->reason.GetString());
-		}
-		else
-			clickedBatchText = _T("无信号");
-
-		CString latestSignalText = clickedBatchText;
-
-		CString bollPos;
-		if (ar.boll.up > 0 && ar.boll.dn > 0)
-		{
-			double lastClose = bars1m[barIndex].close;
-			if (lastClose >= ar.boll.up) bollPos = _T("上轨上方");
-			else if (lastClose <= ar.boll.dn) bollPos = _T("下轨下方");
-			else if (lastClose >= ar.boll.mid) bollPos = _T("中轨上方");
-			else bollPos = _T("中轨下方");
-		}
-		else bollPos = _T("N/A");
-
-		CString macdState;
-		if (ar.macd.dif > 0 && ar.macd.macd_bar > 0) macdState = _T("多头增强");
-		else if (ar.macd.dif > 0 && ar.macd.macd_bar <= 0) macdState = _T("多头减弱");
-		else if (ar.macd.dif < 0 && ar.macd.macd_bar < 0) macdState = _T("空头增强");
-		else if (ar.macd.dif < 0 && ar.macd.macd_bar >= 0) macdState = _T("空头减弱");
-		else macdState = _T("零轴");
-
-		CString kdjState;
-		if (ar.kdj.k > 80) kdjState = _T("超买");
-		else if (ar.kdj.k < 20) kdjState = _T("超卖");
-		else kdjState = _T("中性");
-
-		CString wrState;
-		if (ar.wr < 20) wrState = _T("超买");
-		else if (ar.wr > 80) wrState = _T("超卖");
-		else wrState = _T("中性");
-
-		CString rsiState;
-		if (ar.rsi > 70) rsiState = _T("超买");
-		else if (ar.rsi < 30) rsiState = _T("超卖");
-		else rsiState = _T("中性");
-
-		CString riskInfo;
-		if (ar.forbidResult.forbidBuy || ar.forbidResult.forbidSell)
-		{
-			riskInfo.Format(_T("禁止买入=%s(%s) 禁止卖出=%s(%s)"),
-				BoolToText(ar.forbidResult.forbidBuy).GetString(), ar.forbidResult.forbidBuyReason.GetString(),
-				BoolToText(ar.forbidResult.forbidSell).GetString(), ar.forbidResult.forbidSellReason.GetString());
-		}
-		else
-			riskInfo = _T("无拦截");
-
-		CString sellDiag;
-		sellDiag.Format(_T("必要=%s(触轨=%s 红柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
-			BoolToText(ar.sellNecessary).GetString(),
-			BoolToText(ar.sellS1).GetString(), BoolToText(ar.sellS2_redShrink).GetString(),
-			ar.sellAuxCount,
-			BoolToText(ar.sellA1).GetString(), BoolToText(ar.sellA2).GetString(), BoolToText(ar.sellA3).GetString(), BoolToText(ar.sellA4).GetString());
-
-		CString buyDiag;
-		buyDiag.Format(_T("必要=%s(触轨=%s 绿柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
-			BoolToText(ar.buyNecessary).GetString(),
-			BoolToText(ar.buyB1).GetString(), BoolToText(ar.buyB2_greenShrink).GetString(),
-			ar.buyAuxCount,
-			BoolToText(ar.buyA1).GetString(), BoolToText(ar.buyA2).GetString(), BoolToText(ar.buyA3).GetString(), BoolToText(ar.buyA4).GetString());
-
-		CString msg;
-		msg.Format(_T("=== %s %.3f %s [1分钟] ===\r\n")
-			_T("\r\n【信号】%s\r\n")
-			_T("【30分钟趋势】%s（置信度%d%%，弱%.1f/强%.1f）\r\n")
-			_T("【风控】%s\r\n")
-			_T("\r\n【指标】\r\n")
-			_T("BOLL: 带宽%.4f 位置%s 上轨=%.4f 下轨=%.4f\r\n")
-			_T("MACD: DIF=%.3f DEA=%.3f BAR=%.3f %s\r\n")
-			_T("KDJ:  K=%.1f D=%.1f J=%.1f %s\r\n")
-			_T("WR:   %.1f %s\r\n")
-			_T("RSI:  %.1f %s\r\n")
-			_T("\r\n【卖出条件】%s\r\n")
-			_T("【买入条件】%s\r\n")
-			_T("\r\n【批量判定链】hasSell=%s hasBuy=%s forbidBuy=%s forbidSell=%s 过滤=%s\r\n"),
-			CString(m_stock_id.c_str()).GetString(),
-			static_cast<double>(m_pendingTradePrice),
-			mappedBarTime.GetString(),
-			latestSignalText.GetString(),
-			TrendStateToText(ar.trendResult.state).GetString(),
-			ar.trendResult.confidence, ar.trendResult.weakScore, ar.trendResult.strongScore,
-			riskInfo.GetString(),
-			ar.boll.bandwidth, bollPos.GetString(), ar.boll.up, ar.boll.dn,
-			ar.macd.dif, ar.macd.dea, ar.macd.macd_bar, macdState.GetString(),
-			ar.kdj.k, ar.kdj.d, ar.kdj.j, kdjState.GetString(),
-			ar.wr, wrState.GetString(),
-			ar.rsi, rsiState.GetString(),
-			sellDiag.GetString(),
-			buyDiag.GetString(),
-			BoolToText(ar.batchHasSell).GetString(),
-			BoolToText(ar.batchHasBuy).GetString(),
-			BoolToText(ar.batchForbidBuy).GetString(),
-			BoolToText(ar.batchForbidSell).GetString(),
-			ar.batchFilterReason.GetString());
-
-		// 弹框定位
-		CRect wndRect;
-		GetWindowRect(&wndRect);
-		int msgX = wndRect.right - 8;
-		CRect workArea;
-		SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-		int msgBottom = workArea.bottom + 8;
-		static int g_msgBoxX = 0;
-		static int g_msgBoxBottom = 0;
-		g_msgBoxX = msgX;
-		g_msgBoxBottom = msgBottom;
-		static HHOOK g_hHook = NULL;
-		static auto cbtProc = [](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
-			if (nCode == HCBT_ACTIVATE)
-			{
-				HWND hWnd = (HWND)wParam;
-				wchar_t cls[32] = {};
-				GetClassNameW(hWnd, cls, 32);
-				if (wcscmp(cls, L"#32770") == 0)
-				{
-					RECT rect;
-					::GetWindowRect(hWnd, &rect);
-					int w = rect.right - rect.left;
-					int h = rect.bottom - rect.top;
-					int x = g_msgBoxX;
-					int y = g_msgBoxBottom - h;
-					::SetWindowPos(hWnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-					if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
-				}
-			}
-			return CallNextHookEx(g_hHook, nCode, wParam, lParam);
-			};
-		if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
-		g_hHook = SetWindowsHookExW(WH_CBT, cbtProc, NULL, GetCurrentThreadId());
-		MessageBox(msg, _T("信号分析(1分钟)"), MB_ICONINFORMATION);
-		if (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }
-		return;
-	}
-
-	// K线模式：使用5分钟K线信号（原有逻辑）
-	if (allBars5.empty() || allBars30.empty())
-	{
-		CString msg;
-		msg.Format(_T("股票代码：%s\r\n5分钟K线数量：%zu\r\n30分钟K线数量：%zu\r\n双击价格：%.3f\r\n双击时间：%s\r\n\r\n缺少5分钟或30分钟K线数据，无法进行信号分析。"),
-			CString(m_stock_id.c_str()), allBars5.size(), allBars30.size(), static_cast<double>(m_pendingTradePrice), m_pendingTradeTime.GetString());
-		MessageBox(msg, _T("信号分析"), MB_ICONINFORMATION);
-		return;
-	}
-
-	auto extractDatePart = [](const std::string& timeText) -> std::string {
-		auto spacePos = timeText.find(' ');
-		return spacePos != std::string::npos ? timeText.substr(0, spacePos) : std::string();
-		};
-	auto extractTimeMinute = [](const std::string& timeText) -> int {
-		std::string t = timeText;
-		auto spacePos = t.find(' ');
-		if (spacePos != std::string::npos)
-			t = t.substr(spacePos + 1);
-		if (t.length() < 5)
-			return -1;
-		int hour = -1;
-		int minute = -1;
-		if (sscanf_s(t.substr(0, 5).c_str(), "%d:%d", &hour, &minute) != 2)
-			return -1;
-		if (hour < 0 || minute < 0 || minute >= 60)
-			return -1;
-		return hour * 60 + minute;
-		};
-
-	CStringA pendingTradeTimeA(m_pendingTradeTime);
-	int clickedMinute = extractTimeMinute(std::string(pendingTradeTimeA.GetString()));
-	std::string latestDate;
-	for (auto it = allBars5Time.rbegin(); it != allBars5Time.rend(); ++it)
-	{
-		latestDate = extractDatePart(*it);
-		if (!latestDate.empty())
-			break;
-	}
-	int barIndex = -1;
-	if (m_isMin5KLineMode)
-	{
-		barIndex = max(0, min(timelineIndex, static_cast<int>(allBars5.size()) - 1));
-	}
-	else if (clickedMinute >= 0)
-	{
-		for (int i = 0; i < static_cast<int>(allBars5Time.size()); i++)
-		{
-			if (!latestDate.empty() && extractDatePart(allBars5Time[i]) != latestDate)
-				continue;
-			int barMinute = extractTimeMinute(allBars5Time[i]);
-			if (barMinute < 0)
-				continue;
-			if (barMinute <= clickedMinute)
-				barIndex = i;
-			else
-				break;
-		}
-	}
-	if (barIndex < 0)
-		barIndex = static_cast<int>(allBars5.size()) - 1;
-	barIndex = max(0, min(barIndex, static_cast<int>(allBars5.size()) - 1));
-
-	CString mappedBarTime;
-	if (barIndex >= 0 && barIndex < static_cast<int>(allBars5Time.size()))
-		mappedBarTime = CString(allBars5Time[barIndex].c_str());
-
-	// 统一信号分析（与走势图绘制使用相同算法）
-	auto ar = CSignalAnalyzer::AnalyzeSignalAt(allBars5, allBars30, barIndex);
-
-	CString clickedBatchText;
-	if (ar.clickedSignal)
-	{
-		clickedBatchText.Format(_T("%s（%s）"),
-			ar.clickedSignal->isForbid ? _T("风控禁止") : (ar.clickedSignal->isBuy ? _T("买入") : _T("卖出")),
-			ar.clickedSignal->reason.GetString());
-	}
-	else
-		clickedBatchText = _T("无信号");
-
-	// 综合判定直接使用BatchDetectSignals结果（与走势图绘制一致）
-	CString latestSignalText = clickedBatchText;
-
-	CString bollPos;
-	if (ar.boll.up > 0 && ar.boll.dn > 0)
-	{
-		double lastClose = allBars5[barIndex].close;
-		if (lastClose >= ar.boll.up) bollPos = _T("上轨上方");
-		else if (lastClose <= ar.boll.dn) bollPos = _T("下轨下方");
-		else if (lastClose >= ar.boll.mid) bollPos = _T("中轨上方");
-		else bollPos = _T("中轨下方");
-	}
-	else bollPos = _T("N/A");
-
-	CString macdState;
-	if (ar.macd.dif > 0 && ar.macd.macd_bar > 0) macdState = _T("多头增强");
-	else if (ar.macd.dif > 0 && ar.macd.macd_bar <= 0) macdState = _T("多头减弱");
-	else if (ar.macd.dif < 0 && ar.macd.macd_bar < 0) macdState = _T("空头增强");
-	else if (ar.macd.dif < 0 && ar.macd.macd_bar >= 0) macdState = _T("空头减弱");
-	else macdState = _T("零轴");
-
-	CString kdjState;
-	if (ar.kdj.k > 80) kdjState = _T("超买");
-	else if (ar.kdj.k < 20) kdjState = _T("超卖");
-	else kdjState = _T("中性");
-
-	CString wrState;
-	if (ar.wr < 20) wrState = _T("超买");
-	else if (ar.wr > 80) wrState = _T("超卖");
-	else wrState = _T("中性");
-
-	CString rsiState;
-	if (ar.rsi > 70) rsiState = _T("超买");
-	else if (ar.rsi < 30) rsiState = _T("超卖");
-	else rsiState = _T("中性");
-
-	CString riskInfo;
-	if (ar.forbidResult.forbidBuy || ar.forbidResult.forbidSell)
-	{
-		riskInfo.Format(_T("禁止买入=%s(%s) 禁止卖出=%s(%s)"),
-			BoolToText(ar.forbidResult.forbidBuy).GetString(), ar.forbidResult.forbidBuyReason.GetString(),
-			BoolToText(ar.forbidResult.forbidSell).GetString(), ar.forbidResult.forbidSellReason.GetString());
-	}
-	else
-		riskInfo = _T("无拦截");
-
-	CString sellDiag;
-	sellDiag.Format(_T("必要=%s(触轨=%s 红柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
-		BoolToText(ar.sellNecessary).GetString(),
-		BoolToText(ar.sellS1).GetString(), BoolToText(ar.sellS2_redShrink).GetString(),
-		ar.sellAuxCount,
-		BoolToText(ar.sellA1).GetString(), BoolToText(ar.sellA2).GetString(), BoolToText(ar.sellA3).GetString(), BoolToText(ar.sellA4).GetString());
-
-	CString buyDiag;
-	buyDiag.Format(_T("必要=%s(触轨=%s 绿柱缩=%s) 辅助=%d/2(KDJ=%s RSI=%s WR=%s 量=%s)"),
-		BoolToText(ar.buyNecessary).GetString(),
-		BoolToText(ar.buyB1).GetString(), BoolToText(ar.buyB2_greenShrink).GetString(),
-		ar.buyAuxCount,
-		BoolToText(ar.buyA1).GetString(), BoolToText(ar.buyA2).GetString(), BoolToText(ar.buyA3).GetString(), BoolToText(ar.buyA4).GetString());
-
-	CString msg;
-	msg.Format(_T("=== %s %.3f(H%.3f/L%.3f) %s ===\r\n")
-		_T("\r\n【信号】%s\r\n")
-		_T("【30分钟趋势】%s（置信度%d%%，弱%.1f/强%.1f）\r\n")
-		_T("【5分钟信号】%s\r\n")
-		_T("【风控】%s\r\n")
-		_T("\r\n【指标】\r\n")
-		_T("BOLL: 带宽%.4f 位置%s 上轨=%.4f 下轨=%.4f\r\n")
-		_T("MACD: DIF=%.3f DEA=%.3f BAR=%.3f %s\r\n")
-		_T("KDJ:  K=%.1f D=%.1f J=%.1f %s\r\n")
-		_T("WR:   %.1f %s\r\n")
-		_T("RSI:  %.1f %s\r\n")
-		_T("\r\n【卖出条件】%s\r\n")
-		_T("【买入条件】%s\r\n")
-		_T("\r\n【批量判定链】hasSell=%s hasBuy=%s forbidBuy=%s forbidSell=%s 过滤=%s\r\n"),
-		CString(m_stock_id.c_str()).GetString(),
-		static_cast<double>(m_pendingTradePrice),
-		allBars5[barIndex].high,
-		allBars5[barIndex].low,
-		mappedBarTime.GetString(),
-		latestSignalText.GetString(),
-		TrendStateToText(ar.trendResult.state).GetString(),
-		ar.trendResult.confidence, ar.trendResult.weakScore, ar.trendResult.strongScore,
-		Signal5mToText(ar.sig5m).GetString(),
-		riskInfo.GetString(),
-		ar.boll.bandwidth, bollPos.GetString(), ar.boll.up, ar.boll.dn,
-		ar.macd.dif, ar.macd.dea, ar.macd.macd_bar, macdState.GetString(),
-		ar.kdj.k, ar.kdj.d, ar.kdj.j, kdjState.GetString(),
-		ar.wr, wrState.GetString(),
-		ar.rsi, rsiState.GetString(),
-		sellDiag.GetString(),
-		buyDiag.GetString(),
-		BoolToText(ar.batchHasSell).GetString(),
-		BoolToText(ar.batchHasBuy).GetString(),
-		BoolToText(ar.batchForbidBuy).GetString(),
-		BoolToText(ar.batchForbidSell).GetString(),
-		ar.batchFilterReason.GetString());
-
-	// 计算弹框位置：左侧与股票对话框右边对齐，底部与系统状态栏平齐
-	CRect wndRect;
-	GetWindowRect(&wndRect);
-	int msgX = wndRect.right - 8;
-	CRect workArea;
-	SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-	int msgBottom = workArea.bottom + 8;
-
-	// 全局变量传递位置给钩子回调
-	static int g_msgBoxX = 0;
-	static int g_msgBoxBottom = 0;
-	g_msgBoxX = msgX;
-	g_msgBoxBottom = msgBottom;
-
-	// CBT钩子：MessageBox激活时定位（HCBT_ACTIVATE时窗口已完成布局）
-	static HHOOK g_hMsgBoxHook = NULL;
-	g_hMsgBoxHook = SetWindowsHookEx(WH_CBT,
-		[](int nCode, WPARAM wParam, LPARAM lParam) -> LRESULT {
-			if (nCode == HCBT_ACTIVATE)
-			{
-				HWND hWnd = (HWND)wParam;
-				wchar_t cls[8] = {};
-				GetClassName(hWnd, cls, 8);
-				if (wcscmp(cls, L"#32770") == 0)
-				{
-					RECT rc;
-					::GetWindowRect(hWnd, &rc);
-					int w = rc.right - rc.left;
-					int h = rc.bottom - rc.top;
-					int x = g_msgBoxX;
-					int y = g_msgBoxBottom - h;
-					::SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
-					// 定位后立即卸载钩子
-					UnhookWindowsHookEx(g_hMsgBoxHook);
-					g_hMsgBoxHook = NULL;
-				}
-			}
-			return CallNextHookEx(g_hMsgBoxHook, nCode, wParam, lParam);
-		}, NULL, GetCurrentThreadId());
-
-	MessageBox(msg, _T("信号分析"), MB_ICONINFORMATION);
-	if (g_hMsgBoxHook) { UnhookWindowsHookEx(g_hMsgBoxHook); g_hMsgBoxHook = NULL; }
-}
 
 LRESULT CFloatingWnd::OnShowTradeDialog(WPARAM wParam, LPARAM lParam)
 {

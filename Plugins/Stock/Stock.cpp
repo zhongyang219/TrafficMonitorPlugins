@@ -8,6 +8,7 @@
 #include "Common.h"
 #include "FloatingWnd.h"
 #include "StockFetchThread.h"
+#include "SignalAnalyzer.h"
 
 Stock Stock::m_instance;
 
@@ -98,6 +99,11 @@ void Stock::DataRequired()
 				m_pFloatingWnd->PostMessage(FWND_MSG_UPDATE_STATUS, 0, 0);
 		}
 	}
+
+	// 多周期MACD分层计算（各周期按独立间隔计算MACD并缓存）
+	UpdateMacdCalcForAllStocks();
+	// 趋势判定（使用缓存的MACD数据，每30秒判定一次）
+	JudgeMacdTrendForAllStocks();
 }
 
 ITMPlugin::OptionReturn Stock::ShowOptionsDialog(void* hParent)
@@ -1744,4 +1750,179 @@ void Stock::CheckT0AlertForStock(const std::wstring& code)
 		}
 	}
 	state.last_sell_signal = (sig.valid && !sig.isBuy);
+}
+
+void Stock::UpdateMacdCalcForAllStocks()
+{
+	time_t now = time(nullptr);
+	for (const auto& code : g_data.m_setting_data.m_stock_codes)
+	{
+		auto stock_data = g_data.GetStockData(code);
+		if (!stock_data || !stock_data->info.is_ok)
+			continue;
+		UpdateMacdCalcForStock(code);
+	}
+}
+
+void Stock::UpdateMacdCalcForStock(const std::wstring& code)
+{
+	auto stock_data = g_data.GetStockData(code);
+	if (!stock_data || !stock_data->info.is_ok)
+		return;
+
+	time_t now = time(nullptr);
+
+	// 辅助lambda：计算单周期MACD并缓存，数据不足时不更新calcTime以便下次重试
+	auto calcPeriodMacd = [&](STOCK::StockData::PeriodMacdCache& cache, int interval,
+		std::function<bool(std::vector<STOCK::Bar>&)> getBars) {
+		if (now - cache.calcTime < interval)
+			return;
+
+		std::vector<STOCK::Bar> bars;
+		if (getBars(bars) && bars.size() >= 26)
+		{
+			std::vector<double> dif, dea, barSeq;
+			CSignalAnalyzer::CalcMACDSeries(bars, dif, dea, barSeq);
+
+			cache.macdData.resize(dif.size());
+			cache.priceSeq.resize(bars.size());
+			for (size_t i = 0; i < dif.size(); i++)
+			{
+				cache.macdData[i].dif = dif[i];
+				cache.macdData[i].dea = dea[i];
+				cache.macdData[i].bar = barSeq[i];
+				cache.macdData[i].isAboveZero = (dif[i] > 0);
+			}
+			for (size_t i = 0; i < bars.size(); i++)
+				cache.priceSeq[i] = bars[i].close;
+			cache.dataReady = true;
+			cache.calcTime = now;
+		}
+		// 数据不足时不更新calcTime，下次继续重试
+	};
+
+	// 日K MACD：每天计算1次
+	calcPeriodMacd(stock_data->dayMacdCache, STOCK::StockData::DAY_MACD_INTERVAL,
+		[stock_data](std::vector<STOCK::Bar>& bars) -> bool {
+			auto kline = stock_data->getKLineData();
+			if (!kline || kline->data.empty()) return false;
+			bars.reserve(kline->data.size());
+			for (const auto& kp : kline->data)
+				bars.push_back(STOCK::Bar::FromKLinePoint(kp));
+			return true;
+		});
+
+	// 30分钟 MACD：每10分钟计算1次
+	calcPeriodMacd(stock_data->m30MacdCache, STOCK::StockData::M30_MACD_INTERVAL,
+		[stock_data](std::vector<STOCK::Bar>& bars) -> bool {
+			auto kline = stock_data->getMin30KLineData();
+			if (!kline || kline->data.empty()) return false;
+			bars.reserve(kline->data.size());
+			for (const auto& kp : kline->data)
+				bars.push_back(STOCK::Bar::FromKLinePoint(kp));
+			return true;
+		});
+
+	// 5分钟 MACD：每1分钟计算1次
+	calcPeriodMacd(stock_data->m5MacdCache, STOCK::StockData::M5_MACD_INTERVAL,
+		[stock_data](std::vector<STOCK::Bar>& bars) -> bool {
+			auto kline = stock_data->getMin5KLineData();
+			if (!kline || kline->data.empty()) return false;
+			bars.reserve(kline->data.size());
+			for (const auto& kp : kline->data)
+				bars.push_back(STOCK::Bar::FromKLinePoint(kp));
+			return true;
+		});
+
+	// 1分钟 MACD：每30秒计算1次（从分时数据转换）
+	calcPeriodMacd(stock_data->m1MacdCache, STOCK::StockData::M1_MACD_INTERVAL,
+		[stock_data](std::vector<STOCK::Bar>& bars) -> bool {
+			auto timeline = stock_data->getTimelineData();
+			if (!timeline || timeline->data.empty()) return false;
+			bars.reserve(timeline->data.size());
+			for (size_t i = 0; i < timeline->data.size(); i++)
+			{
+				double p = timeline->data[i].price;
+				double v = static_cast<double>(timeline->data[i].volume);
+				bars.push_back(STOCK::Bar(p, p, p, p, v, static_cast<long>(i)));
+			}
+			return true;
+		});
+}
+
+void Stock::JudgeMacdTrendForAllStocks()
+{
+	time_t now = time(nullptr);
+	for (const auto& code : g_data.m_setting_data.m_stock_codes)
+	{
+		auto stock_data = g_data.GetStockData(code);
+		if (!stock_data || !stock_data->info.is_ok)
+			continue;
+		// 趋势判定间隔控制
+		if (now - stock_data->macdTrendJudgeTime < STOCK::StockData::MACD_TREND_JUDGE_INTERVAL)
+			continue;
+		JudgeMacdTrendForStock(code);
+	}
+}
+
+void Stock::JudgeMacdTrendForStock(const std::wstring& code)
+{
+	auto stock_data = g_data.GetStockData(code);
+	if (!stock_data || !stock_data->info.is_ok)
+		return;
+
+	// 至少需要日K数据才能判定格局
+	if (!stock_data->dayMacdCache.dataReady)
+	{
+		stock_data->macdTrendSignal = _T("--");
+		stock_data->macdTrendDesc = _T("日K数据不足");
+		stock_data->macdTrendJudgeTime = time(nullptr);
+		return;
+	}
+
+	// 从缓存构建PeriodMacdSeq用于趋势判定
+	auto buildSeq = [](const STOCK::StockData::PeriodMacdCache& cache, CSignalAnalyzer::PeriodType type) -> CSignalAnalyzer::PeriodMacdSeq {
+		CSignalAnalyzer::PeriodMacdSeq seq;
+		seq.type = type;
+		seq.data.resize(cache.macdData.size());
+		for (size_t i = 0; i < cache.macdData.size(); i++)
+		{
+			seq.data[i].dif = cache.macdData[i].dif;
+			seq.data[i].dea = cache.macdData[i].dea;
+			seq.data[i].bar = cache.macdData[i].bar;
+			seq.data[i].isAboveZero = cache.macdData[i].isAboveZero;
+		}
+		return seq;
+	};
+
+	CSignalAnalyzer::PeriodMacdSeq daySeq = buildSeq(stock_data->dayMacdCache, CSignalAnalyzer::PeriodType::DAY);
+	CSignalAnalyzer::PeriodMacdSeq m30Seq = buildSeq(stock_data->m30MacdCache, CSignalAnalyzer::PeriodType::M30);
+	CSignalAnalyzer::PeriodMacdSeq m5Seq = buildSeq(stock_data->m5MacdCache, CSignalAnalyzer::PeriodType::M5);
+	CSignalAnalyzer::PeriodMacdSeq m1Seq = buildSeq(stock_data->m1MacdCache, CSignalAnalyzer::PeriodType::M1);
+
+	// 调用趋势判定（使用缓存的价格序列）
+	auto result = CSignalAnalyzer::JudgeT0Trade(daySeq, m30Seq, m5Seq, m1Seq,
+		stock_data->dayMacdCache.priceSeq,
+		stock_data->m30MacdCache.priceSeq,
+		stock_data->m5MacdCache.priceSeq,
+		stock_data->m1MacdCache.priceSeq);
+
+	// 将信号转为简短标签
+	switch (result.sig)
+	{
+	case CSignalAnalyzer::TradeSignal::BUY_T:
+		stock_data->macdTrendSignal = _T("正T");
+		break;
+	case CSignalAnalyzer::TradeSignal::SELL_T:
+		stock_data->macdTrendSignal = _T("反T");
+		break;
+	case CSignalAnalyzer::TradeSignal::HOLD:
+		stock_data->macdTrendSignal = _T("持有");
+		break;
+	case CSignalAnalyzer::TradeSignal::NO_OP:
+		stock_data->macdTrendSignal = _T("观望");
+		break;
+	}
+	stock_data->macdTrendDesc = result.desc;
+	stock_data->macdTrendJudgeTime = time(nullptr);
 }

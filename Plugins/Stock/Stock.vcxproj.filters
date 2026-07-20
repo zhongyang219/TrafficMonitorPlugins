@@ -87,6 +87,9 @@
     <ClInclude Include="StockDbManager.h">
       <Filter>DataManager</Filter>
     </ClInclude>
+    <ClInclude Include="SmartSignalTestDlg.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -136,6 +139,9 @@
     </ClCompile>
     <ClCompile Include="StockDbManager.cpp">
       <Filter>DataManager</Filter>
+    </ClCompile>
+    <ClCompile Include="SmartSignalTestDlg.cpp">
+      <Filter>FloatingWnd</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

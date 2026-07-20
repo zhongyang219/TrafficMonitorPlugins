@@ -115,21 +115,19 @@ public:
 	std::vector<std::wstring> GetRelatedStocks(const std::wstring& code);
 	void SetRelatedStocks(const std::wstring& code, const std::vector<std::wstring>& related_codes);
 
-	// 关联股票最高均幅
-	double GetMaxAvgDiff(const std::wstring& code);
-	void UpdateMaxAvgDiff(const std::wstring& code, double avgDiff);
-	void ResetMaxAvgDiff(const std::wstring& code);
-	bool SaveMaxAvgDiffDb(const std::wstring& stockCode, double maxAvgDiff);
-
-	// 关联股票最低均幅
-	double GetMinAvgDiff(const std::wstring& code);
-	void UpdateMinAvgDiff(const std::wstring& code, double avgDiff);
-	void ResetMinAvgDiff(const std::wstring& code);
-	bool SaveMinAvgDiffDb(const std::wstring& stockCode, double minAvgDiff);
+	// 关联股票均幅统计（最低、最高、实时）
+	AvgDiffStats GetAvgDiffData(const std::wstring& code);
+	void UpdateAvgDiffStats(const std::wstring& code, double avgDiff);
+	void SetAvgDiffStats(const std::wstring& code, double minVal, double maxVal, double currentVal);
+	void ResetAvgDiffStats(const std::wstring& code);
+	bool SaveAvgDiffStatsDb(const std::wstring& stockCode);
 
 	// 关联股票均值历史队列
 	void PushAvgDiffHistory(const std::wstring& code, double avgDiff);
 	const std::deque<double>& GetAvgDiffHistory(const std::wstring& code);
+
+	// 每日开盘重置均幅记录（跨天时自动清零）
+	void CheckAndResetAvgDiffDaily();
 
 	// 均值线性回归趋势（基于历史队列）
 	RegResult Get1MinAvgTrend(const std::wstring& code);   // 1分钟（最近12个点）
@@ -183,12 +181,12 @@ private:
 	// 关联股票映射表: code -> related_stock_codes
 	std::map<std::wstring, std::vector<std::wstring>> m_stock_related;
 
-	// 关联股票最高均幅: code -> max_avg_diff_percent
-	std::map<std::wstring, double> m_max_avg_diff;
-
-	// 关联股票最低均幅: code -> min_avg_diff_percent
-	std::map<std::wstring, double> m_min_avg_diff;
+	// 关联股票均幅统计: code -> {min, max, current}
+	std::map<std::wstring, AvgDiffStats> m_avg_diff_stats;
 
 	// 关联股票均值历史队列: code -> deque<avg_diff>，每5秒采样一次，最多60个（5分钟）
 	std::map<std::wstring, std::deque<double>> m_avg_diff_history;
+
+	// 每日重置跟踪：记录上次更新日期，跨天时自动清零
+	std::string m_avg_diff_last_date;
 };
