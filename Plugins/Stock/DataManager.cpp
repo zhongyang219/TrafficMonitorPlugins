@@ -342,10 +342,11 @@ void CDataManager::LoadFundNavCache()
 		if (timelineData && !timelineData->data.empty())
 		{
 			// 按时间匹配，将缓存的净值填入分时点的iopv字段
+			// 时间格式：分时数据为"HH:MM:SS"，缓存为"HH:MM"，用前缀匹配
 			size_t navIdx = 0;
 			for (auto& tp : timelineData->data)
 			{
-				if (navIdx < navPoints.size() && tp.time == navPoints[navIdx].time)
+				if (navIdx < navPoints.size() && tp.time.find(navPoints[navIdx].time) == 0)
 				{
 					tp.iopv = navPoints[navIdx].iopv;
 					navIdx++;
@@ -865,7 +866,7 @@ static RegResult CalcLinearReg(const std::deque<double>& win)
 	result.r2 = 0.0;
 
 	int n = static_cast<int>(win.size());
-	if (n < 12)
+	if (n < 6)
 		return result;
 
 	double Sx = 0, Sy = 0, Sxx = 0, Syy = 0, Sxy = 0;
@@ -917,8 +918,8 @@ RegResult CDataManager::Get1MinAvgTrend(const std::wstring& code)
 	}
 
 	const auto& queue = it->second;
-	// 取最近12个点（1分钟：12×5秒=60秒）
-	int startIdx = max(0, static_cast<int>(queue.size()) - 12);
+	// 取最近6个点（30秒：6×5秒=30秒）
+	int startIdx = max(0, static_cast<int>(queue.size()) - 6);
 	std::deque<double> win(queue.begin() + startIdx, queue.end());
 	return CalcLinearReg(win);
 }
@@ -1386,10 +1387,10 @@ void CDataManager::RequestFundIOPV(const std::wstring& stock_id)
 	{
 		CString strData(stock_data.c_str());
 		// 调试日志：输出API返回数据前200字符
-		{
+		/*{
 			std::string logMsg = "FundIOPV OK: " + CCommon::UnicodeToStr(stock_id.c_str()) + " len=" + std::to_string(stock_data.size()) + " data=" + stock_data.substr(0, 200);
 			CCommon::WriteLog(logMsg.c_str(), g_data.m_log_path.c_str());
-		}
+		}*/
 		stockMarket.LoadFundIOPVData(stock_id, strData);
 
 		// 将当前IOPV值按分钟保存到数据库
@@ -1724,7 +1725,7 @@ void CDataManager::RequestTimelineData(std::wstring stock_id)
 						size_t navIdx = 0;
 						for (auto& tp : timelineData->data)
 						{
-							if (navIdx < navPoints.size() && tp.time == navPoints[navIdx].time)
+							if (navIdx < navPoints.size() && tp.time.find(navPoints[navIdx].time) == 0)
 							{
 								tp.iopv = navPoints[navIdx].iopv;
 								navIdx++;

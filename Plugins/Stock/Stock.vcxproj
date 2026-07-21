@@ -259,6 +259,7 @@
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="FloatingWnd.h" />
     <ClInclude Include="SignalAnalyzer.h" />
+    <ClInclude Include="StockIndicator.h" />
     <ClInclude Include="SmartSignalTestDlg.h" />
     <ClInclude Include="StockFetchThread.h" />
     <ClInclude Include="framework.h" />
@@ -280,6 +281,7 @@
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="FloatingWnd.cpp" />
     <ClCompile Include="SignalAnalyzer.cpp" />
+    <ClCompile Include="StockIndicator.cpp" />
     <ClCompile Include="SmartSignalTestDlg.cpp" />
     <ClCompile Include="StockFetchThread.cpp" />
     <ClCompile Include="ManagerDialog.cpp" />

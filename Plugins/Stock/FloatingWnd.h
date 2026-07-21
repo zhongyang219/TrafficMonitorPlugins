@@ -6,6 +6,7 @@
 #include <StockDef.h>
 #include <TransparentWnd.h>
 #include "SignalAnalyzer.h"
+#include "StockIndicator.h"
 
 // 定义自定义消息
 #define FWND_MSG_UPDATE_STATUS (WM_USER + 100)
@@ -104,20 +105,10 @@ private:
 		STOCK::Price prevMa20{ 0 };
 	};
 
-	// MACD指标数据
-	struct MACDData {
-		double dif;
-		double dea;
-		double bar;
-		bool valid;
-	};
-
-	// MACD金叉死叉信号
-	enum class MACDCrossSignal {
-		None,       // 无信号
-		GoldenCross,// 金叉：DIF从下往上穿过DEA
-		DeathCross  // 死叉：DIF从上往下跌破DEA
-	};
+	// MACD指标数据类型别名（来自CStockIndicator，便于代码简洁）
+	using MACDData = CStockIndicator::MACDData;
+	using MACDCrossSignal = CStockIndicator::MACDCrossSignal;
+	using PeriodPoint = CStockIndicator::PeriodPoint;
 
 	void DrawHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight, const CString& macdTrendSignal = CString());
 	void DrawTimelineHeader(CDC& memDC, const TimelineDrawContext& ctx);
@@ -138,22 +129,6 @@ private:
 	void DrawTimelineTitleBars(CDC& memDC, const TimelineDrawContext& ctx, int priceChartTop, int volumeChartTop, int macdChartTop, int timelineTitleHeight);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1, int xAxisPoints = 0);
 	void DrawMACDChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData, const std::vector<MACDData>& macdData, int startIndex = 0, int visibleCount = -1);
-	std::vector<MACDData> CalculateTimelineMACD(const std::vector<STOCK::TimelinePoint>& timelinePoint);
-	std::vector<MACDData> CalculateKLineMACD(const std::vector<STOCK::KLinePoint>& klineData);
-	// 为每个分时数据点计算MA5/MA10/MA20滚动均价（修改timelinePoint中的ma5/ma10/ma20字段）
-	static void CalcAllRollingAvgPrices(std::vector<STOCK::TimelinePoint>& timelinePoint);
-	// 计算滚动均价：N分钟成交额/N分钟成交量（单次查询）
-	static STOCK::Price CalcRollingAvgPrice(const std::vector<STOCK::TimelinePoint>& timelinePoint, int nMinutes);
-	// 计算Y轴整齐刻度步长（Nice Number算法：1-2-3-4-5-10序列）
-	static double CalcNiceStep(double range, double divCount, double minStep = 0.001);
-	// 根据数据范围计算Y轴整齐边界（分时/竞价模式：带边距约束和负数保护）
-	static void CalcNiceAxisRange(double visMin, double visMax, double divCount, double minStep, double& outAxisMin, double& outAxisMax, double& outNiceStep);
-	// 根据数据范围计算Y轴整齐边界（K线模式：中心对称扩展）
-	static void CalcNiceAxisRangeSymmetric(double visMin, double visMax, double divCount, double minStep, double& outMin, double& outMax, double& outNiceStep);
-	std::vector<MACDCrossSignal> DetectMACDCross(const std::vector<MACDData>& macdData);
-	MACDCrossSignal GetLatestMACDCross(const std::vector<MACDData>& macdData);
-	CSignalAnalyzer::T0Signal DetectBuySignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
-	CSignalAnalyzer::T0Signal DetectSellSignal(const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<MACDData>& macdData);
 	void DrawTimelinePositionInfo(CDC& memDC, const TimelineDrawContext& ctx);
 	void DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawContext& ctx);
 
@@ -170,12 +145,6 @@ private:
 		const STOCK::StockInfo* stockInfo;
 	};
 
-	struct PeriodPoint {
-		int index;
-		STOCK::Price price;
-		std::string day;
-	};
-
 	struct LabelInfo {
 		int year;
 		int month;
@@ -184,7 +153,6 @@ private:
 
 	// K线图绘制公共辅助函数
 	KLineDrawData PrepareKLineDrawData(int x, int y, int w, int h, const std::vector<STOCK::KLinePoint>& klineData);
-	void CalculatePeriodHighsLows(const KLineDrawData& drawData, PeriodPoint periodHighs[3], PeriodPoint periodLows[3], bool useClose = false);
 	std::vector<LabelInfo> DrawKLineMonthLines(CDC& memDC, const KLineDrawData& drawData);
 	void DrawKLineMonthLabels(CDC& memDC, const KLineDrawData& drawData, const std::vector<LabelInfo>& labelInfos);
 	void DrawMin5HourLines(CDC& memDC, const KLineDrawData& drawData);
@@ -203,36 +171,17 @@ private:
 
 	void DrawKLineVolumeChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
 
-	// KDJ计算与绘制
-	struct KDJData {
-		double k;
-		double d;
-		double j;
-		bool valid;
-	};
-	std::vector<KDJData> CalculateKDJ(const std::vector<STOCK::KLinePoint>& klineData, int period = 9);
-	std::vector<KDJData> CalculateTimelineKDJ(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period = 9);
+	// KDJ绘制（指标计算已移至CStockIndicator）
+	using KDJData = CStockIndicator::KDJData;
 	void DrawKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::KLinePoint>& klineData);
 	void DrawTimelineKDJChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<KDJData>& kdjData, int startIndex = 0, int xAxisPoints = 0);
 
-	// W&R威廉指标计算与绘制
-	struct WRData {
-		double wr1;   // WR6（短期）
-		double wr2;   // WR14（长期）
-		bool valid;
-	};
-	std::vector<WRData> CalculateTimelineWR(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
-	std::vector<WRData> CalculateKLineWR(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
+	// W&R威廉指标绘制（指标计算已移至CStockIndicator）
+	using WRData = CStockIndicator::WRData;
 	void DrawTimelineWRChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<WRData>& wrData, int startIndex = 0, int xAxisPoints = 0);
 
-	// RSI相对强弱指标计算与绘制
-	struct RSIData {
-		double rsi1;   // RSI6（短期）
-		double rsi2;   // RSI14（长期）
-		bool valid;
-	};
-	std::vector<RSIData> CalculateTimelineRSI(const std::vector<STOCK::TimelinePoint>& timelinePoint, int period1 = 6, int period2 = 14);
-	std::vector<RSIData> CalculateKLineRSI(const std::vector<STOCK::KLinePoint>& klineData, int period1 = 6, int period2 = 14);
+	// RSI相对强弱指标绘制（指标计算已移至CStockIndicator）
+	using RSIData = CStockIndicator::RSIData;
 	void DrawTimelineRSIChart(CDC& memDC, int x, int y, int width, int height, const std::vector<STOCK::TimelinePoint>& timelinePoint, const std::vector<RSIData>& rsiData, int startIndex = 0, int xAxisPoints = 0);
 
 	// 走势图绘制

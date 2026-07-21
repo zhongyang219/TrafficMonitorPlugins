@@ -43,7 +43,7 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json, const std::vec
 	std::vector<std::string> lines = CCommon::split(CCommon::removeChar(json, '\n'), ";");
 	if (lines.size() < 1)
 	{
-		CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
+		CCommon::WriteLog("json is INVALID! lines.size < 1", g_data.m_log_path.c_str());
 		return;
 	}
 
@@ -58,7 +58,7 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json, const std::vec
 		std::vector<std::string> item_arr = CCommon::split(line, '=');
 		if (item_arr.size() <= 0)
 		{
-			CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
+			CCommon::WriteLog("json is INVALID! item_arr.size <= 0", g_data.m_log_path.c_str());
 			continue;
 		}
 
@@ -70,7 +70,7 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json, const std::vec
 
 		if (!stockData->info.is_ok)
 		{
-			CCommon::WriteLog("json is INVALID!", g_data.m_log_path.c_str());
+			CCommon::WriteLog("json is INVALID! stockData->info.is_ok =false", g_data.m_log_path.c_str());
 			continue;
 		}
 

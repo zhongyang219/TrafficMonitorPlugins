@@ -159,6 +159,9 @@ private:
 
 	// 数据库管理器：所有 SQLite 操作由此类负责
 	CStockDbManager m_db_mgr;
+public:
+	CStockDbManager& GetDbManager() { return m_db_mgr; }
+private:
 	static CDataManager m_instance;
 
 	std::wstring m_config_path;
