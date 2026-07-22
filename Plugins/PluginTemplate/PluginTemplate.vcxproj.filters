@@ -19,9 +19,6 @@
     <Filter Include="PluginTemplateItem">
       <UniqueIdentifier>{dea0bd8c-eff4-48bb-913e-262140be1154}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DataManager">
-      <UniqueIdentifier>{3e0d6e21-34df-4eaa-a06c-8362935b6899}</UniqueIdentifier>
-    </Filter>
     <Filter Include="对话框">
       <UniqueIdentifier>{6c31e635-2c3b-4a9d-b8da-3497016dae84}</UniqueIdentifier>
     </Filter>
@@ -38,9 +35,6 @@
     </ClInclude>
     <ClInclude Include="PluginTemplateItem.h">
       <Filter>PluginTemplateItem</Filter>
-    </ClInclude>
-    <ClInclude Include="DataManager.h">
-      <Filter>DataManager</Filter>
     </ClInclude>
     <ClInclude Include="OptionsDlg.h">
       <Filter>对话框</Filter>
@@ -59,9 +53,6 @@
     <ClCompile Include="PluginTemplateItem.cpp">
       <Filter>PluginTemplateItem</Filter>
     </ClCompile>
-    <ClCompile Include="DataManager.cpp">
-      <Filter>DataManager</Filter>
-    </ClCompile>
     <ClCompile Include="OptionsDlg.cpp">
       <Filter>对话框</Filter>
     </ClCompile>
@@ -70,5 +61,10 @@
     <ResourceCompile Include="PluginTemplate.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\icon.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

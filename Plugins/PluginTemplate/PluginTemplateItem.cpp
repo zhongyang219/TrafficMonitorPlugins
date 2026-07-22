@@ -1,10 +1,10 @@
 ﻿#include "pch.h"
 #include "PluginTemplateItem.h"
-#include "DataManager.h"
+#include "PluginTemplate.h"
 
 const wchar_t* CPluginTemplateItem::GetItemName() const
 {
-    return g_data.StringRes(IDS_PLUGIN_ITEM_NAME);
+    return g_plugin.StringRes(IDS_PLUGIN_ITEM_NAME);
 }
 
 const wchar_t* CPluginTemplateItem::GetItemId() const

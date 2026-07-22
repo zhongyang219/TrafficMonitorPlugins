@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "DataManager.h"
+#include "PluginTemplate.h"
 
 // COptionsDlg 对话框
 

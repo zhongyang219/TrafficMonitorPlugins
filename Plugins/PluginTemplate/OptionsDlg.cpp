@@ -4,8 +4,6 @@
 #include "pch.h"
 #include "PluginTemplate.h"
 #include "OptionsDlg.h"
-#include "afxdialogex.h"
-#include "DataManager.h"
 
 // COptionsDlg 对话框
 

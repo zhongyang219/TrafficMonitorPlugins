@@ -236,7 +236,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="DataManager.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="pch.h" />
@@ -245,7 +244,6 @@
     <ClInclude Include="PluginTemplateItem.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -260,6 +258,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PluginTemplate.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
