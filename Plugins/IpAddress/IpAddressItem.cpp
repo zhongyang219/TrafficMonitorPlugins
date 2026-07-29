@@ -21,7 +21,10 @@ const wchar_t* CIpAddressItem::GetItemValueText() const
 {
     static std::wstring ipv4_addr;
     if (g_data.GetLocalIPv4Address(ipv4_addr))
-        return ipv4_addr.c_str();
+        if (ipv4_addr == L"0.0.0.0")
+            return L"<disconnected>";
+        else
+            return ipv4_addr.c_str();
     return L"";
 }
 

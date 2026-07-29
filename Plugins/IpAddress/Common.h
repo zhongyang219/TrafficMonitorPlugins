@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <string>
+
 class CCommon
 {
 public:
@@ -8,4 +9,9 @@ public:
 
     static std::string UnicodeToStr(const wchar_t* wstr, bool utf8 = false);
 
+    //获取URL的内容
+    static bool GetURL(const std::wstring& url, std::string& result, bool utf8 = false, const std::wstring& user_agent = std::wstring());
+
+    //将一个字符串转换成URL编码（以UTF8编码格式）
+    static std::wstring URLEncode(const std::wstring& wstr);
 };
