@@ -57,7 +57,14 @@ BOOL CManagerDialog::OnInitDialog()
 
     for (const auto &stock_code : m_data.m_stock_codes)
     {
-        m_stock_listbox.AddString(stock_code.c_str());
+        // 获取股票数据，显示"股票代码 - 股票名称"格式
+        auto stockData = g_data.GetStockData(stock_code);
+        std::wstring displayText = stock_code;
+        if (stockData && !stockData->info.displayName.empty())
+        {
+            displayText += L" - " + stockData->info.displayName;
+        }
+        m_stock_listbox.AddString(displayText.c_str());
     }
 
     for (int i = 0; i < m_stock_listbox.GetCount(); i++)
@@ -122,7 +129,14 @@ void CManagerDialog::OnAddBtnClick()
             }
             Log1("OnAddBtnClick: %s\n", stock_code.c_str());
             m_data.m_stock_codes.push_back(stock_code.c_str());
-            m_stock_listbox.AddString(stock_code.c_str());
+            // 获取股票数据，显示"股票代码 - 股票名称"格式
+            auto stockData = g_data.GetStockData(stock_code);
+            std::wstring displayText = stock_code;
+            if (stockData && !stockData->info.displayName.empty())
+            {
+                displayText += L" - " + stockData->info.displayName;
+            }
+            m_stock_listbox.AddString(displayText.c_str());
         }
     }
 }
@@ -176,9 +190,17 @@ void CManagerDialog::OnLbnDblclkMgrList()
         {
             if (!dlg.m_stock_code.IsEmpty())
             {
-                m_data.m_stock_codes[index] = dlg.m_stock_code;
+                std::wstring stock_code = dlg.m_stock_code.GetString();
+                m_data.m_stock_codes[index] = stock_code;
                 m_stock_listbox.DeleteString(index);
-                m_stock_listbox.InsertString(index, dlg.m_stock_code);
+                // 获取股票数据，显示"股票代码 - 股票名称"格式
+                auto stockData = g_data.GetStockData(stock_code);
+                std::wstring displayText = stock_code;
+                if (stockData && !stockData->info.displayName.empty())
+                {
+                    displayText += L" - " + stockData->info.displayName;
+                }
+                m_stock_listbox.InsertString(index, displayText.c_str());
             }
         }
     }
