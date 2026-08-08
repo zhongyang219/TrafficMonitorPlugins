@@ -116,6 +116,28 @@
 
 ---
 
+### StockPlus 股票增强插件
+
+![StockPlus截图1](../images/image-202607130001.png)
+
+![StockPlus截图2](../images/image-202607130002.png)
+
+股票插件的增强版，相比原股票插件增加了以下功能：
+
+- 支持香港交易所（`rt_hk`）和美股（`gb_`）股票
+- 显示买卖五档盘口数据
+- 分时走势图展示
+- 浮动窗口显示详细行情信息
+- 便捷的股票管理功能
+
+* 下载链接：
+
+  GitHub: [Release StockPlus_V1.00 · zhongyang219/TrafficMonitorPlugins](https://github.com/zhongyang219/TrafficMonitorPlugins/releases/tag/StockPlus_V1.00)
+
+  Gitee: [StockPlus_V1.00 · zhongyang219/TrafficMonitorPlugins - Gitee.com](https://gitee.com/zhongyang219/TrafficMonitorPlugins/releases/tag/StockPlus_V1.00)
+
+---
+
 ### 电池功耗检测插件
 
 ![](images/155976271-b3e58b7a-d3ec-442d-8107-c0c69a2d7610.png)

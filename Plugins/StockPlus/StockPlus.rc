@@ -1,0 +1,561 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 178, 90
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "股票设置"
+FONT 9, "微软雅黑", 400, 0, 0x86
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,65,69,50,14
+    PUSHBUTTON      "取消",IDCANCEL,121,69,50,14
+    LTEXT           "代码：",IDC_CODE_LABEL,7,8,23,8
+    EDITTEXT        IDC_CODE_EDIT,33,7,138,12,ES_AUTOHSCROLL
+    GROUPBOX        "股票类型",IDC_STATIC,7,23,164,42
+    CONTROL         "深证",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,35,32,10
+    CONTROL         "港股",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,51,35,32,10
+    CONTROL         "北交所",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,87,35,40,10
+    CONTROL         "上证",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,131,35,32,10
+    CONTROL         "美股",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,49,32,10
+    CONTROL         "其他（需要前缀）",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,51,49,96,10
+END
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 172
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "股票管理"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "确定",IDOK,115,153,45,14
+    PUSHBUTTON      "取消",IDCANCEL,166,153,45,14
+    PUSHBUTTON      "添加",IDC_MGR_ADD_BTN,17,153,35,14
+    PUSHBUTTON      "删除",IDC_MGR_DEL_BTN,66,153,35,14
+    CONTROL         "全天更新",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,19,69,10
+    CONTROL         "涨跌颜色标识",IDC_COLOR_WITH_PRICE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,31,69,10
+    GROUPBOX        "配置",IDC_STATIC,112,7,98,48
+    GROUPBOX        "显示位置",IDC_STATIC,112,58,98,44
+    CONTROL         "位置1",IDC_POS1_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,70,40,10
+    CONTROL         "位置2",IDC_POS2_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,70,40,10
+    CONTROL         "位置3",IDC_POS3_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,82,40,10
+    CONTROL         "位置4",IDC_POS4_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,82,40,10
+    GROUPBOX        "走势图",IDC_STATIC,112,106,98,44
+    LTEXT           "宽度",IDC_STATIC,118,118,17,8
+    EDITTEXT        IDC_KLINE_WIDTH_EDIT,138,117,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "高度",IDC_STATIC,118,132,17,8
+    EDITTEXT        IDC_KLINE_HEIGHT_EDIT,138,131,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "股票清单",IDC_STATIC,7,7,103,158
+    LISTBOX         IDC_MGR_LIST,9,18,99,135,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_QUICK_ADD_DIALOG DIALOGEX 0, 0, 214, 126
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "快速添加股票"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    LTEXT           "搜索：",IDC_STATIC,7,9,25,8
+    EDITTEXT        IDC_QA_SEARCH,35,7,172,12,ES_AUTOHSCROLL
+    LISTBOX         IDC_QA_LIST,7,24,200,84,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "确定",IDOK,103,105,50,14
+    PUSHBUTTON      "取消",IDCANCEL,157,105,50,14
+END
+
+IDD_STOCK_LIST_DIALOG DIALOGEX 0, 0, 280, 180
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "股票列表"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_STOCK_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,266,146
+    PUSHBUTTON      "刷新",IDC_REFRESH_BTN,7,160,50,14
+    DEFPUSHBUTTON   "关闭",IDOK,220,160,50,14
+END
+
+IDD_STOCK_DETAIL_DIALOG DIALOGEX 0, 0, 300, 320
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "股票详情"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_DETAIL_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,286,286
+    PUSHBUTTON      "刷新",IDC_REFRESH_BTN,7,300,50,14
+    DEFPUSHBUTTON   "关闭",IDOK,240,300,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 171
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+
+    IDD_MANAGER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 119
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+IDD_SELECT_CITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0
+END
+
+IDD_MANAGER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 0, 0, 0,
+    100, 0, 0, 0,
+    0, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,4,1,1
+ PRODUCTVERSION 1,4,1,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "By CListery"
+            VALUE "FileVersion", "1.4.1.1"
+            VALUE "InternalName", "StockPlus.dll"
+            VALUE "LegalCopyright", "Copyright (C) By luox-e. All rights reserved."
+            VALUE "OriginalFilename", "StockPlus.dll"
+            VALUE "ProductName", "StockPlus Plugin for TrafficMonitor"
+            VALUE "ProductVersion", "1.4.1.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "快速添加股票(&Q)...",            ID_QUICK_ADD
+        MENUITEM "轮播(&C)",                       ID_TOGGLE_CAROUSEL
+        MENUITEM SEPARATOR
+        MENUITEM "管理股票列表(&O)...",               ID_OPTIONS
+        MENUITEM "更新股票信息(&U)",                  ID_UPDATE
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_STOCK               ICON                    "res\\icon.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "股票插件"
+    IDS_PLUGIN_DESCRIPTION  "用于TrafficMonitor的股票插件。"
+    IDS_PLUGIN_ITEM_NAME    "股票轮播"
+    IDS_MENU_STOCK_MANAGE   "管理股票列表(&O)..."
+    IDS_MENU_UPDATE_STOCK   "更新股票信息(&U)"
+    IDS_ADD_STOCK           "添加股票"
+    IDS_EDIT_STOCK          "编辑股票"
+    IDS_CHANGE_STOCK_TIP    "更新股票列表后需要重新启动TrafficMonitor才能生效。"
+    IDS_STOCK_NUM_LIMIT_WARNING "股票数量已达到上限！"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP "暂不支持除A股外的K线走势！"
+    IDS_LOAD_FAIL           "加载失败"
+    IDS_LOADING             "加载中"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_QUICK_ADD           "快速添加股票(&Q)..."
+    IDS_QA_SEARCHING        "搜索中..."
+    IDS_QA_NO_RESULT        "无结果"
+    IDS_STOCK_ADDED         "已添加："
+    IDS_STOCK_EXISTS        "该股票已在列表中。"
+    IDS_STOCK_LIST          "股票列表"
+    IDS_COL_NAME            "名称"
+    IDS_COL_PRICE           "股价"
+    IDS_COL_PERCENT         "涨跌幅"
+    IDS_COL_ITEM            "项目"
+    IDS_COL_VALUE           "数值"
+    IDS_COL_CHANGE          "涨跌额"
+    IDS_COL_PREVCLOSE       "昨收"
+    IDS_COL_OPEN            "开盘"
+    IDS_COL_HIGH            "最高"
+    IDS_COL_LOW             "最低"
+    IDS_COL_VOLUME          "成交量"
+    IDS_COL_TURNOVER        "成交额"
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英语(美国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MANAGER_DIALOG DIALOGEX 0, 0, 214, 172
+STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Stock Manage"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,115,153,45,14
+    PUSHBUTTON      "Cancel",IDCANCEL,166,153,45,14
+    PUSHBUTTON      "Add",IDC_MGR_ADD_BTN,17,153,35,14
+    PUSHBUTTON      "Remove",IDC_MGR_DEL_BTN,66,153,35,14
+    CONTROL         "All day updates",IDC_FULL_DAY_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,19,69,10
+    CONTROL         "Show colors",IDC_COLOR_WITH_PRICE_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,31,69,10
+    GROUPBOX        "Configure",IDC_STATIC,112,7,98,48
+    GROUPBOX        "Positions",IDC_STATIC,112,58,98,44
+    CONTROL         "Pos1",IDC_POS1_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,70,40,10
+    CONTROL         "Pos2",IDC_POS2_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,70,40,10
+    CONTROL         "Pos3",IDC_POS3_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,118,82,40,10
+    CONTROL         "Pos4",IDC_POS4_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,160,82,40,10
+    GROUPBOX        "K-Line",IDC_STATIC,112,106,98,44
+    LTEXT           "Width",IDC_STATIC,118,118,22,8
+    EDITTEXT        IDC_KLINE_WIDTH_EDIT,145,117,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Height",IDC_STATIC,118,132,22,8
+    EDITTEXT        IDC_KLINE_HEIGHT_EDIT,145,131,40,12,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "Stock list",IDC_STATIC,7,7,103,158
+    LISTBOX         IDC_MGR_LIST,9,18,99,135,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_QUICK_ADD_DIALOG DIALOGEX 0, 0, 214, 126
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Quick Add Stock"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    LTEXT           "Search:",IDC_STATIC,7,9,28,8
+    EDITTEXT        IDC_QA_SEARCH,37,7,173,12,ES_AUTOHSCROLL
+    LISTBOX         IDC_QA_LIST,7,24,200,84,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,103,105,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,157,105,50,14
+END
+
+IDD_STOCK_LIST_DIALOG DIALOGEX 0, 0, 280, 180
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Stock List"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_STOCK_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,266,146
+    PUSHBUTTON      "Refresh",IDC_REFRESH_BTN,7,160,50,14
+    DEFPUSHBUTTON   "Close",IDOK,220,160,50,14
+END
+
+IDD_STOCK_DETAIL_DIALOG DIALOGEX 0, 0, 300, 320
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Stock Detail"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_DETAIL_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,286,286
+    PUSHBUTTON      "Refresh",IDC_REFRESH_BTN,7,300,50,14
+    DEFPUSHBUTTON   "Close",IDOK,240,300,50,14
+END
+
+IDD_OPTIONS_DIALOG DIALOGEX 0, 0, 213, 90
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Stock"
+FONT 9, "Segoe UI", 400, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,101,69,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,156,69,50,14
+    LTEXT           "Code:",IDC_CODE_LABEL,7,9,28,8
+    EDITTEXT        IDC_CODE_EDIT,37,7,169,12,ES_AUTOHSCROLL
+    GROUPBOX        "Stock type",IDC_STATIC,7,23,199,42
+    CONTROL         "Shenzheng",IDC_RADIO_SZ,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,35,52,10
+    CONTROL         "Ganggu",IDC_RADIO_HK,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,68,35,41,10
+    CONTROL         "Beijiaosuo",IDC_RADIO_BJ,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,111,35,50,10
+    CONTROL         "Shangzheng",IDC_RADIO_SH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,50,58,10
+    CONTROL         "Meigu",IDC_RADIO_GB,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,164,35,32,10
+    CONTROL         "Other (prefix required)",IDC_RADIO_OTHER,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,50,96,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_MANAGER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 120
+    END
+
+    IDD_OPTIONS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 206
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_MANAGER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 100, 100,
+    100, 0, 0, 0,
+    100, 0, 0, 0,
+    0, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+IDD_OPTIONS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "1"
+    BEGIN
+        MENUITEM "&Quick Add Stock...",          ID_QUICK_ADD
+        MENUITEM "&Carousel",                     ID_TOGGLE_CAROUSEL
+        MENUITEM SEPARATOR
+        MENUITEM "Stock List &Manage...",       ID_OPTIONS
+        MENUITEM "&Update Stock Info",          ID_UPDATE
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_PLUGIN_NAME         "Stock Plugin"
+    IDS_PLUGIN_DESCRIPTION  "Stock plugin for TrafficMonitor."
+    IDS_PLUGIN_ITEM_NAME    "Stock Carousel"
+    IDS_MENU_STOCK_MANAGE   "Stock List &Manage..."
+    IDS_MENU_UPDATE_STOCK   "&Update Stock Info"
+    IDS_ADD_STOCK           "Add Stock"
+    IDS_EDIT_STOCK          "Edit Stock"
+    IDS_CHANGE_STOCK_TIP    "It is required to restart TrafficMonitor to take effect after the stock list is updated."
+    IDS_STOCK_NUM_LIMIT_WARNING "The number of stocks has reached limit!"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_UNSUPPORT_SHOW_KLINE_STOCK_TIP 
+                            "K-line trends other than A-shares are not supported yet!"
+    IDS_LOAD_FAIL           "Load Fail"
+    IDS_LOADING             "Loading"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_QUICK_ADD           "&Quick Add Stock..."
+    IDS_QA_SEARCHING        "Searching..."
+    IDS_QA_NO_RESULT        "No result"
+    IDS_STOCK_ADDED         "Added: "
+    IDS_STOCK_EXISTS        "This stock is already in the list."
+    IDS_STOCK_LIST          "Stock List"
+    IDS_COL_NAME            "Name"
+    IDS_COL_PRICE           "Price"
+    IDS_COL_PERCENT         "Change"
+    IDS_COL_ITEM            "Item"
+    IDS_COL_VALUE           "Value"
+    IDS_COL_CHANGE          "Change"
+    IDS_COL_PREVCLOSE       "Prev Close"
+    IDS_COL_OPEN            "Open"
+    IDS_COL_HIGH            "High"
+    IDS_COL_LOW             "Low"
+    IDS_COL_VOLUME          "Volume"
+    IDS_COL_TURNOVER        "Turnover"
+END
+
+#endif    // 英语(美国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
