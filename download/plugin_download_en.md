@@ -319,3 +319,13 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### OpenCode Go Usage Monitor Plugin
+
+This is a TrafficMonitor plugin that displays the usage of the OpenCode Go subscription (rolling 5-hour / weekly / monthly usage percentage and reset time) on the taskbar, and automatically falls back to a local opencode.db estimate when the official data cannot be fetched.
+
+![](https://github.com/Maxwelltoo/TM-OpenCodeGo/raw/main/images/image.png)
+
+* Author: [Maxwelltoo](https://github.com/Maxwelltoo)
+* Homepage: [Maxwelltoo/TM-OpenCodeGo: TrafficMonitor's OpenCode Go usage display plugin](https://github.com/Maxwelltoo/TM-OpenCodeGo)
+* Download url: https://github.com/Maxwelltoo/TM-OpenCodeGo/releases/tag/v1.0.0
+
