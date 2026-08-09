@@ -331,3 +331,13 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### OpenCode Go 用量显示插件
+
+这是一个 TrafficMonitor 插件，用于在任务栏显示 OpenCode Go 订阅的用量（滚动 5 小时 / 每周 / 每月用量百分比与重置时间），官方数据获取失败时自动回退到本地 opencode.db 估算。
+
+![](https://github.com/Maxwelltoo/TM-OpenCodeGo/raw/main/images/image.png)
+
+* 作者：[Maxwelltoo](https://github.com/Maxwelltoo)
+* 主页：[Maxwelltoo/TM-OpenCodeGo: TrafficMonitor的OpenCode Go用量显示插件](https://github.com/Maxwelltoo/TM-OpenCodeGo)
+* 下载链接：https://github.com/Maxwelltoo/TM-OpenCodeGo/releases/tag/v1.0.0
+
