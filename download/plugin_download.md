@@ -302,6 +302,16 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 主页：[trafficmonitor-ai-usage-plugin/README.zh-CN.md at main · bemaru/trafficmonitor-ai-usage-plugin](https://github.com/bemaru/trafficmonitor-ai-usage-plugin/blob/main/README.zh-CN.md)
 * 下载链接：https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
 
+### Claude Usage Monitor 插件
+
+这是一个 TrafficMonitor 插件，用于复用 Claude Code 本地的登录凭据调用 Anthropic 的 OAuth 用量接口，在主窗口/任务栏显示 Claude 的 5 小时与 7 天额度用量及距离窗口重置的剩余时间，支持阈值变色与进度条自绘。
+
+![](https://github.com/littleji/claude-usage-monitor/blob/main/example.png)
+
+* 作者：[littleji](https://github.com/littleji)
+* 主页：[littleji/claude-usage-monitor: TrafficMonitor 的 Claude 用量显示插件](https://github.com/littleji/claude-usage-monitor)
+* 下载链接：https://github.com/littleji/claude-usage-monitor/releases/latest
+
 ### CodexUsage TrafficMonitor 插件
 
 这是一个 TrafficMonitor 插件，用于从 ChatGPT 的用量接口获取并显示 Codex 剩余用量。

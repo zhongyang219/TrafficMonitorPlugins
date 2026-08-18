@@ -289,6 +289,15 @@ Taskbar usage limits for Claude and Codex through [TrafficMonitor](https://githu
 
 * Download url: https://github.com/bemaru/trafficmonitor-ai-usage-plugin/releases/latest
 
+### Claude Usage Monitor Plugin
+
+This is a TrafficMonitor plugin that reuses the existing Claude Code local credentials to call Anthropic's OAuth usage API, and displays Claude's 5-hour and 7-day quota utilization along with the time remaining until each window resets. Supports threshold-based coloring and a custom-drawn progress bar.
+
+![](https://github.com/littleji/claude-usage-monitor/blob/main/example.png))
+
+* Author: [littleji](https://github.com/littleji)
+* Homepage: [littleji/claude-usage-monitor: Claude usage display plugin for TrafficMonitor](https://github.com/littleji/claude-usage-monitor)
+* Download url: https://github.com/littleji/claude-usage-monitor/releases/latest
 
 ### CodexUsage TrafficMonitor Plugin
 
