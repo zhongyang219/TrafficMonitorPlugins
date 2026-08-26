@@ -13,4 +13,7 @@
     <plugin file_name="TrafficMonitorLuaPlugin.dll" version="1.0"/>
     <plugin file_name="KeyboardIndicator.dll" version="1.00"/>
     <plugin file_name="LoudnessMeter.dll" version="1.00"/>
+    <plugin file_name="CodexUsage.dll" version="0.4.4"/>
+    <plugin file_name="CursorUsage.dll" version="0.1.7"/>
+    <plugin file_name="Top2Processes.dll" version="1.4.0"/>
 </plugins>

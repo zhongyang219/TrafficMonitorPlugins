@@ -331,3 +331,38 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+### CodexUsage（alonehobo 增强版，基于 HCLonely 插件）
+
+这是 [HCLonely/TrafficMonitor_Codex_Plugin](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin) 的分支增强版。在原有周限额、累计重置与令牌统计基础上，新增 **5 小时限额剩余**，并支持跟随 TrafficMonitor 语言设置的中文 / 英文 / 俄文界面与显示格式选项。
+
+![](images/codexusage-alonehobo-taskbar.png)
+
+![](images/codexusage-alonehobo-settings-format.png)
+
+![](images/codexusage-alonehobo-settings-tokens.png)
+
+* 作者:[alonehobo](https://github.com/alonehobo)
+* 原作者:[HCLonely](https://github.com/HCLonely)
+* 主页:[alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* 下载地址:https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/CodexUsage-v0.4.4
+
+### CursorUsage
+
+用于在任务栏显示 Cursor 个人账号的套餐剩余、Cursor 模型 / 其他模型剩余、账单重置时间以及令牌与连续使用统计。界面语言跟随 TrafficMonitor（中文 / 英文 / 俄文）。
+
+![](images/cursorusage-alonehobo-taskbar.png)
+
+* 作者:[alonehobo](https://github.com/alonehobo)
+* 主页:[alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* 下载地址:https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/CursorUsage-v0.1.7
+
+### Top2Processes
+
+在任务栏显示 CPU、内存、磁盘、网络占用最高的前 2 个进程。界面语言跟随 TrafficMonitor（中文 / 英文 / 俄文）。
+
+![](images/top2processes-alonehobo-taskbar.png)
+
+* 作者:[alonehobo](https://github.com/alonehobo)
+* 主页:[alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* 下载地址:https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/Top2Processes-v1.4.0
