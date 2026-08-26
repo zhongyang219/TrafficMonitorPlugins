@@ -319,3 +319,38 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+### CodexUsage (alonehobo fork of HCLonely)
+
+A maintained fork of [HCLonely/TrafficMonitor_Codex_Plugin](https://github.com/HCLonely/TrafficMonitor_Codex_Plugin). In addition to weekly remaining, banked resets and token statistics, it adds **5-hour remaining usage**, configurable display formats, and Russian / English / Chinese UI following TrafficMonitor language settings.
+
+![](images/codexusage-alonehobo-taskbar.png)
+
+![](images/codexusage-alonehobo-settings-format.png)
+
+![](images/codexusage-alonehobo-settings-tokens.png)
+
+* Author: [alonehobo](https://github.com/alonehobo)
+* Original author: [HCLonely](https://github.com/HCLonely)
+* Homepage: [alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* Download url: https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/CodexUsage-v0.4.4
+
+### CursorUsage
+
+Shows Cursor personal-account plan remaining, Cursor models / other models remaining, billing reset time, and token / streak statistics on the taskbar. UI language follows TrafficMonitor (Chinese / English / Russian).
+
+![](images/cursorusage-alonehobo-taskbar.png)
+
+* Author: [alonehobo](https://github.com/alonehobo)
+* Homepage: [alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* Download url: https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/CursorUsage-v0.1.7
+
+### Top2Processes
+
+Shows the top 2 processes by CPU, memory, disk and network usage on the taskbar. UI language follows TrafficMonitor (Chinese / English / Russian).
+
+![](images/top2processes-alonehobo-taskbar.png)
+
+* Author: [alonehobo](https://github.com/alonehobo)
+* Homepage: [alonehobo/TrafficMonitorPlugins](https://github.com/alonehobo/TrafficMonitorPlugins)
+* Download url: https://github.com/alonehobo/TrafficMonitorPlugins/releases/tag/Top2Processes-v1.4.0
