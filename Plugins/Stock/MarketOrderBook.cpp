@@ -124,7 +124,7 @@ void MarketOrderBook::RefreshTransCache()
 		m_transCode = m_code;
 		m_lastTransRefreshTick = now;
 		m_transLines.clear();
-		auto raw = g_data.GetDbManager().LoadLatestTransactions(m_code, 10);
+		auto raw = g_data.GetDbManager().LoadLatestTransactions(m_code, 20);
 		for (auto& t : raw)
 		{
 			// ETF 成交价格在DB中被Python放大了10倍，此处除以10还原

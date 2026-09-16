@@ -552,6 +552,25 @@ namespace STOCK
 		bool isAskSide{ true };       // true=卖方，false=买方
 	};
 
+	// 盘口分钟级快照单档记录
+	// 每档 = 盘口挂单信息 + 该价格对应的累计主动成交量（与盘口界面明细同口径，tick_trade聚合）
+	struct OrderBookLevelSnapshot
+	{
+		bool isAsk{ true };          // true=卖盘, false=买盘
+		int levelIndex{ 0 };         // 档位下标 0~4（0=卖一/买一）
+		double price{ 0.0 };         // 档位价格
+		long long orderVolume{ 0 };  // 该档挂单量
+		long long cumActiveBuyVol{ 0 };  // 该价格累计主动买入量（无记录为0）
+		long long cumActiveSellVol{ 0 }; // 该价格累计主动卖出量（无记录为0）
+	};
+
+	// 盘口分钟级快照记录（每60秒持久化一次）
+	struct OrderBookSnapshotRecord
+	{
+		time_t snapshotTime{ 0 };      // 快照时间戳
+		std::vector<OrderBookLevelSnapshot> levels;  // 有效档位（价格>0，卖5+买5最多10条）
+	};
+
 	// 内外盘2秒采样数据（增量净比+增量成交量）
 	struct VolumeSample {
 		double netRatio;      // 增量净比 (Δ外-Δ内)/(Δ外+Δ内)*100
@@ -764,6 +783,7 @@ namespace STOCK
 		time_t lastSampleTime{ 0 }; // 上次采样时间（2秒间隔去重）
 		time_t lastSaveTime{ 0 };   // 上次持久化时间（5秒间隔）
 		time_t lastMinSampleTime{ 0 }; // 上次分钟级采样时间（1分钟间隔）
+		time_t lastOrderBookSaveTime{ 0 }; // 上次盘口快照持久化时间（1分钟间隔）
 		Volume lastInnerVolume{ 0 };  // 上次采样的内盘累计值（用于算增量）
 		Volume lastOuterVolume{ 0 };  // 上次采样的外盘累计值（用于算增量）
 
@@ -849,6 +869,8 @@ namespace STOCK
 		// 更新内外盘采样并持久化（与数据来源解耦，任何数据源更新后都应调用）
 		void UpdateVolumeSample();
 		void UpdateOrderPriceAccum();  // 更新五档挂单变化量（+N/-N）
+		// 每分钟持久化一次盘口快照（五档挂单+累计主动买卖量），内部1分钟去重
+		void SaveOrderBookSnapshot();
 
 		// 从secVolumePool获取加权平均净比和净差（minutes: 1/5/10/20）
 		// 不足目标条数时有多少根就计算多少根

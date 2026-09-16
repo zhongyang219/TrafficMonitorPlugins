@@ -146,6 +146,40 @@ bool CStockDbManager::Init(const std::wstring& config_path)
 	rc = sqlite3_exec(m_db, innerOuterSql, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) sqlite3_free(errMsg);
 
+	// 盘口分钟级快照表：每分钟记录每档盘口（价格/挂单量）+ 该价格对应的累计主动成交量
+	// 10档列直存便于SQL统计：a=b_{1..5}/s_{1..5}；同一时刻每个档位一行，(code, time, is_ask, level_idx) 唯一
+	const char* orderBookSnapSql = "CREATE TABLE IF NOT EXISTS order_book_snapshots ("
+		"stock_code TEXT NOT NULL,"
+		"snapshot_time INTEGER NOT NULL,"      // 快照时间戳(秒)
+		"is_ask INTEGER NOT NULL,"             // 0=买盘, 1=卖盘
+		"level_idx INTEGER NOT NULL,"          // 档位下标 0~4（0=一档）
+		"price REAL NOT NULL,"                 // 档位价格
+		"order_volume INTEGER NOT NULL,"       // 该档挂单量
+		"cum_active_buy_vol INTEGER NOT NULL,"   // 该价格累计主动买入量（tick_trade聚合，界面同口径）
+		"cum_active_sell_vol INTEGER NOT NULL,"  // 该价格累计主动卖出量
+		"PRIMARY KEY(stock_code, snapshot_time, is_ask, level_idx)"
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, orderBookSnapSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK) sqlite3_free(errMsg);
+
+	// 预估成交量记录表：双击盘口行录入的"买入时"快照（实时列不入库）
+	const char* orderBookEstSql = "CREATE TABLE IF NOT EXISTS order_book_estimates ("
+		"id INTEGER PRIMARY KEY AUTOINCREMENT,"
+		"stock_code TEXT NOT NULL,"
+		"trade_date TEXT NOT NULL,"          // "YYYY-MM-DD"
+		"create_time INTEGER NOT NULL,"      // 创建时间戳(秒)
+		"trade_type INTEGER NOT NULL,"       // 0=买入, 1=卖出
+		"buy_price REAL NOT NULL,"           // 买入价格
+		"total_amount INTEGER NOT NULL,"     // 总数量
+		"order_volume INTEGER NOT NULL,"     // 当前挂单量(买入时)
+		"cum_volume INTEGER NOT NULL,"       // 当前累计成交量(买入时)
+		"est_volume INTEGER NOT NULL"        // 买入预计成交累积量(=挂单量+累计成交量)
+		");";
+	errMsg = nullptr;
+	rc = sqlite3_exec(m_db, orderBookEstSql, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK) sqlite3_free(errMsg);
+
 	const char* chipSql = "CREATE TABLE IF NOT EXISTS chip_distributions ("
 		"stock_code TEXT NOT NULL,"
 		"trade_date TEXT NOT NULL,"
@@ -400,6 +434,16 @@ void CStockDbManager::CleanExpiredData()
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 	}
+
+	// 盘口分钟级快照只保留7天
+	const char* cleanOrderBookSnapSql = "DELETE FROM order_book_snapshots WHERE snapshot_time < ?;";
+	stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, cleanOrderBookSnapSql, -1, &stmt, nullptr) == SQLITE_OK)
+	{
+		sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(cutoffTime7d));
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	}
 }
 
 bool CStockDbManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
@@ -470,6 +514,252 @@ std::vector<std::tuple<time_t, STOCK::Volume, STOCK::Volume>> CStockDbManager::L
 	}
 	sqlite3_finalize(stmt);
 	return result;
+}
+
+bool CStockDbManager::SaveOrderBookSnapshot(const std::wstring& stockCode, const STOCK::OrderBookSnapshotRecord& record)
+{
+	if (m_db == nullptr || record.levels.empty()) return false;	// 所有档位均无成交时本次不保存
+
+	// 同一快照的最多10行放在一个事务里，保证原子性且减少WAL写入次数
+	if (sqlite3_exec(m_db, "BEGIN IMMEDIATE;", nullptr, nullptr, nullptr) != SQLITE_OK)
+		return false;
+
+	bool ok = true;
+	const char* sql = "INSERT OR REPLACE INTO order_book_snapshots(stock_code, snapshot_time, is_ask, level_idx, price, order_volume, cum_active_buy_vol, cum_active_sell_vol) VALUES(?, ?, ?, ?, ?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK)
+	{
+		sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+
+	for (const auto& lv : record.levels)
+	{
+		sqlite3_reset(stmt);
+		sqlite3_clear_bindings(stmt);
+		sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(record.snapshotTime));
+		sqlite3_bind_int(stmt, 3, lv.isAsk ? 1 : 0);
+		sqlite3_bind_int(stmt, 4, lv.levelIndex);
+		sqlite3_bind_double(stmt, 5, lv.price);
+		sqlite3_bind_int64(stmt, 6, static_cast<sqlite3_int64>(lv.orderVolume));
+		sqlite3_bind_int64(stmt, 7, static_cast<sqlite3_int64>(lv.cumActiveBuyVol));
+		sqlite3_bind_int64(stmt, 8, static_cast<sqlite3_int64>(lv.cumActiveSellVol));
+		if (sqlite3_step(stmt) != SQLITE_DONE)
+			ok = false;
+	}
+	sqlite3_finalize(stmt);
+
+	if (!ok)
+	{
+		sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+	sqlite3_exec(m_db, "COMMIT;", nullptr, nullptr, nullptr);
+	return true;
+}
+
+std::vector<STOCK::OrderBookSnapshotRecord> CStockDbManager::LoadOrderBookSnapshots(
+	const std::wstring& stockCode, time_t startTime)
+{
+	std::vector<STOCK::OrderBookSnapshotRecord> result;
+	if (m_db == nullptr) return result;
+
+	// 时间升序 + 卖盘在前(与盘口展示从卖五到买五的顺序一致) + 档位升序
+	const char* sql = "SELECT snapshot_time, is_ask, level_idx, price, order_volume, cum_active_buy_vol, cum_active_sell_vol "
+		"FROM order_book_snapshots WHERE stock_code = ? AND snapshot_time >= ? "
+		"ORDER BY snapshot_time ASC, is_ask DESC, level_idx ASC;";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return result;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(startTime));
+
+	STOCK::OrderBookSnapshotRecord cur;
+	cur.snapshotTime = 0;
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		time_t ts = static_cast<time_t>(sqlite3_column_int64(stmt, 0));
+		if (ts != cur.snapshotTime)
+		{
+			if (cur.snapshotTime != 0)
+				result.push_back(std::move(cur));
+			cur = STOCK::OrderBookSnapshotRecord();
+			cur.snapshotTime = ts;
+		}
+		STOCK::OrderBookLevelSnapshot lv;
+		lv.isAsk = sqlite3_column_int(stmt, 1) != 0;
+		lv.levelIndex = sqlite3_column_int(stmt, 2);
+		lv.price = sqlite3_column_double(stmt, 3);
+		lv.orderVolume = static_cast<long long>(sqlite3_column_int64(stmt, 4));
+		lv.cumActiveBuyVol = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+		lv.cumActiveSellVol = static_cast<long long>(sqlite3_column_int64(stmt, 6));
+		cur.levels.push_back(std::move(lv));
+	}
+	sqlite3_finalize(stmt);
+	if (cur.snapshotTime != 0)
+		result.push_back(std::move(cur));
+	return result;
+}
+
+bool CStockDbManager::SaveOrderBookEstimate(const OrderBookEstimate& est)
+{
+	if (m_db == nullptr) return false;
+
+	const char* sql = "INSERT INTO order_book_estimates(stock_code, trade_date, create_time, trade_type, buy_price, total_amount, order_volume, cum_volume, est_volume) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, est.stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, est.tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(est.createTime));
+	sqlite3_bind_int(stmt, 4, est.tradeType);
+	sqlite3_bind_double(stmt, 5, est.buyPrice);
+	sqlite3_bind_int64(stmt, 6, static_cast<sqlite3_int64>(est.totalAmount));
+	sqlite3_bind_int64(stmt, 7, static_cast<sqlite3_int64>(est.orderVolume));
+	sqlite3_bind_int64(stmt, 8, static_cast<sqlite3_int64>(est.cumVolume));
+	sqlite3_bind_int64(stmt, 9, static_cast<sqlite3_int64>(est.estVolume));
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+bool CStockDbManager::UpdateOrderBookEstimate(const OrderBookEstimate& est)
+{
+	if (m_db == nullptr || est.id <= 0) return false;
+
+	const char* sql = "UPDATE order_book_estimates SET trade_type=?, buy_price=?, total_amount=?, order_volume=?, cum_volume=?, est_volume=? WHERE id=?;";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_int(stmt, 1, est.tradeType);
+	sqlite3_bind_double(stmt, 2, est.buyPrice);
+	sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(est.totalAmount));
+	sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(est.orderVolume));
+	sqlite3_bind_int64(stmt, 5, static_cast<sqlite3_int64>(est.cumVolume));
+	sqlite3_bind_int64(stmt, 6, static_cast<sqlite3_int64>(est.estVolume));
+	sqlite3_bind_int(stmt, 7, est.id);
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+std::vector<CStockDbManager::OrderBookEstimate> CStockDbManager::LoadOrderBookEstimates(
+	const std::wstring& stockCode, const std::string& tradeDate)
+{
+	std::vector<OrderBookEstimate> result;
+	if (m_db == nullptr) return result;
+
+	const char* sql = "SELECT id, trade_date, create_time, trade_type, buy_price, total_amount, order_volume, cum_volume, est_volume "
+		"FROM order_book_estimates WHERE stock_code = ? AND trade_date = ? ORDER BY id ASC;";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return result;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		OrderBookEstimate est;
+		est.id = sqlite3_column_int(stmt, 0);
+		const unsigned char* dateText = sqlite3_column_text(stmt, 1);
+		est.tradeDate = dateText ? reinterpret_cast<const char*>(dateText) : "";
+		est.createTime = static_cast<time_t>(sqlite3_column_int64(stmt, 2));
+		est.tradeType = sqlite3_column_int(stmt, 3);
+		est.buyPrice = sqlite3_column_double(stmt, 4);
+		est.totalAmount = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+		est.orderVolume = static_cast<long long>(sqlite3_column_int64(stmt, 6));
+		est.cumVolume = static_cast<long long>(sqlite3_column_int64(stmt, 7));
+		est.estVolume = static_cast<long long>(sqlite3_column_int64(stmt, 8));
+		est.stockCode = stockCode;
+		result.push_back(std::move(est));
+	}
+	sqlite3_finalize(stmt);
+	return result;
+}
+
+bool CStockDbManager::LoadLatestOrderBookEstimate(const std::wstring& stockCode, const std::string& tradeDate,
+	double buyPrice, int tradeType, OrderBookEstimate& outEst,
+	const std::string& timeHHMM)
+{
+	if (m_db == nullptr) return false;
+
+	// 价格为浮点（如0.3350000000000002），量化到0.001价位后匹配，避免浮点尾数导致不命中
+	// 记录加载时统一按价位归一：查询任何一条 |库价-入参价| < 0.0005（半个tick）
+	// timeHHMM非空时（"HH:MM"）额外要求 create_time 落在同一分钟内，实现按价格+方向+分钟去重
+	std::string sql = "SELECT id, trade_date, create_time, trade_type, buy_price, total_amount, order_volume, cum_volume, est_volume "
+		"FROM order_book_estimates WHERE stock_code = ? AND trade_date = ? AND trade_type = ? "
+		"AND ABS(buy_price - ?) < 0.0005";
+	if (!timeHHMM.empty())
+	{
+		// strftime('%H:%M', create_time, 'unixepoch', 'localtime') = HH:MM
+		sql += " AND strftime('%H:%M', create_time, 'unixepoch', 'localtime') = ?";
+	}
+	sql += " ORDER BY id DESC LIMIT 1;";
+
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int(stmt, 3, tradeType);
+	sqlite3_bind_double(stmt, 4, buyPrice);
+	int bindIdx = 5;
+	if (!timeHHMM.empty())
+		sqlite3_bind_text(stmt, bindIdx, timeHHMM.c_str(), -1, SQLITE_TRANSIENT);
+
+	bool found = false;
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		outEst.id = sqlite3_column_int(stmt, 0);
+		const unsigned char* dateText = sqlite3_column_text(stmt, 1);
+		outEst.tradeDate = dateText ? reinterpret_cast<const char*>(dateText) : "";
+		outEst.createTime = static_cast<time_t>(sqlite3_column_int64(stmt, 2));
+		outEst.tradeType = sqlite3_column_int(stmt, 3);
+		outEst.buyPrice = sqlite3_column_double(stmt, 4);
+		outEst.totalAmount = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+		outEst.orderVolume = static_cast<long long>(sqlite3_column_int64(stmt, 6));
+		outEst.cumVolume = static_cast<long long>(sqlite3_column_int64(stmt, 7));
+		outEst.estVolume = static_cast<long long>(sqlite3_column_int64(stmt, 8));
+		outEst.stockCode = stockCode;
+		found = true;
+	}
+	sqlite3_finalize(stmt);
+	return found;
+}
+
+bool CStockDbManager::LoadMinOrderBookVolume(const std::wstring& stockCode, time_t startTime,
+	double price, bool isAsk, long long& minOrderVolume)
+{
+	if (m_db == nullptr) return false;
+
+	// 挂单量取整个快照的历史最低；价格为浮点容差0.0005匹配
+	const char* sql = "SELECT MIN(order_volume) FROM order_book_snapshots "
+		"WHERE stock_code = ? AND snapshot_time >= ? AND is_ask = ? "
+		"AND ABS(price - ?) < 0.0005;";
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(startTime));
+	sqlite3_bind_int(stmt, 3, isAsk ? 1 : 0);
+	sqlite3_bind_double(stmt, 4, price);
+
+	bool found = false;
+	if (sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_type(stmt, 0) != SQLITE_NULL)
+	{
+		minOrderVolume = static_cast<long long>(sqlite3_column_int64(stmt, 0)) / 100;   // 股→手
+		found = true;
+	}
+	sqlite3_finalize(stmt);
+	return found;
 }
 
 bool CStockDbManager::SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data)

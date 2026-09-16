@@ -87,6 +87,9 @@
     <ClInclude Include="MarketOrderBook.h">
       <Filter>DataManager</Filter>
     </ClInclude>
+    <ClInclude Include="TechnicalIndicatorModel.h">
+      <Filter>DataManager</Filter>
+    </ClInclude>
     <ClInclude Include="StockDef.h">
       <Filter>DataManager</Filter>
     </ClInclude>
@@ -94,6 +97,9 @@
       <Filter>FloatingWnd</Filter>
     </ClInclude>
     <ClInclude Include="TradeRecordDialog.h">
+      <Filter>FloatingWnd</Filter>
+    </ClInclude>
+    <ClInclude Include="EstVolumeDialog.h">
       <Filter>FloatingWnd</Filter>
     </ClInclude>
     <ClInclude Include="sqlite3.h">
@@ -182,6 +188,9 @@
     <ClCompile Include="MarketOrderBook.cpp">
       <Filter>DataManager</Filter>
     </ClCompile>
+    <ClCompile Include="TechnicalIndicatorModel.cpp">
+      <Filter>DataManager</Filter>
+    </ClCompile>
     <ClCompile Include="StockDef.cpp">
       <Filter>DataManager</Filter>
     </ClCompile>
@@ -189,6 +198,9 @@
       <Filter>FloatingWnd</Filter>
     </ClCompile>
     <ClCompile Include="TradeRecordDialog.cpp">
+      <Filter>FloatingWnd</Filter>
+    </ClCompile>
+    <ClCompile Include="EstVolumeDialog.cpp">
       <Filter>FloatingWnd</Filter>
     </ClCompile>
     <ClCompile Include="sqlite3.c">

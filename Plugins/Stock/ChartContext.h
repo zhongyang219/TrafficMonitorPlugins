@@ -3,6 +3,8 @@
 #include <vector>
 #include <StockDef.h>
 
+class TechnicalIndicatorModel;
+
 // 图表绘制共享上下文结构
 // 从 CFloatingWnd 中提取，供各图表模块（CCallAuctionChart/CChartPrice/...）共享
 
@@ -41,4 +43,8 @@ struct TimelineDrawContext {
 	STOCK::Price prevMa5{ 0 };
 	STOCK::Price prevMa10{ 0 };
 	STOCK::Price prevMa20{ 0 };
+	// 技术指标模型（MACD/KDJ/WR/RSI/BOLL/量MA缓存序列，渲染层只读）
+	const TechnicalIndicatorModel* indicatorModel{ nullptr };
+	// MACD图内叠加KDJ的J线开关（KDJ按钮点击时由FloatingWnd设置）
+	bool overlayKDJInMacd{ false };
 };

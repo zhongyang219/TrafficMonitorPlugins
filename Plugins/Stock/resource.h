@@ -75,6 +75,19 @@
 #define IDC_RELATED_STOCK_LIST          1051
 #define IDC_RELATED_RATIO_EDIT          1055
 #define IDC_RELATED_RATIO_BUTTON        1056
+#define IDD_EST_VOLUME_DIALOG           111
+#define IDC_EST_PRICE_EDIT              1057
+#define IDC_EST_TYPE_BUY                1058
+#define IDC_EST_TYPE_SELL               1059
+#define IDC_EST_TOTAL_EDIT              1060
+#define IDC_EST_ORDER_BUY_EDIT          1061
+#define IDC_EST_ORDER_CUR_EDIT          1062
+#define IDC_EST_CUM_BUY_EDIT            1063
+#define IDC_EST_CUM_CUR_EDIT            1064
+#define IDC_EST_EST_BUY_EDIT            1065
+#define IDC_EST_EST_CUR_EDIT            1066
+#define IDC_EST_TIME_EDIT               1067
+#define IDC_RESET_BTN                   1068
 #define IDS_ALERT_LOW_PRICE             115
 #define IDS_ALERT_HIGH_PRICE            116
 #define IDS_PRICE_ALERT_TITLE           117
@@ -99,9 +112,9 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1055
+#define _APS_NEXT_CONTROL_VALUE         1069
 #define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

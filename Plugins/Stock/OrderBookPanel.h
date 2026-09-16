@@ -26,11 +26,15 @@ public:
 	// left,right: 面板左右边界；height: 面板总高度（含盘口标题栏）
 	void DrawTickDetail(CDC& memDC, int left, int right, int height, const MarketOrderBook& book);
 
+	// 双击命中测试：检测点是否在右侧盘口的最高/最低行(0)或买卖十档(1~5=卖五~卖一, 6~10=买一~买五)上
+	// 命中时返回true并输出rowIdx；仅盘口(Draw)最近一次绘制时生效，
+	// 明细(MX)模式/筹码峰模式因盘口未绘制而返回false。clientPos为FloatingWnd客户区坐标
+	bool HitTestOrderBook(const CPoint& clientPos, int& rowIdx) const;
+
 private:
 	// 盘口行渲染数据（仅含显示样式，不含任何行情计算结果）
 	struct OrderBookRow
-	{
-		STOCK::Price IOPV{ 0.0 };  // 净值
+	{		STOCK::Price IOPV{ 0.0 };  // 净值
 		CString strPrice;	//价格
 		CString strVolume;	//挂单量
 		COLORREF volumeColor{ RGB(0,0,0) };  // 挂单量颜色
@@ -105,4 +109,9 @@ private:
 private:
 	static const COLORREF NET_RATIO_RED_COLORS[3];
 	static const COLORREF NET_RATIO_GREEN_COLORS[3];
+
+	// 最近一次Draw缓存的盘口布局（供双击命中测试复用，与绘制共用同一套RowY/RowH公式）
+	// m_showTickDetail/筹码峰模式下盘口未绘制，置为无效
+	LayoutContext m_layout;
+	bool m_layoutValid{ false };
 };

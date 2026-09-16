@@ -213,6 +213,11 @@ bool CDataManager::SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t 
 	return m_db_mgr.SaveInnerOuterSnapshot(stockCode, timestamp, innerVolume, outerVolume);
 }
 
+bool CDataManager::SaveOrderBookSnapshot(const std::wstring& stockCode, const STOCK::OrderBookSnapshotRecord& record)
+{
+	return m_db_mgr.SaveOrderBookSnapshot(stockCode, record);
+}
+
 bool CDataManager::SaveTimelineCache(const std::wstring& stockCode, const std::vector<STOCK::TimelinePoint>& data)
 {
 	return m_db_mgr.SaveTimelineCache(stockCode, data);

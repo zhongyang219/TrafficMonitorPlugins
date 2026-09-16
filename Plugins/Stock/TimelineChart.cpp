@@ -6,6 +6,7 @@
 #include "SignalAnalyzer.h"
 #include "StockIndicator.h"
 #include "IndicatorChart.h"
+#include "TechnicalIndicatorModel.h"
 #include "StatusBarPanel.h"
 #include <algorithm>
 #include <cmath>
@@ -75,6 +76,65 @@ static void DrawPricePointLabel(CDC& memDC, int pointX, int pointY, int chartLef
 		memDC.MoveTo(pointX, pointY);
 		memDC.LineTo(pointX + arrowHalf, pointY - dir * arrowLen);
 		memDC.SelectObject(pOldPen);
+	}
+}
+
+void CTimelineChart::DrawTradingDayBands(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover)
+{
+	// 仅5/30分钟K线模式绘制交易日交替底色；日K每根即一天，分时无跨日
+	if (!ctx.klineData || ctx.klineData->empty() || !ctx.timelinePoint || ctx.timelinePoint->empty())
+		return;
+	if (hover.viewMode != UI_VIEW_MIN5_KLINE && hover.viewMode != UI_VIEW_MIN30_KLINE)
+		return;
+
+	const auto& klineData = *ctx.klineData;
+	const auto& timelinePoint = *ctx.timelinePoint;
+	const int totalPoints = static_cast<int>(timelinePoint.size());
+	const int klineCount = static_cast<int>(klineData.size());
+	int klineStartIdx = ctx.startIndex;
+	if (klineStartIdx < 0 || klineStartIdx >= klineCount)
+		return;
+	int klineEndIdx = min(klineStartIdx + totalPoints, klineCount);
+
+	auto klineDay = [&](int idx) -> std::string {
+		// 5/30分钟day为"YYYY-MM-DD HH:MM"，日K为"YYYY-MM-DD"，均截取前10字符日期
+		const auto& d = klineData[idx].day;
+		return d.length() >= 10 ? d.substr(0, 10) : d;
+		};
+
+	// 可视区间首根所属交易日序号（从全局第0根累计日期切换次数），用于奇偶基准
+	int runDayNo = 0;
+	for (int i = 1; i <= klineStartIdx; i++)
+	{
+		if (klineDay(i) != klineDay(i - 1))
+			runDayNo++;
+	}
+
+	// 按交易日分段填充交替底色：序号偶数日填 #EEEEEE 浅底，奇数日保持白底
+	static const COLORREF BAND_COLOR = RGB(242, 242, 242); //RGB(238, 238, 238)
+	CBrush bandBrush(BAND_COLOR);
+	const float pxPerSlot = ctx.chartWidth / static_cast<float>(totalPoints);
+	int bandTop = ctx.priceChartTop;
+	int bandBottom = ctx.priceChartTop + ctx.priceChartHeight;
+
+	int i = 0;
+	while (i < totalPoints && (klineStartIdx + i) < klineEndIdx)
+	{
+		std::string curDay = klineDay(klineStartIdx + i);
+		int runStart = i;
+		while (i < totalPoints && (klineStartIdx + i) < klineEndIdx && klineDay(klineStartIdx + i) == curDay)
+			i++;
+		int runEnd = i;   // [runStart, runEnd)为同一交易日的可见区间
+
+		// 偶数序日填浅底，奇数序日保持白底
+		if (runDayNo % 2 == 0)
+		{
+			int left = static_cast<int>(pxPerSlot * runStart);
+			int right = runEnd >= totalPoints ? ctx.chartWidth : static_cast<int>(pxPerSlot * runEnd);
+			if (right > left)
+				memDC.FillRect(CRect(left, bandTop, right, bandBottom), &bandBrush);
+		}
+		runDayNo++;
 	}
 }
 
@@ -179,18 +239,26 @@ void CTimelineChart::DrawTimelineBackgroundHighlightsForArea(CDC& memDC, const T
 
 void CTimelineChart::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext& ctx)
 {
-	CPen pGrid(PS_SOLID, 1, COLOR_GRAY_GRID);
+	CPen pGrid(PS_DOT, 1, COLOR_GRAY_GRID);
 	CPen* pOldPen = memDC.SelectObject(&pGrid);
 
 	if (ctx.timelinePoint && !ctx.timelinePoint->empty())
 	{
-		const int totalPts = static_cast<int>(ctx.timelinePoint->size());
+		// 竖向虚线所在日期与时间标签同规则交替变色（仅5/30分钟K线模式生效）
+		// X坐标对齐柱中心（与K线/鼠标十字线一致）：槽宽 = chartWidth / xAxisPts，线画在 (i+0.5)*槽宽
+		const auto& tl = *ctx.timelinePoint;
+		const int totalPts = static_cast<int>(tl.size());
 		const int numVLines = 6;
+		const int xAxisPts = ctx.xAxisPoints > 0 ? ctx.xAxisPoints : totalPts;
+		const DayColorCtx dayCtx = CalcDayColorCtx(tl);
+		CPen blueGridPen(PS_DOT, 1, COLOR_BLACK);
 		for (int i = 0; i <= numVLines; i++)
 		{
 			int idx = totalPts * i / numVLines;
 			if (idx >= totalPts) idx = totalPts - 1;
-			int xPos = ctx.chartWidth * i / numVLines;
+			int xPos = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * (static_cast<float>(idx) + 0.5f))
+				+ (i == 0 ? g_data.RDPI(1) : 0);   // 首线的中心会超出左边界少许，右移1px保证可见
+			memDC.SelectObject(IsBlueDayAt(tl, idx, dayCtx) ? &blueGridPen : &pGrid);
 			memDC.MoveTo(xPos, ctx.priceChartTop);
 			memDC.LineTo(xPos, ctx.priceChartTop + ctx.priceChartHeight);
 		}
@@ -305,7 +373,7 @@ void CTimelineChart::DrawTimelineCostAndProfitLines(CDC& memDC, const TimelineDr
 
 void CTimelineChart::DrawTimelineGridAndLines(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover)
 {
-	DrawTimelineBackgroundHighlights(memDC, ctx);
+	//DrawTimelineBackgroundHighlights(memDC, ctx);
 	DrawTimelineGridLines(memDC, ctx);
 	DrawTimelinePriceLabels(memDC, ctx);
 	DrawTimelineCostAndProfitLines(memDC, ctx, hover);
@@ -335,8 +403,6 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 		unitY = ctx.priceChartHeight / (maxPrice - minPrice);
 	}
 
-	CPen pKLine(PS_SOLID, 1, COLOR_BLACK);
-
 	std::vector<CPoint> dataPoints;
 	dataPoints.reserve(timelinePoint.size());
 	for (int i = 0; i < totalPoints; i++)
@@ -349,7 +415,7 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 
 	// 均价线（点虚线，先画）
 	{
-		CPen avgLinePen(PS_SOLID, 1, COLOR_GOLDEN);
+		CPen avgLinePen(PS_SOLID, 1, COLOR_BLUE_COST);
 		CPen* pOldAvgPen = memDC.SelectObject(&avgLinePen);
 		bool firstAvgPoint = true;
 		for (int i = 0; i < totalPoints; i++)
@@ -418,43 +484,12 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 		drawMALine(20, ma20Color);
 	}
 
-	// 布林带（短横线虚线）
-	if (hover.showBollBands)
+	// 布林带（短横线虚线）——直接读模型缓存的上中下轨序列，不做逐点计算
+	if (hover.showBollBands && ctx.indicatorModel)
 	{
-		const int N = 20;
-		const int K = 2;
-
-		const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
-
-		std::vector<double> upperBand(totalPoints, 0);
-		std::vector<double> middleBand(totalPoints, 0);
-		std::vector<double> lowerBand(totalPoints, 0);
-
-		for (int i = 0; i < totalPoints; i++)
-		{
-			int globalIdx = ctx.startIndex + i;
-			if (globalIdx < N - 1)
-			{
-				upperBand[i] = middleBand[i] = lowerBand[i] = 0;
-				continue;
-			}
-			double sum = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				sum += fullData[j].price;
-			}
-			double ma = sum / N;
-			double variance = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				double diff = fullData[j].price - ma;
-				variance += diff * diff;
-			}
-			double stddev = std::sqrt(variance / N);
-			middleBand[i] = ma;
-			upperBand[i] = ma + K * stddev;
-			lowerBand[i] = ma - K * stddev;
-		}
+		const auto& upperBand = ctx.indicatorModel->GetBollUpper();
+		const auto& middleBand = ctx.indicatorModel->GetBollMid();
+		const auto& lowerBand = ctx.indicatorModel->GetBollLower();
 
 		auto priceToY = [&](double price) -> int {
 			return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
@@ -466,9 +501,10 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 			bool first = true;
 			for (int i = 0; i < totalPoints; i++)
 			{
-				if (band[i] <= 0) continue;
+				int globalIdx = ctx.startIndex + i;
+				if (globalIdx >= static_cast<int>(band.size()) || band[globalIdx] <= 0) continue;
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) / 2);
-				int py = priceToY(band[i]);
+				int py = priceToY(band[globalIdx]);
 				if (first)
 				{
 					memDC.MoveTo(pointX, py);
@@ -482,52 +518,8 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 			};
 
 		drawBandLine(upperBand, COLOR_RED_UP);
-		drawBandLine(middleBand, RGB(0, 0, 230));
+		drawBandLine(middleBand, RGB(85, 85, 85));
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
-	}
-
-	// 走势线（黑色实线，最后画，覆盖在均价线和布林带之上）
-	if (!dataPoints.empty())
-	{
-		memDC.SelectObject(&pKLine);
-		memDC.MoveTo(dataPoints[0].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[0].y);
-		for (int i = 1; i < static_cast<int>(dataPoints.size()); i++)
-			memDC.LineTo(dataPoints[i].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[i].y);
-
-		// 最高/最低价标签
-		{
-			STOCK::Price hiPrice = 0, loPrice = (std::numeric_limits<STOCK::Price>::max)();
-			int hiIdx = -1, loIdx = -1;
-			for (int i = 0; i < totalPoints; i++)
-			{
-				STOCK::Price p = timelinePoint[i].price;
-				if (p > 0)
-				{
-					if (p > hiPrice) { hiPrice = p; hiIdx = i; }
-					if (p >= hiPrice) { hiPrice = p; hiIdx = i; }
-					if (p < loPrice) { loPrice = p; loIdx = i; }
-					if (p <= loPrice) { loPrice = p; loIdx = i; }
-				}
-			}
-
-			STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
-
-			if (hiIdx >= 0 && hiPrice > 0)
-			{
-				int hiX = dataPoints[hiIdx].x;
-				int hiY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[hiIdx].y;
-				DrawPricePointLabel(memDC, hiX, hiY, 0, ctx.priceChartTop, ctx.chartWidth, ctx.priceChartHeight,
-					hiPrice, true, COLOR_RED_UP);
-			}
-
-			if (loIdx >= 0 && loPrice > 0 && loIdx != hiIdx)
-			{
-				int loX = dataPoints[loIdx].x;
-				int loY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[loIdx].y;
-				DrawPricePointLabel(memDC, loX, loY, 0, ctx.priceChartTop, ctx.chartWidth, ctx.priceChartHeight,
-					loPrice, false, COLOR_GREEN_DOWN);
-			}
-		}
 	}
 
 	// 绘制基金净值曲线
@@ -614,6 +606,50 @@ void CTimelineChart::DrawTimelinePriceCurve(CDC& memDC, const TimelineDrawContex
 			}
 
 			memDC.SelectObject(pOldPen);
+		}
+	}
+
+	// 走势线（黑色实线，最后画，覆盖在均价线和布林带之上）
+	if (!dataPoints.empty())
+	{
+		CPen pKLine(PS_SOLID, 2, COLOR_DARK_GRAY_BORDER);
+		memDC.SelectObject(&pKLine);
+		memDC.MoveTo(dataPoints[0].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[0].y);
+		for (int i = 1; i < static_cast<int>(dataPoints.size()); i++)
+			memDC.LineTo(dataPoints[i].x, ctx.priceChartTop + ctx.priceChartHeight - dataPoints[i].y);
+
+		// 最高/最低价标签
+		{
+			STOCK::Price hiPrice = 0, loPrice = (std::numeric_limits<STOCK::Price>::max)();
+			int hiIdx = -1, loIdx = -1;
+			for (int i = 0; i < totalPoints; i++)
+			{
+				STOCK::Price p = timelinePoint[i].price;
+				if (p > 0)
+				{
+					// 仅严格大于/小于更新索引，保留第一次出现的位置
+					if (p > hiPrice) { hiPrice = p; hiIdx = i; }
+					if (p < loPrice) { loPrice = p; loIdx = i; }
+				}
+			}
+
+			STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
+
+			if (hiIdx >= 0 && hiPrice > 0)
+			{
+				int hiX = dataPoints[hiIdx].x;
+				int hiY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[hiIdx].y;
+				DrawPricePointLabel(memDC, hiX, hiY, 0, ctx.priceChartTop, ctx.chartWidth, ctx.priceChartHeight,
+					hiPrice, true, COLOR_RED_UP);
+			}
+
+			if (loIdx >= 0 && loPrice > 0 && loIdx != hiIdx)
+			{
+				int loX = dataPoints[loIdx].x;
+				int loY = ctx.priceChartTop + ctx.priceChartHeight - dataPoints[loIdx].y;
+				DrawPricePointLabel(memDC, loX, loY, 0, ctx.priceChartTop, ctx.chartWidth, ctx.priceChartHeight,
+					loPrice, false, COLOR_GREEN_DOWN);
+			}
 		}
 	}
 
@@ -981,9 +1017,10 @@ void CTimelineChart::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawCont
 	CString timeStr;
 	if (!item.fullTime.empty() && (hover.viewMode == UI_VIEW_MIN5_KLINE || hover.viewMode == UI_VIEW_MIN30_KLINE))
 	{
+		// 不显示年份，仅 mm-dd hh:mm
 		timeStr = CString(item.fullTime.c_str());
 		if (timeStr.GetLength() >= 16)
-			timeStr = timeStr.Left(16);
+			timeStr = timeStr.Mid(5, 11);
 	}
 	else if (!item.fullTime.empty() && hover.viewMode == UI_VIEW_DAY_KLINE)
 	{
@@ -1005,6 +1042,72 @@ void CTimelineChart::DrawTimelineHoverOverlay(CDC& memDC, const TimelineDrawCont
 	memDC.SetTextColor(COLOR_BLACK);
 	memDC.SetBkMode(TRANSPARENT);
 	memDC.TextOut(timeLabelX, timeLabelY, timeStr);
+}
+
+// 合并各来源的基金净值数据：key为"HH:MM"，value为该分钟净值
+// 来源优先级（后者覆盖前者）：内存分时iopv → 数据库净值缓存 → 实时IOPV(取分时最后时间点)
+// 注意：LoadLatestFundNavCache已过滤非交易时段；数据库晚于内存接口刷新，故放最后保证最新
+static std::map<std::string, double> BuildFundNavTimeMap(const std::wstring& stockId,
+	const STOCK::StockInfo& realtimeData, const std::vector<STOCK::TimelinePoint>& fullTimeline)
+{
+	std::map<std::string, double> iopvByTime;
+
+	for (const auto& pt : fullTimeline)
+	{
+		if (pt.iopv > 0 && pt.time.length() >= 5)
+			iopvByTime[pt.time.substr(0, 5)] = pt.iopv;
+	}
+
+	auto navPoints = g_data.GetDbManager().LoadLatestFundNavCache(stockId);
+	for (const auto& nav : navPoints)
+		iopvByTime[nav.time] = nav.iopv;
+
+	if (realtimeData.iopv > 0 && !fullTimeline.empty() && fullTimeline.back().time.length() >= 5)
+		iopvByTime[fullTimeline.back().time.substr(0, 5)] = realtimeData.iopv;
+
+	return iopvByTime;
+}
+
+// 5分钟K线净值曲线：逐根K线按bar结束时刻（day的HH:MM部分）查净值连线
+static void DrawMin5KLineNavCurve(CDC& memDC, const TimelineDrawContext& ctx,
+	const std::vector<STOCK::KLinePoint>& klineData, const std::map<std::string, double>& iopvByTime,
+	int klineStartIdx, int klineEndIdx, int totalPoints, float barTotalWidth,
+	STOCK::Price minPrice, double unitY)
+{
+	const COLORREF navColor = RGB(160, 32, 240);
+	CPen navPen(PS_SOLID, 1, navColor);
+	CPen* pOldPen = memDC.SelectObject(&navPen);
+	bool firstNavPoint = true;
+
+	auto priceToY = [&](double price) -> int {
+		int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
+		return max(ctx.priceChartTop, min(py, ctx.priceChartTop + ctx.priceChartHeight));
+		};
+
+	for (int i = 0; i < totalPoints && (klineStartIdx + i) < klineEndIdx; i++)
+	{
+		// K线day为"YYYY-MM-DD HH:MM"，时间为bar结束时刻，直接查该分钟净值
+		const auto& kp = klineData[klineStartIdx + i];
+		if (kp.day.length() < 16 || kp.day[10] != ' ')
+			continue;
+		auto it = iopvByTime.find(kp.day.substr(11, 5));
+		if (it == iopvByTime.end())
+			continue;
+
+		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(barTotalWidth / 2);
+		int pointY = priceToY(it->second);
+		if (firstNavPoint)
+		{
+			memDC.MoveTo(pointX, pointY);
+			firstNavPoint = false;
+		}
+		else
+		{
+			memDC.LineTo(pointX, pointY);
+		}
+	}
+
+	memDC.SelectObject(pOldPen);
 }
 
 void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover)
@@ -1049,52 +1152,52 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 		return ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>((price - minPrice) * unitY);
 		};
 
-	// 最新一天K线背景高亮
-	{
-		if (!klineData.empty() && (hover.viewMode == UI_VIEW_MIN5_KLINE || hover.viewMode == UI_VIEW_MIN30_KLINE))
-		{
-			const auto& lastKp = klineData.back();
-			std::string lastDate;
-			auto spacePos = lastKp.day.find(' ');
-			if (spacePos != std::string::npos)
-				lastDate = lastKp.day.substr(0, spacePos);
-			else
-				lastDate = lastKp.day;
+	//// 最新一天K线背景高亮,先频闭
+	//{
+	//	if (!klineData.empty() && (hover.viewMode == UI_VIEW_MIN5_KLINE || hover.viewMode == UI_VIEW_MIN30_KLINE))
+	//	{
+	//		const auto& lastKp = klineData.back();
+	//		std::string lastDate;
+	//		auto spacePos = lastKp.day.find(' ');
+	//		if (spacePos != std::string::npos)
+	//			lastDate = lastKp.day.substr(0, spacePos);
+	//		else
+	//			lastDate = lastKp.day;
 
-			if (!lastDate.empty())
-			{
-				int firstIdx = -1, lastIdx = -1;
-				for (int i = 0; i < totalPoints && (klineStartIdx + i) < klineEndIdx; i++)
-				{
-					const auto& kp = klineData[klineStartIdx + i];
-					std::string kpDate;
-					auto sp = kp.day.find(' ');
-					if (sp != std::string::npos)
-						kpDate = kp.day.substr(0, sp);
-					else
-						kpDate = kp.day;
-					if (kpDate == lastDate)
-					{
-						if (firstIdx < 0) firstIdx = i;
-						lastIdx = i;
-					}
-				}
+	//		if (!lastDate.empty())
+	//		{
+	//			int firstIdx = -1, lastIdx = -1;
+	//			for (int i = 0; i < totalPoints && (klineStartIdx + i) < klineEndIdx; i++)
+	//			{
+	//				const auto& kp = klineData[klineStartIdx + i];
+	//				std::string kpDate;
+	//				auto sp = kp.day.find(' ');
+	//				if (sp != std::string::npos)
+	//					kpDate = kp.day.substr(0, sp);
+	//				else
+	//					kpDate = kp.day;
+	//				if (kpDate == lastDate)
+	//				{
+	//					if (firstIdx < 0) firstIdx = i;
+	//					lastIdx = i;
+	//				}
+	//			}
 
-				if (firstIdx >= 0 && lastIdx >= 0)
-				{
-					int xLeft = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * firstIdx);
-					int xRight = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * (lastIdx + 1));
+	//			if (firstIdx >= 0 && lastIdx >= 0)
+	//			{
+	//				int xLeft = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * firstIdx);
+	//				int xRight = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * (lastIdx + 1));
 
-					CBrush highlightBrush(COLOR_LIGHT_BLUE);
-					memDC.FillRect(CRect(xLeft, ctx.priceChartTop, xRight, ctx.priceChartTop + ctx.priceChartHeight), &highlightBrush);
-					memDC.FillRect(CRect(xLeft, ctx.volumeChartTop, xRight, ctx.volumeChartTop + ctx.volumeChartHeight), &highlightBrush);
-					memDC.FillRect(CRect(xLeft, ctx.macdChartTop, xRight, ctx.macdChartTop + ctx.macdChartHeight), &highlightBrush);
+	//				CBrush highlightBrush(COLOR_LIGHT_BLUE);
+	//				memDC.FillRect(CRect(xLeft, ctx.priceChartTop, xRight, ctx.priceChartTop + ctx.priceChartHeight), &highlightBrush);
+	//				memDC.FillRect(CRect(xLeft, ctx.volumeChartTop, xRight, ctx.volumeChartTop + ctx.volumeChartHeight), &highlightBrush);
+	//				memDC.FillRect(CRect(xLeft, ctx.macdChartTop, xRight, ctx.macdChartTop + ctx.macdChartHeight), &highlightBrush);
 
-					DrawTimelineGridLines(memDC, ctx);
-				}
-			}
-		}
-	}
+	//				DrawTimelineGridLines(memDC, ctx);
+	//			}
+	//		}
+	//	}
+	//}
 
 	STOCK::Price prevClose = ctx.realtimeData.prevClosePrice;
 
@@ -1187,42 +1290,12 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 		drawMALine(20, ma20Color);
 	}
 
-	if (hover.showBollBands)
+	// 布林带（短横线虚线）——直接读模型缓存的上中下轨序列
+	if (hover.showBollBands && ctx.indicatorModel)
 	{
-		const int N = 20;
-		const int K = 2;
-
-		const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
-
-		std::vector<double> upperBand(totalPoints, 0);
-		std::vector<double> middleBand(totalPoints, 0);
-		std::vector<double> lowerBand(totalPoints, 0);
-
-		for (int i = 0; i < totalPoints; i++)
-		{
-			int globalIdx = ctx.startIndex + i;
-			if (globalIdx < N - 1)
-			{
-				upperBand[i] = middleBand[i] = lowerBand[i] = 0;
-				continue;
-			}
-			double sum = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				sum += fullData[j].price;
-			}
-			double ma = sum / N;
-			double variance = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				double diff = fullData[j].price - ma;
-				variance += diff * diff;
-			}
-			double stddev = std::sqrt(variance / N);
-			middleBand[i] = ma;
-			upperBand[i] = ma + K * stddev;
-			lowerBand[i] = ma - K * stddev;
-		}
+		const auto& upperBand = ctx.indicatorModel->GetBollUpper();
+		const auto& middleBand = ctx.indicatorModel->GetBollMid();
+		const auto& lowerBand = ctx.indicatorModel->GetBollLower();
 
 		auto bandPriceToY = [&](double price) -> int {
 			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
@@ -1235,9 +1308,10 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 			bool first = true;
 			for (int i = 0; i < totalPoints; i++)
 			{
-				if (band[i] <= 0) continue;
+				int globalIdx = ctx.startIndex + i;
+				if (globalIdx >= static_cast<int>(band.size()) || band[globalIdx] <= 0) continue;
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
-				int py = bandPriceToY(band[i]);
+				int py = bandPriceToY(band[globalIdx]);
 				if (first)
 				{
 					memDC.MoveTo(pointX, py);
@@ -1255,24 +1329,53 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
-	// 最高/最低价标签
+	// 绘制基金净值曲线：数据取每根5分钟K线最后时间点（bar时间即结束时刻）的净值
+	if (ctx.realtimeData.IsETF() && hover.viewMode == UI_VIEW_MIN5_KLINE
+		&& ctx.fullTimeline && !ctx.fullTimeline->empty())
+	{
+		std::map<std::string, double> iopvByTime = BuildFundNavTimeMap(hover.stockId, ctx.realtimeData, *ctx.fullTimeline);
+		if (!iopvByTime.empty())
+			DrawMin5KLineNavCurve(memDC, ctx, klineData, iopvByTime, klineStartIdx, klineEndIdx, totalPoints, barTotalWidth, minPrice, unitY);
+	}
+
+	// 最高/最低价标签：优先展示最后一个交易日（>=5分钟K线：末尾同日期的最后N根）的最高/最低，
+	// 可视区间内没有该日数据时退回整个可视区间的极值
 	{
 		STOCK::Price hiPrice = 0, loPrice = (std::numeric_limits<STOCK::Price>::max)();
 		int hiIdx = -1, loIdx = -1;
-		for (int i = 0; i < totalPoints && (klineStartIdx + i) < klineEndIdx; i++)
-		{
-			const auto& kp = klineData[klineStartIdx + i];
-			if (kp.high > 0)
+
+		// 确定"最后一天"的数据日期：以可视区间最后一根K线的日期为界
+		// 注意：5/30分钟K线的day为"YYYY-MM-DD HH:MM"，须截取前10字符日期比较，否则只能匹配到最后一根
+		std::string lastDay;
+		if (klineStartIdx < klineEndIdx && klineData[klineEndIdx - 1].day.length() >= 10)
+			lastDay = klineData[klineEndIdx - 1].day.substr(0, 10);
+
+		auto scanRange = [&](int from, int to) {
+			for (int i = from; i < to; i++)
 			{
-				if (kp.high > hiPrice) { hiPrice = kp.high; hiIdx = i; }
-				if (kp.high >= hiPrice) { hiPrice = kp.high; hiIdx = i; }
+				const auto& kp = klineData[klineStartIdx + i];
+				if (kp.high > 0 && kp.high > hiPrice) { hiPrice = kp.high; hiIdx = i; }  // 先到先得
+				if (kp.low > 0 && kp.low < loPrice) { loPrice = kp.low; loIdx = i; }
 			}
-			if (kp.low > 0)
+			};
+
+		// 最后一天在可视区间内的数据范围：从末尾向前找连续同日的第一根
+		int dayFirst = klineEndIdx;   // 未找到任何同日数据时的哨兵
+		if (!lastDay.empty())
+		{
+			for (int i = klineEndIdx - 1; i >= klineStartIdx; --i)
 			{
-				if (kp.low < loPrice) { loPrice = kp.low; loIdx = i; }
-				if (kp.low <= loPrice) { loPrice = kp.low; loIdx = i; }
+				std::string d = klineData[i].day.substr(0, 10);
+				if (d == lastDay)
+					dayFirst = i;
+				else
+					break;
 			}
 		}
+		if (!lastDay.empty() && dayFirst < klineEndIdx)
+			scanRange(dayFirst - klineStartIdx, klineEndIdx - klineStartIdx);   // 最后一天
+		else
+			scanRange(0, klineEndIdx - klineStartIdx);                          // 回退：整个可视区间
 
 		if (hiIdx >= 0 && hiPrice > 0)
 		{
@@ -1282,7 +1385,8 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 				hiPrice, true, COLOR_RED_UP);
 		}
 
-		if (loIdx >= 0 && loPrice > 0 && loIdx != hiIdx)
+		// 最低点标签：即使与最高点在同一根K线（loIdx==hiIdx）也绘制，仅价格相同时跳过
+		if (loIdx >= 0 && loPrice > 0 && loPrice != hiPrice)
 		{
 			int loX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * loIdx) + static_cast<int>(barTotalWidth / 2);
 			int loY = priceToY(loPrice);
@@ -1550,42 +1654,12 @@ void CTimelineChart::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContex
 		drawMALine(20, ma20Color);
 	}
 
-	if (hover.showBollBands)
+	// 布林带（短横线虚线）——直接读模型缓存的上中下轨序列
+	if (hover.showBollBands && ctx.indicatorModel)
 	{
-		const int N = 20;
-		const int K = 2;
-
-		const auto& fullData = ctx.fullTimeline ? *ctx.fullTimeline : timelinePoint;
-
-		std::vector<double> upperBand(totalPoints, 0);
-		std::vector<double> middleBand(totalPoints, 0);
-		std::vector<double> lowerBand(totalPoints, 0);
-
-		for (int i = 0; i < totalPoints; i++)
-		{
-			int globalIdx = ctx.startIndex + i;
-			if (globalIdx < N - 1)
-			{
-				upperBand[i] = middleBand[i] = lowerBand[i] = 0;
-				continue;
-			}
-			double sum = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				sum += fullData[j].price;
-			}
-			double ma = sum / N;
-			double variance = 0;
-			for (int j = globalIdx - N + 1; j <= globalIdx; j++)
-			{
-				double diff = fullData[j].price - ma;
-				variance += diff * diff;
-			}
-			double stddev = std::sqrt(variance / N);
-			middleBand[i] = ma;
-			upperBand[i] = ma + K * stddev;
-			lowerBand[i] = ma - K * stddev;
-		}
+		const auto& upperBand = ctx.indicatorModel->GetBollUpper();
+		const auto& middleBand = ctx.indicatorModel->GetBollMid();
+		const auto& lowerBand = ctx.indicatorModel->GetBollLower();
 
 		auto bandPriceToY = [&](double price) -> int {
 			int py = ctx.priceChartTop + ctx.priceChartHeight - static_cast<int>(round((price - minPrice) * unitY));
@@ -1598,9 +1672,10 @@ void CTimelineChart::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContex
 			bool first = true;
 			for (int i = 0; i < totalPoints; i++)
 			{
-				if (band[i] <= 0) continue;
+				int globalIdx = ctx.startIndex + i;
+				if (globalIdx >= static_cast<int>(band.size()) || band[globalIdx] <= 0) continue;
 				int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) / 2);
-				int py = bandPriceToY(band[i]);
+				int py = bandPriceToY(band[globalIdx]);
 				if (first)
 				{
 					memDC.MoveTo(pointX, py);
@@ -1618,22 +1693,21 @@ void CTimelineChart::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContex
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
-	// 最高/最低价标签
+	// 最高/最低价标签：日K图每根K线=一天，直接扫描当前可视范围内的极值
 	{
 		STOCK::Price hiPrice = 0, loPrice = (std::numeric_limits<STOCK::Price>::max)();
 		int hiIdx = -1, loIdx = -1;
-		for (int i = 0; i < totalPoints && (klineStartIdx + i) < klineEndIdx; i++)
-		{
-			const auto& kp = klineData[klineStartIdx + i];
-			if (kp.high > 0)
+
+		auto scanRange = [&](int from, int to) {
+			for (int i = from; i < to; i++)
 			{
-				if (kp.high > hiPrice) { hiPrice = kp.high; hiIdx = i; }
+				const auto& kp = klineData[klineStartIdx + i];
+				if (kp.high > 0 && kp.high > hiPrice) { hiPrice = kp.high; hiIdx = i; }  // 先到先得
+				if (kp.low > 0 && kp.low < loPrice) { loPrice = kp.low; loIdx = i; }
 			}
-			if (kp.low > 0)
-			{
-				if (kp.low < loPrice) { loPrice = kp.low; loIdx = i; }
-			}
-		}
+			};
+
+		scanRange(0, klineEndIdx - klineStartIdx);
 
 		if (hiIdx >= 0 && hiPrice > 0)
 		{
@@ -1643,7 +1717,8 @@ void CTimelineChart::DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContex
 				hiPrice, true, COLOR_RED_UP);
 		}
 
-		if (loIdx >= 0 && loPrice > 0 && loIdx != hiIdx)
+		// 最低点标签：即使与最高点在同一根K线（loIdx==hiIdx）也绘制，仅价格相同时跳过
+		if (loIdx >= 0 && loPrice > 0 && loPrice != hiPrice)
 		{
 			int loX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * loIdx) + static_cast<int>(barTotalWidth / 2);
 			int loY = priceToY(loPrice);

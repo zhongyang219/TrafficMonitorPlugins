@@ -58,6 +58,8 @@ public:
 	// K线模式价格图
 	void DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover);
 	void DrawDayKLinePriceChart(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover);
+	// 5/30分钟K线交易日交替底色：主图上不同交易日以 #f8f8f8 / 白色 交替，方便分辨同一天的区间
+	void DrawTradingDayBands(CDC& memDC, const TimelineDrawContext& ctx, const HoverState& hover);
 
 	// 价格区域（标题栏+走势图一体化）
 	void DrawPriceChartArea(CDC& memDC, const TimelineDrawContext& ctx, int areaTop, int areaHeight, HoverState& hover);

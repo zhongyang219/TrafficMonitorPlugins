@@ -69,6 +69,42 @@ public:
 	std::vector<std::tuple<time_t, STOCK::Volume, STOCK::Volume>> LoadInnerOuterSnapshots(
 		const std::wstring& stockCode, time_t startTime);
 
+	// 盘口分钟级快照（每分钟保存五档买卖盘价格/挂单量 + 累计主动买卖量）
+	bool SaveOrderBookSnapshot(const std::wstring& stockCode, const STOCK::OrderBookSnapshotRecord& record);
+	// 加载指定股票从 startTime 之后的全部盘口快照（按时间升序）
+	std::vector<STOCK::OrderBookSnapshotRecord> LoadOrderBookSnapshots(
+		const std::wstring& stockCode, time_t startTime);
+
+	// 预估成交量记录（双击盘口行时用户录入的"买入时"快照，实时列不入库）
+	struct OrderBookEstimate
+	{
+		int id{ 0 };
+		std::wstring stockCode;
+		std::string tradeDate;        // "YYYY-MM-DD"
+		time_t createTime{ 0 };       // 创建时间戳
+		int tradeType{ 0 };           // 0=买入, 1=卖出
+		double buyPrice{ 0.0 };       // 买入价格
+		long long totalAmount{ 0 };   // 总数量
+		long long orderVolume{ 0 };   // 当前挂单量
+		long long cumVolume{ 0 };     // 当前累计成交量
+		long long estVolume{ 0 };     // 买入预计成交累积量（=挂单量+累计成交量）
+	};
+	bool SaveOrderBookEstimate(const OrderBookEstimate& est);
+	// 按id更新数值列（total/order/cum/est/buy_price/trade_type），id和create_time不变
+	bool UpdateOrderBookEstimate(const OrderBookEstimate& est);
+	// 加载某股票某交易日的全部预估记录（按id升序）
+	std::vector<OrderBookEstimate> LoadOrderBookEstimates(
+		const std::wstring& stockCode, const std::string& tradeDate);
+	// 查询某股票某交易日、指定价格+买卖方向的一条预估记录（取最新一条，供双击盘口回显）
+	// timeHHMM非空时额外要求 create_time 落在同一 HH:MM（按价格+方向+时间去重）
+	bool LoadLatestOrderBookEstimate(const std::wstring& stockCode, const std::string& tradeDate,
+		double buyPrice, int tradeType, OrderBookEstimate& outEst,
+		const std::string& timeHHMM = "");
+	// 查询某股票某交易日、指定价格+盘别在 [startTime, +∞) 的最低挂单量（手），供剩余排队计算吸收中途撤单
+	// 找不到该价位记录时返回false（minOrderVolume保持入参）
+	bool LoadMinOrderBookVolume(const std::wstring& stockCode, time_t startTime,
+		double price, bool isAsk, long long& minOrderVolume);
+
 	// 分时缓存
 	bool SaveTimelineCache(const std::wstring& stockCode,
 		const std::vector<STOCK::TimelinePoint>& data);

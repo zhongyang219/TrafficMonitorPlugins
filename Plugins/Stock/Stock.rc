@@ -321,6 +321,44 @@ BEGIN
     LTEXT           "", IDC_TRADE_TOTAL_STATIC, 175, 110, 75, 12
 END
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_EST_VOLUME_DIALOG DIALOGEX 0, 0, 240, 130
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "预估成交量"
+FONT 9, "微软雅黑", 400, 0, 0x0
+BEGIN
+    LTEXT           "买入价格:", IDC_STATIC, 6, 9, 40, 10
+    EDITTEXT        IDC_EST_PRICE_EDIT, 48, 7, 62, 12, ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "总数量:", IDC_STATIC, 122, 9, 34, 10
+    EDITTEXT        IDC_EST_TOTAL_EDIT, 158, 7, 70, 12, ES_AUTOHSCROLL
+    LTEXT           "方向:", IDC_STATIC, 6, 27, 26, 10
+    CONTROL         "买入", IDC_EST_TYPE_BUY, "Button", BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP, 48, 26, 34, 10
+    CONTROL         "卖出", IDC_EST_TYPE_SELL, "Button", BS_AUTORADIOBUTTON | WS_TABSTOP, 92, 26, 34, 10
+    LTEXT           "时间:", IDC_STATIC, 132, 27, 26, 10
+    EDITTEXT        IDC_EST_TIME_EDIT, 174, 25, 60, 12, ES_AUTOHSCROLL
+    GROUPBOX        "买入时(保存)", IDC_STATIC, 6, 42, 113, 96
+    LTEXT           "挂单量:", IDC_STATIC, 11, 54, 60, 10
+    EDITTEXT        IDC_EST_ORDER_BUY_EDIT, 11, 65, 103, 12, ES_AUTOHSCROLL
+    LTEXT           "累计成交量:", IDC_STATIC, 11, 81, 60, 10
+    EDITTEXT        IDC_EST_CUM_BUY_EDIT, 11, 92, 103, 12, ES_AUTOHSCROLL
+    LTEXT           "预计成交累积量:", IDC_STATIC, 11, 108, 70, 10
+    EDITTEXT        IDC_EST_EST_BUY_EDIT, 11, 119, 103, 12, ES_AUTOHSCROLL | ES_READONLY
+    GROUPBOX        "实时(不保存)", IDC_STATIC, 124, 42, 110, 96
+    LTEXT           "挂单量:", IDC_STATIC, 129, 54, 60, 10
+    EDITTEXT        IDC_EST_ORDER_CUR_EDIT, 129, 65, 100, 12, ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "累计成交量:", IDC_STATIC, 129, 81, 60, 10
+    EDITTEXT        IDC_EST_CUM_CUR_EDIT, 129, 92, 100, 12, ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "剩余排队挂单量:", IDC_STATIC, 129, 108, 75, 10
+    EDITTEXT        IDC_EST_EST_CUR_EDIT, 129, 119, 100, 12, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON       "重置", IDC_RESET_BTN, 10, 168, 50, 14
+    DEFPUSHBUTTON   "确定", IDOK, 128, 168, 50, 14
+    PUSHBUTTON       "取消", IDCANCEL, 184, 168, 50, 14
+END
+
 #endif    // Chinese (Simplified) resources
 /////////////////////////////////////////////////////////////////////////////
 

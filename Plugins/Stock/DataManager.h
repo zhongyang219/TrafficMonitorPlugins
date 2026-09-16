@@ -140,6 +140,7 @@ public:
 	// 交易记录数据库操作
 	bool SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total);
 	bool SaveInnerOuterSnapshot(const std::wstring& stockCode, time_t timestamp, STOCK::Volume innerVolume, STOCK::Volume outerVolume);
+	bool SaveOrderBookSnapshot(const std::wstring& stockCode, const STOCK::OrderBookSnapshotRecord& record);
 	bool LoadLatestChipDistribution(const std::wstring& stockCode, STOCK::ChipDistribution& chipData);
 	bool SaveChipDistribution(const std::wstring& stockCode, const STOCK::ChipDistribution& chipData);
 	bool SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares);

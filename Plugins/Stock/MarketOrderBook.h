@@ -82,7 +82,8 @@ public:
 	// 卖一(isAskSide=true)/买一后方累计主动成交量的瞬时变化量（手）
 	long long GetOrderDeltaLots(double price, bool isAskSide) const;
 
-	// 成交明细（最新在前，最多10条，已还原ETF价格）
+	// 成交明细（最新在前，最多20条，已还原ETF价格）
+	// count: 取前count条（盘口面板用10，MX明细界面用20）
 	const std::vector<TransLine>& GetTransLines() const { return m_transLines; }
 
 	// 是否有效（已有行情数据）

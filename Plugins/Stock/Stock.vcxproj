@@ -268,6 +268,7 @@
     <ClInclude Include="TimelineChart.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="FloatingWnd.h" />
+    <ClInclude Include="TechnicalIndicatorModel.h" />
     <ClInclude Include="SignalAnalyzer.h" />
     <ClInclude Include="StockIndicator.h" />
     <ClInclude Include="SmartSignalTestDlg.h" />
@@ -290,6 +291,7 @@
     <ClInclude Include="StockItem.h" />
     <ClInclude Include="StockListPanel.h" />
     <ClInclude Include="TradeRecordDialog.h" />
+    <ClInclude Include="EstVolumeDialog.h" />
     <ClInclude Include="TransparentWnd.h" />
   </ItemGroup>
   <ItemGroup>
@@ -304,6 +306,7 @@
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="FloatingWnd.cpp" />
     <ClCompile Include="LocalHttpProxy.cpp" />
+    <ClCompile Include="TechnicalIndicatorModel.cpp" />
     <ClCompile Include="SignalAnalyzer.cpp" />
     <ClCompile Include="StockIndicator.cpp" />
     <ClCompile Include="SmartSignalTestDlg.cpp" />
@@ -333,6 +336,7 @@
     <ClCompile Include="StockItem.cpp" />
     <ClCompile Include="StockListPanel.cpp" />
     <ClCompile Include="TradeRecordDialog.cpp" />
+    <ClCompile Include="EstVolumeDialog.cpp" />
     <ClCompile Include="TransparentWnd.cpp" />
   </ItemGroup>
   <ItemGroup>

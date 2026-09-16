@@ -65,6 +65,9 @@ void COrderBookPanel::Draw(CDC& memDC, int left, int right, int height, const Ma
 	lc.contentH = contentH;
 	lc.rem = rem;
 	lc.textX = textX;
+	// 缓存布局供双击命中测试复用（与绘制共用同一套RowY/RowH公式）
+	m_layout = lc;
+	m_layoutValid = true;
 
 	// 行较密，整体使用紧凑字体，避免S5-B5/明细/净流入各行文字相互挤压
 	CFont* oldDrawFont = memDC.GetCurrentFont();
@@ -236,7 +239,7 @@ void COrderBookPanel::DrawNetInflowRow(CDC& memDC, const LayoutContext& lc, int 
 
 void COrderBookPanel::DrawTickMini(CDC& memDC, const LayoutContext& lc, int startRow, const MarketOrderBook& book)
 {
-	// 直接读模型的明细缓存（最新在前），渲染层不做任何查询/还原
+	// 直接读模型的明细缓存（最新在前，共20条），盘口面板只用前10条
 	const auto& lines = book.GetTransLines();
 	const int showCount = min(10, static_cast<int>(lines.size()));
 	if (showCount <= 0)
@@ -313,6 +316,9 @@ void COrderBookPanel::DrawTickMini(CDC& memDC, const LayoutContext& lc, int star
 // ============================================================================
 void COrderBookPanel::DrawTickDetail(CDC& memDC, int left, int right, int height, const MarketOrderBook& book)
 {
+	// MX模式下盘口未绘制，盘口双击命中测试失效
+	m_layoutValid = false;
+
 	// 内容区域（盘口标题栏下方）
 	int headerHeight = g_data.RDPI(26) + g_data.RDPI(20);
 	int obTitleH = g_data.RDPI(16);
@@ -325,10 +331,11 @@ void COrderBookPanel::DrawTickDetail(CDC& memDC, int left, int right, int height
 	// 绘制盘口标题栏背景，避免残留其它模式内容
 	memDC.FillSolidRect(left, headerHeight, right - left, obTitleH, RGB(245, 245, 245));
 
-	// 复用模型同一份缓存：MX模式显示更多明细（由模型另行_20条数据是否提供，这里先读缓存10条
-	// 后续扩展：模型可提供20条明细缓存，此处直接读取即可）
+	// 复用模型同一份20条明细缓存，MX模式全量显示
 	const auto& lines = book.GetTransLines();
-	const int showCount = min(10, static_cast<int>(lines.size()));
+	const int showCount = min(20, static_cast<int>(lines.size()));
+	if (showCount <= 0)
+		return;
 
 	// 明细区从第二行开始，顶部汇总行：整日累计净流入（直接读模型缓存值）
 	const int rowH = max(1, contentH / 22);
@@ -708,4 +715,34 @@ void COrderBookPanel::DrawPriceRows(CDC& memDC, const LayoutContext& lc, const s
 		int textVCenter = max(0, (h - memDC.GetTextExtent(rows[i].strPrice).cy) / 2);
 		DrawOrderBookRowText(memDC, rows[i], lc.textX, y + textVCenter, lc.right - lc.textX, lc.left, y, h, maxVol);
 	}
+}
+
+// 双击命中测试：复用最近一次 Draw 缓存的布局，检测最高/最低行(0)与买卖十档(1~10)
+// 行号语义与绘制完全一致：0=最高/最低行, 1~5=卖五~卖一, 6~10=买一~买五
+bool COrderBookPanel::HitTestOrderBook(const CPoint& clientPos, int& rowIdx) const
+{
+	rowIdx = -1;
+	if (!m_layoutValid)
+		return false;
+
+	const LayoutContext& lc = m_layout;
+	// 仅限首行+十档区域：最高/最低行到买五行底
+	if (clientPos.x < lc.left || clientPos.x >= lc.right)
+		return false;
+
+	int top = lc.RowY(0);
+	int bottom = lc.RowY(10) + lc.RowH(10);
+	if (clientPos.y < top || clientPos.y >= bottom)
+		return false;
+
+	// 逐行匹配RowY/RowH（rem不均匀分配与绘制完全一致），盘口标题栏与mLayout之外的行不命中
+	for (int i = 0; i <= 10; i++)
+	{
+		if (clientPos.y >= lc.RowY(i) && clientPos.y < lc.RowY(i) + lc.RowH(i))
+		{
+			rowIdx = i;
+			return true;
+		}
+	}
+	return false;
 }

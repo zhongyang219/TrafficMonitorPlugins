@@ -16,6 +16,7 @@
 #include "IndicatorChart.h"
 #include "StatusBarPanel.h"
 #include "TimelineChart.h"
+#include "TechnicalIndicatorModel.h"
 
 // 定义自定义消息
 #define FWND_MSG_UPDATE_STATUS (WM_USER + 100)
@@ -73,7 +74,6 @@ protected:
 	afx_msg void OnBnClickedTickDetailBtn();
 	afx_msg void OnBnClickedExpandBtn();
 	afx_msg void OnBnClickedToggleStockListBtn();
-	afx_msg void OnBnClickedCallAuctionBtn();
 
 private:
 	void EnsureChipPeakData();
@@ -119,9 +119,8 @@ private:
 	CButton m_btnClose;
 	CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
 	CButton m_btnToggleStockList;  // 股票列表显示/隐藏按钮
-	CButton m_btnCallAuction;     // 集合竞价按钮
-	CButton m_btnZoomOut;  // 缩小按钮（显示240分钟）
-	CButton m_btnZoomIn;   // 放大按钮（显示60分钟）
+	CButton m_btnZoomOut;  		// 缩小按钮（显示240分钟）
+	CButton m_btnZoomIn;   		// 放大按钮（显示60分钟）
 	CButton m_btnIndicatorCJL;  // CJL指标按钮
 	CButton m_btnIndicatorMACD;  // MACD信号按钮
 	CButton m_btnIndicatorKDJ;   // KDJ指标按钮
@@ -133,6 +132,11 @@ private:
 	CFont m_chipPeakFont;        // 筹码峰按钮小字体
 	std::wstring m_stock_id;
 	UIViewMode m_viewMode{ UI_VIEW_MIN5_KLINE };  // 当前界面视图模式
+	TechnicalIndicatorModel m_indicatorModel;  // 技术指标数据模型（数据与视图分离，渲染层只读缓存序列）
+	int m_lastIndicatorDataSize{ -1 };         // 上次刷新指标模型时的序列长度
+	UIViewMode m_lastIndicatorViewMode{ UI_VIEW_MIN5_KLINE };
+	bool m_indicatorLoaded{ false };
+	DWORD m_lastIndicatorRefreshTick{ 0 };     // 上次定时器触发指标重算的时机(ms)，1秒节流
 	int m_timelineScrollOffset{ -1 };  // 分时图水平滚动偏移，-1表示需要自动滚动到末尾
 	int m_timelineVisibleCount{ 30 };  // 分时图可见数据点数
 	int m_timelineLastTotalPoints{ 0 };  // 上次绘制的数据点数，用于判断新数据追加时是否自动跟随
@@ -141,6 +145,8 @@ private:
 	// 分时图指标类型
 	enum class TimelineIndicator { CJL, MACD, KDJ, WR, RSI };
 	TimelineIndicator m_timelineIndicator{ TimelineIndicator::KDJ };
+	// MACD图内叠加KDJ的J线开关（点击KDJ按钮切换；模型允许时叠加，再点恢复）
+	bool m_overlayKDJInMacd{ true };
 	bool m_indicatorBtnsInitialized{ false };
 
 	// 分时图鼠标拖动滚动
@@ -181,8 +187,9 @@ private:
 	bool m_showTrendView{ false };
 	bool m_showChipPeak{ false };
 	bool m_showTickDetail{ false };  // 明细(MX)模式：盘口区域显示最近20条成交明细
-	bool m_expandedMode{ false };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
-	bool m_showStockList{ true };  // 是否显示左侧股票列表面板
+	bool m_expandedMode{ true };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
+	bool m_showKdjChart{ false };  // 下方KDJ/WR/RSI指标图形区域显示开关（MACD按钮切换，默认隐藏）
+	bool m_showStockList{ false };  // 是否显示左侧股票列表面板
 	bool m_showJZCurve{ false };  // 基金净值曲线
 	bool m_showMA{ false };
 	bool m_showBollBands{ true };
