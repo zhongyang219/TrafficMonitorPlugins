@@ -180,6 +180,7 @@ void CDataManager::LoadConfig(const std::wstring& config_dir)
 
 	m_db_mgr.Init(m_config_path);
 	m_db_mgr.CleanExpiredData();
+	LoadEstimateRules();   // 启动恢复预估排队规则到内存（重启不丢）
 	LoadTodayInnerOuterSnapshots();
 	LoadChipDistributions();
 	LoadStockBasicData();
@@ -385,6 +386,47 @@ void CDataManager::LoadChipDistributions()
 				std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 				stockData->chipDistribution = chipData;
 			}
+		}
+	}
+}
+
+// 加载当天预估成交量记录到内存镜像（StockData::estimateRuleMap），供盘口实时计算剩余排队。
+// 重启后规则不丢：程序启动时从DB恢复；弹窗保存/删除时同步更新此镜像与DB。
+void CDataManager::LoadEstimateRules()
+{
+	if (!m_db_mgr.IsOpen()) return;
+
+	std::string tradeDate = CCommon::get_stock_trade_date();
+	for (const auto& code : m_setting_data.m_stock_codes)
+	{
+		auto stockData = GetStockData(code);
+		if (!stockData) continue;
+
+		{
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			stockData->estimateRuleMap.clear();
+		}
+
+		auto ests = m_db_mgr.LoadOrderBookEstimates(code, tradeDate);
+		// 同价同方向多条时保留最新一条（LoadOrderBookEstimates按id升序返回，后写覆盖）
+		for (const auto& est : ests)
+		{
+			int tradeType = est.tradeType;
+			// 价格量化key与盘口PriceToKey口径一致
+			long long priceKey = static_cast<long long>(std::llround(est.buyPrice * 10000.0));
+			bool isAskSide = (tradeType == 1);
+			// 建仓时刻起的快照最低挂单量（一次MIN SQL）
+			long long snapMin = est.orderVolume;
+			m_db_mgr.LoadMinOrderBookVolume(code, est.createTime, est.buyPrice, isAskSide, snapMin);
+
+			STOCK::VolumeOrderEstimate rule;
+			rule.tradeType = tradeType;
+			rule.orderVolume = est.orderVolume;
+			rule.cumVolume = est.cumVolume;
+			rule.createTime = est.createTime;
+			rule.snapshotMinOrder = snapMin;
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			stockData->estimateRuleMap[priceKey] = rule;
 		}
 	}
 }
@@ -698,6 +740,15 @@ void CDataManager::ApplyCallAuctionData(const std::string& resp)
 void CDataManager::ApplyTimeline(const std::wstring& code, const std::string& resp, bool ok)
 {
 	if (!ok)
+	{
+		stockMarket.LoadTimelineDataByJson(code, NULL);
+		return;
+	}
+
+	// 非交易时间不做分时缓存落库（程序在收盘后仍可能收到最后包/重试包，避免污染当日缓存）
+	time_t nowTime;
+	time(&nowTime);
+	if (CCommon::GetTradingMinute(nowTime) < 0)
 	{
 		stockMarket.LoadTimelineDataByJson(code, NULL);
 		return;

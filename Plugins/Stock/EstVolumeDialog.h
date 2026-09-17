@@ -54,9 +54,14 @@ public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnBnClickedResetBtn();
+	afx_msg void OnBnClickedDeleteBtn();
 
 private:
 	void UpdateEstVolume();   // 买入时预计成交累积量 = 挂单量 + 累计成交量（输入变化时联动）
+	// 将一条预估记录写入/更新 StockData::estimateRuleMap（盘口剩余排队显示的内存镜像）
+	void UpdateEstimateRuleMap(const CStockDbManager::OrderBookEstimate& est);
+	// 从 StockData::estimateRuleMap 中移除某价格的规则
+	void RemoveEstimateRuleFromMap(double price);
 	// 计算剩余排队挂单量（右列第三行）：
 	// 基准 = min(买入时挂单量, 快照最低挂单量, 实时挂单量)，剩余排队 = 基准 + 买入时累计 - 当前累计
 	// 同时把最终基准（最低挂单量）写入 m_minOrderVolume 供右列挂单量行展示
@@ -92,4 +97,6 @@ private:
 	CEdit m_editEstCur;
 	CButton m_btnOk;
 	CButton m_btnCancel;
+	CButton m_btnReset;
+	CButton m_btnDelete;
 };

@@ -2,6 +2,7 @@
 #include "EstVolumeDialog.h"
 #include "Common.h"
 #include "DataManager.h"
+#include <Stock.h>
 #include <ctime>
 #include <cmath>
 
@@ -15,6 +16,7 @@ BEGIN_MESSAGE_MAP(CEstVolumeDialog, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CEstVolumeDialog::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CEstVolumeDialog::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_RESET_BTN, &CEstVolumeDialog::OnBnClickedResetBtn)
+	ON_BN_CLICKED(IDC_DELETE_BTN, &CEstVolumeDialog::OnBnClickedDeleteBtn)
 END_MESSAGE_MAP()
 
 CEstVolumeDialog::CEstVolumeDialog(CWnd* pParent /*=nullptr*/)
@@ -42,6 +44,8 @@ void CEstVolumeDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EST_EST_CUR_EDIT, m_editEstCur);
 	DDX_Control(pDX, IDOK, m_btnOk);
 	DDX_Control(pDX, IDCANCEL, m_btnCancel);
+	DDX_Control(pDX, IDC_RESET_BTN, m_btnReset);
+	DDX_Control(pDX, IDC_DELETE_BTN, m_btnDelete);
 }
 
 BOOL CEstVolumeDialog::OnInitDialog()
@@ -72,19 +76,26 @@ BOOL CEstVolumeDialog::OnInitDialog()
 		}
 	}
 
-	// 客户区高度与模板不符时（跟随FloatingWnd高度），把确定/取消按钮重排到客户区底部
+	// 客户区高度与模板不符时（跟随FloatingWnd高度），把确定/取消/重置按钮重排到客户区底部
 	{
 		CRect clientArea;
 		GetClientRect(&clientArea);
-		CRect okRect, cancelRect;
+		CRect okRect, cancelRect, resetRect;
 		m_btnOk.GetWindowRect(&okRect);
 		m_btnCancel.GetWindowRect(&cancelRect);
+		m_btnReset.GetWindowRect(&resetRect);
+		CRect deleteRect;
+		m_btnDelete.GetWindowRect(&deleteRect);
 		ScreenToClient(&okRect);
 		ScreenToClient(&cancelRect);
+		ScreenToClient(&resetRect);
+		ScreenToClient(&deleteRect);
 		int btnBottomMargin = 6;
 		int okBottom = clientArea.Height() - btnBottomMargin;
 		m_btnOk.MoveWindow(okRect.left, okBottom - okRect.Height(), okRect.Width(), okRect.Height());
 		m_btnCancel.MoveWindow(cancelRect.left, okBottom - cancelRect.Height(), cancelRect.Width(), cancelRect.Height());
+		m_btnReset.MoveWindow(resetRect.left, okBottom - resetRect.Height(), resetRect.Width(), resetRect.Height());
+		m_btnDelete.MoveWindow(deleteRect.left, okBottom - deleteRect.Height(), deleteRect.Width(), deleteRect.Height());
 	}
 
 	// 买入价格：十档行带入当前档价格只读，首行允许输入
@@ -288,9 +299,18 @@ void CEstVolumeDialog::OnBnClickedOk()
 		MessageBox(_T("买入价格无效，请输入大于0的价格"), _T("提示"), MB_OK | MB_ICONWARNING);
 		return;
 	}
+	// 总数量为0：视为删除该记录（同价格+同方向的当天记录全部删除）
 	if (totalVol <= 0)
 	{
-		MessageBox(_T("总数量无效，请输入大于0的数量"), _T("提示"), MB_OK | MB_ICONWARNING);
+		if (!g_data.GetDbManager().DeleteOrderBookEstimates(m_stockCode,
+			CCommon::get_stock_trade_date(), price, m_tradeType))
+		{
+			MessageBox(_T("删除数据库记录失败"), _T("错误"), MB_OK | MB_ICONERROR);
+			return;
+		}
+		RemoveEstimateRuleFromMap(price);
+		MessageBox(_T("已删除同价格+同方向的记录"), _T("提示"), MB_OK | MB_ICONINFORMATION);
+		CDialogEx::OnOK();
 		return;
 	}
 	if (orderVol < 0 || cumVol < 0)
@@ -350,7 +370,47 @@ void CEstVolumeDialog::OnBnClickedOk()
 
 	MessageBox(_T("已保存"), _T("提示"), MB_OK | MB_ICONINFORMATION);
 
+	// 同步内存镜像（StockData::estimateRuleMap），盘口实时显示剩余排队；重启后由启动加载恢复
+	UpdateEstimateRuleMap(est);
+
 	CDialogEx::OnOK();
+}
+
+// 将一条预估记录写入/更新到 StockData::estimateRuleMap（key=价格万分位量化）
+// 新规则最低挂单量从买入时挂单量起步（snapshotMinOrder），之后由 UpdateOrderPriceAccum 每tick
+// 实时向下跟随、每10秒入库；重启后由启动加载 LoadEstimateRules 用MIN SQL恢复
+void CEstVolumeDialog::UpdateEstimateRuleMap(const CStockDbManager::OrderBookEstimate& est)
+{
+	auto stockData = g_data.GetStockData(est.stockCode);
+	if (!stockData)
+		return;
+
+	long long priceKey = static_cast<long long>(std::llround(est.buyPrice * 10000.0));
+
+	STOCK::VolumeOrderEstimate rule;
+	rule.tradeType = est.tradeType;
+	rule.orderVolume = est.orderVolume;
+	rule.cumVolume = est.cumVolume;
+	rule.createTime = est.createTime;
+	rule.snapshotMinOrder = est.orderVolume;   // 新起点=买入时挂单量（历史快照若有更低的，启动时MIN恢复）
+
+	std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+	// 已有同价规则时保留内存中实时维护的最低值（不回退）
+	auto it = stockData->estimateRuleMap.find(priceKey);
+	if (it != stockData->estimateRuleMap.end() && it->second.snapshotMinOrder >= 0)
+		rule.snapshotMinOrder = min(rule.snapshotMinOrder, it->second.snapshotMinOrder);
+	stockData->estimateRuleMap[priceKey] = rule;
+}
+
+// 从 StockData::estimateRuleMap 中移除某价格的规则（key=价格万分位量化）
+void CEstVolumeDialog::RemoveEstimateRuleFromMap(double price)
+{
+	auto stockData = g_data.GetStockData(m_stockCode);
+	if (!stockData)
+		return;
+	long long priceKey = static_cast<long long>(std::llround(price * 10000.0));
+	std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+	stockData->estimateRuleMap.erase(priceKey);
 }
 
 void CEstVolumeDialog::OnBnClickedCancel()
@@ -383,4 +443,28 @@ void CEstVolumeDialog::OnBnClickedResetBtn()
 		UpdateEstVolume();   // 预计成交累积量 = 挂单量 + 累计成交量 联动重算
 	}
 	// 总数量保持不变；右侧实时列不动
+}
+
+// 删除按钮：删除当前价格+方向的当天记录（与"总数量=0保存"同一删除逻辑），然后关闭对话框
+void CEstVolumeDialog::OnBnClickedDeleteBtn()
+{
+	CString priceText;
+	m_editPrice.GetWindowText(priceText);
+	double price = _ttof(priceText);
+	if (price <= 0)
+	{
+		MessageBox(_T("买入价格无效，无法定位要删除的记录"), _T("提示"), MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	if (!g_data.GetDbManager().DeleteOrderBookEstimates(m_stockCode,
+		CCommon::get_stock_trade_date(), price, m_tradeType))
+	{
+		MessageBox(_T("删除数据库记录失败"), _T("错误"), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	RemoveEstimateRuleFromMap(price);
+	MessageBox(_T("已删除同价格+同方向的记录"), _T("提示"), MB_OK | MB_ICONINFORMATION);
+	CDialogEx::OnOK();
 }

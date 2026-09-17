@@ -1,9 +1,11 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "MarketOrderBook.h"
 #include "StockDef.h"
 #include "Common.h"
 #include "DataManager.h"
+#include <Stock.h>
 #include <algorithm>
+#include <limits>
 #include <cmath>
 
 // 将价格量化到0.0001精度作为map key，规避浮点相等比较误差
@@ -142,6 +144,48 @@ void MarketOrderBook::RefreshTransCache()
 	// 数据变化后统一重算净流入（节流周期内重复调用无开销，仅map遍历）
 	CalcCumNetInflow();
 	CalcIntervalNetInflow();
+
+	CheckNegativeRemainRules();
+}
+
+// 排队规则成交检查：剩余排队量变负 → 该单已完全成交，删除内存规则与DB记录
+// （挂在 RefreshTransCache 尾部，累计成交量map刚刷新后的调用点，同一数据无需重查）
+void MarketOrderBook::CheckNegativeRemainRules()
+{
+	if (m_code.empty())
+		return;
+	auto stockData = g_data.GetStockData(m_code);
+	if (!stockData || stockData->estimateRuleMap.empty())
+		return;
+
+	std::vector<long long> toDelete;
+	for (const auto& kv : stockData->estimateRuleMap)
+	{
+		const STOCK::VolumeOrderEstimate& rule = kv.second;
+		bool isAskSide = (rule.tradeType == 1);
+		double price = kv.first / 10000.0;   // 量化key还原
+
+		// 与 GetRemainQueueAt 相同口径：min(挂单基准, 快照最低, 实时挂单) + 买入累计 - 当前累计
+		long long remain = GetRemainQueueAt(price, isAskSide);
+		if (remain != (std::numeric_limits<long long>::min)() && remain < 0)
+			toDelete.push_back(kv.first);
+	}
+
+	if (toDelete.empty())
+		return;
+
+	// 删除内存规则与DB记录。调用点（RefreshTransCache→OnPaint）已持有 m_stockDataMutex，
+	// std::mutex 不可重入，此处不能再 lock——直接操作即可。
+	std::string tradeDate = CCommon::get_stock_trade_date();
+	for (long long priceKey : toDelete)
+	{
+		auto it = stockData->estimateRuleMap.find(priceKey);
+		if (it == stockData->estimateRuleMap.end())
+			continue;
+		double price = priceKey / 10000.0;
+		g_data.GetDbManager().DeleteOrderBookEstimates(m_code, tradeDate, price, it->second.tradeType);
+		stockData->estimateRuleMap.erase(priceKey);
+	}
 }
 
 // 整日累计净流入（元）= Σ(主动买量-主动卖量)×价格×100
@@ -200,3 +244,52 @@ long long MarketOrderBook::GetOrderDeltaLots(double price, bool isAskSide) const
 		? (curIt->second.activeBuyVol - prevIt->second.activeBuyVol)
 		: (curIt->second.activeSellVol - prevIt->second.activeSellVol);
 }
+
+// 剩余排队挂单量（手）：从 StockData::estimateRuleMap（当日预估规则内存镜像）读取该价位的规则，
+// = min(买入时挂单量, 建仓后快照最低挂单量, 当前实时挂单量) + 买入时累计 - 当前累计
+// 规则.tradeType: 0=买入(watch买盘档), 1=卖出(watch卖盘档)；isAskSide须与规则盘别一致才返回
+long long MarketOrderBook::GetRemainQueueAt(double price, bool isAskSide) const
+{
+	const long long NO_RULE = (std::numeric_limits<long long>::min)();
+	if (m_code.empty() || price <= 0)
+		return NO_RULE;
+	auto stockData = g_data.GetStockData(m_code);
+	if (!stockData)
+		return NO_RULE;
+
+	// 价格→规则（key与PriceToKey同口径：万分位整数）
+	auto it = stockData->estimateRuleMap.find(PriceToKey(price));
+	if (it == stockData->estimateRuleMap.end())
+		return NO_RULE;
+	const STOCK::VolumeOrderEstimate& rule = it->second;
+	if (rule.tradeType == 1 != isAskSide)   // 盘别须一致(1=卖出→卖盘)
+		return NO_RULE;
+
+	// 当前实时挂单量（手）：该档位在当前盘口中的量，不在盘口（撤光/位移）时视为0
+	const Level* levels = isAskSide ? m_ask : m_bid;
+	long long curOrderLots = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		if (std::abs(levels[i].price - price) < 0.0005 && levels[i].price > 0)
+		{
+			curOrderLots = levels[i].volume / 100;   // 股→手
+			break;
+		}
+	}
+
+	// 当前累计成交量（该价格对侧口径：买入统计主动卖累计，卖出统计主动买累计）
+	long long key = PriceToKey(price);
+	long long curCum = 0;
+	auto cumIt = m_priceCumVolMap.find(key);
+	if (cumIt != m_priceCumVolMap.end())
+		curCum = isAskSide ? cumIt->second.activeBuyVol : cumIt->second.activeSellVol;
+
+	long long baseMin = rule.orderVolume;
+	if (rule.snapshotMinOrder >= 0 && rule.snapshotMinOrder < baseMin)
+		baseMin = rule.snapshotMinOrder;
+	if (curOrderLots < baseMin)
+		baseMin = curOrderLots;
+
+	return baseMin + rule.cumVolume - curCum;
+}
+

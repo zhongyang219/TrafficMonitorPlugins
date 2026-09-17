@@ -146,6 +146,7 @@ public:
 	bool SaveStockBasicData(const std::wstring& stockCode, STOCK::Volume circulatingAShares);
 	void LoadTodayInnerOuterSnapshots();
 	void LoadChipDistributions();
+	void LoadEstimateRules();   // 启动加载当天预估成交量规则到 StockData::estimateRuleMap
 	void LoadStockBasicData();
 
 	void SetCurrentViewMode(UIViewMode mode) { m_cur_view_mode = mode; }

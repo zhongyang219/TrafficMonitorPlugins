@@ -1068,8 +1068,10 @@ static std::map<std::string, double> BuildFundNavTimeMap(const std::wstring& sto
 	return iopvByTime;
 }
 
-// 5分钟K线净值曲线：逐根K线按bar结束时刻（day的HH:MM部分）查净值连线
-static void DrawMin5KLineNavCurve(CDC& memDC, const TimelineDrawContext& ctx,
+// 5/30分钟K线净值曲线：逐根K线按bar结束时刻（day的HH:MM部分）取净值连线
+// 5分钟bar与净值点逐分钟对齐，直接精确匹配；30分钟bar结束时刻（如10:00/10:30）
+// 取该时刻之前最近一次的净值快照，保证每一根30分钟K线都有净值点
+static void DrawMin30NavCurveForKLine(CDC& memDC, const TimelineDrawContext& ctx,
 	const std::vector<STOCK::KLinePoint>& klineData, const std::map<std::string, double>& iopvByTime,
 	int klineStartIdx, int klineEndIdx, int totalPoints, float barTotalWidth,
 	STOCK::Price minPrice, double unitY)
@@ -1090,9 +1092,11 @@ static void DrawMin5KLineNavCurve(CDC& memDC, const TimelineDrawContext& ctx,
 		const auto& kp = klineData[klineStartIdx + i];
 		if (kp.day.length() < 16 || kp.day[10] != ' ')
 			continue;
-		auto it = iopvByTime.find(kp.day.substr(11, 5));
-		if (it == iopvByTime.end())
-			continue;
+		auto it = iopvByTime.upper_bound(kp.day.substr(11, 5));   // 首个 > bar结束时刻的净值点
+		if (it != iopvByTime.begin())
+			--it;   // 回退到 bar结束时刻之前(含)最近一次净值快照
+		else
+			continue;   // 早于第一笔净值数据，无可用净值
 
 		int pointX = static_cast<int>(ctx.chartWidth / static_cast<float>(totalPoints) * i) + static_cast<int>(barTotalWidth / 2);
 		int pointY = priceToY(it->second);
@@ -1329,13 +1333,13 @@ void CTimelineChart::DrawMin5KLinePriceChart(CDC& memDC, const TimelineDrawConte
 		drawBandLine(lowerBand, COLOR_GREEN_DOWN);
 	}
 
-	// 绘制基金净值曲线：数据取每根5分钟K线最后时间点（bar时间即结束时刻）的净值
-	if (ctx.realtimeData.IsETF() && hover.viewMode == UI_VIEW_MIN5_KLINE
+	// 绘制基金净值曲线：数据取每根K线最后时间点（bar时间即结束时刻）的净值
+	if (ctx.realtimeData.IsETF() && (hover.viewMode == UI_VIEW_MIN5_KLINE || hover.viewMode == UI_VIEW_MIN30_KLINE)
 		&& ctx.fullTimeline && !ctx.fullTimeline->empty())
 	{
 		std::map<std::string, double> iopvByTime = BuildFundNavTimeMap(hover.stockId, ctx.realtimeData, *ctx.fullTimeline);
 		if (!iopvByTime.empty())
-			DrawMin5KLineNavCurve(memDC, ctx, klineData, iopvByTime, klineStartIdx, klineEndIdx, totalPoints, barTotalWidth, minPrice, unitY);
+			DrawMin30NavCurveForKLine(memDC, ctx, klineData, iopvByTime, klineStartIdx, klineEndIdx, totalPoints, barTotalWidth, minPrice, unitY);
 	}
 
 	// 最高/最低价标签：优先展示最后一个交易日（>=5分钟K线：末尾同日期的最后N根）的最高/最低，

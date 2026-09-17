@@ -9,6 +9,8 @@
 #include <limits>
 #include <ctime>
 #include <algorithm>
+#include <set>
+#include <cmath>
 #include "MarketOrderBook.h"
 
 // 线性回归结果（基础数据结构，供CSignalAnalyzer/CDataManager等使用）
@@ -571,6 +573,16 @@ namespace STOCK
 		std::vector<OrderBookLevelSnapshot> levels;  // 有效档位（价格>0，卖5+买5最多10条）
 	};
 
+	// 预估成交量排队监视规则（当天有效的一条 order_book_estimates 内存镜像）
+	struct VolumeOrderEstimate
+	{
+		int tradeType{ 0 };               // 0=买入(watch买盘), 1=卖出(watch卖盘)
+		long long orderVolume{ 0 };       // 买入时挂单量（手）
+		long long cumVolume{ 0 };         // 买入时累计成交量（手）
+		time_t createTime{ 0 };           // 建仓时间（快照最低量查询起点）
+		long long snapshotMinOrder{ -1 }; // 入库至今的最低挂单量（手）；内存实时维护，每10秒入库一次，启动自DB恢复
+	};
+
 	// 内外盘2秒采样数据（增量净比+增量成交量）
 	struct VolumeSample {
 		double netRatio;      // 增量净比 (Δ外-Δ内)/(Δ外+Δ内)*100
@@ -657,6 +669,10 @@ namespace STOCK
 
 		// 盘口数据模型（数据与视图分离：行情推送时Update，渲染层只读）
 		MarketOrderBook orderBook;
+
+		// 预估成交量排队监视规则（当天有效的 order_book_estimates 内存镜像，随DB增删同步）
+		// key = 价格（量化万分位），value = 买入时记录；渲染按盘别取对侧累计算剩余排队
+		std::map<long long, STOCK::VolumeOrderEstimate> estimateRuleMap;
 
 		// 买一到买五、卖一到卖五按价格跟踪挂单瞬时变化量（股）
 		std::map<Price, OrderPriceAccum> orderPriceAccumMap;
@@ -783,7 +799,8 @@ namespace STOCK
 		time_t lastSampleTime{ 0 }; // 上次采样时间（2秒间隔去重）
 		time_t lastSaveTime{ 0 };   // 上次持久化时间（5秒间隔）
 		time_t lastMinSampleTime{ 0 }; // 上次分钟级采样时间（1分钟间隔）
-		time_t lastOrderBookSaveTime{ 0 }; // 上次盘口快照持久化时间（1分钟间隔）
+		time_t lastOrderBookSaveTime{ 0 };      // 上次盘口全量快照持久化时间（1分钟间隔）
+		time_t lastFastOrderBookSaveTime{ 0 };  // 上次盘口高频(规则档位)快照持久化时间（5秒间隔）
 		Volume lastInnerVolume{ 0 };  // 上次采样的内盘累计值（用于算增量）
 		Volume lastOuterVolume{ 0 };  // 上次采样的外盘累计值（用于算增量）
 
@@ -868,9 +885,11 @@ namespace STOCK
 
 		// 更新内外盘采样并持久化（与数据来源解耦，任何数据源更新后都应调用）
 		void UpdateVolumeSample();
-		void UpdateOrderPriceAccum();  // 更新五档挂单变化量（+N/-N）
-		// 每分钟持久化一次盘口快照（五档挂单+累计主动买卖量），内部1分钟去重
+		void UpdateOrderPriceAccum();  // 更新五档挂单变化量（+N/-N），并维护排队规则的内存最低挂单量
+		// 盘口排队监视数据入库：只有规则档位每10秒一次（秒级时间戳），无全量盘口入库
 		void SaveOrderBookSnapshot();
+		void SaveOrderBookSnapshotWatched(
+			const std::shared_ptr<STOCK::StockData>& stockData, time_t now);
 
 		// 从secVolumePool获取加权平均净比和净差（minutes: 1/5/10/20）
 		// 不足目标条数时有多少根就计算多少根

@@ -92,6 +92,9 @@ public:
 	bool SaveOrderBookEstimate(const OrderBookEstimate& est);
 	// 按id更新数值列（total/order/cum/est/buy_price/trade_type），id和create_time不变
 	bool UpdateOrderBookEstimate(const OrderBookEstimate& est);
+	// 删除某股票某交易日、指定价格+买卖方向（价格0.0005容差）的全部预估记录
+	bool DeleteOrderBookEstimates(const std::wstring& stockCode, const std::string& tradeDate,
+		double buyPrice, int tradeType);
 	// 加载某股票某交易日的全部预估记录（按id升序）
 	std::vector<OrderBookEstimate> LoadOrderBookEstimates(
 		const std::wstring& stockCode, const std::string& tradeDate);

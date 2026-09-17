@@ -43,6 +43,8 @@ private:
 		CString sumVol;      // 累计成交量后缀（显示在瞬时变化量前面）
 		STOCK::Volume totalVol{ 0 };  // 累计成交量（手）
 		COLORREF sumVolColor{ RGB(0,0,0) };  // 累计成交量后缀颜色
+		CString remainVol;   // 剩余排队量（有排队规则时替代sumVol显示）
+		COLORREF remainVolColor{ RGB(0,0,255) };  // 剩余排队量颜色（蓝）
 		COLORREF priceColor;
 		bool fillBackground{ false };
 		COLORREF backgroundColor;
@@ -50,6 +52,7 @@ private:
 		bool bold{ false };   // 粗体
 		double orderRatio{ 0.0 };  // 卖一/买一后方挂单量占比（0~1），用于绘制背景色
 		double sumVolRatio{ 0.0 };  // 累计买入与累计卖出成交量占比（0~1），用于绘制背景色
+		bool hasRemainQueue{ false };  // 该行显示剩余排队量（背景条用单色满宽，非红绿双色）
 	};
 
 	// 布局上下文（由Draw计算，传递给各子函数）

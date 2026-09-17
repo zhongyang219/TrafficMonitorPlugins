@@ -135,6 +135,8 @@ private:
 	TechnicalIndicatorModel m_indicatorModel;  // 技术指标数据模型（数据与视图分离，渲染层只读缓存序列）
 	int m_lastIndicatorDataSize{ -1 };         // 上次刷新指标模型时的序列长度
 	UIViewMode m_lastIndicatorViewMode{ UI_VIEW_MIN5_KLINE };
+	// 右键切换：从K线模式切到分时前的界面模式，再右键切回用
+	UIViewMode m_prevKLineViewMode{ UI_VIEW_OVERVIEW };  // UI_VIEW_OVERVIEW表示无来源记录
 	bool m_indicatorLoaded{ false };
 	DWORD m_lastIndicatorRefreshTick{ 0 };     // 上次定时器触发指标重算的时机(ms)，1秒节流
 	int m_timelineScrollOffset{ -1 };  // 分时图水平滚动偏移，-1表示需要自动滚动到末尾

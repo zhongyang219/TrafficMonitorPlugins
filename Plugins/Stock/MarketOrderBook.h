@@ -89,6 +89,11 @@ public:
 	// 是否有效（已有行情数据）
 	bool IsValid() const { return m_valid; }
 
+	// 剩余排队挂单量（手）：由 StockData::estimateRuleMap 中该价格的规则计算
+	// = min(买入时挂单量, 快照最低, 当前实时挂单量) + 买入时累计 - 当前累计
+	// 无规则/查询失败返回 INT64_MIN（渲染层不显示）
+	long long GetRemainQueueAt(double price, bool isAskSide) const;
+
 	// 五档中最大挂单量（Update时缓存，用于挂单量背景条占比）
 	long long GetMaxOrderVolume() const { return m_maxOrderVol; }
 	// 单行挂单量占五档最大量的比例（0~1）
@@ -106,6 +111,8 @@ private:
 	void CalcCumNetInflow();
 	// 区间净流入（元）= 当前10条明细的买卖差
 	void CalcIntervalNetInflow();
+	// 排队规则成交检查：剩余排队量<0 → 删除内存规则与DB记录（RefreshTransCache 尾部调用）
+	void CheckNegativeRemainRules();
 
 private:
 	bool m_valid{ false };
@@ -140,4 +147,7 @@ private:
 	std::vector<TransLine> m_transLines;
 	std::wstring m_transCode;            // 已加载明细的股票代码
 	DWORD m_lastTransRefreshTick{ 0 };   // 上次刷新明细的时机(ms)
+
+	// 剩余排队挂单监视：规则存于 StockData::estimateRuleMap（当日预估记录内存镜像，随DB同步），
+	// 渲染层按当前档位价格+盘别查规则并计算剩余排队；不再保存在本模型中（重启后由启动加载恢复）
 };

@@ -88,6 +88,7 @@
 #define IDC_EST_EST_CUR_EDIT            1066
 #define IDC_EST_TIME_EDIT               1067
 #define IDC_RESET_BTN                   1068
+#define IDC_DELETE_BTN                  1069
 #define IDS_ALERT_LOW_PRICE             115
 #define IDS_ALERT_HIGH_PRICE            116
 #define IDS_PRICE_ALERT_TITLE           117
@@ -114,7 +115,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

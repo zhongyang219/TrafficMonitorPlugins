@@ -2,6 +2,7 @@
 #include "StockDef.h"
 #include "SignalAnalyzer.h"
 #include <iomanip>
+#include <cmath>
 #include "Common.h"
 #include <DataManager.h>
 #include <Stock.h>
@@ -135,6 +136,33 @@ void STOCK::StockData::UpdateOrderPriceAccum()
 		updateLevelAccum(info.bidLevels[i], false);
 	}
 
+	// 排队规则档位：内存实时维护"入库最低挂单量"（snapshotMinOrder 向下跟随）
+	// 每10秒入库；正常计算全部读内存，不再依赖查询快照表求最小值
+	// 行情推送线程不在锁内，需要持锁访问 estimateRuleMap（弹窗线程可能同时增删）
+	if (auto stockData = g_data.GetStockData(info.code))
+	{
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		for (auto& kv : stockData->estimateRuleMap)
+		{
+			auto& rule = kv.second;
+			const OrderLevel* levels = (rule.tradeType == 1) ? info.askLevels : info.bidLevels;
+			for (int i = 0; i < StockInfo::MAX_LEVEL; i++)
+			{
+				if (levels[i].price > 0)
+				{
+					long long priceKey = static_cast<long long>(std::llround(levels[i].price * 10000.0));
+					if (priceKey == kv.first)
+					{
+						long long cur = static_cast<long long>(levels[i].volume) / 100;   // 股→手
+						if (rule.snapshotMinOrder < 0 || cur < rule.snapshotMinOrder)
+							rule.snapshotMinOrder = cur;
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	// 盘口累计成交量已改为从数据库 tick_trade 聚合读取，不再在此处累加
 
 	for (auto it = orderPriceAccumMap.begin(); it != orderPriceAccumMap.end(); )
@@ -146,24 +174,56 @@ void STOCK::StockData::UpdateOrderPriceAccum()
 	}
 }
 
+// 盘口排队监视数据的持久化调度（只在规则档位上存库）：
+//   内存实时维护"入库时挂单量最低值"（UpdateOrderPriceAccum 每tick在 estimateRuleMap 中向下更新），
+//   每10秒把最新最低挂单量连同当前累计成交量入库一次（snapshot_time=秒级时间戳）；
+//   启动时 LoadEstimateRules 用一条 MIN(order_volume) SQL 恢复内存初值，日常计算全部读内存。
+// 非交易时间（含盘前/午休/收盘后/周六日）不处理。
 void STOCK::StockData::SaveOrderBookSnapshot()
 {
 	time_t now;
 	time(&now);
-	// 每1分钟保存一次（取整到分钟边界去重）
-	time_t saveTime = now - now % 60;
-	if (saveTime <= 0 || saveTime == lastOrderBookSaveTime)
+
+	// 非交易时间不做任何盘口快照存档，重置去重时戳使次日开盘立即触发
+	if (CCommon::GetTradingMinute(now) < 0)
 	{
+		lastOrderBookSaveTime = 0;
 		return;
 	}
+
+	auto stockData = g_data.GetStockData(info.code);
+	bool hasRules = false;
+	if (stockData)
+	{
+		// 推送线程未持锁：持锁判断有无规则
+		std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+		hasRules = !stockData->estimateRuleMap.empty();
+	}
+	if (!hasRules)
+		return;
+
+	// 无规则时时间点重置，避免规则新增后的首个10秒点误判
+	if (now - now % 10 == 0)
+		lastOrderBookSaveTime = 0;
+
+	// 每10秒入库一次（秒级×10去重）
+	time_t saveTime = now - now % 10;
+	if (saveTime <= 0 || saveTime == lastOrderBookSaveTime)
+		return;
 	lastOrderBookSaveTime = saveTime;
 
+	SaveOrderBookSnapshotWatched(stockData, now);
+}
+
+// 将存在排队监视规则的档位行入库（每10秒，秒级时间戳）
+// 累计成交量从 tick_trade 聚合（与盘口口径一致，ETF价÷10还原）
+void STOCK::StockData::SaveOrderBookSnapshotWatched(
+	const std::shared_ptr<STOCK::StockData>& stockData, time_t now)
+{
 	OrderBookSnapshotRecord record;
 	record.snapshotTime = now;
 
-	// 各价格档位的累计主动成交量：与盘口界面完全同口径（LoadPriceVolumeStats，
-	// tick_trade按(time_key,price,vol,buyorsell)去重聚合、排除中性），ETF真实价需除以10还原
-	std::map<double, std::pair<long long, long long>> priceCumVol;  // 价格 -> (主动买累计, 主动卖累计)
+	std::map<double, std::pair<long long, long long>> priceCumVol;
 	if (!info.code.empty())
 	{
 		bool isEtf = info.IsETF();
@@ -172,31 +232,40 @@ void STOCK::StockData::SaveOrderBookSnapshot()
 		{
 			double realPrice = isEtf ? (s.price / 10.0) : s.price;
 			auto& volPair = priceCumVol[realPrice];
-			if (s.buyOrSell == 0)      volPair.first = s.vol;   // 主动买
-			else if (s.buyOrSell == 1) volPair.second = s.vol;  // 主动卖
+			if (s.buyOrSell == 0)      volPair.first = s.vol;
+			else if (s.buyOrSell == 1) volPair.second = s.vol;
 		}
 	}
-
-	// 卖五~买五逐档记录（卖盘在前，与盘口展示顺序一致）
-	// 只保存有成交记录的档位（该价格在 tick_trade 中有累计主动买卖量），无成交的档位不存
 	auto addLevel = [&](bool isAsk, int idx, const OrderLevel& level) {
 		if (level.price <= 0) return;
-		auto it = priceCumVol.find(level.price);
-		if (it == priceCumVol.end())
-			return;   // 该价格无成交（买卖量均为0），不保存
+		long long priceKey = static_cast<long long>(std::llround(level.price * 10000.0));
+		bool isRule = false;
+		{
+			// 推送线程未持锁：持锁查询规则map（弹窗线程可能同时增删）
+			std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
+			isRule = stockData->estimateRuleMap.find(priceKey) != stockData->estimateRuleMap.end();
+		}
+		if (!isRule)
+			return;   // 只存规则档位
 		OrderBookLevelSnapshot lv;
 		lv.isAsk = isAsk;
 		lv.levelIndex = idx;
 		lv.price = level.price;
 		lv.orderVolume = static_cast<long long>(level.volume);
-		lv.cumActiveBuyVol = it->second.first;
-		lv.cumActiveSellVol = it->second.second;
+		// 累计成交量：无该价位成交记录也存（挂单量下降本身是有效信息），全0
+		auto it = priceCumVol.find(level.price);
+		if (it != priceCumVol.end())
+		{
+			lv.cumActiveBuyVol = it->second.first;
+			lv.cumActiveSellVol = it->second.second;
+		}
 		record.levels.push_back(std::move(lv));
 		};
 	for (int i = 4; i >= 0; i--) addLevel(true, i, info.askLevels[i]);
 	for (int i = 0; i < 5; i++) addLevel(false, i, info.bidLevels[i]);
 
-	g_data.SaveOrderBookSnapshot(info.code, record);
+	if (!record.levels.empty())
+		g_data.SaveOrderBookSnapshot(info.code, record);
 }
 
 RegResult STOCK::StockData::CalTimeLineTrend()

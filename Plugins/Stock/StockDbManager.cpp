@@ -444,6 +444,16 @@ void CStockDbManager::CleanExpiredData()
 		sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 	}
+
+	// 预估成交量记录只保留7天
+	const char* cleanEstSql = "DELETE FROM order_book_estimates WHERE trade_date < ?;";
+	stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, cleanEstSql, -1, &stmt, nullptr) == SQLITE_OK)
+	{
+		sqlite3_bind_text(stmt, 1, cutoffDate7d.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+	}
 }
 
 bool CStockDbManager::SaveTradeRecord(const std::wstring& stockCode, const std::wstring& stockName, int tradeType, const std::wstring& time, double price, double amount, double totalAmount, double fee, double total)
@@ -644,6 +654,28 @@ bool CStockDbManager::UpdateOrderBookEstimate(const OrderBookEstimate& est)
 	sqlite3_bind_int64(stmt, 5, static_cast<sqlite3_int64>(est.cumVolume));
 	sqlite3_bind_int64(stmt, 6, static_cast<sqlite3_int64>(est.estVolume));
 	sqlite3_bind_int(stmt, 7, est.id);
+
+	rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	return rc == SQLITE_DONE;
+}
+
+bool CStockDbManager::DeleteOrderBookEstimates(const std::wstring& stockCode, const std::string& tradeDate,
+	double buyPrice, int tradeType)
+{
+	if (m_db == nullptr) return false;
+
+	const char* sql = "DELETE FROM order_book_estimates WHERE stock_code = ? AND trade_date = ? "
+		"AND trade_type = ? AND ABS(buy_price - ?) < 0.0005;";
+	sqlite3_stmt* stmt = nullptr;
+	int rc = sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) return false;
+
+	sqlite3_bind_text16(stmt, 1, stockCode.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, tradeDate.c_str(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_int(stmt, 3, tradeType);
+	sqlite3_bind_double(stmt, 4, buyPrice);
 
 	rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);

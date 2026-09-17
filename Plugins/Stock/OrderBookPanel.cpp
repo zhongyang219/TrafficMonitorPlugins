@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "DataManager.h"
 #include <algorithm>
+#include <limits>
 #include <cmath>
 
 // 成交量颜色（按实际成交额档位分色）
@@ -551,9 +552,26 @@ void COrderBookPanel::DrawOrderBookRowText(CDC& memDC, const OrderBookRow& row, 
 
 	int volumeX = x + nPriceWidth;
 	int volWidth = (rowWidth - nPriceWidth) / 2; // 预留一半宽度给成交量，另一半给累计成交量和瞬时变化量
+	//背景色统一先画，再画文字：累计成交量背景画在挂单量背景之后、所有文字之前，
+	//避免累计背景矩形覆盖挂单量文字（挂单量带"/min"时文字更宽，容易被右侧背景压住）
+
 	//绘制挂单量背景色，默认用淡蓝色
 	int volBackWidth = volWidth * row.orderRatio;
 	memDC.FillSolidRect(volumeX + 3, y + 1, volBackWidth - 2, rowHeight - 1, row.volumeColor);
+
+	// 累计买卖占比背景色（先于所有文字绘制，避免覆盖挂单量文字）
+	// 有排队规则时照样绘制（长度基于累计成交量计算，与普通行一致），只是文字换成剩余排队量
+	if (row.totalVol > 0)
+	{
+		double widthRatio = static_cast<double>(row.totalVol) / maxVol;
+		int curWidth = static_cast<int>(std::round(volWidth * widthRatio));
+		if (curWidth < 1) curWidth = 1;
+		int sumVolBuyX = volumeX + volWidth + 2;
+		int buyWidth = static_cast<int>(curWidth * row.sumVolRatio);
+		memDC.FillSolidRect(sumVolBuyX, y + 1, buyWidth, rowHeight - 1, RGB(255, 159, 159));
+		int sellWidth = curWidth - buyWidth;
+		memDC.FillSolidRect(sumVolBuyX + buyWidth, y + 1, sellWidth, rowHeight - 1, RGB(95, 255, 50));
+	}
 
 	CFont* oldFont = memDC.GetCurrentFont();
 	LOGFONT lf;
@@ -564,26 +582,19 @@ void COrderBookPanel::DrawOrderBookRowText(CDC& memDC, const OrderBookRow& row, 
 	memDC.SetTextColor(row.darkBackground ? RGB(255, 255, 200) : textColor);
 	memDC.TextOut(volumeX, y + g_data.RDPI(1), row.strVolume);
 
-	// 右对齐绘制累计成交量和瞬时变化量
-	// 布局：[...strVol] [diffVol] [sumVol] 右边距
+	// 右对齐绘制累计成交量/剩余排队量与瞬时变化量（背景已在前面统一绘制，这里只画文字）
+	// 布局：[...strVol] [diffVol] [sumVol/remainVol] 右边距
 	int rightEdge = x + rowWidth - g_data.RDPI(4);
-	if (!row.sumVol.IsEmpty())
 	{
-		// 绘制 累计买入和卖出背景色
-		double widthRatio = static_cast<double>(row.totalVol) / maxVol;
-		int curWidth = static_cast<int>(std::round(volWidth * widthRatio));
-		if (curWidth < 1) curWidth = 1;
-		int sumVolBuyX = volumeX + volWidth + 2;
-		int buyWidth = curWidth * row.sumVolRatio;
-		memDC.FillSolidRect(sumVolBuyX, y + 1, buyWidth, rowHeight - 1, RGB(255, 159, 159));
-		int sumVolSellX = sumVolBuyX + buyWidth;
-		int sellWidth = curWidth - buyWidth;
-		memDC.FillSolidRect(sumVolSellX, y + 1, sellWidth, rowHeight - 1, RGB(95, 255, 50));
-
-		memDC.SetTextColor(row.sumVolColor);
-		int cumVolW = memDC.GetTextExtent(row.sumVol).cx;
-		memDC.TextOut(rightEdge - cumVolW, y + g_data.RDPI(1), row.sumVol);
-		rightEdge -= cumVolW;
+		const CString& rightText = row.remainVol.IsEmpty() ? row.sumVol : row.remainVol;
+		if (!rightText.IsEmpty())
+		{
+			COLORREF rightColor = row.remainVol.IsEmpty() ? row.sumVolColor : row.remainVolColor;
+			memDC.SetTextColor(rightColor);
+			int cumVolW = memDC.GetTextExtent(rightText).cx;
+			memDC.TextOut(rightEdge - cumVolW, y + g_data.RDPI(1), rightText);
+			rightEdge -= cumVolW;
+		}
 	}
 	if (!row.diffVol.IsEmpty())
 	{
@@ -620,22 +631,38 @@ COrderBookPanel::OrderBookRow COrderBookPanel::BuildAskRow(const MarketOrderBook
 	row.strVolume.Format(_T(" %lld"), static_cast<long long>(volume));
 	row.volumeColor = RGB(163, 255, 172);
 
-	//瞬时变化量（模型缓存值直接读取）
-	if (delta != 0)
-	{
-		row.diffVol.Format(_T("%s%lld"), delta > 0 ? _T("+") : _T("-"), static_cast<long long>(std::abs(delta)));
-	}
-	row.diffVolColor = COLOR_RED_UP;
 	// 累计成交量（卖盘显示主动买成交量，模型缓存值直接读取）
 	auto cumVol = book.GetCumVol(price);
 	row.totalVol = cumVol.first + cumVol.second;
-	if (cumVol.first > 0)
+	// 该档位存在排队监视规则时：右列改显剩余排队量（独立字段，蓝色）；背景条仍按累计成交量计算
+	long long remain = book.GetRemainQueueAt(price, true);
+	if (remain != (std::numeric_limits<long long>::min)())
 	{
-		row.sumVol.Format(_T(" %lld"), static_cast<long long>(cumVol.first));
-		row.sumVolRatio = cumVol.second == 0 ? 1 : (double)cumVol.first / row.totalVol;
+		row.remainVol.Format(_T(" %lld"), remain);
+		row.hasRemainQueue = true;
+		// 瞬时变化量改为蓝色负数（-|delta|）；无变化(delta==0)不显示
+		if (delta != 0)
+		{
+			row.diffVol.Format(_T("-%lld"), static_cast<long long>(std::abs(delta)));
+			row.diffVolColor = RGB(0, 0, 255);
+		}
+		// 背景条照常绘制：长度与占比都用累计成交量数据（仅不显示累计数字）
+		row.sumVolRatio = row.totalVol == 0 ? 0 : (double)cumVol.first / row.totalVol;
 	}
-
-	row.sumVolColor = RGB(128, 0, 128);
+	else
+	{
+		if (cumVol.first > 0)
+		{
+			row.sumVol.Format(_T(" %lld"), static_cast<long long>(cumVol.first));
+			row.sumVolRatio = cumVol.second == 0 ? 1 : (double)cumVol.first / row.totalVol;
+			row.sumVolColor = RGB(128, 0, 128);
+		}
+		if (delta != 0)
+		{
+			row.diffVol.Format(_T("%s%lld"), delta > 0 ? _T("+") : _T("-"), static_cast<long long>(std::abs(delta)));
+			row.diffVolColor = COLOR_RED_UP;
+		}
+	}
 	row.priceColor = COLOR_RED_UP;
 	if (book.IsHighestPrice(price))
 	{
@@ -670,24 +697,44 @@ COrderBookPanel::OrderBookRow COrderBookPanel::BuildBidRow(const MarketOrderBook
 
 	row.strPrice = book.IsETF() ? CCommon::FormatETFPrice(price) : CCommon::FormatFloat(price);
 	row.strVolume.Format(_T(" %lld"), static_cast<long long>(volume));
-	//瞬时变化量（模型缓存值直接读取）
-	if (delta != 0)
-	{
-		row.diffVol.Format(_T("%s%lld"), delta > 0 ? _T("+") : _T("-"), static_cast<long long>(std::abs(delta)));
-	}
 
 	// 累计成交量（买盘显示主动卖成交量，模型缓存值直接读取）
 	auto cumVol = book.GetCumVol(price);
 	row.totalVol = cumVol.first + cumVol.second;
-	if (cumVol.second > 0)
+	// 该档位存在排队监视规则标记（决定右列与瞬时变化量的显示方式）
+	long long remain = book.GetRemainQueueAt(price, false);
+	bool hasRuleRemain = remain != (std::numeric_limits<long long>::min)();
+
+	//瞬时变化量：规则行改蓝色负数（-|delta|），无变化不显示；否则原逻辑绿色
+	if (hasRuleRemain)
+	{
+		if (delta != 0)
+		{
+			row.diffVol.Format(_T("-%lld"), static_cast<long long>(std::abs(delta)));
+			row.diffVolColor = RGB(0, 0, 255);
+		}
+	}
+	else if (delta != 0)
+	{
+		row.diffVol.Format(_T("%s%lld"), delta > 0 ? _T("+") : _T("-"), static_cast<long long>(std::abs(delta)));
+		row.diffVolColor = COLOR_GREEN_DOWN;
+	}
+
+	// 该档位存在排队监视规则时：右列改显剩余排队量（独立字段，蓝色）；背景条仍按累计成交量计算
+	if (hasRuleRemain)
+	{
+		row.remainVol.Format(_T(" %lld"), remain);
+		row.hasRemainQueue = true;
+		// 背景条照常绘制：占比用累计成交量（仅不显示累计数字）
+		row.sumVolRatio = row.totalVol == 0 ? 0 : (double)cumVol.first / row.totalVol;
+	}
+	else if (cumVol.second > 0)
 	{
 		row.sumVol.Format(_T(" %lld"), static_cast<long long>(cumVol.second));
 		row.sumVolRatio = cumVol.second == 0 ? 1 : (double)cumVol.first / row.totalVol;
+		row.sumVolColor = RGB(0, 100, 0);
 	}
-
 	row.volumeColor = RGB(254, 202, 215);
-	row.diffVolColor = COLOR_GREEN_DOWN;
-	row.sumVolColor = RGB(0, 100, 0);
 	row.priceColor = COLOR_GREEN_DOWN;
 	if (book.IsLowestPrice(price))
 	{
