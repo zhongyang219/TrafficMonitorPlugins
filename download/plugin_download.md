@@ -331,3 +331,11 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### 蓝牙设备电量插件
+
+用于在 TrafficMonitor 中为 Windows 已公开电量的蓝牙设备显示独立电量项目。插件每 60 秒读取一次 Windows 缓存数据，支持双击立即刷新；当 Windows 提供电量时，也可显示已连接 iPhone 的电量。插件不会主动连接或唤醒设备。
+
+* 作者：[pzh200707](https://github.com/pzh200707)
+* 主页：[pzh200707/trafficmonitor-bluetooth-battery-plugin](https://github.com/pzh200707/trafficmonitor-bluetooth-battery-plugin)
+* 下载链接：https://github.com/pzh200707/trafficmonitor-bluetooth-battery-plugin/releases/latest
+
