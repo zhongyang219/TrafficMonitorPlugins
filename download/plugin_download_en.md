@@ -319,3 +319,11 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### Bluetooth Battery Plugin
+
+Displays a separate TrafficMonitor item for each Bluetooth device whose battery level is exposed by Windows. It reads Windows-cached data every 60 seconds and supports immediate refresh by double-clicking. A connected iPhone is also supported when Windows exposes its battery level. The plugin never actively connects to or wakes devices.
+
+* Author: [pzh200707](https://github.com/pzh200707)
+* Homepage: [pzh200707/trafficmonitor-bluetooth-battery-plugin](https://github.com/pzh200707/trafficmonitor-bluetooth-battery-plugin)
+* Download url: https://github.com/pzh200707/trafficmonitor-bluetooth-battery-plugin/releases/latest
+
