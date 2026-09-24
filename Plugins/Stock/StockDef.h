@@ -699,6 +699,22 @@ namespace STOCK
 			return _data;
 		}
 
+		// 最近价格历史（每次行情更新塞入最新价，环形保留最近30个，用于计算短期趋势）
+		std::vector<Price> priceHistory;
+		static constexpr size_t PRICE_HISTORY_MAX = 30;
+		Price lastHistoryPrice{ 0 };    // 上一次入历史的价格（去重用）
+
+		// 添加价格到历史记录（满30个后移除最旧的；价格相同仍记录，保持时间序列连续）
+		void AddPriceHistory(Price price)
+		{
+			if (price <= 0)
+				return;
+			priceHistory.push_back(price);
+			if (priceHistory.size() > PRICE_HISTORY_MAX)
+				priceHistory.erase(priceHistory.begin());
+			lastHistoryPrice = price;
+		}
+
 		RegResult CalTimeLineTrend();
 
 		void clearTimelinePoint()

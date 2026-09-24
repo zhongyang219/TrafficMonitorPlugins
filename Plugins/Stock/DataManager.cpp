@@ -710,6 +710,9 @@ int CDataManager::UpdateRealtimeFromQuotes(const std::vector<QuoteItem>& items)
 		// 更新显示字段（价格/涨跌幅/涨跌额）
 		info.UpdateDisplayFields();
 
+		// 记录价格历史用于短期趋势计算
+		stockData->AddPriceHistory(info.currentPrice);
+
 		validCount++;
 	}
 

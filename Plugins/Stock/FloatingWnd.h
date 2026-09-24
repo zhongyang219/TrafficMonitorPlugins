@@ -74,6 +74,8 @@ protected:
 	afx_msg void OnBnClickedTickDetailBtn();
 	afx_msg void OnBnClickedExpandBtn();
 	afx_msg void OnBnClickedToggleStockListBtn();
+	afx_msg void OnLButtonDblClkModeSwitch();  // 左键双击按顺序切到左侧界面（对称右键）
+	void SwitchViewMode(UIViewMode viewMode); // 按目标模式切换界面（总览/分时/5分/30分/日K）
 
 private:
 	void EnsureChipPeakData();

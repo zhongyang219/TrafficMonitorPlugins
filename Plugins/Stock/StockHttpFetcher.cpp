@@ -76,7 +76,6 @@ static std::wstring GetEastMoneySecId(const std::wstring& stockId)
 }
 
 // ===== 实现 =====
-
 bool CStockHttpFetcher::FetchRealtimeHtml(const std::vector<std::wstring>& allCodes, bool onlyNonAG,
 	std::vector<std::wstring>& outCodes, std::string& outResp)
 {
@@ -429,7 +428,7 @@ bool CStockHttpFetcher::FetchChipKLines(const std::wstring& stock_id, STOCK::Vol
 							if (yyjson_is_int(val)) return static_cast<double>(yyjson_get_int(val));
 							if (yyjson_is_str(val)) return atof(yyjson_get_str(val));
 							return 0.0;
-						};
+							};
 
 						yyjson_val* item;
 						yyjson_arr_iter iter;

@@ -148,7 +148,12 @@ void CTimelineChart::DrawTimelineHeader(CDC& memDC, const TimelineDrawContext& c
 	if (stockData && stockData->info.is_ok)
 		macdSignal = stockData->macdTrendSignal;
 
-	CStatusBarPanel::DrawMainHeader(memDC, ctx.realtimeData, ctx.windowWidth, g_data.RDPI(26));
+	// 标题文字从最左侧开始显示，右侧避开靠右排布的顶部按钮区（分时/5分/30分/日K/股票列表/放大/X），
+	// 过长时自动缩小字体（最小50%）
+	const int headerLeftStart = g_data.RDPI(4);
+	const int headerBtnArea = g_data.RDPI(40) * 4 + g_data.RDPI(20) * 3 + g_data.RDPI(2);
+	const int textMaxWidth = ctx.windowWidth - headerBtnArea - g_data.RDPI(4);
+	CStatusBarPanel::DrawMainHeader(memDC, ctx.realtimeData, ctx.windowWidth, g_data.RDPI(26), headerLeftStart, textMaxWidth);
 	memDC.SetViewportOrg(origOrg);
 }
 
@@ -1071,12 +1076,15 @@ static std::map<std::string, double> BuildFundNavTimeMap(const std::wstring& sto
 // 5/30分钟K线净值曲线：逐根K线按bar结束时刻（day的HH:MM部分）取净值连线
 // 5分钟bar与净值点逐分钟对齐，直接精确匹配；30分钟bar结束时刻（如10:00/10:30）
 // 取该时刻之前最近一次的净值快照，保证每一根30分钟K线都有净值点
+// 净值数据仅有当天（BuildFundNavTimeMap的三个来源均为当日数据），
+// 非当天的历史K线无对应净值，直接跳过不绘制，避免历史区间出现错误的横线
 static void DrawMin30NavCurveForKLine(CDC& memDC, const TimelineDrawContext& ctx,
 	const std::vector<STOCK::KLinePoint>& klineData, const std::map<std::string, double>& iopvByTime,
 	int klineStartIdx, int klineEndIdx, int totalPoints, float barTotalWidth,
 	STOCK::Price minPrice, double unitY)
 {
 	const COLORREF navColor = RGB(160, 32, 240);
+	const std::string today = CCommon::GetTodayDate();
 	CPen navPen(PS_SOLID, 1, navColor);
 	CPen* pOldPen = memDC.SelectObject(&navPen);
 	bool firstNavPoint = true;
@@ -1090,7 +1098,7 @@ static void DrawMin30NavCurveForKLine(CDC& memDC, const TimelineDrawContext& ctx
 	{
 		// K线day为"YYYY-MM-DD HH:MM"，时间为bar结束时刻，直接查该分钟净值
 		const auto& kp = klineData[klineStartIdx + i];
-		if (kp.day.length() < 16 || kp.day[10] != ' ')
+		if (kp.day.length() < 16 || kp.day[10] != ' ' || kp.day.compare(0, 10, today) != 0)
 			continue;
 		auto it = iopvByTime.upper_bound(kp.day.substr(11, 5));   // 首个 > bar结束时刻的净值点
 		if (it != iopvByTime.begin())

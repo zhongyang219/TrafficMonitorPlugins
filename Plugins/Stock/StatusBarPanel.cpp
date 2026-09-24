@@ -10,7 +10,8 @@
 #include <limits>
 
 /// 绘制标题栏
-void CStatusBarPanel::DrawMainHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight)
+void CStatusBarPanel::DrawMainHeader(CDC& memDC, const STOCK::StockInfo& realtimeData, int windowWidth, int headerHeight,
+	int leftStart, int textMaxWidth)
 {
 	double diff = realtimeData.GetChangeAmount();
 	double diffPercent = realtimeData.GetChangePercent();
@@ -35,14 +36,45 @@ void CStatusBarPanel::DrawMainHeader(CDC& memDC, const STOCK::StockInfo& realtim
 	CString macdTxt;
 	for (const auto& seg : segs) macdTxt += seg.text;
 
-	// 计算总宽度，在整个标题栏水平居中
-	CSize prefixSize = memDC.GetTextExtent(prefixTxt);
-	CSize currentSize = memDC.GetTextExtent(currentTxt);
-	CSize diffSize = memDC.GetTextExtent(diffTxt);
-	CSize macdSize = memDC.GetTextExtent(macdTxt);
-	int totalWidth = prefixSize.cx + currentSize.cx + diffSize.cx + macdSize.cx;
+	// 文字可用区域：左侧从按钮区之后开始，右侧留出关闭按钮宽度
+	const int rightMargin = g_data.RDPI(24);
+	if (textMaxWidth <= 0)
+		textMaxWidth = max(0, windowWidth - leftStart - rightMargin);
 
-	int startX = (windowWidth - totalWidth) / 2;
+	// 逐级缩小字体直到总宽度放得下（最低到50%），保证标题不与右侧按钮重叠
+	CSize prefixSize(0, 0), currentSize(0, 0), diffSize(0, 0), macdSize(0, 0);
+	int totalWidth = 0;
+	CFont* pOldFont = nullptr;
+	CFont shrinkFont;
+	for (int percent = 100; percent >= 50; percent -= 5)
+	{
+		if (percent < 100)
+		{
+			// 基于当前DC字体创建缩放字体
+			TEXTMETRIC tm;
+			memDC.GetTextMetrics(&tm);
+			LOGFONT lf;
+			CFont* curFont = memDC.GetCurrentFont();
+			if (curFont)
+				curFont->GetLogFont(&lf);
+			else
+				memset(&lf, 0, sizeof(lf));
+			lf.lfHeight = -(max(8, tm.tmHeight * percent / 100));
+			shrinkFont.DeleteObject();
+			shrinkFont.CreateFontIndirect(&lf);
+			pOldFont = memDC.SelectObject(&shrinkFont);
+		}
+		prefixSize = memDC.GetTextExtent(prefixTxt);
+		currentSize = memDC.GetTextExtent(currentTxt);
+		diffSize = memDC.GetTextExtent(diffTxt);
+		macdSize = memDC.GetTextExtent(macdTxt);
+		totalWidth = prefixSize.cx + currentSize.cx + diffSize.cx + macdSize.cx;
+		if (totalWidth <= textMaxWidth)
+			break;
+	}
+
+	// 标题文字从最左侧（leftStart）开始显示，过长时通过缩小字体容纳
+	int startX = leftStart;
 	int centerY = headerHeight / 2;
 
 	memDC.SetTextColor(COLOR_GRAY_TEXT);
@@ -67,6 +99,10 @@ void CStatusBarPanel::DrawMainHeader(CDC& memDC, const STOCK::StockInfo& realtim
 			curX += memDC.GetTextExtent(seg.text).cx;
 		}
 	}
+
+	// 恢复原字体，避免缩放字体泄漏到后续绘制
+	if (pOldFont)
+		memDC.SelectObject(pOldFont);
 }
 
 void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int singleBarHeight, const std::wstring& stockId, int viewMode)
@@ -151,8 +187,9 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 		else
 		{
 			// 关联模式：用实际测量法，从最大字号开始尝试，逐步缩小直到文字总宽度适合
-			// 右侧预留120像素不参与均分，仅左侧区域用于字体计算
-			// 趋势箭头在120像素区域左侧，也需要预留空间
+			// 右侧预留盘口宽度(RDPI168)不参与均分（均幅区域已在其范围内），仅左侧区域用于字体计算
+			// 趋势箭头在均幅区域左侧，也需要预留空间
+			const int orderBookWidthMeasure = g_data.RDPI(168);
 			int trendArrowWidth = 0;
 			if (showAvgDiff && !trendArrowStr.IsEmpty())
 			{
@@ -166,7 +203,7 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 				memDC.SelectObject(pOldTmpFont);
 				tmpAvgFont.DeleteObject();
 			}
-			int availableWidth = w - (showAvgDiff ? g_data.RDPI(120) : 0) - trendArrowWidth;
+			int availableWidth = w - orderBookWidthMeasure - trendArrowWidth;
 
 			std::lock_guard<std::mutex> lockMeasure(Stock::Instance().m_stockDataMutex);
 
@@ -180,7 +217,7 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 				{
 					const auto& info = stockData->info;
 					double diffPercent = info.GetChangePercent();
-					stockTexts[i].nameStr = info.GetStockListName() + _T(":");
+					stockTexts[i].nameStr = info.GetStockListName() + _T(": ");
 					stockTexts[i].changeStr = CCommon::prefixFormat(diffPercent);
 					stockTexts[i].valid = true;
 				}
@@ -202,19 +239,28 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 					DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, _T("微软雅黑"));
 				CFont* pOldTmp = memDC.SelectObject(&tmpFont);
 
-				// 计算所有股票文字总宽度（已包含每个元素后的GAP间隔）
+				// 计算所有股票文字总宽度（两行布局：上行名称+趋势箭头，下行涨跌幅，每只股票占 max(两行) 宽度）
 				int totalWidth = GAP; // 左侧起始边距
+				CString trendArrowTxt = _T("↑"); // 名称后可能有一个趋势箭头，测量按包含箭头计
 				for (int i = 0; i < relatedCount; i++)
 				{
-					totalWidth += memDC.GetTextExtent(stockTexts[i].nameStr).cx + GAP;
 					if (stockTexts[i].valid)
-						totalWidth += memDC.GetTextExtent(stockTexts[i].changeStr).cx + GAP;
+					{
+						int nameW = memDC.GetTextExtent(stockTexts[i].nameStr).cx + GAP
+							+ memDC.GetTextExtent(trendArrowTxt).cx;
+						int changeW = memDC.GetTextExtent(stockTexts[i].changeStr).cx;
+						totalWidth += max(nameW, changeW) + GAP;
+					}
+					else
+					{
+						totalWidth += memDC.GetTextExtent(stockTexts[i].nameStr).cx + GAP;
+					}
 				}
 
 				memDC.SelectObject(pOldTmp);
 				tmpFont.DeleteObject();
 
-				// 检查是否适合左侧可用区域（去掉预留120像素）
+				// 检查是否适合左侧可用区域（去掉预留128像素）
 				if (totalWidth <= availableWidth)
 					break; // 当前字号适合
 
@@ -232,51 +278,67 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 	std::lock_guard<std::mutex> lock(Stock::Instance().m_stockDataMutex);
 	if (isRelatedMode)
 	{
-		// 关联模式：流式布局，每只股票紧凑排列
-		int textX = GAP;
+		// 关联模式：左侧区域每只股票等分一列，单行显示（涨跌幅覆盖绘制在浅灰名称上面）
+		// 左侧可用区域：窗口总宽度减去右侧盘口宽度(ORDER_BOOK_WIDTH)
+		// 均幅区域绘制在 w-RDPI(128) 处，本身已落在盘口宽度(RDPI168)范围内，无需再单独扣除
+		// ORDER_BOOK_WIDTH 为 RDPI(168)，此处避免依赖 FloatingWnd，同口径按 RDPI(168) 计算
+		const int orderBookW = g_data.RDPI(168);
+		int arrowZoneW = 0;
+		if (showAvgDiff && !trendArrowStr.IsEmpty())
+			arrowZoneW = GAP + memDC.GetTextExtent(trendArrowStr).cx; // 趋势箭头绘制在均幅区域左侧
+		int availW = w - orderBookW - arrowZoneW;
+		const int colWidth = availW / max(relatedCount, 1);
 		for (int i = 0; i < relatedCount; i++)
 		{
 			auto stockData = g_data.GetStockData(relatedCodes[i]);
+			int colX = i * colWidth; // 等分列宽，占满左侧可用区域
+			int textX = colX + GAP;
 
 			if (stockData && stockData->info.is_ok)
 			{
 				const auto& info = stockData->info;
 				double diffPercent = info.GetChangePercent();
-				CString nameStr = info.GetStockListName() + _T(":");
+				CString nameStr = info.GetStockListName();
 
-				memDC.SetTextColor(COLOR_BLACK);
-				memDC.TextOut(textX, topBarY + g_data.RDPI(2), nameStr);
-				textX += memDC.GetTextExtent(nameStr).cx + GAP;
+				// 趋势箭头追加到涨跌幅后面
+				auto trend = stockData->CalTimeLineTrend();
+				bool hasTrend = trend.valid && trend.slope != 0.0;
+				COLORREF trendColor = COLOR_BLACK;
+				CString strTrend;
+				if (hasTrend)
+				{
+					strTrend = trend.slope > 0 ? _T("↑") : _T("↓");
+					trendColor = trend.slope > 0 ? COLOR_RED_UP : COLOR_GREEN_DOWN;
+				}
+
+				// 单行显示：名称和涨跌幅共用同一位置，涨跌幅覆盖绘制在名称上面
+				// 名称用浅灰色作背景衬托，涨跌幅用红/绿色覆盖，箭头跟在涨跌幅后面
+				int textY = topBarY + g_data.RDPI(2);
+				//memDC.SetTextColor(COLOR_GRAY_GRID); // 浅灰色名称
+				//memDC.TextOut(textX, textY, nameStr);
 
 				memDC.SetTextColor(CCommon::GetProfitLossColor(diffPercent));
 				CString changeStr = CCommon::prefixFormat(diffPercent);
-				memDC.TextOut(textX, topBarY + g_data.RDPI(2), changeStr);
-				textX += memDC.GetTextExtent(changeStr).cx + GAP;
-
-				// 绘制分时趋势箭头（仅在关联模式下显示，位于每只股票后面）
-				/*auto trend = stockData->CalTimeLineTrend();
-				if (trend.valid && trend.slope != 0.0)
+				memDC.TextOut(textX, textY, changeStr);
+				int changeW = memDC.GetTextExtent(changeStr).cx;
+				if (hasTrend)
 				{
-					bool isUp = trend.slope > 0;
-					memDC.SetTextColor(isUp ? COLOR_RED_UP : COLOR_GREEN_DOWN);
-					CString strTrend = isUp ? _T("\u2191") : _T("\u2193");
-					memDC.TextOut(textX, topBarY + g_data.RDPI(2), strTrend);
-					textX += memDC.GetTextExtent(strTrend).cx + GAP;
-				}*/
+					memDC.SetTextColor(trendColor);
+					memDC.TextOut(textX + changeW + GAP, textY, strTrend);
+				}
 			}
 			else
 			{
 				CString nameStr = CString(relatedCodes[i].c_str()) + _T(" --");
 				memDC.SetTextColor(COLOR_GRAY_PURPLE);
 				memDC.TextOut(textX, topBarY + g_data.RDPI(2), nameStr);
-				textX += memDC.GetTextExtent(nameStr).cx + GAP;
 			}
 		}
 
-		// 右侧预留120像素显示：最小值 均值 最大值（固定字体大小，红绿背景）
+		// 右侧预留128像素显示：最小值 均值 最大值（固定字体大小，红绿背景）
 		if (showAvgDiff)
 		{
-			int avgAreaWidth = g_data.RDPI(120);
+			int avgAreaWidth = g_data.RDPI(128);
 			int avgAreaX = w - avgAreaWidth - GAP;
 			int avgAreaH = singleBarHeight;
 			int avgAreaY = topBarY;
@@ -324,10 +386,10 @@ void CStatusBarPanel::DrawRelatedStatusBar(CDC& memDC, int w, int topBarY, int s
 			// 切换到固定字体绘制均幅区域
 			CFont* pPrevFont = memDC.SelectObject(&avgFont);
 
-			// 120像素区域三等分
+			// 128像素区域三等分
 			int thirdWidth = avgAreaWidth / 3;
 
-			// 趋势指示器（120像素左侧，间隔2像素，无背景）
+			// 趋势指示器（128像素左侧，间隔2像素，无背景）
 			if (!trendArrowStr.IsEmpty())
 			{
 				TCHAR firstChar = trendArrowStr.GetAt(0);

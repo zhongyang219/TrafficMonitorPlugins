@@ -156,36 +156,36 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	const int btnHeight = g_data.RDPI(22);
 	const int btnGap = 0;  // 按钮之间不留缝隙
 
-	// 左侧按钮：分时、5分、30分、日K（贴边排列，无间隙；自绘以高亮当前模式背景）
-	CRect timelineRect(0, g_data.RDPI(2), btnWidth, g_data.RDPI(2) + btnHeight);
-	m_btnTimeLine.Create(_T("分时"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, timelineRect, this, IDC_TIMELINE_BTN);
-
-	CRect min5KLineRect(timelineRect.right + btnGap, g_data.RDPI(2), timelineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
-	m_btnMin5KLine.Create(_T("5分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min5KLineRect, this, IDC_MIN5_KLINE_BTN);
-
-	CRect min30KLineRect(min5KLineRect.right + btnGap, g_data.RDPI(2), min5KLineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
-	m_btnMin30KLine.Create(_T("30分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min30KLineRect, this, IDC_MIN30_KLINE_BTN);
-
-	CRect klineRect(min30KLineRect.right + btnGap, g_data.RDPI(2), min30KLineRect.right + btnGap + btnWidth, g_data.RDPI(2) + btnHeight);
-	m_btnKLine.Create(_T("日K"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, klineRect, this, IDC_KLINE_BTN);
-
-	// 右侧按钮：关闭、筹码峰（T0/MA/BOLL 在走势图标题栏右侧定位）
 	const int closeBtnWidth = g_data.RDPI(20);
 	const int closeBtnHeight = g_data.RDPI(18);
 	const int cx = lpCreateStruct->cx;
-	CRect closeBtnRect(cx - closeBtnWidth, g_data.RDPI(2), cx, g_data.RDPI(2) + closeBtnHeight);
-	m_btnClose.Create(_T("X"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, closeBtnRect, this, IDC_CLOSE_BTN);
-
-	// 股票列表/放大按钮在RSI按钮下方、X轴时间标签行（OnPaint中定位，此处仅占位）
-	const int expandBtnWidth = closeBtnWidth;
-	const int expandBtnHeight = closeBtnHeight;
+	// 顶部按钮统一靠右排列：分时、5分、30分、日K、股票列表、放大、X（与关闭按钮挨着，
+	// 自绘按钮高亮当前模式背景）；标题文字改为从最左侧开始显示
 	const int toggleStockListBtnWidth = closeBtnWidth;
 	const int toggleStockListBtnHeight = closeBtnHeight;
+	const int expandBtnWidth = closeBtnWidth;
+	const int expandBtnHeight = closeBtnHeight;
+	// 静态布局仅作占位，OnPaint 中会统一重新定位
+	CRect klineRect(0, 0, btnWidth, btnHeight);
+	m_btnKLine.Create(_T("日K"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, klineRect, this, IDC_KLINE_BTN);
+
+	CRect timelineRect(0, 0, btnWidth, btnHeight);
+	m_btnTimeLine.Create(_T("分时"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, timelineRect, this, IDC_TIMELINE_BTN);
+
+	CRect min5KLineRect(0, 0, btnWidth, btnHeight);
+	m_btnMin5KLine.Create(_T("5分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min5KLineRect, this, IDC_MIN5_KLINE_BTN);
+
+	CRect min30KLineRect(0, 0, btnWidth, btnHeight);
+	m_btnMin30KLine.Create(_T("30分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min30KLineRect, this, IDC_MIN30_KLINE_BTN);
+
 	CRect toggleStockListBtnRect(0, 0, toggleStockListBtnWidth, toggleStockListBtnHeight);
 	m_btnToggleStockList.Create(_T("<|"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, toggleStockListBtnRect, this, IDC_TOGGLE_STOCK_LIST_BTN);
 
-	CRect expandBtnRect(toggleStockListBtnRect.right + btnGap, 0, toggleStockListBtnRect.right + btnGap + expandBtnWidth, expandBtnHeight);
+	CRect expandBtnRect(0, 0, expandBtnWidth, expandBtnHeight);
 	m_btnExpand.Create(_T("△"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);
+
+	CRect closeBtnRect(cx - closeBtnWidth, g_data.RDPI(2), cx, g_data.RDPI(2) + closeBtnHeight);
+	m_btnClose.Create(_T("X"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, closeBtnRect, this, IDC_CLOSE_BTN);
 
 	const int rightBtnWidth = g_data.RDPI(40);
 
@@ -565,11 +565,14 @@ void CFloatingWnd::OnPaint()
 			int closeBtnW = g_data.RDPI(20);
 			int closeBtnH = g_data.RDPI(18);
 			int headerBtnTop = g_data.RDPI(2);
-			// 股票列表/放大按钮定位到X轴时间标签行（RSI按钮下方）
-			int xAxisBtnTop = h - indexBarHeight - xAxisLabelHeight + (xAxisLabelHeight - closeBtnH) / 2;
+			// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
 			SafeSetWindowPos(m_btnClose, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH);
-			SafeSetWindowPos(m_btnToggleStockList, stockListWidth, xAxisBtnTop, closeBtnW, closeBtnH);
-			SafeSetWindowPos(m_btnExpand, stockListWidth + closeBtnW, xAxisBtnTop, closeBtnW, closeBtnH);
+			SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, headerBtnTop, closeBtnW, closeBtnH);
+			SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, headerBtnTop, closeBtnW, closeBtnH);
+			SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
 			// 筹码峰/盘口按钮定位到盘口标题栏
 			int obTitleH = g_data.RDPI(16);
 			int obBtnW = g_data.RDPI(34);
@@ -711,11 +714,14 @@ void CFloatingWnd::OnPaint()
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
-				// 股票列表/放大按钮定位到X轴时间标签行（RSI按钮下方）
-				int xAxisBtnTop = h - indexBarHeight - xAxisLabelHeight + (xAxisLabelHeight - closeBtnH) / 2;
+				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
 				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnToggleStockList, stockListWidth, xAxisBtnTop, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnExpand, stockListWidth + closeBtnW, xAxisBtnTop, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
 			}
 			// 盘口按钮
 			{
@@ -1069,11 +1075,14 @@ void CFloatingWnd::OnPaint()
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
-				// 股票列表/放大按钮定位到X轴时间标签行（RSI按钮下方）
-				int xAxisBtnTop = h - indexBarHeight - xAxisLabelHeight + (xAxisLabelHeight - closeBtnH) / 2;
+				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
 				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnToggleStockList, stockListWidth, xAxisBtnTop, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnExpand, stockListWidth + closeBtnW, xAxisBtnTop, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
 			}
 
 			// 盘口标题栏右侧按钮定位（筹码峰、盘口按钮）
@@ -1128,13 +1137,19 @@ void CFloatingWnd::OnPaint()
 				bool showAvgDiff = !(avgData.minVal == 0.0 && avgData.maxVal == 0.0 && avgData.currentVal == 0.0);
 				if (showAvgDiff)
 				{
-					int avgAreaWidth = g_data.RDPI(120);
+					// 与 DrawRelatedStatusBar 内部一致：均幅区域宽 RDPI(128)，起点 w-128-2
+					// 竖线画在三等分边界处（1/3、2/3）
+					int avgAreaWidth = g_data.RDPI(128);
 					int avgAreaX = w - avgAreaWidth - 2;
-					int midX = avgAreaX + avgAreaWidth / 2;
+					const int lineOffsets[] = { avgAreaWidth / 4, avgAreaWidth / 2, avgAreaWidth * 3 / 4 };
 					CPen pen(PS_SOLID, 1, RGB(180, 180, 180));
 					CPen* pOldPen = memDC.SelectObject(&pen);
-					memDC.MoveTo(midX, relatedBarY);
-					memDC.LineTo(midX, relatedBarY + singleBarHeight);
+					for (int off : lineOffsets)
+					{
+						int midX = avgAreaX + off;
+						memDC.MoveTo(midX, relatedBarY);
+						memDC.LineTo(midX, relatedBarY + singleBarHeight);
+					}
 					memDC.SelectObject(pOldPen);
 					pen.DeleteObject();
 				}
@@ -1328,6 +1343,57 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 	// 非总览模式下的分时图双击（所有模式都支持）
 	if (m_viewMode != UI_VIEW_OVERVIEW && isDoubleClick)
 	{
+		// 双击MACD指标标题栏（MACD图区顶部标题条，Y轴区域右侧整行）：切换放大/普通模式
+		{
+			const int yAxisWidth = g_data.RDPI(50);
+			const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+			const int headerHeight = g_data.RDPI(26);
+			const int relatedBarHeight = g_data.RDPI(20);
+			const int xAxisLabelHeight = g_data.RDPI(20);
+			const int indexBarHeight = g_data.RDPI(20);
+			const int titleH = g_data.RDPI(16);
+			CRect clientRect;
+			GetClientRect(&clientRect);
+			const int chartArea = clientRect.Height() - headerHeight - relatedBarHeight - xAxisLabelHeight - indexBarHeight;
+			const int priceChartHeight = m_expandedMode ? chartArea * 3 / 5 : chartArea * 2 / 5;
+			const int volumeChartHeight = m_expandedMode ? 0 : chartArea / 5;
+			const int macdTitleTop = headerHeight + relatedBarHeight + priceChartHeight + volumeChartHeight;
+
+			if (point.x >= stockListWidth + yAxisWidth && point.x < clientRect.Width() &&
+				point.y >= macdTitleTop && point.y < macdTitleTop + titleH)
+			{
+				OnBnClickedExpandBtn();
+				return;
+			}
+		}
+
+		// 双击Y轴价格区域（MA/BL/MACD等指标按钮上方的左侧Y轴预留区）：切换股票列表显示/隐藏
+		{
+			// 按钮_X和区域右边界都与OnPaint一致：股票列表显示时Y轴区域整体右移一个列表宽度
+			const int yAxisWidth = g_data.RDPI(50);
+			const int stockListWidth = m_showStockList ? g_data.RDPI(65) : 0;
+			// 与OnPaint布局一致：标题栏+关联股票栏下方是价格图区起点，MA按钮顶 = 指标区起点+标题栏
+			const int headerHeight = g_data.RDPI(26);
+			const int relatedBarHeight = g_data.RDPI(20);
+			const int xAxisLabelHeight = g_data.RDPI(20);
+			const int indexBarHeight = g_data.RDPI(20);
+			const int titleH = g_data.RDPI(16);
+			CRect clientRect;
+			GetClientRect(&clientRect);
+			const int chartArea = clientRect.Height() - headerHeight - relatedBarHeight - xAxisLabelHeight - indexBarHeight;
+			const int priceChartHeight = m_expandedMode ? chartArea * 3 / 5 : chartArea * 2 / 5;
+			const int volumeChartHeight = m_expandedMode ? 0 : chartArea / 5;
+			const int yAxisTop = headerHeight + relatedBarHeight;
+			const int maBtnTop = yAxisTop + priceChartHeight + volumeChartHeight + titleH;
+
+			if (point.x >= stockListWidth && point.x < stockListWidth + yAxisWidth &&
+				point.y >= yAxisTop && point.y < maBtnTop)
+			{
+				OnBnClickedToggleStockListBtn();
+				return;
+			}
+		}
+
 		// 双击位置过滤：仅响应右侧盘口的首行（最高/最低行）和买卖十档区域
 		// 行号: 0=最高/最低行, 1~5=卖五~卖一, 6~10=买一~买五
 		// 盘口未绘制时（MX明细/筹码峰模式/大盘K线模式）不处理
@@ -1419,7 +1485,8 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 				return;
 			}
 		}
-		// 盘口区域外的双击不处理
+		// 盘口区域外的双击：按顺序切到左侧界面（对称右键；已在最左侧总览界面时不再切换）
+		OnLButtonDblClkModeSwitch();
 		return;
 	}
 
@@ -1489,72 +1556,86 @@ void CFloatingWnd::OnLButtonUp(UINT nFlags, CPoint point)
 
 // 已移至 CIndicatorChart
 
-void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
+void CFloatingWnd::SwitchViewMode(UIViewMode viewMode)
 {
-	// 右键在分时界面与K线界面之间来回切换（原总览切换逻辑保留但不再调用）：
-	// K线界面（5分/30分/日K）-> 切到分时并记住来源模式；分时界面 -> 若来自K线界面则切回，否则保持不变
-	if (m_viewMode >= UI_VIEW_MIN5_KLINE)
+	// 按目标模式恢复对应默认参数
+	switch (viewMode)
 	{
-		m_prevKLineViewMode = m_viewMode;
-		g_data.SetCurrentViewMode(UI_VIEW_TIMELINE);
-		SetTimelineModeDefaults();
-	}
-	else if (m_viewMode == UI_VIEW_TIMELINE && m_prevKLineViewMode >= UI_VIEW_MIN5_KLINE)
-	{
-		// 按来源模式恢复对应默认参数
-		switch (m_prevKLineViewMode)
-		{
-		case UI_VIEW_MIN5_KLINE:  SetMin5KLineModeDefaults();  break;
-		case UI_VIEW_MIN30_KLINE: SetMin30KLineModeDefaults(); break;
-		default:                  SetDayKLineModeDefaults();   break;
-		}
-		g_data.SetCurrentViewMode(m_prevKLineViewMode);
-		m_prevKLineViewMode = UI_VIEW_OVERVIEW;  // 回到K线界面后重置来源记录
-	}
-	else if (m_viewMode == UI_VIEW_OVERVIEW)
-	{
-		// 总览界面右键：切回分时界面
-		g_data.SetCurrentViewMode(UI_VIEW_TIMELINE);
-		SetTimelineModeDefaults();
-	}
-	else if (m_viewMode == UI_VIEW_TIMELINE)
-	{
-		// 分时界面：无来源记录时右键切到总览界面（原总览切换逻辑）
+	case UI_VIEW_OVERVIEW:
 		g_data.SetCurrentViewMode(UI_VIEW_OVERVIEW);
 		m_viewMode = UI_VIEW_OVERVIEW;
 		m_showChipPeak = false;
 		UpdateModeButtons();
 		UpdatePeriodComboVisibility();
 		Invalidate();
-		return;
+		break;
+	case UI_VIEW_TIMELINE:
+		g_data.SetCurrentViewMode(UI_VIEW_TIMELINE);
+		SetTimelineModeDefaults();
+		UpdateModeButtons();
+		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
+		Invalidate();
+		break;
+	case UI_VIEW_MIN5_KLINE:
+		g_data.SetCurrentViewMode(UI_VIEW_MIN5_KLINE);
+		SetMin5KLineModeDefaults();
+		UpdateModeButtons();
+		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
+		Invalidate();
+		break;
+	case UI_VIEW_MIN30_KLINE:
+		g_data.SetCurrentViewMode(UI_VIEW_MIN30_KLINE);
+		SetMin30KLineModeDefaults();
+		UpdateModeButtons();
+		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
+		Invalidate();
+		break;
+	default:
+		g_data.SetCurrentViewMode(UI_VIEW_DAY_KLINE);
+		SetDayKLineModeDefaults();
+		UpdateModeButtons();
+		UpdatePeriodComboVisibility();
+		EnsureChipPeakData();
+		Invalidate();
+		break;
 	}
+	m_prevKLineViewMode = UI_VIEW_OVERVIEW;  // 顺序切换模式下来源记录不再使用
+}
 
-	m_showChipPeak = false;
-	UpdateModeButtons();
-	UpdatePeriodComboVisibility();
-	EnsureChipPeakData();
-	Invalidate();
+void CFloatingWnd::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	// 右键按界定顺序切到右侧下一个界面：总览 -> 分时 -> 5分 -> 30分 -> 日K；
+	// 已在最右侧（日K界面）时不再切换。
+	// 注意：枚举中总览与分时之间夹着竞价界面(UI_VIEW_AUCTION)，用显式数组跳过
+	static const UIViewMode kModeSeq[] = { UI_VIEW_OVERVIEW, UI_VIEW_TIMELINE,
+		UI_VIEW_MIN5_KLINE, UI_VIEW_MIN30_KLINE, UI_VIEW_DAY_KLINE };
+	for (size_t i = 0; i < _countof(kModeSeq) - 1; i++)
+	{
+		if (m_viewMode == kModeSeq[i])
+		{
+			SwitchViewMode(kModeSeq[i + 1]);
+			return;
+		}
+	}
+}
 
-	// 原总览界面切换逻辑保留备查（不再执行）
-	//if (m_viewMode != UI_VIEW_OVERVIEW)
-	//{
-	//	g_data.SetCurrentViewMode(UI_VIEW_OVERVIEW);
-	//	m_viewMode = UI_VIEW_OVERVIEW;
-	//	m_showChipPeak = false;
-	//	UpdateModeButtons();
-	//	UpdatePeriodComboVisibility();
-	//	Invalidate();
-	//}
-	//else
-	//{
-	//	g_data.SetCurrentViewMode(UI_VIEW_MIN5_KLINE);
-	//	m_viewMode = UI_VIEW_MIN5_KLINE;
-	//	m_showChipPeak = false;
-	//	m_showJZCurve = CCommon::IsFundCode(m_stock_id);  // 基金默认显示净值曲线
-	//	UpdateModeButtons();
-	//	UpdatePeriodComboVisibility();
-	//	Invalidate();
-	//}
+void CFloatingWnd::OnLButtonDblClkModeSwitch()
+{
+	// 左键双击按界定顺序切到左侧上一个界面，逻辑与右键对称；
+	// 已在最左侧（总览界面）时不再切换
+	static const UIViewMode kModeSeq[] = { UI_VIEW_OVERVIEW, UI_VIEW_TIMELINE,
+		UI_VIEW_MIN5_KLINE, UI_VIEW_MIN30_KLINE, UI_VIEW_DAY_KLINE };
+	for (size_t i = 1; i < _countof(kModeSeq); i++)
+	{
+		if (m_viewMode == kModeSeq[i])
+		{
+			SwitchViewMode(kModeSeq[i - 1]);
+			return;
+		}
+	}
 }
 
 void CFloatingWnd::OnMouseMove(UINT nFlags, CPoint point)

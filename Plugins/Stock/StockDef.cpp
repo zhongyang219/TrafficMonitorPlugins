@@ -82,6 +82,9 @@ void STOCK::StockMarket::LoadRealtimeDataByJson(std::string json, const std::vec
 
 		stockData->info.Load(key, data_arr);
 
+		// 记录价格历史用于短期趋势计算
+		stockData->AddPriceHistory(stockData->info.currentPrice);
+
 		// 更新五档挂单变化量
 		stockData->UpdateOrderPriceAccum();
 	}
@@ -270,20 +273,8 @@ void STOCK::StockData::SaveOrderBookSnapshotWatched(
 
 RegResult STOCK::StockData::CalTimeLineTrend()
 {
-	std::vector<double> values;
-	auto timelineData = MakesureHistoricalData<TimelineData>(Period::TIMELINE);
-	if (timelineData && !timelineData->data.empty())
-	{
-		auto& vecData = timelineData->data;
-		size_t n = 6;
-		size_t takeCnt = (std::min)(n, vecData.size());
-		for (auto it = vecData.end() - takeCnt; it != vecData.end(); ++it)
-		{
-			values.emplace_back(static_cast<double>(it->price));
-		}
-	}
-
-	return CSignalAnalyzer::CalcLinearReg(values, 6, true);
+	// 直接使用priceHistory（每次行情更新时塞入的最新价格序列）
+	return CSignalAnalyzer::CalcLinearReg(priceHistory, 6, true);
 }
 
 void STOCK::StockMarket::LoadInnerOuterData(std::string data)
@@ -388,6 +379,9 @@ void STOCK::StockMarket::LoadInnerOuterData(std::string data)
 			}
 			if (data_arr.size() >= 37)
 				info.turnover = { convert<Price>(data_arr[36]) };
+
+			// 记录价格历史用于短期趋势计算
+			stockData->AddPriceHistory(info.currentPrice);
 
 			// 计算涨跌显示
 			info.UpdateDisplayFields();
