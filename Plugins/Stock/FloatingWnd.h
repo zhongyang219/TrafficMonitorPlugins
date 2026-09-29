@@ -119,10 +119,7 @@ private:
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
-	CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
-	CButton m_btnToggleStockList;  // 股票列表显示/隐藏按钮
-	CButton m_btnZoomOut;  		// 缩小按钮（显示240分钟）
-	CButton m_btnZoomIn;   		// 放大按钮（显示60分钟）
+	//CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
 	CButton m_btnIndicatorCJL;  // CJL指标按钮
 	CButton m_btnIndicatorMACD;  // MACD信号按钮
 	CButton m_btnIndicatorKDJ;   // KDJ指标按钮

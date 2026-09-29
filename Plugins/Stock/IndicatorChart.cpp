@@ -9,60 +9,51 @@
 
 // ========== 隔天交替上色公共逻辑（时间标签+各区域竖向虚线共用） ==========
 
-// "yyyy-mm-dd" → 天序号（相对固定纪元的天数，用于日期差奇偶判断）；解析失败返回-1
-// 非static：TimelineChart.cpp的走势图竖线也复用该逻辑
-int DayNumberFromYMD(const std::string& ymd)
-{
-	if (ymd.length() < 10 || ymd[4] != '-' || ymd[7] != '-')
-		return -1;
-	int y = atoi(ymd.substr(0, 4).c_str());
-	int m = atoi(ymd.substr(5, 2).c_str());
-	int d = atoi(ymd.substr(8, 2).c_str());
-	if (y <= 0 || m < 1 || m > 12 || d < 1 || d > 31)
-		return -1;
-	static const int daysBeforeMonth[] = { 0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
-	int dayNo = y * 365 + (y - 1) / 4 - (y - 1) / 100 + (y - 1) / 400
-		+ daysBeforeMonth[m] + d;
-	// 闰年且已过2月，补1天
-	if (m > 2 && ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0))
-		dayNo += 1;
-	return dayNo;
-}
-
 // DayColorCtx 定义在 IndicatorChart.h
 
-// 由可视区间末根（最新交易日）日期标定蓝色归属的半天
+// 由可视区间首点日期起统计交易日序号（不依赖日历天数，假期/长周末不破坏交替）
 DayColorCtx CalcDayColorCtx(const std::vector<STOCK::TimelinePoint>& timelinePoint)
 {
 	DayColorCtx ctx;
-	const STOCK::TimelinePoint& firstPt = timelinePoint[0];
-	if (firstPt.fullTime.length() >= 11 && firstPt.fullTime[10] == ' ')
-		ctx.klineMode = true;
 	int n = static_cast<int>(timelinePoint.size());
-	const STOCK::TimelinePoint& lastPt = timelinePoint[n - 1];
-	if (lastPt.fullTime.length() >= 10)
+	if (n == 0)
+		return ctx;
+	if (timelinePoint[0].fullTime.length() >= 11 && timelinePoint[0].fullTime[10] == ' ')
+		ctx.klineMode = true;
+	if (!ctx.klineMode)
+		return ctx;
+
+	ctx.dayIdx.assign(n, 0);
+	std::string curDay = timelinePoint[0].fullTime.substr(0, 10);
+	int runNo = 0;
+	for (int i = 1; i < n; i++)
 	{
-		// 最新交易日的前一天开始标色：奇偶翻转（最新的那天不标色）
-		int lastDayNo = DayNumberFromYMD(lastPt.fullTime.substr(0, 10));
-		if (lastDayNo >= 0)
-			ctx.blueIfOdd = (lastDayNo % 2 == 0);
+		if (timelinePoint[i].fullTime.length() < 10)
+			continue;
+		std::string d = timelinePoint[i].fullTime.substr(0, 10);
+		if (d != curDay)
+		{
+			curDay = d;
+			runNo++;
+		}
+		ctx.dayIdx[i] = runNo;
 	}
+	// 最新交易日序号=runNo；要求它与相邻前一个交易日异色，即奇偶自然成立；
+	// 再把"最新那天不标色"翻转一次
+	bool lastIsOdd = (runNo % 2 != 0);
+	ctx.flipColor = lastIsOdd;   // dayIdx与runNo同奇偶的颜色 == 标色，取反保证最新日为灰
 	return ctx;
 }
 
-// 第idx个刻度点（标签/竖线）所在日期是否为标色日（最新交易日为基准前一天起交替）
+// 第idx个点所属交易日序号是否标色（首个交易日=基准0）
 bool IsBlueDayAt(const std::vector<STOCK::TimelinePoint>& timelinePoint, int idx, const DayColorCtx& ctx)
 {
-	if (!ctx.klineMode || idx < 0 || idx >= static_cast<int>(timelinePoint.size()))
+	if (!ctx.klineMode || idx < 0 || idx >= static_cast<int>(ctx.dayIdx.size()))
 		return false;
-	const STOCK::TimelinePoint& pt = timelinePoint[idx];
-	if (pt.fullTime.length() < 10)
-		return false;
-	int curDayNo = DayNumberFromYMD(pt.fullTime.substr(0, 10));
-	if (curDayNo < 0)
-		return false;
-	// 按绝对天数奇偶上色（与可视窗口无关，滚动时同一天颜色稳定）
-	return (curDayNo % 2 != 0) == ctx.blueIfOdd;
+	// 可视区间首日为灰（序号0），其后每个真实交易日交替标色；
+	// flip保证最新交易日不标色
+	bool isOdd = (ctx.dayIdx[idx] % 2 != 0);
+	return ctx.flipColor ? !isOdd : isOdd;
 }
 
 // ========== DrawMACDChart（分时数据版本） ==========

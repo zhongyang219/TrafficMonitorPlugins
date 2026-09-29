@@ -115,18 +115,17 @@ private:
 };
 
 // ========== 隔天交替上色公共逻辑（时间标签+竖向虚线共用，实现在IndicatorChart.cpp） ==========
-// "yyyy-mm-dd" → 天序号；解析失败返回-1
-int DayNumberFromYMD(const std::string& ymd);
 
-// 隔天交替上色的公共上下文：K线模式有效性 + 哪个天数奇偶为标色日
+// 隔天交替上色的公共上下文：K线模式有效性 + 每个数据点所属的交易日序号
 struct DayColorCtx
 {
 	bool klineMode{ false };   // 5/30分钟K线模式（fullTime含日期）
-	bool blueIfOdd{ true };    // true: 天序号为奇数的日期画蓝
+	std::vector<int> dayIdx;   // 逐点交易日序号：基准=可视区间首点日期（0），每切换一个真实交易日+1
+	bool flipColor{ false };   // 奇偶翻转标志：保证最新交易日不标色
 };
 
-// 由可视区间末根（最新交易日）日期标定蓝色归属的半天（最新交易日的前一天起标色）
+// 以可视区间首点日期为基准统计交易日序号（相邻数据日期不同即+1，假期不占序号）
 DayColorCtx CalcDayColorCtx(const std::vector<STOCK::TimelinePoint>& timelinePoint);
 
-// 第idx个刻度点（标签/竖线）所在日期是否为蓝色日
+// 第idx个点所属交易日是否标色（交易日序号奇偶交替，最新交易日不标色）
 bool IsBlueDayAt(const std::vector<STOCK::TimelinePoint>& timelinePoint, int idx, const DayColorCtx& ctx);

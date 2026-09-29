@@ -159,12 +159,8 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	const int closeBtnWidth = g_data.RDPI(20);
 	const int closeBtnHeight = g_data.RDPI(18);
 	const int cx = lpCreateStruct->cx;
-	// 顶部按钮统一靠右排列：分时、5分、30分、日K、股票列表、放大、X（与关闭按钮挨着，
+	// 顶部按钮统一靠右排列：分时、5分、30分、日K、放大、X（与关闭按钮挨着，
 	// 自绘按钮高亮当前模式背景）；标题文字改为从最左侧开始显示
-	const int toggleStockListBtnWidth = closeBtnWidth;
-	const int toggleStockListBtnHeight = closeBtnHeight;
-	const int expandBtnWidth = closeBtnWidth;
-	const int expandBtnHeight = closeBtnHeight;
 	// 静态布局仅作占位，OnPaint 中会统一重新定位
 	CRect klineRect(0, 0, btnWidth, btnHeight);
 	m_btnKLine.Create(_T("日K"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, klineRect, this, IDC_KLINE_BTN);
@@ -178,13 +174,11 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect min30KLineRect(0, 0, btnWidth, btnHeight);
 	m_btnMin30KLine.Create(_T("30分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min30KLineRect, this, IDC_MIN30_KLINE_BTN);
 
-	CRect toggleStockListBtnRect(0, 0, toggleStockListBtnWidth, toggleStockListBtnHeight);
-	m_btnToggleStockList.Create(_T("<|"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, toggleStockListBtnRect, this, IDC_TOGGLE_STOCK_LIST_BTN);
-
-	CRect expandBtnRect(0, 0, expandBtnWidth, expandBtnHeight);
-	m_btnExpand.Create(_T("△"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);
-
 	CRect closeBtnRect(cx - closeBtnWidth, g_data.RDPI(2), cx, g_data.RDPI(2) + closeBtnHeight);
+
+	/*CRect expandBtnRect(cx - closeBtnWidth * 2, g_data.RDPI(2), cx - closeBtnWidth, g_data.RDPI(2) + closeBtnHeight);
+	m_btnExpand.Create(_T("△"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);*/
+
 	m_btnClose.Create(_T("X"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, closeBtnRect, this, IDC_CLOSE_BTN);
 
 	const int rightBtnWidth = g_data.RDPI(40);
@@ -206,16 +200,6 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect maBtnRect(0, 0, rightBtnWidth, btnHeight);
 	m_btnMA.Create(_T("MA"), WS_CHILD | BS_OWNERDRAW, maBtnRect, this, IDC_MA_BTN);
 	m_btnMA.ShowWindow(SW_HIDE);
-
-	// 缩放按钮（分时模式专用，初始隐藏，在量柱图标题栏右侧定位）
-	const int zoomBtnWidth = g_data.RDPI(28);
-	const int zoomBtnHeight = g_data.RDPI(16);
-	CRect zoomOutRect(0, 0, zoomBtnWidth, zoomBtnHeight);
-	CRect zoomInRect(0, 0, zoomBtnWidth, zoomBtnHeight);
-	m_btnZoomOut.Create(_T("<"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, zoomOutRect, this, IDC_ZOOM_OUT_BTN);
-	m_btnZoomIn.Create(_T(">"), WS_CHILD | BS_PUSHBUTTON | BS_FLAT, zoomInRect, this, IDC_ZOOM_IN_BTN);
-	m_btnZoomOut.ShowWindow(SW_HIDE);
-	m_btnZoomIn.ShowWindow(SW_HIDE);
 
 	// MACD/KDJ指标切换按钮（初始隐藏，在OnPaint中定位）
 	m_btnIndicatorMACD.Create(_T("MACD"), WS_CHILD | BS_OWNERDRAW, CRect(0, 0, 0, 0), this, IDC_INDICATOR_MACD_SIGNAL_BTN);
@@ -565,14 +549,13 @@ void CFloatingWnd::OnPaint()
 			int closeBtnW = g_data.RDPI(20);
 			int closeBtnH = g_data.RDPI(18);
 			int headerBtnTop = g_data.RDPI(2);
-			// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
+			// 顶部按钮统一靠右：分时/5分/30分/日K紧挨放大/X按钮
 			SafeSetWindowPos(m_btnClose, w - closeBtnW, headerBtnTop, closeBtnW, closeBtnH);
-			SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, headerBtnTop, closeBtnW, closeBtnH);
-			SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, headerBtnTop, closeBtnW, closeBtnH);
-			SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
-			SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
-			SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
-			SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			//SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, headerBtnTop, closeBtnW, closeBtnH);
+			SafeSetWindowPos(m_btnKLine, w - closeBtnW * 2 - g_data.RDPI(40), headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 2, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 3, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
+			SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 2 - g_data.RDPI(40) * 4, headerBtnTop, g_data.RDPI(40), g_data.RDPI(22));
 			// 筹码峰/盘口按钮定位到盘口标题栏
 			int obTitleH = g_data.RDPI(16);
 			int obBtnW = g_data.RDPI(34);
@@ -714,14 +697,13 @@ void CFloatingWnd::OnPaint()
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
-				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
+				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨放大/X按钮
 				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
+				//SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 2 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 2 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
 			}
 			// 盘口按钮
 			{
@@ -742,8 +724,6 @@ void CFloatingWnd::OnPaint()
 			SafeShowWindow(m_btnMA, false);
 			SafeShowWindow(m_btnBoll, false);
 			SafeShowWindow(m_btnIndicatorMACD, false);
-			SafeShowWindow(m_btnZoomOut, false);
-			SafeShowWindow(m_btnZoomIn, false);
 			SafeShowWindow(m_btnIndicatorCJL, false);
 			SafeShowWindow(m_btnIndicatorKDJ, false);
 			SafeShowWindow(m_btnIndicatorWR, false);
@@ -1010,17 +990,6 @@ void CFloatingWnd::OnPaint()
 			// 应用信号颜色到按钮背景
 			ApplySignalColors(tlHover.bollSignalColor, tlHover.macdSignalColor, tlHover.kdjSignalColor, tlHover.wrSignalColor, tlHover.rsiSignalColor, tlHover.maSignalColor);
 
-			// 定位缩放按钮（MACD图标题栏最右侧，原始坐标系）
-			{
-				int zoomBtnW = g_data.RDPI(28);
-				int zoomBtnH = g_data.RDPI(16);
-				int zoomGap = g_data.RDPI(2);
-				int rightEdge = chartWidth;
-				int btnTop = origIndicatorTop + (titleH - zoomBtnH) / 2;
-				SafeSetWindowPos(m_btnZoomIn, rightEdge - zoomBtnW - zoomGap, btnTop, zoomBtnW, zoomBtnH);
-				SafeSetWindowPos(m_btnZoomOut, rightEdge - zoomBtnW * 2 - zoomGap * 2, btnTop, zoomBtnW, zoomBtnH);
-			}
-
 			// JZ/MA/BL/CJL/KDJ/W&R/RSI按钮统一布局（左侧Y轴预留区域）
 			{
 				int btnW = yAxisWidth - g_data.RDPI(4);
@@ -1075,14 +1044,13 @@ void CFloatingWnd::OnPaint()
 				int closeBtnW = g_data.RDPI(20);
 				int closeBtnH = g_data.RDPI(18);
 				int top = g_data.RDPI(2);
-				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨股票列表/放大/X按钮
+				// 顶部按钮统一靠右：分时/5分/30分/日K紧挨放大/X按钮
 				SafeSetWindowPos(m_btnClose, w - closeBtnW, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnToggleStockList, w - closeBtnW * 3, top, closeBtnW, closeBtnH);
-				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 3 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 3 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
-				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 3 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
+				//SafeSetWindowPos(m_btnExpand, w - closeBtnW * 2, top, closeBtnW, closeBtnH);
+				SafeSetWindowPos(m_btnKLine, w - closeBtnW * 2 - g_data.RDPI(40), top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin30KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 2, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnMin5KLine, w - closeBtnW * 2 - g_data.RDPI(40) * 3, top, g_data.RDPI(40), g_data.RDPI(22));
+				SafeSetWindowPos(m_btnTimeLine, w - closeBtnW * 2 - g_data.RDPI(40) * 4, top, g_data.RDPI(40), g_data.RDPI(22));
 			}
 
 			// 盘口标题栏右侧按钮定位（筹码峰、盘口按钮）
@@ -1489,7 +1457,6 @@ void CFloatingWnd::OnLButtonDown(UINT nFlags, CPoint point)
 		OnLButtonDblClkModeSwitch();
 		return;
 	}
-
 
 	// 拖动启动：在图表区域内按下左键开始拖动滚动
 	{
@@ -2119,16 +2086,9 @@ void CFloatingWnd::UpdateModeButtons()
 		SafeSetButtonStyle(m_btnOrderBook, !m_showChipPeak ? BS_DEFPUSHBUTTON : BS_FLAT);
 		SafeSetButtonStyle(m_btnTickDetail, m_showTickDetail ? BS_DEFPUSHBUTTON : BS_FLAT);
 
-		SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);
-		m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));
+		/*SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);
+		m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));*/
 
-		m_btnToggleStockList.SetWindowText(m_showStockList ? _T("|>") : _T("<|"));
-		SafeSetButtonStyle(m_btnToggleStockList, m_showStockList ? BS_FLAT : BS_DEFPUSHBUTTON);
-		SafeShowWindow(m_btnToggleStockList, m_viewMode != UI_VIEW_OVERVIEW);
-
-		// 缩放按钮在所有模式下显示（除总览模式外）
-		SafeShowWindow(m_btnZoomOut, m_viewMode != UI_VIEW_OVERVIEW);
-		SafeShowWindow(m_btnZoomIn, m_viewMode != UI_VIEW_OVERVIEW);
 		// KDJ/WR/RSI/MACD/MA/BL按钮在所有模式下显示（除总览模式外）；
 		// 放大模式只是隐藏副图，左侧按钮区域布局正确，不再隐藏按钮，CJL按钮已移除
 		bool showIndicatorBtns = m_viewMode != UI_VIEW_OVERVIEW;
@@ -2420,16 +2380,14 @@ void CFloatingWnd::OnBnClickedTickDetailBtn()
 void CFloatingWnd::OnBnClickedExpandBtn()
 {
 	m_expandedMode = !m_expandedMode;
-	m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));
-	SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);
+	/*m_btnExpand.SetWindowText(m_expandedMode ? _T("△") : _T("▽"));
+	SafeSetButtonStyle(m_btnExpand, m_expandedMode ? BS_FLAT : BS_DEFPUSHBUTTON);*/
 	Invalidate();
 }
 
 void CFloatingWnd::OnBnClickedToggleStockListBtn()
 {
 	m_showStockList = !m_showStockList;
-	m_btnToggleStockList.SetWindowText(m_showStockList ? _T("|>") : _T("<|"));
-	SafeSetButtonStyle(m_btnToggleStockList, m_showStockList ? BS_FLAT : BS_DEFPUSHBUTTON);
 	UpdateModeButtons();
 	Invalidate();
 	// 强制重绘指标按钮，避免位置变化后按钮不显示
