@@ -45,6 +45,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoudnessMeter", "Plugins\Lo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KeyboardIndicator", "Plugins\KeyboardIndicator\KeyboardIndicator.vcxproj", "{40967109-40C4-4486-936A-1E0DF2F7F5DD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CodexUsage", "Plugins\CodexUsage\CodexUsage.vcxproj", "{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64EC = Debug|ARM64EC
@@ -199,6 +201,18 @@ Global
 		{40967109-40C4-4486-936A-1E0DF2F7F5DD}.Release|x64.Build.0 = Release|x64
 		{40967109-40C4-4486-936A-1E0DF2F7F5DD}.Release|x86.ActiveCfg = Release|Win32
 		{40967109-40C4-4486-936A-1E0DF2F7F5DD}.Release|x86.Build.0 = Release|Win32
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|ARM64EC.ActiveCfg = Debug|ARM64EC
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|ARM64EC.Build.0 = Debug|ARM64EC
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|x64.ActiveCfg = Debug|x64
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|x64.Build.0 = Debug|x64
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|x86.ActiveCfg = Debug|Win32
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Debug|x86.Build.0 = Debug|Win32
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|ARM64EC.ActiveCfg = Release|ARM64EC
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|ARM64EC.Build.0 = Release|ARM64EC
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|x64.ActiveCfg = Release|x64
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|x64.Build.0 = Release|x64
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|x86.ActiveCfg = Release|Win32
+		{F620BD03-A6EC-4F3E-9A89-82F2A8EFA1AB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

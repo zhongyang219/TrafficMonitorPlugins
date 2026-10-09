@@ -5,6 +5,8 @@
 **********************************************************/
 #pragma once
 
+class IPluginDrawer;
+
 //插件显示项目的接口
 class IPluginItem
 {
@@ -149,6 +151,10 @@ public:
      * @return float 资源占用图的值，范围为0.0~1.0。
      */
     virtual float GetResourceUsageGraphValue() const { return 0.0; }
+
+    // API 8: renderer-based custom drawing and exclusive two-row taskbar layout.
+    virtual bool DrawItemEx(IPluginDrawer* pDrawer, int x, int y, int w, int h, bool dark_mode) { return false; }
+    virtual int IsDoubleLineExclusive() const { return 0; }
 };
 
 class ITrafficMonitor;
@@ -163,7 +169,7 @@ public:
      * @attention 插件开发者不应该修改这里的返回值，也不应该重写此虚函数。
      * @return  int
      */
-    virtual int GetAPIVersion() const { return 7; }
+    virtual int GetAPIVersion() const { return 8; }
 
     /**
      * @brief   获取插件显示项目的对象
@@ -412,6 +418,28 @@ public:
      * @return  COLORREF格式的颜色值
      */
     virtual unsigned int GetThemeColor() const = 0;
+};
+
+// API 8 drawing interface, kept in sync with TrafficMonitor's plugin contract.
+class IPluginDrawer
+{
+public:
+    virtual int GetAPIVersion() = 0;
+    enum StretchMode { STRETCH, FILL, FIT };
+    enum Alignment { LEFT, RIGHT, CENTER };
+    virtual void DrawWindowText(int x, int y, int w, int h, const wchar_t* text, unsigned long color,
+        Alignment align = Alignment::LEFT, bool multi_line = false, unsigned char alpha = 255) = 0;
+    virtual void SetDrawRect(int x, int y, int w, int h) = 0;
+    virtual void FillRect(int x, int y, int w, int h, unsigned long color, unsigned char alpha = 255) = 0;
+    virtual void DrawRectOutLine(int x, int y, int w, int h, unsigned long color, int width = 1,
+        bool dot_line = false, unsigned char alpha = 255, int radius = 0) = 0;
+    virtual void DrawBitmap(void* bitmap, int x, int y, int w, int h, StretchMode mode = STRETCH,
+        unsigned char alpha = 255) = 0;
+    virtual void DrawIcon(void* icon, int x, int y, int w, int h) = 0;
+    virtual void GetTextExtent(const wchar_t* text, int& w, int& h) = 0;
+    virtual void DrawLine(int x1, int y1, int x2, int y2, unsigned long color, int width = 1,
+        bool dot_line = false, unsigned char alpha = 255) = 0;
+    virtual void* GetHDC() = 0;
 };
 
 
