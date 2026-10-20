@@ -331,3 +331,16 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+---
+
+### TrafficMonitor AI Balance
+
+用于在 Windows [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 任务栏显示 AI 服务商余额和今日消费的插件。支持 Sub2API、DeepSeek、Kimi 和 One-API；供应商管理内置在插件中，Key 使用 Windows DPAPI 加密。余额每 30 秒刷新，最近 15 分钟内有变化的多家供应商会轮换显示。
+
+![](https://github.com/StephenBoyMi/trafficmonitor-ai-balance/raw/main/preview-plugin.png)
+
+* 版本：V2.1.0（x64）
+* 作者：[StephenBoyMi](https://github.com/StephenBoyMi)
+* 主页：[StephenBoyMi/trafficmonitor-ai-balance](https://github.com/StephenBoyMi/trafficmonitor-ai-balance)
+* 下载链接：https://github.com/StephenBoyMi/trafficmonitor-ai-balance/releases/latest

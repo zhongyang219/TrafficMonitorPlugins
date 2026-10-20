@@ -319,3 +319,16 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+---
+
+### TrafficMonitor AI Balance
+
+A TrafficMonitor plugin that displays AI provider balance and today's spend in the taskbar. Supports Sub2API, DeepSeek, Kimi and One-API. It includes an in-process provider manager and stores keys with Windows DPAPI. Balances refresh every 30 seconds, and multiple providers that changed within the last 15 minutes rotate in the taskbar.
+
+![](https://github.com/StephenBoyMi/trafficmonitor-ai-balance/raw/main/preview-plugin.png)
+
+* Version: V2.1.0 (x64)
+* Author: [StephenBoyMi](https://github.com/StephenBoyMi)
+* Homepage: [StephenBoyMi/trafficmonitor-ai-balance](https://github.com/StephenBoyMi/trafficmonitor-ai-balance)
+* Download url: https://github.com/StephenBoyMi/trafficmonitor-ai-balance/releases/latest
