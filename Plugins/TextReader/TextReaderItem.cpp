@@ -60,6 +60,7 @@ void CTextReaderItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_
 
     g_data.m_multi_line = (h > g_data.DPI(30));
     g_data.m_page_step = g_data.GetPageStep(pDC);
+    g_data.m_prev_page_step = g_data.GetPrevPageStep(pDC);
 
     //矩形区域
     CRect rect(CPoint(x, y), CSize(w, h));
