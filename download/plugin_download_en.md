@@ -319,3 +319,13 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+---
+
+### DeepSeek Spend
+
+Displays today's DeepSeek API spend and account balance in the TrafficMonitor taskbar. By default it estimates spend from the official balance API; an optional exact mode uses a platform userToken and an unofficial usage endpoint. Supports CNY/USD, configurable day boundary, and DPAPI-encrypted credentials. x64 only; tested with TrafficMonitor 1.8.6 x64.
+
+* Author: [Jon-Wang1](https://github.com/Jon-Wang1)
+* Homepage: [Jon-Wang1/TrafficMonitor-DeepSeekSpend](https://github.com/Jon-Wang1/TrafficMonitor-DeepSeekSpend)
+* Download url: https://github.com/Jon-Wang1/TrafficMonitor-DeepSeekSpend/releases/latest
+

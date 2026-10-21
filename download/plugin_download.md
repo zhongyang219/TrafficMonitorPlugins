@@ -331,3 +331,13 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+---
+
+### DeepSeek消费
+
+在 TrafficMonitor 任务栏显示今日 DeepSeek API 消费金额和账户余额。默认读取官方余额接口进行估算；可选启用精确模式（需要平台 userToken，调用非官方用量接口）。支持 CNY/USD、北京时间/本机时区/UTC 日界和 DPAPI 加密存储凭据。仅提供 x64 版本，已在 TrafficMonitor 1.8.6 x64 测试。
+
+* 作者：[Jon-Wang1](https://github.com/Jon-Wang1)
+* 主页：[Jon-Wang1/TrafficMonitor-DeepSeekSpend](https://github.com/Jon-Wang1/TrafficMonitor-DeepSeekSpend)
+* 下载链接：https://github.com/Jon-Wang1/TrafficMonitor-DeepSeekSpend/releases/latest
+
