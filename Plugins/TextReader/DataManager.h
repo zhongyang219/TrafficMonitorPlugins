@@ -51,6 +51,7 @@ public:
 
     int GetPageStep(CDC* dc);      //获取翻页步长，并保存在m_page_step中
 
+    int GetPrevPageStep(CDC* dc);  //获取上一行的字符数（用于PageUp），保证上下翻页互为逆操作
     void PageUp(int step = 0);
     void PageDown(int step = 0);
     void AddBookmark();
@@ -65,6 +66,7 @@ public:
 
     SettingData m_setting_data;
     int m_page_step{ 1 };
+    int m_prev_page_step{ 0 };
     bool m_boss_key_pressed{ false };
     bool m_multi_line{ false };
     int m_draw_width{};
@@ -74,6 +76,8 @@ public:
     void CheckFileChange();
 
 private:
+    int GetStepFromPosition(CDC* dc, int pos);      //获取从指定位置开始、一行实际容纳的字符数
+
     static UINT ThreadCallback(LPVOID dwUser);
 
 private:

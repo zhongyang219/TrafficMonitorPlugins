@@ -237,14 +237,60 @@ const std::wstring& CDataManager::GetTextContexts() const
 
 int CDataManager::GetPageStep(CDC* dc)
 {
-    int step = 1;
     if (dc == nullptr)
         return 1;
+    return GetStepFromPosition(dc, m_setting_data.current_position);
+}
+
+int CDataManager::GetStepFromPosition(CDC* dc, int pos)
+{
+    const int text_len = static_cast<int>(m_text_contents.size());
+    if (dc == nullptr || pos < 0 || pos >= text_len || m_draw_width <= 0)
+        return 1;
+
+    if (IsMultiLine())
+    {
+        //多行模式下DrawText遇到换行符会强制换行，且换行符在GetTextExtent中不占用宽度，
+        //如果仍按文本宽度估算步长，翻页时会跨过未被显示的段落，导致部分文字无法显示。
+        //因此这里按DrawText的实际排版结果计算第一行实际容纳的字符数，保证下一页的起始位置正好是上一页第二行的起始位置。
+        int remain = text_len - pos;
+        if (remain > 100)
+            remain = 100;       //与DrawItem中截取的字符数保持一致
+        //获取单行文本的高度
+        TEXTMETRIC tm;
+        dc->GetTextMetrics(&tm);
+        const int line_height = tm.tmHeight + tm.tmExternalLeading;
+        //二分查找：在一行高度内能够容纳的最大字符数
+        int step = 1;
+        int lo = 1, hi = remain;
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) / 2;
+            CRect rect(0, 0, m_draw_width, 0);
+            int height = dc->DrawText(m_text_contents.c_str() + pos, mid, rect, DT_NOPREFIX | DT_WORDBREAK | DT_CALCRECT);
+            if (height <= line_height)
+            {
+                step = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+        //跳过行尾的换行符，使下一页从有实际内容的位置开始
+        while (pos + step < text_len && (m_text_contents[pos + step] == L'\r' || m_text_contents[pos + step] == L'\n'))
+            step++;
+        return step;
+    }
+
+    //单行模式：按文本宽度计算
+    int step = 1;
     while (true)
     {
-        if (m_setting_data.current_position + step >= m_text_contents.size())
+        if (pos + step >= text_len)
             break;
-        int text_width = dc->GetTextExtent(m_text_contents.c_str() + m_setting_data.current_position, step).cx;
+        int text_width = dc->GetTextExtent(m_text_contents.c_str() + pos, step).cx;
         if (text_width > m_draw_width)
         {
             return (step - 1);
@@ -254,11 +300,79 @@ int CDataManager::GetPageStep(CDC* dc)
     return step;
 }
 
+int CDataManager::GetPrevPageStep(CDC* dc)
+{
+    if (dc == nullptr || !IsMultiLine())
+        return 0;
+    const int text_len = static_cast<int>(m_text_contents.size());
+    const int pos = m_setting_data.current_position;
+    if (pos <= 0 || pos > text_len)
+        return 0;
+
+    auto FindPrevSeg = [&](int seg_start) -> int {
+        int i = seg_start - 1;
+        while (i >= 0 && (m_text_contents[i] == L'\r' || m_text_contents[i] == L'\n')) i--;
+        while (i >= 0 && m_text_contents[i] != L'\r' && m_text_contents[i] != L'\n') i--;
+        if (i < 0) return 0;
+        int j = i + 1;
+        while (j < seg_start && (m_text_contents[j] == L'\r' || m_text_contents[j] == L'\n')) j++;
+        return j;
+    };
+
+    int seg_start = 0;
+    for (int idx = pos - 1; idx >= 0; --idx) {
+        if (m_text_contents[idx] == L'\r' || m_text_contents[idx] == L'\n') {
+            seg_start = idx + 1;
+            while (seg_start < text_len && (m_text_contents[seg_start] == L'\r' || m_text_contents[seg_start] == L'\n'))
+                seg_start++;
+            if (seg_start <= pos) break;
+            seg_start = 0;
+        }
+    }
+
+    if (seg_start < pos) {
+        int prev_p = seg_start;
+        int p = seg_start;
+        while (p < pos && p < text_len) {
+            int sf = GetStepFromPosition(dc, p);
+            if (sf <= 0 || p + sf <= p) break;
+            int next_p = p + sf;
+            if (next_p >= pos) break;
+            prev_p = p;
+            p = next_p;
+        }
+        return pos - prev_p;
+    }
+
+    if (seg_start == 0) return pos;
+
+    int prev_seg_start = FindPrevSeg(seg_start);
+
+    int q = prev_seg_start;
+    while (q < text_len) {
+        int sf = GetStepFromPosition(dc, q);
+        if (sf <= 0 || q + sf <= q) break;
+        int next_q = q + sf;
+        if (next_q >= seg_start) break;
+        q = next_q;
+    }
+
+    return pos - q;
+}
+
 void CDataManager::PageUp(int step)
 {
-    if (step <= 0)
-        step = m_page_step;
     if (m_boss_key_pressed)
+        return;
+    if (step <= 0)
+    {
+        //多行模式下使用上一行的长度，保证上下翻页互为逆操作，避免翻页位置漂移
+        if (IsMultiLine())
+            step = m_prev_page_step;
+        if (step <= 0)
+            step = m_page_step;     //未找到上一行时回退为原步长
+    }
+    if (step <= 0)
         return;
     if (m_setting_data.current_position > 0)
         m_setting_data.current_position -= step;

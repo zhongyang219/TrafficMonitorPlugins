@@ -68,14 +68,14 @@ const wchar_t* CTextReader::GetInfo(PluginInfoIndex index)
     case TMI_DESCRIPTION:
         return g_data.StringRes(IDS_PLUGIN_DESCRIPTION).GetString();
     case TMI_AUTHOR:
-        return L"zhongyang219";
+        return L"zhongyang219, SCY-Z";
     case TMI_COPYRIGHT:
-        return L"Copyright (C) by Zhong Yang 2025";
+        return L"Copyright (C) by Zhong Yang 2025, modified by SCY-Z";
     case ITMPlugin::TMI_URL:
-        return L"https://github.com/zhongyang219/TrafficMonitorPlugins";
+        return L"https://github.com/SCY-Z/TrafficMonitorPlugins";
         break;
     case TMI_VERSION:
-        return L"1.02";
+        return L"1.03";
     default:
         break;
     }
