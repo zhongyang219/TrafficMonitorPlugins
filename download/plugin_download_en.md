@@ -319,3 +319,15 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### Better TrafficMonitor AI Usage
+
+A native, x64-only plugin that displays Claude Desktop, Codex, and ZCode (z.ai coding plan) usage history in the TrafficMonitor taskbar, with compact local graphs covering up to seven days, remaining capacity, and reset times. Claude data comes from the local desktop client's usage cache. Codex combines local session/history data with direct HTTPS requests for current weekly limits using the client's existing OAuth credentials. ZCode queries z.ai's quota endpoint using the API key stored by the local ZCode client. The plugin does not launch Codex processes, modify client authentication files, or extract browser cookies.
+
+![Better TrafficMonitor AI Usage in the TrafficMonitor taskbar](images/better-trafficmonitor-ai-usage.png)
+
+* Author: [QQRM](https://github.com/qqrm)
+* Homepage: [qqrm/better-trafficmonitor-ai-usage-plugin](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin)
+* Compatibility: TrafficMonitor x64 only
+* Version: 1.8.3
+* Download url: [BetterTrafficMonitorAiUsage_v1.8.3_x64.zip](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/download/v1.8.3/BetterTrafficMonitorAiUsage_v1.8.3_x64.zip) ([Release v1.8.3](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/tag/v1.8.3))
+* SHA-256 checksum: [BetterTrafficMonitorAiUsage_v1.8.3_x64.zip.sha256](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/download/v1.8.3/BetterTrafficMonitorAiUsage_v1.8.3_x64.zip.sha256)
