@@ -333,7 +333,7 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 
 ### Better TrafficMonitor AI Usage
 
-这是一个原生 x64 插件，可在 TrafficMonitor 任务栏中显示 Claude Desktop、Codex 和 ZCode（z.ai coding plan）的用量历史，提供最长七天的紧凑本地图表、剩余额度和重置时间。Claude 数据来自本机桌面客户端的用量缓存；Codex 结合本地会话记录和历史采样，使用客户端现有的 OAuth 凭据直接通过 HTTPS 查询当前限额；ZCode 使用客户端本地保存的 API key 查询 z.ai 配额接口。插件不会启动 Codex 进程、修改客户端认证文件或提取浏览器 Cookie。
+这是一个原生 x64 插件，可在 TrafficMonitor 任务栏中显示 Claude Desktop、Codex 和 ZCode（z.ai coding plan）的用量历史，提供最长七天的紧凑本地图表、剩余额度和重置时间。Claude 数据来自本机桌面客户端的用量缓存；Codex 结合本地会话记录和历史采样，使用客户端现有的 OAuth 凭据直接通过 HTTPS 查询当前周额度；ZCode 使用客户端本地保存的 API key 查询 z.ai 配额接口。插件不会启动 Codex 进程、修改客户端认证文件或提取浏览器 Cookie。
 
 ![Better TrafficMonitor AI Usage 在 TrafficMonitor 任务栏中的显示](images/better-trafficmonitor-ai-usage.png)
 
@@ -342,3 +342,4 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 兼容性：仅支持 TrafficMonitor x64
 * 版本：1.8.3
 * 下载链接：[BetterTrafficMonitorAiUsage_v1.8.3_x64.zip](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/download/v1.8.3/BetterTrafficMonitorAiUsage_v1.8.3_x64.zip) ([Release v1.8.3](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/tag/v1.8.3))
+* SHA-256 校验文件：[BetterTrafficMonitorAiUsage_v1.8.3_x64.zip.sha256](https://github.com/qqrm/better-trafficmonitor-ai-usage-plugin/releases/download/v1.8.3/BetterTrafficMonitorAiUsage_v1.8.3_x64.zip.sha256)
