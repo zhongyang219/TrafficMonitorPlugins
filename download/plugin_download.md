@@ -331,3 +331,14 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+---
+
+### 截图插件 TMPluginScreenshot
+
+为 [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 提供全屏 / 区域（橡皮筋框选，带现代十字线光标与四角手柄）/ 活动窗口（先弹出窗口选择列表）三种截图方式：双全局热键（每个热键可独立绑定动作）、6 条插件命令与任务栏相机图标三种触发入口，PNG/JPG/BMP 保存、剪贴板复制、延时截图。纯 C++17 + Win32 + WIC 实现，静态 CRT，无第三方依赖，开源（GPL-3.0）。
+
+* 作者：[gurenn](https://github.com/gurenn)
+* 主页：[gurenn/ScreenshotPlugin-for-TrafficMonitor](https://github.com/gurenn/ScreenshotPlugin-for-TrafficMonitor)
+* 下载链接：https://github.com/gurenn/ScreenshotPlugin-for-TrafficMonitor/releases/latest
+* 相关链接：[[分享] TMPluginScreenshot 截图插件 · Issue #191](https://github.com/zhongyang219/TrafficMonitorPlugins/issues/191)

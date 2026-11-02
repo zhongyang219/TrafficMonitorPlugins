@@ -319,3 +319,14 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+
+---
+
+### TMPluginScreenshot - Screenshot plugin
+
+Adds full screen / region (rubber-band selection with a modern crosshair cursor and corner handles) / active window (with a window picker listing all capturable top-level windows) capture to TrafficMonitor. Two customizable global hotkeys with per-slot actions, 6 plugin commands, taskbar camera icon, PNG/JPG/BMP output, clipboard copy, delayed capture. Pure C++17 + Win32 + WIC, static CRT, no third-party dependencies, open source (GPL-3.0).
+
+* Author: [gurenn](https://github.com/gurenn)
+* Homepage: [gurenn/ScreenshotPlugin-for-TrafficMonitor](https://github.com/gurenn/ScreenshotPlugin-for-TrafficMonitor)
+* Download url: https://github.com/gurenn/ScreenshotPlugin-for-TrafficMonitor/releases/latest
+* Related link: [[Share] TMPluginScreenshot plugin · Issue #191](https://github.com/zhongyang219/TrafficMonitorPlugins/issues/191)
