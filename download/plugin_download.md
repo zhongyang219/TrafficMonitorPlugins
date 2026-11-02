@@ -331,3 +331,12 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### MouseJiggler
+
+定时晃动鼠标的插件，让系统一直处于活动状态，避免锁屏、休眠或在聊天软件里变成“离开”。支持禅动（位移为 0，指针不动，只重置系统空闲计时）和普通（±4 像素微动）两种方式，间隔 1-60 秒可调，并可设置只在工作时间生效（默认周一~周五 08:30-17:30）。插件本身不占用任务栏空间，设置项在“插件管理”的“选项”里。
+
+![](images/mousejiggler-options.png)
+
+* 作者：[TiAmo-chen](https://github.com/TiAmo-chen)
+* 主页：[TiAmo-chen/TrafficMonitor-MouseJigglerPlugin](https://github.com/TiAmo-chen/TrafficMonitor-MouseJigglerPlugin)
+* 下载链接：https://github.com/TiAmo-chen/TrafficMonitor-MouseJigglerPlugin/releases/latest

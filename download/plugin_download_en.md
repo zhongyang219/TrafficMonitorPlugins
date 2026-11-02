@@ -319,3 +319,12 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### MouseJiggler
+
+A plugin that periodically jiggles the mouse so the machine never looks idle: no screen lock, no sleep, and no "away" status in chat apps. Two modes are available, **zen** (zero-delta movement, the pointer stays still and only the system idle timer is reset) and **normal** (±4 px). The interval is configurable from 1 to 60 seconds, and the plugin can be limited to work hours (Mon-Fri 08:30-17:30 by default). It does not take any taskbar space; its settings live under "Plugin Manager → Options".
+
+![](images/mousejiggler-options.png)
+
+* Author: [TiAmo-chen](https://github.com/TiAmo-chen)
+* Homepage: [TiAmo-chen/TrafficMonitor-MouseJigglerPlugin](https://github.com/TiAmo-chen/TrafficMonitor-MouseJigglerPlugin)
+* Download url: https://github.com/TiAmo-chen/TrafficMonitor-MouseJigglerPlugin/releases/latest
