@@ -26,16 +26,24 @@ namespace HardwareMonitor
     // 消息循环，与订阅线程无关）：
     // 布局变化后系统不会立刻就绪（本地LLM引擎重新分配显存、
     // 硬件重新枚举完成都有延迟），事件回调记录变化时刻并进入
-    // 10秒“无缓存窗口”：DataRequired()在窗口内每次刷新前都清空
+    // 60秒“无缓存窗口”：DataRequired()在窗口内每次刷新前都清空
     // 显存传感器缓存并重新解析硬件和传感器引用，保证窗口结束时
     // 缓存被稳定对象回填，之后恢复正常缓存热路径。
-    // 平时热路径不做任何额外操作，只有布局变化后的10秒窗口内
-    // 每次刷新多一次硬件解析。
+    // 平时热路径不做任何额外操作，只有布局变化后的60秒窗口内
+    // 每次刷新多一次硬件解析。显示器布局切换不是高频操作，
+    // 60秒窗口用于覆盖GPU/显示子系统延迟稳定、句柄失效后重新枚举的过程。
+    //
+    // 布局稳定期间另有每分钟一次的兜底缓存重建：只在到期的那次
+    // DataRequired() 前清空缓存，随后重新解析一次并继续缓存；
+    // 用于覆盖DisplaySettingsChanged漏报、窗口结束后才失效的句柄，
+    // 以及驱动/GPU电源状态等其他原因导致的缓存失效。
     //////////////////////////////////////////////////////////////////
     namespace
     {
         //布局变化后无缓存窗口的时长（毫秒）
-        const int DISPLAY_CHANGE_CACHE_WINDOW_MS = 10 * 1000;
+        //60秒：显示器布局切换后GPU/显示子系统可能需要较长时间才稳定，
+        //10秒窗口不足以覆盖句柄失效后的重新枚举过程。
+        const int DISPLAY_CHANGE_CACHE_WINDOW_MS = 60 * 1000;
 
         //最近一次布局变化的单调时间（Environment.TickCount，毫秒），
         //0表示从未变化。事件回调与DataRequired可能不在同一线程，
@@ -57,6 +65,33 @@ namespace HardwareMonitor
                 return false;
             int now = (int)System::Environment::TickCount;
             return (unsigned int)(now - last) < DISPLAY_CHANGE_CACHE_WINDOW_MS;
+        }
+
+        //////////////////////////////////////////////////////////////////
+        // 稳定布局期间的周期性缓存重建
+        //
+        // 显示器布局稳定后，缓存中的硬件/传感器句柄仍可能因驱动、
+        // GPU电源状态或其他原因失效，而DisplaySettingsChanged不一定
+        // 能覆盖这些变化。这里每分钟做一次“完整查询”：
+        // 清空显存缓存 -> 下一次取数重新遍历当前硬件树并匹配传感器
+        // -> 成功后继续走缓存热路径。
+        // 不是每分钟持续禁用缓存，也不是每次刷新都校验句柄，
+        // 因此开销仅为每分钟一次硬件树解析。
+        //////////////////////////////////////////////////////////////////
+        const int PERIODIC_CACHE_CLEAR_INTERVAL_MS = 60 * 1000;
+
+        //上次周期性清空缓存的时间；0表示尚未执行过
+        std::atomic<int> g_last_periodic_cache_clear_tick{ 0 };
+
+        void ClearGpuMemoryCacheIfPeriodicDue()
+        {
+            int now = (int)System::Environment::TickCount;
+            int last = g_last_periodic_cache_clear_tick.load();
+            if (last == 0 || (unsigned int)(now - last) >= PERIODIC_CACHE_CLEAR_INTERVAL_MS)
+            {
+                HardwareMonitorHelper::ClearGpuMemoryCache();
+                g_last_periodic_cache_clear_tick.store(now);
+            }
         }
     }
 
@@ -401,11 +436,19 @@ namespace HardwareMonitor
         try
         {
             //显示器布局变化（显示器连接/断开等）后系统未立刻就绪，
-            //10秒无缓存窗口内：每次刷新前清空缓存并重新解析硬件和
+            //60秒无缓存窗口内：每次刷新前清空缓存并重新解析硬件和
             //传感器引用，保证窗口结束时缓存被稳定对象回填，
             //窗口结束后自动恢复正常缓存热路径
             if (InDisplayChangeCacheWindow())
+            {
                 HardwareMonitorHelper::ClearGpuMemoryCache();
+            }
+            else
+            {
+                //布局稳定期间兜底：每分钟清空一次缓存，下一次取数
+                //重新遍历硬件树并匹配传感器，然后继续缓存。
+                ClearGpuMemoryCacheIfPeriodicDue();
+            }
             //重新获取数据
             MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
             //更新“硬件信息”树节点
@@ -575,7 +618,7 @@ namespace HardwareMonitor
         computer->Open();
 
         //订阅显示器设置变化事件（纯.NET，事件由系统WM_DISPLAYCHANGE广播驱动），
-        //布局变化后进入10秒显存缓存无缓存窗口
+        //布局变化后进入60秒显存缓存无缓存窗口
         display_settings_changed_handler = gcnew EventHandler(this, &MonitorGlobal::OnDisplaySettingsChanged);
         Microsoft::Win32::SystemEvents::DisplaySettingsChanged += display_settings_changed_handler;
 
