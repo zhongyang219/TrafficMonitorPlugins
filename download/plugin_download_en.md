@@ -319,3 +319,11 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### NetWatch
+
+Monitor groups of devices and services with ICMP, TCP and HTTP/HTTPS checks. Each group appears as a label and status circle on the taskbar; settings show the result and response time for each check. Hosts can be imported from a local OpenSSH config as TCP port checks. Supports TrafficMonitor 1.86 x64 on Windows 10/11 x64, with English, Russian, Simplified Chinese and Traditional Chinese UI. This is a beta; desktop layout, DPI and theme checks are still incomplete.
+
+* Version: 0.1.0 (v0.1.0-beta.1 prerelease)
+* Author: [Lay007](https://github.com/Lay007)
+* Homepage: [Lay007/trafficmonitor-netwatch](https://github.com/Lay007/trafficmonitor-netwatch)
+* Download url (x64): [v0.1.0-beta.1](https://github.com/Lay007/trafficmonitor-netwatch/releases/tag/v0.1.0-beta.1)
