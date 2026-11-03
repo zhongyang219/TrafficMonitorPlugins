@@ -331,3 +331,11 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### NetWatch
+
+按分组监测设备和服务，支持 ICMP、TCP 和 HTTP/HTTPS 检测。每个分组在任务栏显示名称和状态圆点，设置窗口中可查看各检测项的结果和响应时间。可从本地 OpenSSH 配置导入主机，生成 TCP 端口检测。适用于 Windows 10/11 x64 和 TrafficMonitor 1.86 x64，支持英语、俄语、简体中文和繁体中文界面。目前为测试版，桌面布局、DPI 和主题检查尚未完成。
+
+* 版本：0.1.0（v0.1.0-beta.1 预发布版）
+* 作者：[Lay007](https://github.com/Lay007)
+* 插件主页：[Lay007/trafficmonitor-netwatch](https://github.com/Lay007/trafficmonitor-netwatch)
+* 下载地址（x64）：[v0.1.0-beta.1](https://github.com/Lay007/trafficmonitor-netwatch/releases/tag/v0.1.0-beta.1)
