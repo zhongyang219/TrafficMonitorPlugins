@@ -41,6 +41,7 @@ namespace HardwareMonitor {
             String^ displayName;        //显示的名称
             String^ displayValue;       //显示的数值
             LibreHardwareMonitor::Hardware::ISensor^ sensor;    //传感器对象
+            String^ custom_identifyer;  //自定义监控项目的标识符（如显卡显存项目）
         };
 
     private:

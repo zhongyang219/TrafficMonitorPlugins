@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "SettingsForm.h"
 #include "HardwareMonitor.h"
 #include "HardwareMonitorHelper.h"
@@ -65,12 +65,18 @@ namespace HardwareMonitor
         for each (const auto & obj in monitorItemListBox->Items)
         {
             ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(obj);
-            if (listItem != nullptr && listItem->sensor != nullptr)
+            if (listItem != nullptr && listItem->identifyer != nullptr)
             {
-                String^ identifyer = HardwareMonitorHelper::GetSensorIdentifyer(listItem->sensor);
-                ItemInfo& itemInfo = CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(identifyer));
-                //获取displayValue
-                listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(listItem->sensor, gcnew String(itemInfo.unit.c_str()), itemInfo.decimal_places, itemInfo.show_unit);
+                ItemInfo& itemInfo = CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(listItem->identifyer));
+                String^ unit = itemInfo.unit.empty() ? gcnew String(L"G") : gcnew String(itemInfo.unit.c_str());
+                if (HardwareMonitorHelper::IsGpuMemoryItemIdentifier(listItem->identifyer))
+                {
+                    listItem->displayValue = HardwareMonitorHelper::GetGpuMemoryValueText(listItem->identifyer, unit, itemInfo.decimal_places, itemInfo.show_unit);
+                }
+                else if (listItem->sensor != nullptr)
+                {
+                    listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(listItem->sensor, unit, itemInfo.decimal_places, itemInfo.show_unit);
+                }
             }
         }
         monitorItemListBox->Invalidate();
@@ -90,22 +96,40 @@ namespace HardwareMonitor
             {
                 ListItemInfo^ listItem = gcnew ListItemInfo();
                 listItem->displayName = item_name;
-                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item.identifyer.c_str()));
-                listItem->sensor = sensor;
-                if (sensor != nullptr)
+                listItem->identifyer = gcnew String(item.identifyer.c_str());
+
+                IHardware^ hardware = nullptr;
+                if (HardwareMonitorHelper::IsGpuMemoryItemIdentifier(listItem->identifyer))
                 {
+                    //显卡显存项目
+                    String^ unit = item.unit.empty() ? gcnew String(L"G") : gcnew String(item.unit.c_str());
+                    listItem->sensor = nullptr;
+                    listItem->displayValue = HardwareMonitorHelper::GetGpuMemoryValueText(listItem->identifyer, unit, item.decimal_places, item.show_unit);
+                    String^ hardware_identifier = HardwareMonitorHelper::GetGpuMemoryHardwareIdentifier(listItem->identifyer);
+                    hardware = HardwareMonitorHelper::FindHardwareByIdentifier(hardware_identifier);
+                }
+                else
+                {
+                    ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(listItem->identifyer);
+                    listItem->sensor = sensor;
+                    if (sensor == nullptr)
+                        continue;
                     //获取数值文本
                     listItem->displayValue = HardwareMonitorHelper::GetSensorValueText(sensor, gcnew String(item.unit.c_str()), item.decimal_places, item.show_unit);
-                    //根据监控项类型获取图标
-                    IHardware^ hardware = sensor->Hardware;
-                    //如果是子硬件，则使用它的父硬件
+                    hardware = sensor->Hardware;
+                }
+
+                //根据监控项类型获取图标
+                //如果是子硬件，则使用它的父硬件
+                if (hardware != nullptr)
+                {
                     if (hardware->Parent != nullptr)
                         hardware = hardware->Parent;
                     auto resName = HardwareMonitorHelper::GetHardwareIconResName(hardware->HardwareType);
                     if (resName->Length > 0)
                         listItem->icon = MonitorGlobal::Instance()->GetIcon(resName);
-                    monitorItemListBox->Items->Add(listItem);
                 }
+                monitorItemListBox->Items->Add(listItem);
             }
         }
     }
@@ -121,10 +145,9 @@ namespace HardwareMonitor
         if (index >= 0 && index < monitorItemListBox->Items->Count)
         {
             ListItemInfo^ listItem = dynamic_cast<ListItemInfo^>(monitorItemListBox->Items[index]);
-            if (listItem != nullptr && listItem->sensor != nullptr)
+            if (listItem != nullptr && listItem->identifyer != nullptr)
             {
-                String^ identifyer = HardwareMonitorHelper::GetSensorIdentifyer(listItem->sensor);
-                return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(identifyer));
+                return CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(Common::StringToStdWstring(listItem->identifyer));
             }
         }
         static ItemInfo emptyInfo;
@@ -171,13 +194,23 @@ namespace HardwareMonitor
             showUnitCheck->Checked = item_info.show_unit;
             //填充“单位选择”下拉列表
             unitCombo->Items->Clear();
-            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
-            if (sensor != nullptr)
+            if (HardwareMonitorHelper::IsGpuMemoryItemIdentifier(item_info.identifyer))
             {
-                List<String^>^ unitList = HardwareMonitorHelper::GetSensorTypeUnit(sensor->SensorType);
-                for each (String ^ unit in unitList)
+                //显存单位：G为紧凑单位（与数字之间无空格），GB单位前带空格，%为整数百分比
+                unitCombo->Items->Add("G");
+                unitCombo->Items->Add("GB");
+                unitCombo->Items->Add("%");
+            }
+            else
+            {
+                ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
+                if (sensor != nullptr)
                 {
-                    unitCombo->Items->Add(unit);
+                    List<String^>^ unitList = HardwareMonitorHelper::GetSensorTypeUnit(sensor->SensorType);
+                    for each (String ^ unit in unitList)
+                    {
+                        unitCombo->Items->Add(unit);
+                    }
                 }
             }
             if (unitCombo->Items->Count > 0)
@@ -228,8 +261,9 @@ namespace HardwareMonitor
         CHardwareMonitor::GetInstance()->SaveConfig();
         Common::SaveFormSize(this, L"settings");
 
-        //更改了监控的硬件设置后，传感器可能会发生变化，因此这里清空传感器缓存
-        MonitorGlobal::Instance()->sensorMap->Clear();
+        //更改了监控的硬件设置后，传感器可能会发生变化，因此这里同时清空
+        //普通传感器缓存（sensorMap）和显存传感器缓存，使下次刷新重新解析
+        HardwareMonitorHelper::ClearAllCaches();
     }
 
     void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)

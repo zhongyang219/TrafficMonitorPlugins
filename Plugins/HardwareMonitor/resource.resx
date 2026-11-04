@@ -214,6 +214,12 @@
   <data name="PluginName" xml:space="preserve">
     <value>Hardware monitor plugin</value>
   </data>
+  <data name="GpuMemoryLabel" xml:space="preserve">
+    <value>VRAM: </value>
+  </data>
+  <data name="GpuMemoryUsageItem" xml:space="preserve">
+    <value>VRAM Used/Total</value>
+  </data>
   <data name="Power" xml:space="preserve">
     <value>Power</value>
   </data>

@@ -42,7 +42,8 @@ namespace HardwareMonitor {
         public:
             String^ displayName;        //显示的名称
             String^ displayValue;       //显示的数值
-            LibreHardwareMonitor::Hardware::ISensor^ sensor;    //传感器对象
+            String^ identifyer;         //监控项目的标识符
+            LibreHardwareMonitor::Hardware::ISensor^ sensor;    //传感器对象（显存项目为nullptr）
             System::Drawing::Icon^ icon;    //列表项的图标
         };
 

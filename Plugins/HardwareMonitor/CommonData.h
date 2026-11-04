@@ -36,6 +36,7 @@ namespace HardwareMonitor
 
         bool hardware_info_auto_refresh{};              //监控信息界面是否自动刷新
         bool show_mouse_tooltip{};
+        bool gpu_memory_item_added{};                   //是否已经自动添加过显卡显存项目
     };
 
     //分别定义一个用于主窗口和任务栏窗口的设置数据，同时定义一个函数，根据is_taskbar返回对应的值

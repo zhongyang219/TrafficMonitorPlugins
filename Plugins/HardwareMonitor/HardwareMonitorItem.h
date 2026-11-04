@@ -16,6 +16,10 @@ namespace HardwareMonitor
         const wchar_t* GetItemLableText() const override;
         const wchar_t* GetItemValueText() const override;
         const wchar_t* GetItemValueSampleText() const override;
+
+        //获取鼠标提示中显示的数值文本。显存项目在任务栏窗口固定显示短格式，
+        //但鼠标提示中始终显示完整的“已占用/总量”数值
+        const wchar_t* GetTooltipValueText() const;
         virtual int IsDrawResourceUsageGraph() const override;
         virtual float GetResourceUsageGraphValue() const override;
 

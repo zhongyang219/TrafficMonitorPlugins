@@ -37,6 +37,24 @@ namespace HardwareMonitor
             nodeInfo->sensor = sensor;
             sensor_node->Tag = nodeInfo;
         }
+
+        //为显卡添加一个“已占用显存/总显存”虚拟节点
+        if (HardwareMonitorHelper::IsGpuHardware(hardware) && HardwareMonitorHelper::HasGpuMemorySensors(hardware))
+        {
+            String^ identifier = HardwareMonitorHelper::GetGpuMemoryItemIdentifier(hardware);
+            String^ item_name = MonitorGlobal::Instance()->GetString(L"GpuMemoryUsageItem");
+            if (String::IsNullOrEmpty(item_name))
+                item_name = gcnew String(L"VRAM Used/Total");
+
+            auto memory_node = hardware_node->Nodes->Add(item_name);
+            HardwareInfoForm::SensorNodeInfo^ nodeInfo = gcnew HardwareInfoForm::SensorNodeInfo();
+            nodeInfo->displayName = item_name;
+            nodeInfo->displayValue = HardwareMonitorHelper::GetGpuMemoryValueText(identifier, gcnew String(L"GB"));
+            nodeInfo->sensor = nullptr;
+            nodeInfo->custom_identifyer = identifier;
+            memory_node->Tag = nodeInfo;
+        }
+
         return hardware_node;
     }
 
@@ -92,7 +110,11 @@ namespace HardwareMonitor
         else
         {
             HardwareInfoForm::SensorNodeInfo^ sensorInfo = dynamic_cast<HardwareInfoForm::SensorNodeInfo^>(node->Tag);
-            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+            if (sensorInfo != nullptr && sensorInfo->custom_identifyer != nullptr)
+            {
+                sensorInfo->displayValue = HardwareMonitorHelper::GetGpuMemoryValueText(sensorInfo->custom_identifyer, gcnew String(L"GB"));
+            }
+            else if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
             {
                 sensorInfo->displayName = Common::GetTranslatedString(sensorInfo->sensor->Name);
                 String^ defaultUnit = HardwareMonitorHelper::GetSensorTypeDefaultUnit(sensorInfo->sensor->SensorType);
@@ -202,7 +224,12 @@ namespace HardwareMonitor
             //判断当前项是否已添加到监控
             String^ identifyer{};
             if (sensorInfo != nullptr)
-                identifyer = HardwareMonitorHelper::GetSensorIdentifyer(sensorInfo->sensor);
+            {
+                if (sensorInfo->custom_identifyer != nullptr)
+                    identifyer = sensorInfo->custom_identifyer;
+                else if (sensorInfo->sensor != nullptr)
+                    identifyer = HardwareMonitorHelper::GetSensorIdentifyer(sensorInfo->sensor);
+            }
             //已添加到监控项目的文本颜色显示为高亮颜色
             if (identifyer != nullptr && CHardwareMonitor::GetInstance()->IsDisplayItemExist(Common::StringToStdWstring(identifyer)))
                 textColor = SystemColors::Highlight;
@@ -270,9 +297,15 @@ namespace HardwareMonitor
         if (selectedNode != nullptr)
         {
             SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
-            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+            if (sensorInfo != nullptr)
             {
-                if (CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor))
+                bool added = false;
+                if (sensorInfo->custom_identifyer != nullptr)
+                    added = CHardwareMonitor::GetInstance()->AddGpuMemoryDisplayItem(Common::StringToStdWstring(sensorInfo->custom_identifyer));
+                else if (sensorInfo->sensor != nullptr)
+                    added = CHardwareMonitor::GetInstance()->AddDisplayItem(sensorInfo->sensor);
+
+                if (added)
                     CHardwareMonitor::GetInstance()->SaveConfig();
                 else
                     MessageBox::Show(MonitorGlobal::Instance()->GetString(L"AddItemFailedMsg"),
@@ -290,7 +323,7 @@ namespace HardwareMonitor
         if (selectedNode != nullptr)
         {
             SensorNodeInfo^ sensorInfo = dynamic_cast<SensorNodeInfo^>(selectedNode->Tag);
-            if (sensorInfo != nullptr && sensorInfo->sensor != nullptr)
+            if (sensorInfo != nullptr && (sensorInfo->sensor != nullptr || sensorInfo->custom_identifyer != nullptr))
                 add_item_enable = true;
         }
 
