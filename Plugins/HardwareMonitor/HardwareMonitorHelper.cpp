@@ -4,6 +4,8 @@
 #include <gcroot.h>
 #include <unordered_map>
 #include <wchar.h>
+#include <vector>
+#include <algorithm>
 #include "Common.h"
 
 using namespace LibreHardwareMonitor::Hardware;
@@ -469,6 +471,43 @@ namespace HardwareMonitor
     void HardwareMonitorHelper::ClearGpuMemoryCache()
     {
         GpuMemorySensorCacheMap().clear();
+    }
+
+    void HardwareMonitorHelper::ClearSensorCache()
+    {
+        MonitorGlobal::Instance()->sensorMap->Clear();
+    }
+
+    void HardwareMonitorHelper::ClearGpuLoadSensorCache()
+    {
+        auto map = MonitorGlobal::Instance()->sensorMap;
+        if (map == nullptr)
+            return;
+
+        //GetSensorIdentifyer() 生成的key格式：
+        // 硬件路径（根硬件通常为 /gpu-...） + “/SensorType/Name”。
+        // 这里只移除 GPU 的 Load 传感器（GPU 占用百分比），
+        // 不清除 CPU、内存、主板等普通传感器缓存。
+        String^ gpuPrefix = gcnew String(L"/gpu-");
+        String^ loadSegment = gcnew String(L"/Load/");
+        List<String^>^ keys = gcnew List<String^>(map->Keys);
+        for each (String^ key in keys)
+        {
+            if (key != nullptr && key->StartsWith(gpuPrefix) && key->Contains(loadSegment))
+                map->Remove(key);
+        }
+    }
+
+    void HardwareMonitorHelper::ClearGpuRelatedCaches()
+    {
+        ClearGpuMemoryCache();
+        ClearGpuLoadSensorCache();
+    }
+
+    void HardwareMonitorHelper::ClearAllCaches()
+    {
+        ClearGpuMemoryCache();
+        ClearSensorCache();
     }
 
     bool HardwareMonitorHelper::GetGpuMemoryValues(const std::wstring& identifier, float% used_gb, float% total_gb)

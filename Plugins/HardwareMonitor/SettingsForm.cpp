@@ -261,10 +261,9 @@ namespace HardwareMonitor
         CHardwareMonitor::GetInstance()->SaveConfig();
         Common::SaveFormSize(this, L"settings");
 
-        //更改了监控的硬件设置后，传感器可能会发生变化，因此这里清空传感器缓存
-        MonitorGlobal::Instance()->sensorMap->Clear();
-        //同步清空显存传感器引用缓存，使下次刷新重新解析
-        HardwareMonitorHelper::ClearGpuMemoryCache();
+        //更改了监控的硬件设置后，传感器可能会发生变化，因此这里同时清空
+        //普通传感器缓存（sensorMap）和显存传感器缓存，使下次刷新重新解析
+        HardwareMonitorHelper::ClearAllCaches();
     }
 
     void SettingsForm::ListBox_DrawItem(Object^ sender, DrawItemEventArgs^ e)

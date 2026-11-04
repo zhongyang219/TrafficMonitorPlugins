@@ -3,6 +3,7 @@
 #include "stdafx.h"
 
 #include <atomic>
+#include <algorithm>
 #include "HardwareMonitor.h"
 #include <vector>
 #include "HardwareMonitorHelper.h"
@@ -27,16 +28,31 @@ namespace HardwareMonitor
     // 布局变化后系统不会立刻就绪（本地LLM引擎重新分配显存、
     // 硬件重新枚举完成都有延迟），事件回调记录变化时刻并进入
     // 60秒“无缓存窗口”：DataRequired()在窗口内每次刷新前都清空
-    // 显存传感器缓存并重新解析硬件和传感器引用，保证窗口结束时
-    // 缓存被稳定对象回填，之后恢复正常缓存热路径。
+    // 显存缓存和GPU Load普通传感器缓存，并重新解析硬件和传感器引用，
+    // 保证窗口结束时缓存被稳定对象回填，之后恢复正常缓存热路径。
     // 平时热路径不做任何额外操作，只有布局变化后的60秒窗口内
     // 每次刷新多一次硬件解析。显示器布局切换不是高频操作，
     // 60秒窗口用于覆盖GPU/显示子系统延迟稳定、句柄失效后重新枚举的过程。
+    // 为避免无谓遍历CPU/内存/主板等不会热插拔的设备，窗口内只清理
+    // 与GPU相关的缓存，不清空整个sensorMap。
     //
-    // 布局稳定期间另有每分钟一次的兜底缓存重建：只在到期的那次
-    // DataRequired() 前清空缓存，随后重新解析一次并继续缓存；
-    // 用于覆盖DisplaySettingsChanged漏报、窗口结束后才失效的句柄，
-    // 以及驱动/GPU电源状态等其他原因导致的缓存失效。
+    // 布局稳定期间另有每分钟一次的显存兜底重建：只在到期的那次
+    // DataRequired() 前清空显存缓存，随后重新解析一次并继续缓存；用于覆盖
+    // DisplaySettingsChanged漏报或窗口结束后显存句柄才失效的情况。
+    // 稳定期间不清GPU Load普通传感器缓存：GPU Load属于真实传感器，
+    // 掉驱动等会触发显示器布局变化的场景由上面的60秒窗口统一处理。
+    //
+    // 上述机制之外的最终兜底：独立显卡（Nvidia独显）显存读数依赖的
+    // NVAPI显示输出句柄只在硬件组构建时（Computer.Open()/Reset()）
+    // 捕获一次，之后不再重新枚举。显示器长时间节能（系统不休眠、
+    // 仅显示器休眠，不触发上面的DisplaySettingsChanged）后，驱动
+    // 拆除并重建显示管线，旧句柄永久失效；显存传感器静默停止更新
+    // （数值冻结、HasValue状态看似正常），清缓存无法恢复。因此
+    // 每分钟（独立节拍）检查每个显存监控项目的显存数值：连续30分钟
+    // 不变（或连续30分钟取不到值）即判定读数路径失效，调用
+    // Computer.Reset()重建全部硬件组（等效于程序重启时的重新枚举）
+    // 并清空全部传感器缓存；监控项目标识符和任务栏项目ID保持不变，
+    // 无需改动配置。
     //////////////////////////////////////////////////////////////////
     namespace
     {
@@ -70,17 +86,19 @@ namespace HardwareMonitor
         //////////////////////////////////////////////////////////////////
         // 稳定布局期间的周期性缓存重建
         //
-        // 显示器布局稳定后，缓存中的硬件/传感器句柄仍可能因驱动、
+        // 显示器布局稳定后，显存缓存中的硬件/传感器句柄仍可能因驱动、
         // GPU电源状态或其他原因失效，而DisplaySettingsChanged不一定
-        // 能覆盖这些变化。这里每分钟做一次“完整查询”：
-        // 清空显存缓存 -> 下一次取数重新遍历当前硬件树并匹配传感器
+        // 能覆盖这些变化。这里每分钟做一次显存兜底重建：
+        // 清空显存缓存 -> 下一次取数重新遍历当前硬件树并匹配显存传感器
         // -> 成功后继续走缓存热路径。
+        // 稳定期间不清GPU Load普通传感器缓存：GPU Load属于真实传感器，
+        // 掉驱动等会触发显示器布局变化的场景由60秒窗口统一处理。
         // 不是每分钟持续禁用缓存，也不是每次刷新都校验句柄，
-        // 因此开销仅为每分钟一次硬件树解析。
+        // 因此开销仅为每分钟一次显存硬件树解析。
         //////////////////////////////////////////////////////////////////
         const int PERIODIC_CACHE_CLEAR_INTERVAL_MS = 60 * 1000;
 
-        //上次周期性清空缓存的时间；0表示尚未执行过
+        //上次周期性清空显存缓存的时间；0表示尚未执行过
         std::atomic<int> g_last_periodic_cache_clear_tick{ 0 };
 
         void ClearGpuMemoryCacheIfPeriodicDue()
@@ -93,6 +111,46 @@ namespace HardwareMonitor
                 g_last_periodic_cache_clear_tick.store(now);
             }
         }
+
+        //GPU读数路径活性检测的节拍：每分钟一次
+        const int GPU_STALENESS_CHECK_INTERVAL_MS = 60 * 1000;
+
+        //上次活性检测的时间；0表示尚未执行
+        std::atomic<int> g_last_gpu_staleness_check_tick{ 0 };
+
+        //////////////////////////////////////////////////////////////////
+        // 显存数值停滞监控（VRAM stall watchdog）
+        //
+        // 独立显卡（Nvidia独显）的显存传感器数值来自NVAPI显存查询，
+        // 该查询使用硬件组构建时（Computer.Open()/Reset()）获得的
+        // NVAPI显示输出句柄，之后不再重新枚举。显示器长时间节能后，
+        // 驱动会拆除并重建显示管线，旧显示句柄永久失效，NVAPI查询
+        // 开始返回错误；LHM的传感器对此静默处理——数值冻结在最后一次
+        // 成功读取的值上，而温度等走物理GPU句柄路径的传感器照常更新。
+        // 清任何缓存都无效（传感器对象本身停更），只有重建硬件组
+        // （Computer.Reset()，等效于程序重新初始化时的重新枚举——
+        // 用户实测关闭程序重启即可恢复）才能重新捕获有效句柄。
+        //
+        // 因此每分钟对每个显存项目检查其已占用值：
+        //   1. 数值发生变化 → 读数路径健康，刷新基准；
+        //   2. 数值连续30分钟不变（或连续30分钟取不到值）→ 判定
+        //      读数路径失效，触发Computer.Reset()重建硬件组并清空
+        //      全部传感器缓存；重建后重置监控基准，避免同一数值
+        //      立即再次触发（真正空闲的系统至多每30分钟发生一次
+        //      无害的重枚举，前后数值相同）。
+        //////////////////////////////////////////////////////////////////
+        const int VRAM_STALL_THRESHOLD_MS = 30 * 60 * 1000;
+
+        //显存数值停滞监控条目（key为显存项目identifier）
+        struct VramStallWatchEntry
+        {
+            bool has_baseline{ false };  //是否已记录基准数值
+            float last_value{ 0.0f };    //最近一次的已占用显存（GB）
+            int baseline_tick{ 0 };      //当前数值首次出现的TickCount
+            int invalid_tick{ -1 };      //首次取不到值的TickCount；-1表示当前有值
+        };
+
+        std::map<std::wstring, VramStallWatchEntry> g_vram_watch;
     }
 
     void MonitorGlobal::OnDisplaySettingsChanged(Object^ sender, EventArgs^ e)
@@ -431,22 +489,127 @@ namespace HardwareMonitor
         return nullptr;
     }
 
+    void CHardwareMonitor::CheckGpuHardwareStaleness()
+    {
+        int now = (int)System::Environment::TickCount;
+        int last = g_last_gpu_staleness_check_tick.load();
+        if (last != 0 && (unsigned int)(now - last) < GPU_STALENESS_CHECK_INTERVAL_MS)
+            return;
+        g_last_gpu_staleness_check_tick.store(now);
+
+        //显存数值停滞监控（NVAPI显示句柄路径等）。
+        //独立显卡的显存读数依赖构建时捕获的显示输出句柄，
+        //显示器长时间节能后句柄永久失效、传感器静默停更，
+        //数值冻结30分钟即判定读数路径失效，需要重建硬件组
+        if (!VramStallWatchdog(now))
+            return;
+
+        //重建全部硬件组。
+        //Reset()只拆除并重建各硬件组（GPU重新枚举，CPU等随之刷新），
+        //不重新初始化Ring0驱动等基础层，开销相当于一轮设备重枚举，
+        //每天至多发生一两次（显示器长时间节能后唤醒时）。
+        try
+        {
+            Computer^ computer = MonitorGlobal::Instance()->computer;
+            computer->Reset();
+            computer->Accept(MonitorGlobal::Instance()->updateVisitor);
+            //重建后旧硬件/传感器引用全部作废，清空显存缓存和
+            //普通传感器缓存，项目查找随后重新解析传感器引用
+            HardwareMonitorHelper::ClearAllCaches();
+        }
+        catch (System::Exception^)
+        {
+        }
+        //重置显存停滞监控基准，下一轮重新记录，
+        //避免数值真正稳定时立即再次触发重建
+        for (auto& entry : g_vram_watch)
+        {
+            entry.second.has_baseline = false;
+            entry.second.invalid_tick = -1;
+        }
+    }
+
+    bool CHardwareMonitor::VramStallWatchdog(int now_tick)
+    {
+        //清理已不存在的显存项目的监控条目
+        for (auto it = g_vram_watch.begin(); it != g_vram_watch.end();)
+        {
+            bool exists = false;
+            for (const auto& item : m_settings.items_info)
+            {
+                if (item.identifyer == it->first)
+                {
+                    exists = true;
+                    break;
+                }
+            }
+            it = exists ? ++it : g_vram_watch.erase(it);
+        }
+
+        bool need_reset = false;
+        for (const auto& item : m_settings.items_info)
+        {
+            if (!HardwareMonitorHelper::IsGpuMemoryItemIdentifier(item.identifyer))
+                continue;
+
+            VramStallWatchEntry& entry = g_vram_watch[item.identifyer];
+            float used_gb = 0.0f;
+            float total_gb = 0.0f;
+            if (HardwareMonitorHelper::GetGpuMemoryValues(item.identifyer, used_gb, total_gb))
+            {
+                entry.invalid_tick = -1;
+                if (!entry.has_baseline || used_gb != entry.last_value)
+                {
+                    //数值变化（或首次采样）：读数路径健康，刷新基准
+                    entry.has_baseline = true;
+                    entry.last_value = used_gb;
+                    entry.baseline_tick = now_tick;
+                }
+                else if ((unsigned int)(now_tick - entry.baseline_tick) >= VRAM_STALL_THRESHOLD_MS)
+                {
+                    //数值长时间不变：读数路径可能已失效
+                    need_reset = true;
+                    break;
+                }
+            }
+            else
+            {
+                //取不到值（传感器无有效读数）
+                if (entry.invalid_tick < 0)
+                    entry.invalid_tick = now_tick;
+                if ((unsigned int)(now_tick - entry.invalid_tick) >= VRAM_STALL_THRESHOLD_MS)
+                {
+                    need_reset = true;
+                    break;
+                }
+            }
+        }
+        return need_reset;
+    }
+
     void CHardwareMonitor::DataRequired()
     {
         try
         {
+            //显存数值停滞监控，每分钟一次：
+            //独立显卡显存读数依赖的NVAPI显示句柄在显示器长时间
+            //节能后永久失效，传感器静默停更（数值冻结），
+            //需要重建硬件组才能恢复（详见
+            //CheckGpuHardwareStaleness()的注释）
+            CheckGpuHardwareStaleness();
             //显示器布局变化（显示器连接/断开等）后系统未立刻就绪，
-            //60秒无缓存窗口内：每次刷新前清空缓存并重新解析硬件和
-            //传感器引用，保证窗口结束时缓存被稳定对象回填，
+            //60秒无缓存窗口内：每次刷新前只清空显存缓存和GPU Load普通传感器缓存，
+            //并重新解析硬件和传感器引用，保证窗口结束时缓存被稳定对象回填，
             //窗口结束后自动恢复正常缓存热路径
             if (InDisplayChangeCacheWindow())
             {
-                HardwareMonitorHelper::ClearGpuMemoryCache();
+                HardwareMonitorHelper::ClearGpuRelatedCaches();
             }
             else
             {
-                //布局稳定期间兜底：每分钟清空一次缓存，下一次取数
-                //重新遍历硬件树并匹配传感器，然后继续缓存。
+                //布局稳定期间兜底：每分钟只清空一次显存缓存，下一次取数
+                //重新遍历硬件树并匹配显存传感器，然后继续缓存；
+                //GPU Load只在布局变化后的60秒窗口内重建。
                 ClearGpuMemoryCacheIfPeriodicDue();
             }
             //重新获取数据
@@ -633,8 +796,8 @@ namespace HardwareMonitor
             display_settings_changed_handler = nullptr;
         }
         computer->Close();
-        //硬件关闭后缓存的传感器引用失效，清空显存传感器缓存
-        HardwareMonitorHelper::ClearGpuMemoryCache();
+        //硬件关闭后所有缓存的传感器引用失效，同时清空显存缓存和普通传感器缓存
+        HardwareMonitorHelper::ClearAllCaches();
     }
 
     String^ MonitorGlobal::GetString(String^ name)

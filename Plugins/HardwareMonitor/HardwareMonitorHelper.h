@@ -55,7 +55,7 @@ namespace HardwareMonitor
         static System::String^ GetGpuMemoryHardwareIdentifier(System::String^ identifier);
         static std::wstring GetGpuMemoryHardwareIdentifier(const std::wstring& identifier);
 
-        //根据硬件标识符查找硬件
+        //根据硬件标识符在硬件树中精确查找硬件
         static LibreHardwareMonitor::Hardware::IHardware^ FindHardwareByIdentifier(System::String^ identifier);
 
         //判断一个显卡是否有可用的显存传感器
@@ -86,6 +86,22 @@ namespace HardwareMonitor
 
         //清空显存传感器引用缓存（硬件或传感器可能变化时调用，如监控硬件设置更改后）
         static void ClearGpuMemoryCache();
+
+        //清空普通传感器引用缓存（FindSensorByIdentifyer 的 sensorMap，
+        //覆盖 GPU Load、温度等非显存项目）
+        static void ClearSensorCache();
+
+        //仅清空 sensorMap 中的 GPU Load 条目（GPU 占用百分比项目），
+        //不清除 CPU、内存、主板等与显示器布局变化无关的传感器缓存
+        static void ClearGpuLoadSensorCache();
+
+        //同时清空显存缓存和 GPU Load 普通传感器缓存，
+        //供显示器布局变化后的窗口期和稳定期间周期重建使用
+        static void ClearGpuRelatedCaches();
+
+        //同时清空显存缓存和全部普通传感器缓存，
+        //供硬件设置变更或插件退出等需要整体重建缓存的场景使用
+        static void ClearAllCaches();
 
         //获取显存项目的单位文本（含与数字之间的空格约定）：
         //G为紧凑单位，与数字之间不加空格，如“45.1G”；
