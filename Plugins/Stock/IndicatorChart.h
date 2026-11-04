@@ -104,6 +104,31 @@ private:
 	// 绘制网格线和时间标签（分时指标区域共用）
 	void DrawSectionGridAndTimeLabels(CDC& memDC, const TimelineDrawContext& ctx, int chartTop, int chartHeight, bool drawTimeLabels);
 
+	// ===== 标题栏绘制（与区域正文分离，各标题栏只负责自身文字） =====
+	// MACD标题栏：DIF/DEA数值（悬停读tip，否则读模型缓存） + DIF趋势箭头
+	void DrawMacdTitleBar(CDC& memDC, const TimelineDrawContext& ctx, int areaTop, int titleH, const HoverState& hover);
+
+	// KDJ标题栏：K/D/J数值 + J值趋势箭头
+	void DrawKDJTitleBar(CDC& memDC, const TimelineDrawContext& ctx, int areaTop, int titleH, const HoverState& hover);
+
+	// W&R标题栏：WR6/WR14数值
+	void DrawWRTitleBar(CDC& memDC, int areaTop, int titleH, const HoverState& hover);
+
+	// RSI标题栏：RSI6/RSI14数值
+	void DrawRSITitleBar(CDC& memDC, int areaTop, int titleH, const HoverState& hover);
+
+	// 成交量标题栏：分量/分额 + 5/10分钟量均线（CJL区域与成交量区域共用）
+	void DrawVolumeTitleBar(CDC& memDC, const TimelineDrawContext& ctx, int areaTop, int titleH, const HoverState& hover);
+
+	// ===== 成交量区域正文（量柱 + 量均线 + 网格，不含标题栏/时间标签） =====
+	void DrawVolumeChartBody(CDC& memDC, const TimelineDrawContext& ctx, int chartTop, int chartHeight, const HoverState& hover);
+
+	// 5/10分钟成交量均线叠加（仅5分钟K线模式）
+	void DrawVolumeMALines(CDC& memDC, const TimelineDrawContext& ctx, int chartTop, int chartHeight, const HoverState& hover);
+
+	// 成交量网格线（含左侧刻度标签与隔天交替竖向虚线）
+	void DrawVolumeGrid(CDC& memDC, const TimelineDrawContext& ctx, int chartTop, int chartHeight);
+
 	// 绘制金叉死叉箭头标记（从圆点边缘开始，箭头头+竖线杆）
 	// markX/markY: 标记中心坐标  dotRadius: 圆点半径  isGolden: 金叉true/死叉false
 	void DrawCrossArrow(CDC& memDC, int markX, int markY, int dotRadius, bool isGolden);
@@ -129,3 +154,8 @@ DayColorCtx CalcDayColorCtx(const std::vector<STOCK::TimelinePoint>& timelinePoi
 
 // 第idx个点所属交易日是否标色（交易日序号奇偶交替，最新交易日不标色）
 bool IsBlueDayAt(const std::vector<STOCK::TimelinePoint>& timelinePoint, int idx, const DayColorCtx& ctx);
+
+// 绘制6等分竖向虚线：X坐标对齐柱中心（与K线/鼠标十字线一致），
+// 5/30分钟K线模式下按真实交易日序号奇偶交替黑色虚线，其余用grayPen
+void DrawDayColoredVLines(CDC& memDC, const std::vector<STOCK::TimelinePoint>& timelinePoint,
+	int chartWidth, int xAxisPoints, int top, int height, CPen& grayPen);

@@ -249,24 +249,9 @@ void CTimelineChart::DrawTimelineGridLines(CDC& memDC, const TimelineDrawContext
 
 	if (ctx.timelinePoint && !ctx.timelinePoint->empty())
 	{
-		// 竖向虚线所在日期与时间标签同规则交替变色（仅5/30分钟K线模式生效）
-		// X坐标对齐柱中心（与K线/鼠标十字线一致）：槽宽 = chartWidth / xAxisPts，线画在 (i+0.5)*槽宽
-		const auto& tl = *ctx.timelinePoint;
-		const int totalPts = static_cast<int>(tl.size());
-		const int numVLines = 6;
-		const int xAxisPts = ctx.xAxisPoints > 0 ? ctx.xAxisPoints : totalPts;
-		const DayColorCtx dayCtx = CalcDayColorCtx(tl);
-		CPen blueGridPen(PS_DOT, 1, COLOR_BLACK);
-		for (int i = 0; i <= numVLines; i++)
-		{
-			int idx = totalPts * i / numVLines;
-			if (idx >= totalPts) idx = totalPts - 1;
-			int xPos = static_cast<int>(ctx.chartWidth / static_cast<float>(xAxisPts) * (static_cast<float>(idx) + 0.5f))
-				+ (i == 0 ? g_data.RDPI(1) : 0);   // 首线的中心会超出左边界少许，右移1px保证可见
-			memDC.SelectObject(IsBlueDayAt(tl, idx, dayCtx) ? &blueGridPen : &pGrid);
-			memDC.MoveTo(xPos, ctx.priceChartTop);
-			memDC.LineTo(xPos, ctx.priceChartTop + ctx.priceChartHeight);
-		}
+		// 竖向虚线：柱中心对齐，5/30分钟隔天交替黑色，其余灰色（公共函数DrawDayColoredVLines）
+		DrawDayColoredVLines(memDC, *ctx.timelinePoint, ctx.chartWidth, ctx.xAxisPoints,
+			ctx.priceChartTop, ctx.priceChartHeight, pGrid);
 	}
 
 	memDC.MoveTo(0, ctx.priceChartTop + ctx.priceChartHeight);

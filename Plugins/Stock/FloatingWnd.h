@@ -25,11 +25,11 @@
 #define FWND_MSG_SHOW_TRADE_DLG (WM_USER + 104)
 
 // 定义时间线可见点数常量
-#define TIME_LINE_VISIBLE_COUNT_1MIN 30
-#define TIME_LINE_VISIBLE_COUNT_5MIN 24
-#define TIME_LINE_VISIBLE_COUNT_30MIN 16
-#define TIME_LINE_VISIBLE_COUNT_1DAY 20
-#define TIME_LINE_VISIBLE_COUNT_STEP 10
+#define TIME_LINE_VISIBLE_COUNT_1MIN 40
+#define TIME_LINE_VISIBLE_COUNT_5MIN 30
+#define TIME_LINE_VISIBLE_COUNT_30MIN 30
+#define TIME_LINE_VISIBLE_COUNT_1DAY 30
+#define TIME_LINE_VISIBLE_COUNT_STEP 20
 
 class CFloatingWnd : public CWnd
 {
@@ -119,7 +119,6 @@ private:
 	CButton m_btnMA;
 	CButton m_btnBoll;
 	CButton m_btnClose;
-	//CButton m_btnExpand;      // 放大按钮（隐藏副图，走势图占3/4）
 	CButton m_btnIndicatorCJL;  // CJL指标按钮
 	CButton m_btnIndicatorMACD;  // MACD信号按钮
 	CButton m_btnIndicatorKDJ;   // KDJ指标按钮
@@ -188,7 +187,7 @@ private:
 	bool m_showTrendView{ false };
 	bool m_showChipPeak{ false };
 	bool m_showTickDetail{ false };  // 明细(MX)模式：盘口区域显示最近20条成交明细
-	bool m_expandedMode{ true };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
+	bool m_expandedMode{ false };  // 放大模式：隐藏副图，走势图3/4+成交量1/4
 	bool m_showKdjChart{ false };  // 下方KDJ/WR/RSI指标图形区域显示开关（MACD按钮切换，默认隐藏）
 	bool m_showStockList{ false };  // 是否显示左侧股票列表面板
 	bool m_showJZCurve{ false };  // 基金净值曲线

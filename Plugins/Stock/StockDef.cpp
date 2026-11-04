@@ -678,7 +678,7 @@ void STOCK::StockInfo::UpdateDisplayFields()
 {
 	if (currentPrice > 0 && prevClosePrice > 0)
 	{
-		CString priceStr = IsETF() ? CCommon::FormatETFPrice(currentPrice) : CCommon::FormatFloat(currentPrice);
+		CString priceStr = GetPriceStr();
 		displayPrice = std::wstring(priceStr.GetString());
 
 		char buff[32];
@@ -887,6 +887,18 @@ void STOCK::StockInfo::LoadHF(std::vector<std::string> data, size_t size)
 		volume = { convert<Volume>(data[14]) };
 }
 
+CString StockInfo::GetPriceStr() const
+{
+	CString priceStr;
+	if (IsETF())
+	{
+		priceStr = CCommon::FormatETFPrice(currentPrice);
+	}
+	else
+		priceStr = CCommon::FormatFloat(currentPrice);
+	return priceStr;
+}
+
 double StockInfo::GetPriceChange() const
 {
 	double displayPrice = currentPrice > 0 ? currentPrice : prevClosePrice;
@@ -941,7 +953,7 @@ CString StockInfo::GetStockListName() const
 	return shortName;
 }
 
-CString StockInfo::GetStockShortName()
+CString StockInfo::GetStockShortName() const
 {
 	// 转成 CString 方便字符串操作
 	CString fullName = displayName.c_str();

@@ -175,10 +175,6 @@ int CFloatingWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_btnMin30KLine.Create(_T("30分"), WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, min30KLineRect, this, IDC_MIN30_KLINE_BTN);
 
 	CRect closeBtnRect(cx - closeBtnWidth, g_data.RDPI(2), cx, g_data.RDPI(2) + closeBtnHeight);
-
-	/*CRect expandBtnRect(cx - closeBtnWidth * 2, g_data.RDPI(2), cx - closeBtnWidth, g_data.RDPI(2) + closeBtnHeight);
-	m_btnExpand.Create(_T("△"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, expandBtnRect, this, IDC_EXPAND_BTN);*/
-
 	m_btnClose.Create(_T("X"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT, closeBtnRect, this, IDC_CLOSE_BTN);
 
 	const int rightBtnWidth = g_data.RDPI(40);

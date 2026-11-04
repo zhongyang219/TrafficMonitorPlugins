@@ -440,9 +440,11 @@ namespace STOCK
 		void LoadNF(std::vector<std::string> data, size_t size);
 		void LoadHF(std::vector<std::string> data, size_t size);
 
-		CString GetStockShortName();
+		CString GetStockShortName() const;
 
 		CString GetStockListName() const;
+
+		CString GetPriceStr() const;
 
 		// 涨跌额
 		double GetChangeAmount() const { return currentPrice - prevClosePrice; }

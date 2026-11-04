@@ -493,9 +493,8 @@ void CStatusBarPanel::DrawSystemStatusBar(CDC& memDC, int w, int bottomBarY, int
 		{
 			const auto& info = stockData->info;
 			double diffPercent = info.GetPriceChange();
-			CString nameStr = info.GetStockListName();
-			CString priceStr;
-			priceStr.Format(_T("%.2f"), info.currentPrice);
+			CString nameStr = info.GetStockShortName();
+			CString priceStr = info.GetPriceStr();
 			CString changeStr = CCommon::prefixFormat(diffPercent, _T("%"));
 
 			memDC.SetTextColor(COLOR_BLACK);
