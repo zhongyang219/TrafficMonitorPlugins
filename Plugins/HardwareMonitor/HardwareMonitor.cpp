@@ -137,6 +137,10 @@ namespace HardwareMonitor
         computer->IsMemoryEnabled = ini.GetBool(L"hardware", L"IsMemoryEnabled", false);            //内存
         computer->IsControllerEnabled = ini.GetBool(L"hardware", L"IsControllerEnabled", false);    //风扇控制器
         computer->IsPsuEnabled = ini.GetBool(L"hardware", L"IsPsuEnabled", false);                  //电源
+        //快照硬件开关，重建 Computer 后由 MonitorGlobal::ReInit 重新应用（见 UpdateHardwareEnableFlags）
+        UpdateHardwareEnableFlags(computer->IsCpuEnabled, computer->IsGpuEnabled, computer->IsMotherboardEnabled,
+            computer->IsStorageEnabled, computer->IsBatteryEnabled, computer->IsNetworkEnabled,
+            computer->IsMemoryEnabled, computer->IsControllerEnabled, computer->IsPsuEnabled);
 
         MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
 
@@ -267,10 +271,33 @@ namespace HardwareMonitor
 
     void CHardwareMonitor::DataRequired()
     {
+        if (AcquireMonitorData())
+            return;
+
+        //取数失败或 Computer 未初始化（初始化失败/驱动更新后失效）：
+        //显卡驱动更新等场景会让 LHM(0.9.4) 内部按旧布局分配的传感器数组越界并抛出异常，
+        //原来的做法是把异常静默吞掉，导致所有显示项目的数值一直冻结到程序重启。
+        //这里改为限流重建 Computer（按新驱动状态重新枚举硬件），重建成功后立即重取一次数据
+        if (CanAttemptReinit())
+        {
+            m_last_reinit_tick = static_cast<unsigned int>(Environment::TickCount);
+            if (MonitorGlobal::Instance()->ReInit())
+            {
+                //重建后立即取一次数；若仍失败，数值保持冻结，下个监控周期继续走这里的恢复流程
+                AcquireMonitorData();
+            }
+        }
+    }
+
+    bool CHardwareMonitor::AcquireMonitorData()
+    {
         try
         {
+            auto computer = MonitorGlobal::Instance()->computer;
+            if (computer == nullptr)    //初始化失败或上次重建失败（例如显卡驱动正在安装）
+                return false;
             //重新获取数据
-            MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
+            computer->Accept(MonitorGlobal::Instance()->updateVisitor);
             //更新“硬件信息”树节点
             if (MonitorGlobal::Instance()->monitor_form != nullptr && m_settings.hardware_info_auto_refresh)
                 MonitorGlobal::Instance()->monitor_form->UpdateData();
@@ -282,10 +309,57 @@ namespace HardwareMonitor
             {
                 item.UpdateValue();
             }
+            return true;
         }
         catch (System::Exception^)
         {
-            //ShowErrorMessage(e);
+            //异常必须向上传递为“取数失败”，让 DataRequired 走重建恢复流程
+            return false;
+        }
+    }
+
+    bool CHardwareMonitor::CanAttemptReinit() const
+    {
+        //窗体持有旧 Computer 的 ISensor 引用，打开期间跳过重建，等窗体关闭后的下个周期再试
+        if (MonitorGlobal::Instance()->monitor_form != nullptr || MonitorGlobal::Instance()->setttings_form != nullptr)
+            return false;
+        unsigned int now = static_cast<unsigned int>(Environment::TickCount);
+        return m_last_reinit_tick == 0 || now - m_last_reinit_tick >= REINIT_INTERVAL_MS;
+    }
+
+    void CHardwareMonitor::UpdateHardwareEnableFlags(bool cpu, bool gpu, bool motherboard, bool storage,
+        bool battery, bool network, bool memory, bool controller, bool psu)
+    {
+        m_hw_cpu = cpu;
+        m_hw_gpu = gpu;
+        m_hw_motherboard = motherboard;
+        m_hw_storage = storage;
+        m_hw_battery = battery;
+        m_hw_network = network;
+        m_hw_memory = memory;
+        m_hw_controller = controller;
+        m_hw_psu = psu;
+    }
+
+    void CHardwareMonitor::ApplyHardwareEnableFlags(Computer^ computer)
+    {
+        if (computer == nullptr)
+            return;
+        try
+        {
+            computer->IsCpuEnabled = m_hw_cpu;
+            computer->IsGpuEnabled = m_hw_gpu;
+            computer->IsMotherboardEnabled = m_hw_motherboard;
+            computer->IsStorageEnabled = m_hw_storage;
+            computer->IsBatteryEnabled = m_hw_battery;
+            computer->IsNetworkEnabled = m_hw_network;
+            computer->IsMemoryEnabled = m_hw_memory;
+            computer->IsControllerEnabled = m_hw_controller;
+            computer->IsPsuEnabled = m_hw_psu;
+        }
+        catch (System::Exception^)
+        {
+            //应用开关失败不影响重建流程
         }
     }
 
@@ -434,15 +508,65 @@ namespace HardwareMonitor
     void MonitorGlobal::Init()
     {
         updateVisitor = gcnew UpdateVisitor();
-        computer = gcnew Computer();
-        computer->Open();
-
+        //先创建资源管理器（与 Computer 无关），Computer 打开失败也不影响字符串资源的获取
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
+        try
+        {
+            computer = gcnew Computer();
+            computer->Open();
+        }
+        catch (System::Exception^)
+        {
+            //Open 失败时置空，DataRequired 会通过 ReInit 限流重试恢复；
+            //异常继续抛给 GetInstance 的 catch 显示错误信息（保持原有行为）
+            computer = nullptr;
+            throw;
+        }
     }
 
     void MonitorGlobal::UnInit()
     {
-        computer->Close();
+        if (computer != nullptr)
+        {
+            try
+            {
+                computer->Close();
+            }
+            catch (System::Exception^) { /*关闭期间的托管异常不允许逃逸出析构路径*/ }
+            computer = nullptr;
+        }
+    }
+
+    bool MonitorGlobal::ReInit()
+    {
+        //显卡驱动更新后，旧的 Computer 持有的 NVAPI 句柄和按旧布局分配的传感器数组全部失效
+        //(Update 时抛出越界异常)，Close 后重新 Open 才会按新驱动状态重新枚举硬件
+        if (computer != nullptr)
+        {
+            try
+            {
+                computer->Close();
+            }
+            catch (System::Exception^) { /*旧的 Computer 已经失效，关闭失败也继续重建*/ }
+            computer = nullptr;
+        }
+        if (updateVisitor == nullptr)
+            updateVisitor = gcnew UpdateVisitor();
+        try
+        {
+            computer = gcnew Computer();
+            //必须在 Open 之前应用硬件开关：LHM 只在 Open 时按开关枚举硬件，之后再设置是无效的
+            CHardwareMonitor::GetInstance()->ApplyHardwareEnableFlags(computer);
+            computer->Open();
+        }
+        catch (System::Exception^)
+        {
+            //重建失败（例如驱动正在安装、NVAPI 暂不可用）：保持未初始化状态，调用方稍后重试
+            computer = nullptr;
+        }
+        //传感器缓存里的 ISensor 对象属于旧的 Computer，已全部失效，必须清空重新解析
+        sensorMap->Clear();
+        return computer != nullptr;
     }
 
     String^ MonitorGlobal::GetString(String^ name)

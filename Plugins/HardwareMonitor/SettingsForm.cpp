@@ -222,6 +222,10 @@ namespace HardwareMonitor
         catch(System::Exception^)
         {}
 
+        //同步快照硬件开关，这样后续 DataRequired 错误恢复时重建的 Computer 会按用户最新的选择枚举硬件
+        CHardwareMonitor::GetInstance()->UpdateHardwareEnableFlags(cpuCheck->Checked, gpuCheck->Checked,
+            motherBoardCheck->Checked, storageCheck->Checked, batteryCheck->Checked, networkCheck->Checked,
+            memoryCheck->Checked, controllerCheck->Checked, psuCheck->Checked);
         CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;
 
         //保存设置
