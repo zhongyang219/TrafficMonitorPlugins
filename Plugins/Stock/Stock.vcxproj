@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64EC">
@@ -148,6 +148,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -166,6 +167,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -184,6 +186,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -200,6 +203,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -218,6 +222,8 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -238,6 +244,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -250,24 +257,66 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="ChartColors.h" />
+    <ClInclude Include="ChartContext.h" />
+    <ClInclude Include="CallAuctionChart.h" />
+    <ClInclude Include="ChipPeakPanel.h" />
+    <ClInclude Include="IndicatorChart.h" />
+    <ClInclude Include="OrderBookPanel.h" />
+    <ClInclude Include="OverviewPanel.h" />
+    <ClInclude Include="StatusBarPanel.h" />
+    <ClInclude Include="TimelineChart.h" />
     <ClInclude Include="DataManager.h" />
     <ClInclude Include="FloatingWnd.h" />
+    <ClInclude Include="TechnicalIndicatorModel.h" />
+    <ClInclude Include="SignalAnalyzer.h" />
+    <ClInclude Include="StockIndicator.h" />
+    <ClInclude Include="SmartSignalTestDlg.h" />
+    <ClInclude Include="StockFetchThread.h" />
+    <ClInclude Include="StockHttpFetcher.h" />
+    <ClInclude Include="TdxTcpClient.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="LocalHttpProxy.h" />
     <ClInclude Include="ManagerDialog.h" />
+    <ClInclude Include="NetFetch.h" />
     <ClInclude Include="OptionsDlg.h" />
+    <ClInclude Include="RelateStockDlg.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sqlite3.h" />
+    <ClInclude Include="StockDbManager.h" />
     <ClInclude Include="Stock.h" />
+    <ClInclude Include="MarketOrderBook.h" />
     <ClInclude Include="StockDef.h" />
     <ClInclude Include="StockItem.h" />
+    <ClInclude Include="StockListPanel.h" />
+    <ClInclude Include="TradeRecordDialog.h" />
+    <ClInclude Include="EstVolumeDialog.h" />
     <ClInclude Include="TransparentWnd.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="CallAuctionChart.cpp" />
+    <ClCompile Include="ChipPeakPanel.cpp" />
+    <ClCompile Include="IndicatorChart.cpp" />
+    <ClCompile Include="OrderBookPanel.cpp" />
+    <ClCompile Include="OverviewPanel.cpp" />
+    <ClCompile Include="StatusBarPanel.cpp" />
+    <ClCompile Include="TimelineChart.cpp" />
     <ClCompile Include="DataManager.cpp" />
     <ClCompile Include="FloatingWnd.cpp" />
+    <ClCompile Include="LocalHttpProxy.cpp" />
+    <ClCompile Include="TechnicalIndicatorModel.cpp" />
+    <ClCompile Include="SignalAnalyzer.cpp" />
+    <ClCompile Include="StockIndicator.cpp" />
+    <ClCompile Include="SmartSignalTestDlg.cpp" />
+    <ClCompile Include="StockFetchThread.cpp" />
+    <ClCompile Include="StockHttpFetcher.cpp" />
+    <ClCompile Include="TdxTcpClient.cpp" />
     <ClCompile Include="ManagerDialog.cpp" />
+    <ClCompile Include="NetFetch.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
+    <ClCompile Include="RelateStockDlg.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -276,9 +325,18 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <SDLCheck>false</SDLCheck>
+    </ClCompile>
+    <ClCompile Include="StockDbManager.cpp" />
     <ClCompile Include="Stock.cpp" />
+    <ClCompile Include="MarketOrderBook.cpp" />
     <ClCompile Include="StockDef.cpp" />
     <ClCompile Include="StockItem.cpp" />
+    <ClCompile Include="StockListPanel.cpp" />
+    <ClCompile Include="TradeRecordDialog.cpp" />
+    <ClCompile Include="EstVolumeDialog.cpp" />
     <ClCompile Include="TransparentWnd.cpp" />
   </ItemGroup>
   <ItemGroup>
