@@ -50,8 +50,9 @@ namespace HardwareMonitor
         //重建 Computer 后需要按快照重新应用这些开关（见 ApplyHardwareEnableFlags）
         void UpdateHardwareEnableFlags(bool cpu, bool gpu, bool motherboard, bool storage,
             bool battery, bool network, bool memory, bool controller, bool psu);
-        //把快照的硬件开关应用到 computer。LHM 只在 Computer::Open() 时按开关枚举硬件，
-        //Open 之后再设置开关是无效的，因此必须在 Open 之前调用
+        const HardwareEnableFlags& GetHardwareEnableFlags() const;
+        // Apply the saved choices to a new computer before Open, or to a live
+        // computer after configuration changes. The caller handles failures.
         void ApplyHardwareEnableFlags(Computer^ computer);
 
         int DPI(int pixel) const;
@@ -76,16 +77,7 @@ namespace HardwareMonitor
         std::wstring m_config_path;
         std::map<std::wstring, std::wstring> m_item_names;  //保存每个Sensor的identifier和名称的map
 
-        //硬件开关快照（见 UpdateHardwareEnableFlags），默认值与 LoadConfig 中 ini 的默认值一致
-        bool m_hw_cpu{ true };
-        bool m_hw_gpu{ true };
-        bool m_hw_motherboard{ true };
-        bool m_hw_storage{ true };
-        bool m_hw_battery{ false };
-        bool m_hw_network{ false };
-        bool m_hw_memory{ false };
-        bool m_hw_controller{ false };
-        bool m_hw_psu{ false };
+        HardwareEnableFlags m_hardware_flags;
 
         unsigned int m_last_reinit_tick{};                 //上次尝试重建 Computer 的时刻（Environment::TickCount）
         static constexpr unsigned int REINIT_INTERVAL_MS = 5000;   //重建 Computer 的最小间隔（毫秒），驱动安装期间避免频繁重建

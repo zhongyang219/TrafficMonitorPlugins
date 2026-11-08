@@ -101,19 +101,15 @@ namespace HardwareMonitor
 
     std::wstring CHardwareMonitor::GetItemName(const std::wstring& identifier)
     {
+        ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
+        if (sensor != nullptr)
+            return Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
         auto iter = m_item_names.find(identifier);
         if (iter != m_item_names.end())
         {
             return iter->second;
         }
-        else
-        {
-            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
-            if (sensor != nullptr)
-                return Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
-        }
-
-        return std::wstring();
+        return identifier;
     }
 
     const std::wstring& CHardwareMonitor::GetConfigPath() const
@@ -126,23 +122,17 @@ namespace HardwareMonitor
         m_config_path = config_dir + L"HardwareMonitor.ini";
         utilities::CIniHelper ini(m_config_path);
 
-        //载入要监控的硬件
-        Computer^ computer = MonitorGlobal::Instance()->computer;
-        computer->IsCpuEnabled = ini.GetBool(L"hardware", L"IsCpuEnabled", true);                   //CPU
-        computer->IsGpuEnabled = ini.GetBool(L"hardware", L"IsGpuEnabled", true);                   //显卡
-        computer->IsMotherboardEnabled = ini.GetBool(L"hardware", L"IsMotherboardEnabled", true);   //主板
-        computer->IsStorageEnabled = ini.GetBool(L"hardware", L"IsStorageEnabled", true);           //硬盘
-        computer->IsBatteryEnabled = ini.GetBool(L"hardware", L"IsBatteryEnabled", false);          //电池
-        computer->IsNetworkEnabled = ini.GetBool(L"hardware", L"IsNetworkEnabled", false);          //网络
-        computer->IsMemoryEnabled = ini.GetBool(L"hardware", L"IsMemoryEnabled", false);            //内存
-        computer->IsControllerEnabled = ini.GetBool(L"hardware", L"IsControllerEnabled", false);    //风扇控制器
-        computer->IsPsuEnabled = ini.GetBool(L"hardware", L"IsPsuEnabled", false);                  //电源
-        //快照硬件开关，重建 Computer 后由 MonitorGlobal::ReInit 重新应用（见 UpdateHardwareEnableFlags）
-        UpdateHardwareEnableFlags(computer->IsCpuEnabled, computer->IsGpuEnabled, computer->IsMotherboardEnabled,
-            computer->IsStorageEnabled, computer->IsBatteryEnabled, computer->IsNetworkEnabled,
-            computer->IsMemoryEnabled, computer->IsControllerEnabled, computer->IsPsuEnabled);
-
-        MonitorGlobal::Instance()->computer->Accept(MonitorGlobal::Instance()->updateVisitor);
+        // Read the complete configuration before touching the hardware provider.
+        // A transient Open/Update failure must not discard the saved selection.
+        UpdateHardwareEnableFlags(ini.GetBool(L"hardware", L"IsCpuEnabled", true),
+            ini.GetBool(L"hardware", L"IsGpuEnabled", true),
+            ini.GetBool(L"hardware", L"IsMotherboardEnabled", true),
+            ini.GetBool(L"hardware", L"IsStorageEnabled", true),
+            ini.GetBool(L"hardware", L"IsBatteryEnabled", false),
+            ini.GetBool(L"hardware", L"IsNetworkEnabled", false),
+            ini.GetBool(L"hardware", L"IsMemoryEnabled", false),
+            ini.GetBool(L"hardware", L"IsControllerEnabled", false),
+            ini.GetBool(L"hardware", L"IsPsuEnabled", false));
 
         //载入要监控的项目
         int item_count = ini.GetInt(L"config", L"item_count");
@@ -160,20 +150,41 @@ namespace HardwareMonitor
             item_info.show_notify = ini.GetBool(app_name.c_str(), L"show_notify", false);
             item_info.notify_value = ini.GetDouble(app_name.c_str(), L"notify_value");
             m_settings.items_info.push_back(item_info);
-            ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(item_info.identifyer.c_str()));
-            if (sensor != nullptr)
-            {
-                std::wstring item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
-                std::wstring lable_text = Common::StringToStdWstring(Common::GetTranslatedString(sensor->Name));
-                m_item_names[item_info.identifyer] = item_name;
-                m_items.emplace_back(item_info.identifyer, item_name, lable_text);
-            }
+            // The host enumerates these pointers once. Keep an item even when
+            // its sensor is unavailable, and resolve its value/name on a later poll.
+            m_item_names[item_info.identifyer] = item_info.identifyer;
+            m_items.emplace_back(item_info.identifyer, item_info.identifyer, item_info.identifyer);
         }
         m_settings.hardware_info_auto_refresh = ini.GetBool(L"config", L"hardware_info_auto_refresh");
         m_settings.show_mouse_tooltip = ini.GetBool(L"config", L"show_mouse_tooltip", true);
 
+        //载入树控件的展开折叠状态
+        std::vector<std::wstring> collapse_nodes;
+        ini.GetStringList(L"other", L"hardware_info_collapsed_nodes", collapse_nodes, std::vector<std::wstring>());
+        for (const auto& node_path : collapse_nodes)
+            MonitorGlobal::Instance()->treeCollapseNodes->Add(gcnew String(node_path.c_str()));
+
+        auto global = MonitorGlobal::Instance();
+        try
+        {
+            ApplyHardwareEnableFlags(global->computer);
+            if (global->computer != nullptr)
+            {
+                global->computer->Accept(global->updateVisitor);
+                // Metadata is needed during the host's initial item enumeration.
+                // Value notifications must wait for DataRequired/OnInitialize.
+                for (auto& item : m_items)
+                    item.UpdateMetadata();
+            }
+        }
+        catch (System::Exception^)
+        {
+            // Keep the loaded choices and let DataRequired retry the provider.
+            global->UnInit();
+        }
+
         //如果配置文件为空，则认为是首次使用硬件监控插件，添加默认的监控项
-        if (ini.IsEmpty())
+        if (ini.IsEmpty() && global->computer != nullptr)
         {
             List<ISensor^>^ default_sensors = gcnew List<ISensor^>();
             HardwareMonitorHelper::GetDefaultMonitorItem(default_sensors);
@@ -190,12 +201,6 @@ namespace HardwareMonitor
                 m_settings.items_info.push_back(item_info);
             }
         }
-
-        //载入树控件的展开折叠状态
-        std::vector<std::wstring> collapse_nodes;
-        ini.GetStringList(L"other", L"hardware_info_collapsed_nodes", collapse_nodes, std::vector<std::wstring>());
-        for (const auto& node_path : collapse_nodes)
-            MonitorGlobal::Instance()->treeCollapseNodes->Add(gcnew String(node_path.c_str()));
     }
 
     void CHardwareMonitor::SaveConfig()
@@ -203,16 +208,15 @@ namespace HardwareMonitor
         utilities::CIniHelper ini(m_config_path);
 
         //保存要监控的硬件
-        Computer^ computer = MonitorGlobal::Instance()->computer;
-        ini.WriteBool(L"hardware", L"IsCpuEnabled", computer->IsCpuEnabled);
-        ini.WriteBool(L"hardware", L"IsGpuEnabled", computer->IsGpuEnabled);
-        ini.WriteBool(L"hardware", L"IsMotherboardEnabled", computer->IsMotherboardEnabled);
-        ini.WriteBool(L"hardware", L"IsStorageEnabled", computer->IsStorageEnabled);
-        ini.WriteBool(L"hardware", L"IsBatteryEnabled", computer->IsBatteryEnabled);
-        ini.WriteBool(L"hardware", L"IsNetworkEnabled", computer->IsNetworkEnabled);
-        ini.WriteBool(L"hardware", L"IsMemoryEnabled", computer->IsMemoryEnabled);
-        ini.WriteBool(L"hardware", L"IsControllerEnabled", computer->IsControllerEnabled);
-        ini.WriteBool(L"hardware", L"IsPsuEnabled", computer->IsPsuEnabled);
+        ini.WriteBool(L"hardware", L"IsCpuEnabled", m_hardware_flags.cpu);
+        ini.WriteBool(L"hardware", L"IsGpuEnabled", m_hardware_flags.gpu);
+        ini.WriteBool(L"hardware", L"IsMotherboardEnabled", m_hardware_flags.motherboard);
+        ini.WriteBool(L"hardware", L"IsStorageEnabled", m_hardware_flags.storage);
+        ini.WriteBool(L"hardware", L"IsBatteryEnabled", m_hardware_flags.battery);
+        ini.WriteBool(L"hardware", L"IsNetworkEnabled", m_hardware_flags.network);
+        ini.WriteBool(L"hardware", L"IsMemoryEnabled", m_hardware_flags.memory);
+        ini.WriteBool(L"hardware", L"IsControllerEnabled", m_hardware_flags.controller);
+        ini.WriteBool(L"hardware", L"IsPsuEnabled", m_hardware_flags.psu);
 
         //保存监控的项目
         ini.WriteInt(L"config", L"item_count", static_cast<int>(m_settings.items_info.size()));
@@ -330,37 +334,35 @@ namespace HardwareMonitor
     void CHardwareMonitor::UpdateHardwareEnableFlags(bool cpu, bool gpu, bool motherboard, bool storage,
         bool battery, bool network, bool memory, bool controller, bool psu)
     {
-        m_hw_cpu = cpu;
-        m_hw_gpu = gpu;
-        m_hw_motherboard = motherboard;
-        m_hw_storage = storage;
-        m_hw_battery = battery;
-        m_hw_network = network;
-        m_hw_memory = memory;
-        m_hw_controller = controller;
-        m_hw_psu = psu;
+        m_hardware_flags.cpu = cpu;
+        m_hardware_flags.gpu = gpu;
+        m_hardware_flags.motherboard = motherboard;
+        m_hardware_flags.storage = storage;
+        m_hardware_flags.battery = battery;
+        m_hardware_flags.network = network;
+        m_hardware_flags.memory = memory;
+        m_hardware_flags.controller = controller;
+        m_hardware_flags.psu = psu;
+    }
+
+    const HardwareEnableFlags& CHardwareMonitor::GetHardwareEnableFlags() const
+    {
+        return m_hardware_flags;
     }
 
     void CHardwareMonitor::ApplyHardwareEnableFlags(Computer^ computer)
     {
         if (computer == nullptr)
             return;
-        try
-        {
-            computer->IsCpuEnabled = m_hw_cpu;
-            computer->IsGpuEnabled = m_hw_gpu;
-            computer->IsMotherboardEnabled = m_hw_motherboard;
-            computer->IsStorageEnabled = m_hw_storage;
-            computer->IsBatteryEnabled = m_hw_battery;
-            computer->IsNetworkEnabled = m_hw_network;
-            computer->IsMemoryEnabled = m_hw_memory;
-            computer->IsControllerEnabled = m_hw_controller;
-            computer->IsPsuEnabled = m_hw_psu;
-        }
-        catch (System::Exception^)
-        {
-            //应用开关失败不影响重建流程
-        }
+        computer->IsCpuEnabled = m_hardware_flags.cpu;
+        computer->IsGpuEnabled = m_hardware_flags.gpu;
+        computer->IsMotherboardEnabled = m_hardware_flags.motherboard;
+        computer->IsStorageEnabled = m_hardware_flags.storage;
+        computer->IsBatteryEnabled = m_hardware_flags.battery;
+        computer->IsNetworkEnabled = m_hardware_flags.network;
+        computer->IsMemoryEnabled = m_hardware_flags.memory;
+        computer->IsControllerEnabled = m_hardware_flags.controller;
+        computer->IsPsuEnabled = m_hardware_flags.psu;
     }
 
     const wchar_t* CHardwareMonitor::GetInfo(PluginInfoIndex index)
@@ -535,6 +537,7 @@ namespace HardwareMonitor
             catch (System::Exception^) { /*关闭期间的托管异常不允许逃逸出析构路径*/ }
             computer = nullptr;
         }
+        sensorMap->Clear();
     }
 
     bool MonitorGlobal::ReInit()
@@ -555,7 +558,7 @@ namespace HardwareMonitor
         try
         {
             computer = gcnew Computer();
-            //必须在 Open 之前应用硬件开关：LHM 只在 Open 时按开关枚举硬件，之后再设置是无效的
+            // Apply the saved choices before enumerating the replacement provider.
             CHardwareMonitor::GetInstance()->ApplyHardwareEnableFlags(computer);
             computer->Open();
         }

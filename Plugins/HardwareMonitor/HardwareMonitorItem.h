@@ -19,6 +19,7 @@ namespace HardwareMonitor
         virtual int IsDrawResourceUsageGraph() const override;
         virtual float GetResourceUsageGraphValue() const override;
 
+        void UpdateMetadata();
         void UpdateValue();
         const std::wstring& GetIdentifier() const;
 

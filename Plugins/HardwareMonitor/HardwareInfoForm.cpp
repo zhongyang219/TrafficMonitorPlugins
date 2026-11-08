@@ -54,7 +54,7 @@ namespace HardwareMonitor
 
         //填充数据
         auto computer = MonitorGlobal::Instance()->computer;
-        for (int i = 0; i < computer->Hardware->Count; i++)
+        for (int i = 0; computer != nullptr && i < computer->Hardware->Count; i++)
         {
             //添加Hardware节点
             auto hardware = computer->Hardware[i];
