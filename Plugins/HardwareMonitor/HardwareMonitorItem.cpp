@@ -90,11 +90,25 @@ namespace HardwareMonitor
         return 0.0f;
     }
 
+    void CHardwareMonitorItem::UpdateMetadata()
+    {
+        ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
+        if (sensor != nullptr)
+        {
+            // An item loaded while offline keeps its address and identifier;
+            // replace its placeholder metadata once its sensor is available.
+            item_name = Common::StringToStdWstring(HardwareMonitorHelper::GetSensorDisplayName(sensor));
+            label_text = Common::StringToStdWstring(Common::GetTranslatedString(sensor->Name));
+            sensor_type = static_cast<int>(sensor->SensorType);
+        }
+    }
+
     void CHardwareMonitorItem::UpdateValue()
     {
         ISensor^ sensor = HardwareMonitorHelper::FindSensorByIdentifyer(gcnew String(identifier.c_str()));
         if (sensor != nullptr)
         {
+            UpdateMetadata();
             const ItemInfo& item_info{ CHardwareMonitor::GetInstance()->m_settings.FindItemInfo(identifier) };
             String^ unit;
             if (!item_info.unit.empty())

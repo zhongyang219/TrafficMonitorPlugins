@@ -118,10 +118,12 @@ namespace HardwareMonitor
 
     ISensor^ HardwareMonitorHelper::FindSensorByIdentifyer(String^ identifyer)
     {
-        ISensor^ sensor;
+        auto computer = MonitorGlobal::Instance()->computer;
+        if (computer == nullptr)
+            return nullptr;
+        ISensor^ sensor{};
         if (!MonitorGlobal::Instance()->sensorMap->TryGetValue(identifyer, sensor))
         {
-            auto computer = MonitorGlobal::Instance()->computer;
             gcroot<String^> _identifyer = identifyer;       //使用gcroot包装托管类指针，以便被lambda捕获
             for each (IHardware^ hardware in computer->Hardware)
             {
@@ -131,7 +133,9 @@ namespace HardwareMonitor
                 if (sensor != nullptr)
                     break;
             }
-            MonitorGlobal::Instance()->sensorMap->Add(identifyer, sensor);
+            // A missing sensor may appear after the provider finishes recovering.
+            if (sensor != nullptr)
+                MonitorGlobal::Instance()->sensorMap->Add(identifyer, sensor);
         }
         return sensor;
     }
@@ -260,6 +264,8 @@ namespace HardwareMonitor
     void HardwareMonitorHelper::GetDefaultMonitorItem(List<ISensor^>^ default_sensors)
     {
         auto computer = MonitorGlobal::Instance()->computer;
+        if (computer == nullptr)
+            return;
         for (int i = 0; i < computer->Hardware->Count; i++)
         {
             IHardware^ hardware = computer->Hardware[i];

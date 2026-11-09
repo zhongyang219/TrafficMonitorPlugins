@@ -28,6 +28,20 @@ namespace HardwareMonitor
         {}
     };
 
+    // User choices remain available while the hardware provider is offline.
+    struct HardwareEnableFlags
+    {
+        bool cpu{ true };
+        bool gpu{ true };
+        bool motherboard{ true };
+        bool storage{ true };
+        bool battery{ false };
+        bool network{ false };
+        bool memory{ false };
+        bool controller{ false };
+        bool psu{ false };
+    };
+
     //选项设置数据
     struct OptionSettings
     {

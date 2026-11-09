@@ -26,16 +26,16 @@ namespace HardwareMonitor
         EnableControls();
 
         //初始化要监控的硬件选项
-        Computer^ computer = MonitorGlobal::Instance()->computer;
-        cpuCheck->Checked = computer->IsCpuEnabled;
-        gpuCheck->Checked = computer->IsGpuEnabled;
-        motherBoardCheck->Checked = computer->IsMotherboardEnabled;
-        storageCheck->Checked = computer->IsStorageEnabled;
-        batteryCheck->Checked = computer->IsBatteryEnabled;
-        networkCheck->Checked = computer->IsNetworkEnabled;
-        memoryCheck->Checked = computer->IsMemoryEnabled;
-        controllerCheck->Checked = computer->IsControllerEnabled;
-        psuCheck->Checked = computer->IsPsuEnabled;
+        const auto& enabled = CHardwareMonitor::GetInstance()->GetHardwareEnableFlags();
+        cpuCheck->Checked = enabled.cpu;
+        gpuCheck->Checked = enabled.gpu;
+        motherBoardCheck->Checked = enabled.motherboard;
+        storageCheck->Checked = enabled.storage;
+        batteryCheck->Checked = enabled.battery;
+        networkCheck->Checked = enabled.network;
+        memoryCheck->Checked = enabled.memory;
+        controllerCheck->Checked = enabled.controller;
+        psuCheck->Checked = enabled.psu;
 
         showTooltipCheck->Checked = CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip;
 
@@ -206,22 +206,18 @@ namespace HardwareMonitor
     void SettingsForm::OnFormClosing(Object^ sender, FormClosingEventArgs^ e)
     {
         //更新要监控的硬件设置
-        Computer^ computer = MonitorGlobal::Instance()->computer;
+        auto plugin = CHardwareMonitor::GetInstance();
+        plugin->UpdateHardwareEnableFlags(cpuCheck->Checked, gpuCheck->Checked,
+            motherBoardCheck->Checked, storageCheck->Checked, batteryCheck->Checked, networkCheck->Checked,
+            memoryCheck->Checked, controllerCheck->Checked, psuCheck->Checked);
         try
         {
-            computer->IsCpuEnabled = cpuCheck->Checked;
-            computer->IsGpuEnabled = gpuCheck->Checked;
-            computer->IsMotherboardEnabled = motherBoardCheck->Checked;
-            computer->IsStorageEnabled = storageCheck->Checked;
-            computer->IsBatteryEnabled = batteryCheck->Checked;
-            computer->IsNetworkEnabled = networkCheck->Checked;
-            computer->IsMemoryEnabled = memoryCheck->Checked;
-            computer->IsControllerEnabled = controllerCheck->Checked;
-            computer->IsPsuEnabled = psuCheck->Checked;
+            plugin->ApplyHardwareEnableFlags(MonitorGlobal::Instance()->computer);
         }
         catch(System::Exception^)
-        {}
-
+        {
+            MonitorGlobal::Instance()->UnInit();
+        }
         CHardwareMonitor::GetInstance()->m_settings.show_mouse_tooltip = showTooltipCheck->Checked;
 
         //保存设置
