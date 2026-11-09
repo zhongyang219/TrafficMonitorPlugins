@@ -167,8 +167,8 @@ namespace HardwareMonitor
         auto global = MonitorGlobal::Instance();
         try
         {
-            ApplyHardwareEnableFlags(global->computer);
-            if (global->computer != nullptr)
+            // Cold start and recovery must enumerate with the same saved flags.
+            if (global->ReInit())
             {
                 global->computer->Accept(global->updateVisitor);
                 // Metadata is needed during the host's initial item enumeration.
@@ -510,20 +510,9 @@ namespace HardwareMonitor
     void MonitorGlobal::Init()
     {
         updateVisitor = gcnew UpdateVisitor();
-        //先创建资源管理器（与 Computer 无关），Computer 打开失败也不影响字符串资源的获取
+        // The provider is opened by LoadConfig after reading hardware flags.
+        // ReInit is shared by cold start and driver-error recovery.
         resourceManager = gcnew Resources::ResourceManager("HardwareMonitor.resource", Reflection::Assembly::GetExecutingAssembly());
-        try
-        {
-            computer = gcnew Computer();
-            computer->Open();
-        }
-        catch (System::Exception^)
-        {
-            //Open 失败时置空，DataRequired 会通过 ReInit 限流重试恢复；
-            //异常继续抛给 GetInstance 的 catch 显示错误信息（保持原有行为）
-            computer = nullptr;
-            throw;
-        }
     }
 
     void MonitorGlobal::UnInit()
@@ -564,7 +553,13 @@ namespace HardwareMonitor
         }
         catch (System::Exception^)
         {
-            //重建失败（例如驱动正在安装、NVAPI 暂不可用）：保持未初始化状态，调用方稍后重试
+            // An unsuccessful Open may leave partially initialized resources.
+            if (computer != nullptr)
+            {
+                try { computer->Close(); }
+                catch (System::Exception^) {}
+            }
+            // Keep the provider offline; DataRequired retries after backoff.
             computer = nullptr;
         }
         //传感器缓存里的 ISensor 对象属于旧的 Computer，已全部失效，必须清空重新解析
