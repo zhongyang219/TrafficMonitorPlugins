@@ -331,3 +331,16 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### 无线设备电量（WirelessBattery）
+
+用于在任务栏显示 2.4G 无线鼠标/键盘电量的插件：支持 Compx 方案接收器（VGN F1 系列等）、罗技 Lightspeed（G304 等，HID++ 2.0）和迈从键盘。只发读命令、不唤醒休眠设备；悬停显示设备名/电压/读取时间，双击或右键立即刷新，休眠时数值变暗，拔掉接收器自动隐藏，拔插 3 秒内响应。
+
+![](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/raw/logitech-g304/docs/images/g304-taskbar.png)
+
+* 作者：[zimi1695](https://github.com/zimi1695)
+* 主页：[zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery)
+* 下载链接：
+
+  GitHub: [v1.1.0-g304.1 · zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/releases/tag/v1.1.0-g304.1)
+
+  Gitee: [v1.1.0-g304.1 · zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://gitee.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/releases/tag/v1.1.0-g304.1)
