@@ -319,3 +319,16 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### WirelessBattery (2.4G mouse & keyboard battery)
+
+Taskbar battery level for 2.4G wireless mice/keyboards: Compx receivers (VGN F1 series), Logitech Lightspeed (G304 etc., HID++ 2.0) and MCHOSE keyboards. Read-only queries that never wake sleeping devices; hover for device name/voltage/last reading time, double-click or right-click to refresh, dimmed value while asleep, hidden when the receiver is unplugged, plug/unplug reflected within 3 s.
+
+![](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/raw/logitech-g304/docs/images/g304-taskbar.png)
+
+* Author: [zimi1695](https://github.com/zimi1695)
+* Homepage: [zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery)
+* Download url:
+
+  GitHub: [v1.1.0-g304.1 · zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://github.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/releases/tag/v1.1.0-g304.1)
+
+  Gitee: [v1.1.0-g304.1 · zimi1695/TrafficMonitor-2.4G-Wireless-Battery](https://gitee.com/zimi1695/TrafficMonitor-2.4G-Wireless-Battery/releases/tag/v1.1.0-g304.1)
