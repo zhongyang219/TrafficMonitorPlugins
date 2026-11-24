@@ -331,3 +331,12 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### 外设电量（PeripheralBatteryPlugin）
+
+在任务栏中显示外设电量：蓝牙耳机等蓝牙设备（读取 Windows 自身的电量信息，无需厂商软件），以及通过 LIGHTSPEED / Unifying / Bolt 接收器连接的罗技鼠标（通过 HID++ 直接读取，无需 G Hub）。电量低时显示红色并弹出通知，充电时显示绿色；设备连接或断开后几秒内更新。支持简体中文和英文界面。
+
+![](https://github.com/Ariazonaa/PeripheralBatteryPlugin/raw/main/docs/taskbar.png)
+
+* 作者：[Ariazonaa](https://github.com/Ariazonaa)
+* 主页：[Ariazonaa/PeripheralBatteryPlugin](https://github.com/Ariazonaa/PeripheralBatteryPlugin)
+* 下载链接：https://github.com/Ariazonaa/PeripheralBatteryPlugin/releases/latest
