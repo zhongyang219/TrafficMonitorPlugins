@@ -319,3 +319,12 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### PeripheralBatteryPlugin
+
+Shows the battery level of peripheral devices in the taskbar: Bluetooth devices such as headphones (using the battery level Windows itself knows, no vendor app needed) and Logitech mice connected through a LIGHTSPEED / Unifying / Bolt receiver (queried directly via HID++, no G Hub needed). The value turns red with a notification on low battery and green while charging, and updates within a few seconds when a device connects or disconnects. English and Simplified Chinese interface.
+
+![](https://github.com/Ariazonaa/PeripheralBatteryPlugin/raw/main/docs/taskbar.png)
+
+* Author: [Ariazonaa](https://github.com/Ariazonaa)
+* Homepage: [Ariazonaa/PeripheralBatteryPlugin](https://github.com/Ariazonaa/PeripheralBatteryPlugin)
+* Download url: https://github.com/Ariazonaa/PeripheralBatteryPlugin/releases/latest
