@@ -331,3 +331,16 @@ A plugin for [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) th
 * 下载链接：https://github.com/bestK/TMFetchPlugin/releases/latest
 * 相关链接：[[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### StockPlusPlus 股票行情插件
+
+![stockplusplus](https://raw.githubusercontent.com/xiongaox/StockPlusPlus/main/images/%E9%A6%96%E9%A1%B5.png)
+
+在 Stock 插件基础上重构的增强版行情插件，覆盖 A 股 / 港股 / 美股 / ETF：任务栏常驻行情，点击唤起暗黑悬浮窗，内置分时、日/周/月 K 线与 MA、MACD、KDJ、RSI、BOLL 指标，以及五档盘口、筹码分布、板块资金流、涨跌家数分布、ETF 持仓穿透、交易台账与 K 线 B/S 标记、WebDAV 云端备份、阈值提醒等功能。
+
+> 安装说明：dll 文件名为 `StockPlusPlus.dll`，配置为 `StockPlusPlus.ini`。首次启动会自动把同目录的旧版 `Stock.ini` 迁移为 `StockPlusPlus.ini`；**升级时请先删除 plugins 目录下的旧 `Stock.dll`**，否则两个插件会同时加载、重复显示并争抢同一份台账数据库。
+
+* 作者：[xiongaox](https://github.com/xiongaox)
+
+* 主页：[xiongaox/StockPlusPlus](https://github.com/xiongaox/StockPlusPlus)
+
+* 下载链接：https://github.com/xiongaox/StockPlusPlus/releases/latest

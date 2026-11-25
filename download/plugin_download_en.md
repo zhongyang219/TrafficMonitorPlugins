@@ -319,3 +319,14 @@ A generic HTTP / JSON fetcher plugin for [TrafficMonitor](https://github.com/zho
 * Download url: https://github.com/bestK/TMFetchPlugin/releases/latest
 * Related url: [[分享\] TMFetchPlugin 通用 HTTP/JSON 数据抓取插件 · Issue #2318 · zhongyang219/TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor/issues/2318)
 
+### StockPlusPlus Stock Plugin
+
+![stockplusplus](https://raw.githubusercontent.com/xiongaox/StockPlusPlus/main/images/%E9%A6%96%E9%A1%B5.png)
+
+An enhanced stock plugin rebuilt on top of the Stock plugin. It covers A-shares, HK and US stocks and ETFs: quotes in the taskbar, a dark floating window with intraday and daily/weekly/monthly charts plus MA, MACD, KDJ, RSI and BOLL indicators, five-level order book, chip distribution, sector capital flow, market breadth, ETF holdings drill-down, a trade ledger with B/S markers on the charts, WebDAV backup and price alerts.
+
+> Note: the dll file name is `StockPlusPlus.dll` and the config is `StockPlusPlus.ini`. On first run the old `Stock.ini` is migrated automatically. Please delete the old `Stock.dll` from the plugins folder before upgrading, otherwise both plugins will be loaded and share the same ledger database.
+
+* Author: [xiongaox](https://github.com/xiongaox)
+* Homepage: [xiongaox/StockPlusPlus](https://github.com/xiongaox/StockPlusPlus)
+* Download url: https://github.com/xiongaox/StockPlusPlus/releases/latest
